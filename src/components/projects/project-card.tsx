@@ -57,10 +57,10 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
 
   const cardClasses = cn(
     "group h-full rounded-3xl overflow-hidden border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm",
-    "hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-all duration-300",
+    "hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-all duration-300 relative cursor-pointer",
     mode === 'showcase'
-      ? "hover:shadow-2xl hover:shadow-blue-500/10 hover:duration-500 cursor-pointer"
-      : "hover:shadow-xl hover:shadow-blue-500/5 relative",
+      ? "hover:shadow-2xl hover:shadow-blue-500/10 hover:duration-500"
+      : "hover:shadow-xl hover:shadow-blue-500/5",
   );
 
   const inner = (
@@ -134,33 +134,41 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
     author = <div className="group/author">{author}</div>;
   }
 
-  if (mode === 'manage') {
-    return (
-      <Card className={cardClasses}>
-        <Link href={`/projects/${project.id}`} className="block">
-          {inner}
-        </Link>
-        <CardFooter className="border-t border-zinc-100 dark:border-zinc-800/50 pt-4 pb-5 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-900/20">
+  return (
+    <Card className={cardClasses}>
+      <div className="relative z-0">
+        {inner}
+      </div>
+
+      <CardFooter className={cn(
+        "border-t border-zinc-100 dark:border-zinc-800/50 pt-4 pb-5 flex justify-between items-center relative z-0",
+        mode === 'manage' && "bg-zinc-50/50 dark:bg-zinc-900/20"
+      )}>
+        <div className="relative z-20">
           {author}
+        </div>
+        {mode === 'manage' && (
           <Link
             href={`/projects/${project.id}/edit`}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "rounded-full text-xs hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-800 z-10 relative")}
+            className={cn(
+              buttonVariants({ variant: "outline", size: "sm" }), 
+              "rounded-full text-xs hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-800 relative z-20"
+            )}
           >
             <Pencil className="w-3.5 h-3.5 mr-1.5" /> 수정하기
           </Link>
-        </CardFooter>
-      </Card>
-    );
-  }
-
-  return (
-    <Card className={cardClasses}>
-      <Link href={`/projects/${project.id}`} className="block">
-        {inner}
-      </Link>
-      <CardFooter className="border-t border-zinc-100 dark:border-zinc-800/50 pt-4 pb-5 flex justify-between items-center">
-        {author}
+        )}
       </CardFooter>
+
+      {/* 
+        This absolute link covers the whole card (including footer background). 
+        z-10 puts it above the z-0 content but below the z-20 interactive elements.
+      */}
+      <Link 
+        href={`/projects/${project.id}`} 
+        className="absolute inset-0 z-10" 
+        aria-label={`${project.title} 상세보기`}
+      />
     </Card>
   );
 }
