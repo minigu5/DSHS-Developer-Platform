@@ -139,10 +139,10 @@
 | **Step 0** | Supabase 프로젝트 생성, Google OAuth 셋업, GitHub/Vercel 연결, `.env.local` 작성 | ✅ **완료** |
 | **Step 1** | Next.js (App Router) 초기 세팅, Tailwind + shadcn/ui 설치, 디렉토리 구조 정리 | ✅ **완료** |
 | **Step 2** | Supabase 클라이언트(`@supabase/ssr`) 구성, Google 로그인 구현, `@ts.hs.kr` 도메인 검증 Middleware | ✅ **완료** |
-| **Step 3** | `users` / `projects` / `reviews` 테이블 + RLS SQL 작성 (Supabase SQL Editor 실행) | ⏳ **진행 중** |
-| **Step 4** | 프로젝트 게시 폼(Form) UI + Supabase Insert 로직 | ⏳ (UI 완료) |
+| **Step 3** | `users` / `projects` / `reviews` 테이블 + RLS SQL 작성 (Supabase SQL Editor 실행) | ✅ **완료** |
+| **Step 4** | 프로젝트 게시 폼(Form) UI + Supabase Insert/Update 로직 (ProjectForm 모듈화) | ✅ **완료** |
 | **Step 5** | 메인/탐색(Explore) 페이지 + 다중 조건 필터링 | ✅ **완료** |
-| **Step 6** | 프로젝트 상세 페이지 + 댓글/별점(Reviews) | ⏳ |
+| **Step 6** | 프로젝트 상세 페이지(DB 연동) + 댓글/별점(Reviews) | ⏳ **진행 중** (상세 페이지 완료, 리뷰 대기) |
 
 ---
 
@@ -157,8 +157,10 @@ src/
 │   │   ├── explore/              # 탐색 + 필터링
 │   │   └── projects/
 │   │       ├── new/              # 게시
-│   │       └── [id]/             # 상세
+│   │       ├── [id]/             # 상세
+│   │       │   └── edit/         # 프로젝트 수정
 │   ├── auth/callback/            # OAuth 콜백
+│   ├── me/                       # 마이페이지
 │   ├── layout.tsx
 │   └── globals.css
 ├── components/
@@ -212,4 +214,7 @@ src/
 
 - [`docs/01-supabase-setup.md`](./docs/01-supabase-setup.md) — Supabase 프로젝트 생성 가이드
 - [`docs/02-google-oauth-setup.md`](./docs/02-google-oauth-setup.md) — Google OAuth 연동 가이드
+- [`docs/03-supabase-schema.sql`](./docs/03-supabase-schema.sql) — 기본 테이블 스키마 및 RLS
+- [`docs/04-supabase-alter.sql`](./docs/04-supabase-alter.sql) — 컬럼 추가 (icon_url 등)
+- [`docs/05-supabase-alter-2.sql`](./docs/05-supabase-alter-2.sql) — 접근 권한 및 커스텀 기능 관련 컬럼 추가
 - [`.env.local.example`](./.env.local.example) — 환경 변수 템플릿

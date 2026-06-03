@@ -1,50 +1,35 @@
 import Link from "next/link";
 import { ArrowRight, Code2, Globe, Layout, Search, Sparkles, Terminal, Layers } from "lucide-react";
 
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AuthButtons } from "@/components/shared/auth-buttons";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { createClient } from "@/lib/supabase/server";
 
-// Mock data for display purposes
-const FEATURED_PROJECTS = [
-  {
-    id: "1",
-    title: "대곽 유틸리티 허브",
-    short_description: "시간표 관리, 급식 메뉴 확인 등 대곽 학생들을 위한 종합 유틸리티 도구입니다.",
-    description: "시간표 관리, 급식 메뉴 확인 등 대곽 학생들을 위한 종합 유틸리티 도구입니다. 더 많은 상세 설명...",
-    type: "Web App",
-    platforms: ["Web", "iOS", "Android"],
-    author: "신민규",
-    tags: ["Utility", "Open Source"],
-    likes: 124,
-  },
-  {
-    id: "2",
-    title: "양자물리 시뮬레이터",
-    short_description: "고급 물리 수업에서 다루는 양자역학 개념들을 3D로 시각화한 인터랙티브 시뮬레이션.",
-    description: "고급 물리 수업에서 다루는 양자역학 개념들을 3D로 시각화한 인터랙티브 시뮬레이션. 상세 설명...",
-    type: "Application",
-    platforms: ["macOS", "Windows"],
-    author: "물리부 팀",
-    tags: ["Education", "3D"],
-    likes: 89,
-  },
-  {
-    id: "3",
-    title: "Chem-AI 어시스턴트",
-    short_description: "화학 반응식을 자동으로 맞춰주고 반응 결과를 예측해주는 AI 기반 학습 도구.",
-    description: "화학 반응식을 자동으로 맞춰주고 반응 결과를 예측해주는 AI 기반 학습 도구. 상세 설명...",
-    type: "AI Tool",
-    platforms: ["Web"],
-    author: "AI 스터디 그룹",
-    tags: ["AI", "Chemistry"],
-    likes: 210,
-  }
-];
+export default async function HomePage() {
+  const supabase = await createClient();
+  
+  // Fetch up to 6 featured (latest) projects
+  const { data: featuredProjects } = await supabase
+    .from('projects')
+    .select(`
+      id,
+      title,
+      short_description,
+      type,
+      platforms,
+      author_role,
+      team_name,
+      icon_url,
+      features,
+      users (full_name)
+    `)
+    .eq('visibility', 'public')
+    .order('created_at', { ascending: false })
+    .limit(6);
 
-export default function DemoHomePage() {
   return (
     <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-black overflow-hidden font-sans">
       
@@ -132,7 +117,7 @@ export default function DemoHomePage() {
       <section className="py-24 px-6 max-w-7xl mx-auto w-full">
         <div className="flex flex-col sm:flex-row justify-between items-end mb-12 gap-6">
           <div>
-            <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-4">주목받는 프로젝트</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-4">최근 등록된 프로젝트</h2>
             <p className="text-lg text-zinc-500 dark:text-zinc-400">학우들이 최근에 개발한 놀라운 프로젝트들을 확인해보세요.</p>
           </div>
           <Link href="/explore" className={cn(buttonVariants({ variant: "ghost" }), "group rounded-full text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20")}>
@@ -140,60 +125,69 @@ export default function DemoHomePage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {FEATURED_PROJECTS.map((project) => (
-            <Link href={`/projects/${project.id}`} key={project.id} className="block">
-              <Card className="group h-full rounded-3xl overflow-hidden border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-500/50 dark:hover:border-blue-500/50 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 cursor-pointer">
-                <div className="h-48 bg-zinc-100 dark:bg-zinc-950 relative overflow-hidden flex items-center justify-center">
-                  <div className="absolute inset-0 bg-gradient-to-br from-zinc-200 to-zinc-100 dark:from-zinc-800 dark:to-zinc-900 opacity-50" />
-                  <Terminal className="w-16 h-16 text-zinc-300 dark:text-zinc-700 relative z-10 group-hover:scale-110 transition-transform duration-500" />
-                  <div className="absolute top-4 right-4 flex gap-2 z-10">
-                    <Badge variant="secondary" className="bg-white/80 dark:bg-black/50 backdrop-blur-md">
-                      {project.type}
-                    </Badge>
-                  </div>
-                </div>
-                <CardHeader className="pt-6">
-                  <div className="flex gap-2 mb-3 flex-wrap">
-                    {project.tags.map(tag => (
-                      <Badge key={tag} variant="outline" className="text-xs text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 rounded-full px-2">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                  <CardTitle className="text-xl font-bold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                    {project.title}
-                  </CardTitle>
-                  <CardDescription className="line-clamp-2 text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed mt-2">
-                    {project.short_description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-4 text-xs font-medium text-zinc-500 dark:text-zinc-500 mt-2">
-                    <span className="flex items-center">
-                      <Globe className="w-3.5 h-3.5 mr-1" />
-                      {project.platforms.join(", ")}
-                    </span>
-                  </div>
-                </CardContent>
-                <CardFooter className="border-t border-zinc-100 dark:border-zinc-800/50 pt-4 pb-5 flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-[10px] font-bold text-white">
-                      {project.author.charAt(0)}
+        {featuredProjects && featuredProjects.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {featuredProjects.map((project: any) => {
+              const authorName = project.author_role === 'team' ? project.team_name : project.users?.full_name || '알 수 없음';
+              const tags = project.features?.slice(0, 2) || [];
+              
+              return (
+                <Link href={`/projects/${project.id}`} key={project.id} className="block">
+                  <Card className="group h-full rounded-3xl overflow-hidden border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-500/50 dark:hover:border-blue-500/50 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 cursor-pointer">
+                    <div className="h-48 bg-zinc-100 dark:bg-zinc-950 relative overflow-hidden flex items-center justify-center">
+                      <div className="absolute inset-0 bg-gradient-to-br from-zinc-200 to-zinc-100 dark:from-zinc-800 dark:to-zinc-900 opacity-50" />
+                      {project.icon_url ? (
+                        <img src={project.icon_url} alt={project.title} className="w-16 h-16 relative z-10 group-hover:scale-110 transition-transform duration-500 rounded-2xl shadow-md" />
+                      ) : (
+                        <Terminal className="w-16 h-16 text-zinc-300 dark:text-zinc-700 relative z-10 group-hover:scale-110 transition-transform duration-500" />
+                      )}
+                      <div className="absolute top-4 right-4 flex gap-2 z-10">
+                        <Badge variant="secondary" className="bg-white/80 dark:bg-black/50 backdrop-blur-md">
+                          {project.type}
+                        </Badge>
+                      </div>
                     </div>
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{project.author}</span>
-                  </div>
-                  <div className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none" className="text-zinc-300 dark:text-zinc-700 mr-1.5 group-hover:text-red-500 transition-colors">
-                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                    </svg>
-                    {project.likes}
-                  </div>
-                </CardFooter>
-              </Card>
-            </Link>
-          ))}
-        </div>
+                    <CardHeader className="pt-6">
+                      <div className="flex gap-2 mb-3 flex-wrap">
+                        {tags.map((tag: string) => (
+                          <Badge key={tag} variant="outline" className="text-xs text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 rounded-full px-2">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                      <CardTitle className="text-xl font-bold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        {project.title}
+                      </CardTitle>
+                      <CardDescription className="line-clamp-2 text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed mt-2">
+                        {project.short_description || "설명이 없습니다."}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center gap-4 text-xs font-medium text-zinc-500 dark:text-zinc-500 mt-2">
+                        <span className="flex items-center">
+                          <Globe className="w-3.5 h-3.5 mr-1" />
+                          {project.platforms?.join(", ") || '전체'}
+                        </span>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="border-t border-zinc-100 dark:border-zinc-800/50 pt-4 pb-5 flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-[10px] font-bold text-white">
+                          {authorName.charAt(0)}
+                        </div>
+                        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{authorName}</span>
+                      </div>
+                    </CardFooter>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-20 bg-zinc-50 dark:bg-zinc-900/50 rounded-3xl border border-zinc-200 dark:border-zinc-800">
+            <p className="text-zinc-500 dark:text-zinc-400">아직 등록된 프로젝트가 없습니다.</p>
+          </div>
+        )}
       </section>
 
       {/* FOOTER */}
