@@ -215,110 +215,34 @@
 
 ---
 
-### 작업 4️⃣ — `SiteHeader` 컴포넌트 추출 (우선순위: 🟡 중간)
+### 작업 4️⃣ — `SiteHeader` 컴포넌트 추출 ✅ **완료 (2026-06-03)**
 
-**현재 상태:**
-- `<AuthButtons />` 가 다음 4개 페이지에서 각각 마운트됨:
-  - `src/app/page.tsx`
-  - `src/app/explore/page.tsx`
-  - `src/app/me/page.tsx`
-  - `src/app/projects/[id]/page.tsx`
-  - `src/app/projects/new/page.tsx`
-  - `src/app/projects/[id]/edit/page.tsx`
-- 각 페이지마다 헤더 마크업이 살짝씩 다름 (max-w-7xl vs max-w-5xl vs max-w-3xl, 좌측 BackButton 여부 등)
-
-**리팩터 방안:**
-
-1. **`src/components/shared/site-header.tsx`** 생성
-   ```tsx
-   interface SiteHeaderProps {
-     maxWidth?: 'sm' | 'md' | 'lg';  // max-w-3xl/5xl/7xl 매핑
-     showBack?: boolean;
-     backHref?: string;
-     title?: string;  // 가운데 또는 우측 페이지명
-   }
-   ```
-   안에 `<AuthButtons />` + `<BackButton />` 통합
-
-2. **라우트 그룹 활용 (선택):**
-   - `src/app/(main)/layout.tsx` 만들고 `<SiteHeader />` 거기에 두기
-   - `(main)` 그룹 안으로 `page.tsx`, `explore/`, `me/`, `projects/` 이동
-   - `/login`, `/auth/*` 는 그룹 밖이라 헤더 노출 안 됨 (현재와 동일)
-   - 단, 페이지마다 max-w 가 다르므로 그룹 layout 에서는 max-w 를 그대로 두기 어려움. 옵션:
-     - SiteHeader 에 maxWidth prop 으로 페이지별 override
-     - 또는 layout 에서는 헤더만 풀너비, 그 아래 main의 max-w는 페이지가 직접 결정
-
-3. **변경 후 dev server 띄워서 모든 페이지의 헤더가 동일하게 보이는지 확인**
-
-**검증:** 페이지 6곳 헤더 외관 일관성, 로그인 상태 변경이 모든 페이지에 반영
+- `src/components/shared/site-header.tsx` 생성. props: `maxWidth` ('sm'/'md'/'lg' → 3xl/5xl/7xl), `variant` ('sticky'/'transparent'), `back` (discriminated union: `home` | `custom` | `history`), `showLogo`, `pageTitle`, `rightExtra`
+- 6개 페이지(`/`, `/explore`, `/me`, `/projects/[id]`, `/projects/new`, `/projects/[id]/edit`) 모두 `<SiteHeader />` 사용
+- 홈은 `variant="transparent"` 로 hero 위에 떠 있는 헤더 유지
+- `/projects/new` 는 server component 로 전환 (이전 `"use client"` 불필요)
+- 기존 `<BackButton />` 컴포넌트는 `back.type === 'history'` 일 때 SiteHeader 내부에서 재사용
 
 ---
 
-### 작업 5️⃣ — `<img>` → `next/image` 전환 + 외부 이미지 도메인 화이트리스트 (우선순위: 🟢 낮음)
+### 작업 5️⃣ — `<img>` → `next/image` 전환 + 외부 이미지 도메인 화이트리스트 ✅ **완료 (2026-06-03)**
 
-**현재 `<img>` 사용 위치:**
-- `src/app/projects/[id]/page.tsx` — `project.icon_url` 표시
-
-**문제:**
-- Next.js dev console 에서 LCP / 최적화 경고
-- `icon_type='auto'` 일 때 `icon_url = "https://www.google.com/s2/favicons?domain=${url}&sz=128"` — 외부 URL
-- 사용자 직접 업로드 (`icon_type='upload'`) 는 아직 구현 안 됨 (Supabase Storage 미사용)
-
-**작업:**
-1. `next.config.ts` 에 `images.remotePatterns` 추가:
-   ```ts
-   const nextConfig = {
-     images: {
-       remotePatterns: [
-         { protocol: 'https', hostname: 'www.google.com', pathname: '/s2/favicons/**' },
-         { protocol: 'https', hostname: '*.supabase.co' },  // upload 대비
-         { protocol: 'https', hostname: 'lh3.googleusercontent.com' },  // Google OAuth avatar
-       ],
-     },
-   };
-   ```
-2. `<img src={project.icon_url}>` → `<Image src={...} width={128} height={128} alt="..." />`
-
-**검증:** `next.config.ts` 변경 후 dev server 재시작 필수. 콘솔 경고 사라짐.
+- `next.config.ts` 의 `images.remotePatterns` 에 `www.google.com/s2/favicons/**` + `*.supabase.co` 추가 (기존 `lh3.googleusercontent.com`, `avatars.githubusercontent.com` 유지)
+- `src/app/projects/[id]/page.tsx`, `src/components/projects/project-card.tsx` 의 `<img>` 를 `next/image` 의 `<Image />` 로 전환
+- lint 의 `@next/next/no-img-element` 경고 사라짐
 
 ---
 
-### 작업 6️⃣ — Supabase CLI 로 타입 자동 생성 셋업 (우선순위: 🟢 낮음, 권장)
+### 작업 6️⃣ — Supabase CLI 로 타입 자동 생성 셋업 ✅ **부분 완료 (스크립트 추가, CLI 셋업은 사용자 작업)**
 
-**왜 권장:**
-- 현재 `src/lib/types.ts` 는 수동 작성 → 스키마 변경 시 수동 동기화 필요
-- CLI 자동 생성으로 alter SQL 실행 후 한 명령으로 타입 갱신 가능
-
-**셋업 단계:**
-
-1. Supabase CLI 설치:
-   ```bash
-   brew install supabase/tap/supabase
-   ```
-2. 로그인:
-   ```bash
-   supabase login
-   ```
-3. 프로젝트 link:
-   ```bash
-   supabase link --project-ref aclcleemnsmxyixcfqro
-   ```
-4. `package.json` 에 스크립트 추가:
-   ```json
-   "scripts": {
-     "db:types": "supabase gen types typescript --linked --schema public > src/lib/types.ts"
-   }
-   ```
-5. 실행 후 결과를 기존 alias (`UserRow`, `ProjectRow`, ...) 와 합치기. 자동 생성 파일은 alias 가 없으므로 파일 하단에 alias 블록만 보존:
-   ```ts
-   // ... (자동 생성된 Database 타입)
-
-   export type UserRow = Database['public']['Tables']['users']['Row'];
-   export type ProjectRow = Database['public']['Tables']['projects']['Row'];
-   // ...
-   ```
-
-**검증:** `npm run db:types` 실행 후 `npx tsc --noEmit` 통과
+- `package.json` 에 `"db:types": "supabase gen types typescript --linked --schema public > src/lib/types.generated.ts"` 추가
+- 출력 경로를 기존 수동 작성 `types.ts` 가 아닌 `types.generated.ts` 로 분리해 충돌 없이 비교 가능
+- 사용자가 별도로 수행해야 할 단계 (인증/환경 필요):
+  1. `brew install supabase/tap/supabase`
+  2. `supabase login`
+  3. `supabase link --project-ref aclcleemnsmxyixcfqro`
+  4. `npm run db:types` 실행 → `src/lib/types.generated.ts` 생성 확인
+  5. 결과를 검토한 뒤 기존 `types.ts` 를 자동생성 파일 + alias 블록으로 교체 (또는 generated 만 사용)
 
 ---
 

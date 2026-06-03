@@ -1,10 +1,10 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ChevronLeft, Settings, MapPin, Mail, CalendarDays } from 'lucide-react';
+import { Settings, MapPin, Mail, CalendarDays } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/server';
-import { AuthButtons } from '@/components/shared/auth-buttons';
+import { SiteHeader } from '@/components/shared/site-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -52,18 +52,7 @@ export default async function MyPage() {
   return (
     <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-black font-sans">
       
-      {/* HEADER */}
-      <header className="sticky top-0 z-50 w-full border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-black/80 backdrop-blur-md">
-        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors flex items-center text-sm font-medium">
-            <ChevronLeft className="w-4 h-4 mr-1" /> 홈으로
-          </Link>
-          <div className="flex items-center gap-4">
-            <h1 className="font-bold text-lg hidden sm:block">내 프로필</h1>
-            <AuthButtons />
-          </div>
-        </div>
-      </header>
+      <SiteHeader maxWidth="md" back={{ type: "home" }} pageTitle="내 프로필" />
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-12">
         <div className="flex flex-col md:flex-row gap-8">

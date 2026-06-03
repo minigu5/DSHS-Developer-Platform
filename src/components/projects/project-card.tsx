@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Globe, Pencil, Terminal } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
@@ -59,8 +60,13 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
         <div className="h-48 bg-zinc-100 dark:bg-zinc-950 relative overflow-hidden flex items-center justify-center">
           <div className="absolute inset-0 bg-gradient-to-br from-zinc-200 to-zinc-100 dark:from-zinc-800 dark:to-zinc-900 opacity-50" />
           {project.icon_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={project.icon_url} alt={project.title} className="w-16 h-16 relative z-10 group-hover:scale-110 transition-transform duration-500 rounded-2xl shadow-md" />
+            <Image
+              src={project.icon_url}
+              alt={project.title}
+              width={64}
+              height={64}
+              className="w-16 h-16 relative z-10 group-hover:scale-110 transition-transform duration-500 rounded-2xl shadow-md"
+            />
           ) : (
             <Terminal className="w-16 h-16 text-zinc-300 dark:text-zinc-700 relative z-10 group-hover:scale-110 transition-transform duration-500" />
           )}

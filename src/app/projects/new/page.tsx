@@ -1,27 +1,14 @@
-"use client";
-
-import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
-import { AuthButtons } from "@/components/shared/auth-buttons";
+import { SiteHeader } from "@/components/shared/site-header";
 import { ProjectForm } from "@/components/projects/project-form";
 
 export default function NewProjectPage() {
   return (
     <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-black font-sans">
-      {/* HEADER */}
-      <header className="sticky top-0 z-50 w-full border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-black/80 backdrop-blur-md">
-        <div className="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors flex items-center text-sm font-medium">
-            <ChevronLeft className="w-4 h-4 mr-1" /> 홈으로
-          </Link>
-          <div className="flex items-center gap-4">
-            <div className="text-sm font-medium text-zinc-500 hidden sm:block">
-              새 프로젝트 등록
-            </div>
-            <AuthButtons />
-          </div>
-        </div>
-      </header>
+      <SiteHeader
+        maxWidth="sm"
+        back={{ type: "home" }}
+        pageTitle="새 프로젝트 등록"
+      />
 
       <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-12">
         <div className="mb-8">

@@ -3,7 +3,7 @@ import { ArrowRight, Code2, Globe, Layout, Search, Sparkles, Layers } from "luci
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { AuthButtons } from "@/components/shared/auth-buttons";
+import { SiteHeader } from "@/components/shared/site-header";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import { ProjectCard, type ProjectCardData } from "@/components/projects/project-card";
@@ -34,12 +34,7 @@ export default async function HomePage() {
   return (
     <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-black overflow-hidden font-sans">
       
-      {/* HEADER (Auth only) */}
-      <header className="absolute top-0 z-50 w-full">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-end">
-          <AuthButtons />
-        </div>
-      </header>
+      <SiteHeader variant="transparent" maxWidth="lg" />
 
       {/* HERO SECTION */}
       <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6 flex items-center justify-center flex-col text-center">

@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import { Globe, Code2, Star, ExternalLink, ShieldCheck } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { AuthButtons } from "@/components/shared/auth-buttons";
+import { SiteHeader } from "@/components/shared/site-header";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
-import { BackButton } from "@/components/shared/back-button";
 import { ProjectReviews } from "@/components/projects/project-reviews";
 import type { ReviewItem } from "@/components/projects/review-list";
 
@@ -67,13 +67,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-black font-sans">
-      {/* HEADER */}
-      <header className="sticky top-0 z-50 w-full border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-black/80 backdrop-blur-md">
-        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-          <BackButton fallbackUrl="/explore" />
-          <AuthButtons />
-        </div>
-      </header>
+      <SiteHeader maxWidth="md" back={{ type: "history", fallbackUrl: "/explore" }} />
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-12">
         {/* Project Header Section */}
@@ -81,7 +75,13 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           {/* Icon */}
           <div className="w-32 h-32 shrink-0 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-center justify-center overflow-hidden">
             {project.icon_url ? (
-              <img src={project.icon_url} alt={`${project.title} icon`} className="w-full h-full object-cover" />
+              <Image
+                src={project.icon_url}
+                alt={`${project.title} icon`}
+                width={128}
+                height={128}
+                className="w-full h-full object-cover"
+              />
             ) : (
               <div className="text-4xl font-bold text-zinc-300 dark:text-zinc-700">{project.title.substring(0, 1)}</div>
             )}
