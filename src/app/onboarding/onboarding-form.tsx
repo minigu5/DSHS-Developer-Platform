@@ -59,22 +59,39 @@ export function OnboardingForm({ user }: { user: User }) {
     }
   };
 
-  const onSubmit = async (data: OnboardingValues) => {
-    setLoading(true);
-    const result = await updateProfile({
-      nickname: data.nickname,
-      bio: null,
-      avatar_url: user.user_metadata.avatar_url || "",
-      interests: data.interests,
-    });
-    setLoading(false);
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && step === 1) {
+      e.preventDefault();
+      nextStep();
+    }
+  };
 
-    if (result.error) {
-      toast.error(result.error);
-    } else {
-      toast.success("환영합니다! 프로필 설정이 완료되었습니다.");
-      router.push("/");
-      router.refresh();
+  const onSubmit = async (data: OnboardingValues) => {
+    if (step === 1) return; // Prevent submission if accidentally triggered in step 1
+
+    setLoading(true);
+    try {
+      const result = await updateProfile({
+        nickname: data.nickname,
+        bio: null,
+        avatar_url: user.user_metadata.avatar_url || "",
+        interests: data.interests,
+      });
+
+      if (result.error) {
+        setLoading(false);
+        toast.error(result.error);
+      } else {
+        toast.success("환영합니다! 프로필 설정이 완료되었습니다.");
+        // 닉네임 업데이트 후 캐시 반영을 위해 refresh 후 이동
+        router.refresh();
+        setTimeout(() => {
+          router.push("/");
+        }, 500); // 넉넉하게 500ms 대기
+      }
+    } catch (err) {
+      setLoading(false);
+      toast.error("프로필 저장 중 오류가 발생했습니다.");
     }
   };
 
@@ -90,7 +107,11 @@ export function OnboardingForm({ user }: { user: User }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form 
+          onSubmit={form.handleSubmit(onSubmit)} 
+          onKeyDown={handleKeyDown}
+          className="space-y-6"
+        >
           {step === 1 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="space-y-2">

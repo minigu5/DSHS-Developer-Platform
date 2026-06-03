@@ -33,7 +33,7 @@ export default async function HomePage() {
     .returns<ProjectCardData[]>();
 
   return (
-    <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-black overflow-hidden font-sans">
+    <div className="flex flex-col min-h-screen bg-zinc-50/50 dark:bg-[#09090b] overflow-hidden font-sans">
       
       <SiteHeader variant="transparent" maxWidth="lg" />
 
@@ -69,7 +69,7 @@ export default async function HomePage() {
       </section>
 
       {/* FEATURE HIGHLIGHTS */}
-      <section className="py-20 px-6 bg-white dark:bg-zinc-950/50 border-y border-zinc-200 dark:border-zinc-900">
+      <section className="py-20 px-6 bg-white dark:bg-[#0c0c0e] border-y border-zinc-200 dark:border-zinc-900">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">학생들을 위해 만들어진 플랫폼</h2>
@@ -79,7 +79,7 @@ export default async function HomePage() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="p-8 rounded-3xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="p-8 rounded-3xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
               <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-6">
                 <Layers className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
@@ -88,7 +88,7 @@ export default async function HomePage() {
                 프로그램 종류, 지원 플랫폼, 라이선스별로 어플리케이션을 분류하여 누구나 필요한 프로그램을 쉽게 찾을 수 있습니다.
               </p>
             </div>
-            <div className="p-8 rounded-3xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="p-8 rounded-3xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
               <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mb-6">
                 <Globe className="w-6 h-6 text-purple-600 dark:text-purple-400" />
               </div>
@@ -97,7 +97,7 @@ export default async function HomePage() {
                 커뮤니티에 코드 저장소를 공유하거나 비공개로 유지할 수 있습니다. 프로젝트 공개 여부를 완전히 제어할 수 있습니다.
               </p>
             </div>
-            <div className="p-8 rounded-3xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="p-8 rounded-3xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
               <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-6">
                 <Layout className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
               </div>
@@ -136,7 +136,7 @@ export default async function HomePage() {
       </section>
 
       {/* FOOTER */}
-      <footer className="mt-auto py-12 px-6 border-t border-zinc-200 dark:border-zinc-900 bg-zinc-50 dark:bg-black text-center text-zinc-500 dark:text-zinc-400">
+      <footer className="mt-auto py-12 px-6 border-t border-zinc-200 dark:border-zinc-900 bg-zinc-50/30 dark:bg-[#09090b] text-center text-zinc-500 dark:text-zinc-400">
         <p>© {new Date().getFullYear()} DSHS Developer Platform. Built by students, for students.</p>
         <p className="mt-2 text-sm">오직 @ts.hs.kr 도메인 사용자만 인증을 통해 접속할 수 있습니다.</p>
       </footer>

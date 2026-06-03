@@ -56,7 +56,7 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
     : '전체';
 
   const cardClasses = cn(
-    "group h-full rounded-3xl overflow-hidden border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50",
+    "group h-full rounded-3xl overflow-hidden border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm",
     "hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-all duration-300",
     mode === 'showcase'
       ? "hover:shadow-2xl hover:shadow-blue-500/10 hover:duration-500 cursor-pointer"
@@ -73,20 +73,20 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
             className="w-12 h-12 shrink-0 shadow-sm border border-zinc-100 dark:border-zinc-800 group-hover:scale-105 transition-transform duration-300" 
           />
           <div className="flex-1 min-w-0">
-            <div className="flex gap-2 mb-2 flex-wrap">
-              <Badge variant="secondary" className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-[10px] h-5 px-1.5 font-semibold">
+            <div className="flex gap-2 mb-2 flex-wrap h-5 overflow-hidden">
+              <Badge variant="secondary" className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] h-5 px-1.5 font-semibold shrink-0">
                 {project.type}
               </Badge>
               {tags.map((tag) => (
-                <Badge key={tag} variant="outline" className="text-[10px] text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 rounded-full h-5 px-2">
+                <Badge key={tag} variant="outline" className="text-[10px] text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 rounded-full h-5 px-2 shrink-0">
                   {tag}
                 </Badge>
               ))}
             </div>
-            <CardTitle className="text-lg font-bold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
+            <CardTitle className="text-lg font-bold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
               {project.title}
             </CardTitle>
-            <CardDescription className="line-clamp-2 text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed mt-1">
+            <CardDescription className="line-clamp-2 text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed mt-1 min-h-[2.5rem]">
               {project.short_description || "설명이 없습니다."}
             </CardDescription>
           </div>

@@ -267,11 +267,8 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
         throw new Error("로그인이 필요합니다.");
       }
 
-      // 플랫폼 로직: 앱이 아니면 모든 플랫폼
-      let platformsToSave = selectedPlatforms;
-      if (type !== 'app') {
-        platformsToSave = PLATFORMS.map(p => p.value);
-      }
+      // 플랫폼 로직: 예전에는 앱이 아니면 강제로 전체였으나, 이제 사용자 선택을 존중 (기본값만 세팅)
+      const platformsToSave = selectedPlatforms;
 
       let finalIconUrl = initialData?.icon_url ?? null;
 
@@ -365,26 +362,26 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
             <div 
               onClick={() => setAuthorRole("individual")}
               className={cn(
-                "flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all",
+                "flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
                 authorRole === "individual" 
-                  ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20" 
-                  : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800"
+                  ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10" 
+                  : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-lg hover:shadow-black/5"
               )}
             >
-              <UserIcon className={cn("w-6 h-6 mb-2", authorRole === "individual" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />
-              <h4 className={cn("font-semibold", authorRole === "individual" ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>개인</h4>
+              <UserIcon className={cn("w-6 h-6 mb-2 transition-colors", authorRole === "individual" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />
+              <h4 className={cn("font-semibold transition-colors", authorRole === "individual" ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>개인</h4>
             </div>
             <div 
               onClick={() => setAuthorRole("team")}
               className={cn(
-                "flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all",
+                "flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
                 authorRole === "team" 
-                  ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20" 
-                  : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800"
+                  ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10" 
+                  : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-lg hover:shadow-black/5"
               )}
             >
-              <Users className={cn("w-6 h-6 mb-2", authorRole === "team" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />
-              <h4 className={cn("font-semibold", authorRole === "team" ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>팀</h4>
+              <Users className={cn("w-6 h-6 mb-2 transition-colors", authorRole === "team" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />
+              <h4 className={cn("font-semibold transition-colors", authorRole === "team" ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>팀</h4>
             </div>
           </div>
 
@@ -445,30 +442,30 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
               <div 
                 onClick={() => handleIconTypeChange("auto")}
                 className={cn(
-                  "flex items-center p-3 rounded-xl border-2 cursor-pointer transition-all",
+                  "flex items-center p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
                   iconType === "auto" 
-                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20" 
+                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10" 
                     : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800"
                 )}
               >
-                <Globe className={cn("w-5 h-5 mr-3", iconType === "auto" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />
+                <Globe className={cn("w-5 h-5 mr-3 transition-colors", iconType === "auto" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />
                 <div>
-                  <h4 className={cn("font-medium text-sm", iconType === "auto" ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>웹사이트에서 가져오기</h4>
+                  <h4 className={cn("font-medium text-sm transition-colors", iconType === "auto" ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>웹사이트에서 가져오기</h4>
                   <p className="text-xs text-zinc-500">파비콘 자동 추출 (실패 시 기본 아이콘)</p>
                 </div>
               </div>
               <div 
                 onClick={() => handleIconTypeChange("upload")}
                 className={cn(
-                  "flex items-center p-3 rounded-xl border-2 cursor-pointer transition-all",
+                  "flex items-center p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
                   iconType === "upload" 
-                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20" 
+                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10" 
                     : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800"
                 )}
               >
-                <Upload className={cn("w-5 h-5 mr-3", iconType === "upload" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />
+                <Upload className={cn("w-5 h-5 mr-3 transition-colors", iconType === "upload" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />
                 <div>
-                  <h4 className={cn("font-medium text-sm", iconType === "upload" ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>이미지 업로드</h4>
+                  <h4 className={cn("font-medium text-sm transition-colors", iconType === "upload" ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>이미지 업로드</h4>
                   <p className="text-xs text-zinc-500">512px 이하 정사각형 PNG/JPG</p>
                 </div>
               </div>
@@ -569,12 +566,16 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
           <div className="space-y-3" id="type_section">
             <Label htmlFor="type" className="text-sm font-medium">프로그램 종류 <span className="text-red-500">*</span></Label>
             <Select value={type} onValueChange={(val) => setType(val || "")}>
-              <SelectTrigger id="type" className="h-11 rounded-xl">
-                <SelectValue placeholder="프로그램 종류를 선택하세요" />
+              <SelectTrigger id="type" className="h-11 rounded-xl bg-white dark:bg-zinc-900/50">
+                <SelectValue placeholder="프로그램 종류를 선택하세요">
+                  {PROJECT_TYPES.find(pt => pt.value === type)?.label}
+                </SelectValue>
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
                 {PROJECT_TYPES.map(pt => (
-                  <SelectItem key={pt.value} value={pt.value}>{pt.label}</SelectItem>
+                  <SelectItem key={pt.value} value={pt.value} className="focus:bg-blue-50 dark:focus:bg-blue-900/20 focus:text-blue-600 dark:focus:text-blue-400">
+                    {pt.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -584,13 +585,21 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
             <Label className="text-sm font-medium text-zinc-900 dark:text-zinc-200">주요 기능 / 카테고리 (다중 선택)</Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {FEATURES.map(feature => (
-                <div key={feature.value} className="flex items-center space-x-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-3 rounded-xl hover:border-blue-500 transition-colors cursor-pointer group">
+                <div 
+                  key={feature.value} 
+                  onClick={() => handleFeatureChange(feature.value, !selectedFeatures.includes(feature.value))}
+                  className={cn(
+                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-all duration-200 ease-out cursor-pointer select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
+                    selectedFeatures.includes(feature.value)
+                      ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400 shadow-md shadow-blue-500/10"
+                      : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-blue-200 dark:hover:border-blue-800"
+                  )}
+                >
                   <Checkbox 
-                    id={`feature-${feature.value}`} 
                     checked={selectedFeatures.includes(feature.value)}
-                    onCheckedChange={(checked) => handleFeatureChange(feature.value, checked as boolean)}
+                    className="hidden"
                   />
-                  <Label htmlFor={`feature-${feature.value}`} className="cursor-pointer text-sm font-medium w-full text-zinc-700 dark:text-zinc-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                  <Label className="cursor-pointer text-sm font-semibold w-full">
                     {feature.label}
                   </Label>
                 </div>
@@ -621,41 +630,33 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
         </CardHeader>
         <CardContent className="p-6 space-y-8">
           
-          <div className="space-y-4" id="platforms_section">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium text-zinc-900 dark:text-zinc-200">지원 플랫폼</Label>
-              {type !== 'app' && (
-                <span className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-full font-medium">
-                  {type === 'website' ? '웹사이트는 모든 플랫폼에서 지원합니다.' : '자동으로 모든 플랫폼이 선택됩니다'}
-                </span>
-              )}
-            </div>
-            
-            {type === 'app' ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 animate-in fade-in slide-in-from-top-2">
-                {PLATFORMS.map(platform => (
-                  <div key={platform.value} className="flex items-center space-x-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-3 rounded-xl hover:border-blue-500 transition-colors cursor-pointer group">
-                    <Checkbox 
-                      id={`platform-${platform.value}`} 
-                      checked={selectedPlatforms.includes(platform.value)}
-                      onCheckedChange={(checked) => handlePlatformChange(platform.value, checked as boolean)}
-                    />
-                    <Label htmlFor={`platform-${platform.value}`} className="cursor-pointer text-sm font-medium w-full text-zinc-700 dark:text-zinc-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                      {platform.label}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex gap-2 flex-wrap">
-                {PLATFORMS.map(platform => (
-                  <div key={platform.value} className="px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 text-sm font-medium rounded-lg">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 animate-in fade-in slide-in-from-top-2">
+              {PLATFORMS.map(platform => (
+                <div 
+                  key={platform.value} 
+                  onClick={() => handlePlatformChange(platform.value, !selectedPlatforms.includes(platform.value))}
+                  className={cn(
+                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-all duration-200 ease-out cursor-pointer select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
+                    selectedPlatforms.includes(platform.value)
+                      ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400 shadow-md shadow-blue-500/10"
+                      : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-blue-200 dark:hover:border-blue-800"
+                  )}
+                >
+                  <Checkbox 
+                    checked={selectedPlatforms.includes(platform.value)}
+                    className="hidden"
+                  />
+                  <Label className="cursor-pointer text-sm font-semibold w-full">
                     {platform.label}
-                  </div>
-                ))}
-              </div>
+                  </Label>
+                </div>
+              ))}
+            </div>
+            {type !== 'app' && (
+              <p className="text-[11px] text-zinc-500 bg-zinc-800/5 py-1.5 px-3 rounded-lg border border-zinc-800/10 inline-block">
+                💡 {type === 'website' ? '웹사이트는 보통 모든 플랫폼을 지원하므로 전체 선택을 권장합니다.' : '이 종류의 프로젝트는 일반적으로 모든 플랫폼에서 실행 가능합니다.'}
+              </p>
             )}
-          </div>
 
           <div className="space-y-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
             <Label className="text-sm font-medium text-zinc-900 dark:text-zinc-200">소스코드 공개 여부</Label>
@@ -665,17 +666,17 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
                   key={stype.value}
                   onClick={() => setSourceType(stype.value as SourceType)}
                   className={cn(
-                    "flex flex-col items-start p-4 rounded-xl border-2 cursor-pointer transition-all",
+                    "flex flex-col items-start p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
                     sourceType === stype.value 
-                      ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20" 
+                      ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10" 
                       : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800"
                   )}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    {stype.value === 'open' ? <Code2 className={cn("w-5 h-5", sourceType === stype.value ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} /> : <Lock className={cn("w-5 h-5", sourceType === stype.value ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />}
-                    <h4 className={cn("font-semibold", sourceType === stype.value ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>{stype.label}</h4>
+                    {stype.value === 'open' ? <Code2 className={cn("w-5 h-5 transition-colors", sourceType === stype.value ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} /> : <Lock className={cn("w-5 h-5 transition-colors", sourceType === stype.value ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />}
+                    <h4 className={cn("font-semibold transition-colors", sourceType === stype.value ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>{stype.label}</h4>
                   </div>
-                  <p className={cn("text-xs", sourceType === stype.value ? "text-blue-700 dark:text-blue-400" : "text-zinc-500")}>
+                  <p className={cn("text-xs transition-colors", sourceType === stype.value ? "text-blue-700 dark:text-blue-400" : "text-zinc-500")}>
                     {stype.value === 'open' ? "누구나 코드를 볼 수 있습니다." : "소스코드를 비공개로 유지합니다."}
                   </p>
                 </div>
@@ -698,20 +699,36 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
             
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {LICENSE_FEATURES.map(lf => (
-                <div key={lf.value} className="flex items-center space-x-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-3 rounded-xl hover:border-blue-500 transition-colors cursor-pointer group">
+                <div 
+                  key={lf.value} 
+                  onClick={() => handleLicenseFeatureChange(lf.value, !licenseFeatures.includes(lf.value))}
+                  className={cn(
+                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-all duration-200 ease-out cursor-pointer select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
+                    licenseFeatures.includes(lf.value)
+                      ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400 shadow-md shadow-blue-500/10"
+                      : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-blue-200 dark:hover:border-blue-800"
+                  )}
+                >
                   <Checkbox 
-                    id={`lf-${lf.value}`} 
                     checked={licenseFeatures.includes(lf.value)}
-                    onCheckedChange={(checked) => handleLicenseFeatureChange(lf.value, checked as boolean)}
+                    className="hidden"
                   />
-                  <Label htmlFor={`lf-${lf.value}`} className="cursor-pointer text-sm font-medium w-full text-zinc-700 dark:text-zinc-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                  <Label className="cursor-pointer text-sm font-semibold w-full">
                     {lf.label}
                   </Label>
                 </div>
               ))}
-              <div className="flex items-center space-x-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-3 rounded-xl hover:border-blue-500 transition-colors cursor-pointer group">
-                <Checkbox id="lf-custom" checked={hasCustomLicense} onCheckedChange={(checked) => setHasCustomLicense(!!checked)} />
-                <Label htmlFor="lf-custom" className="cursor-pointer text-sm font-medium w-full text-zinc-700 dark:text-zinc-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+              <div 
+                onClick={() => setHasCustomLicense(!hasCustomLicense)}
+                className={cn(
+                  "flex items-center space-x-2 p-3 rounded-xl border-2 transition-all duration-200 ease-out cursor-pointer select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
+                  hasCustomLicense
+                    ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400 shadow-md shadow-blue-500/10"
+                    : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-blue-200 dark:hover:border-blue-800"
+                )}
+              >
+                <Checkbox checked={hasCustomLicense} className="hidden" />
+                <Label className="cursor-pointer text-sm font-semibold w-full">
                   기타 (직접 입력)
                 </Label>
               </div>
@@ -741,17 +758,17 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
                 key={v.value}
                 onClick={() => setVisibility(v.value as Visibility)}
                 className={cn(
-                  "flex flex-col items-start p-4 rounded-xl border-2 cursor-pointer transition-all",
+                  "flex flex-col items-start p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
                   visibility === v.value 
-                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20" 
+                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10" 
                     : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800"
                 )}
               >
                 <div className="flex items-center gap-2 mb-1">
-                  {v.value === 'public' ? <Globe className={cn("w-5 h-5", visibility === v.value ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} /> : <Lock className={cn("w-5 h-5", visibility === v.value ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />}
-                  <h4 className={cn("font-semibold", visibility === v.value ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>{v.label}</h4>
+                  {v.value === 'public' ? <Globe className={cn("w-5 h-5 transition-colors", visibility === v.value ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} /> : <Lock className={cn("w-5 h-5 transition-colors", visibility === v.value ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />}
+                  <h4 className={cn("font-semibold transition-colors", visibility === v.value ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>{v.label}</h4>
                 </div>
-                <p className={cn("text-xs", visibility === v.value ? "text-blue-700 dark:text-blue-400" : "text-zinc-500")}>
+                <p className={cn("text-xs transition-colors", visibility === v.value ? "text-blue-700 dark:text-blue-400" : "text-zinc-500")}>
                   {v.value === 'public' ? "누구나 이 프로젝트를 볼 수 있습니다." : "나와 허락된 사용자만 볼 수 있습니다."}
                 </p>
               </div>
@@ -799,13 +816,24 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
       </Card>
       
       <div className="flex justify-end gap-4 pt-4 pb-20">
-        <button type="button" onClick={() => router.back()} className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-full px-8 text-base h-12")}>
+        <button 
+          type="button" 
+          onClick={() => router.back()} 
+          className={cn(
+            buttonVariants({ variant: "outline", size: "lg" }), 
+            "rounded-full px-8 text-base h-12 transition-all duration-200 ease-out will-change-transform hover:scale-[1.05] active:scale-[0.95]"
+          )}
+        >
           취소
         </button>
         <button 
           type="submit" 
           disabled={isLoading || shortDesc.length > 100}
-          className={cn(buttonVariants({ size: "lg" }), "rounded-full px-8 text-base bg-blue-600 hover:bg-blue-700 text-white h-12 flex items-center shadow-lg shadow-blue-500/20", (isLoading || shortDesc.length > 100) && "opacity-50 cursor-not-allowed")} 
+          className={cn(
+            buttonVariants({ size: "lg" }), 
+            "rounded-full px-8 text-base bg-blue-600 hover:bg-blue-700 text-white h-12 flex items-center shadow-lg shadow-blue-500/20 transition-all duration-200 ease-out will-change-transform hover:scale-[1.05] active:scale-[0.95]", 
+            (isLoading || shortDesc.length > 100) && "opacity-50 cursor-not-allowed"
+          )} 
         >
           {isLoading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <UploadCloud className="w-5 h-5 mr-2" />}
           {isEdit ? "프로젝트 수정하기" : "프로젝트 게시하기"}

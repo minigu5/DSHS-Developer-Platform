@@ -24,6 +24,7 @@ CREATE TABLE public.users (
   nickname    text UNIQUE,
   bio         text,
   avatar_url  text,
+  interests   text[] NOT NULL DEFAULT '{}',
   created_at  timestamptz NOT NULL DEFAULT now()
 );
 
@@ -34,6 +35,9 @@ CREATE POLICY "users_select_all"
 
 CREATE POLICY "users_update_self"
   ON public.users FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "users_insert_self"
+  ON public.users FOR INSERT WITH CHECK (auth.uid() = id);
 
 
 -- 2. projects
@@ -156,7 +160,11 @@ BEGIN
     new.email,
     new.raw_user_meta_data->>'full_name',
     new.raw_user_meta_data->>'avatar_url'
-  );
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    full_name = EXCLUDED.full_name,
+    avatar_url = EXCLUDED.avatar_url;
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
