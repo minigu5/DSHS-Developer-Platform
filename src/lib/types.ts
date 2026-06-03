@@ -23,6 +23,7 @@ export type Database = {
           nickname: string | null;
           bio: string | null;
           avatar_url: string | null;
+          interests: string[];
           created_at: string;
         };
         Insert: {
@@ -32,6 +33,7 @@ export type Database = {
           nickname?: string | null;
           bio?: string | null;
           avatar_url?: string | null;
+          interests?: string[];
           created_at?: string;
         };
         Update: {
@@ -41,6 +43,7 @@ export type Database = {
           nickname?: string | null;
           bio?: string | null;
           avatar_url?: string | null;
+          interests?: string[];
           created_at?: string;
         };
         Relationships: [

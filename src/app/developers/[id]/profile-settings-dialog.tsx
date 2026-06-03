@@ -1,4 +1,5 @@
 "use client";
+import { INTERESTS } from "@/lib/constants";
 
 import { useState } from "react";
 import { toast } from "sonner";
@@ -14,14 +15,16 @@ interface ProfileSettingsDialogProps {
   initialNickname: string;
   initialBio: string;
   initialAvatar: string;
+  initialInterests: string[];
   fullName: string;
 }
 
-export function ProfileSettingsDialog({ userId, initialNickname, initialBio, initialAvatar, fullName }: ProfileSettingsDialogProps) {
+export function ProfileSettingsDialog({ userId, initialNickname, initialBio, initialAvatar, initialInterests, fullName }: ProfileSettingsDialogProps) {
   const [open, setOpen] = useState(false);
   const [nickname, setNickname] = useState(initialNickname);
   const [bio, setBio] = useState(initialBio);
   const [avatar, setAvatar] = useState(initialAvatar);
+  const [interests, setInterests] = useState<string[]>(initialInterests);
   const [loading, setLoading] = useState(false);
   const [checkingNickname, setCheckingNickname] = useState(false);
   const [isNicknameChecked, setIsNicknameChecked] = useState(true);
@@ -77,7 +80,7 @@ export function ProfileSettingsDialog({ userId, initialNickname, initialBio, ini
     setLoading(true);
 
     try {
-      const res = await updateProfile({ nickname, bio, avatar_url: avatar });
+      const res = await updateProfile({ nickname, bio, avatar_url: avatar, interests });
       if (res.error) {
         throw new Error(res.error);
       }
@@ -160,6 +163,31 @@ export function ProfileSettingsDialog({ userId, initialNickname, initialBio, ini
               placeholder="https://example.com/avatar.jpg"
               className="flex h-10 w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2 text-sm placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">관심 분야</label>
+            <div className="flex flex-wrap gap-2 p-1 -m-1">
+              {INTERESTS.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => {
+                    if (interests.includes(item.value)) {
+                      setInterests(interests.filter(v => v !== item.value));
+                    } else {
+                      setInterests([...interests, item.value]);
+                    }
+                  }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ease-out select-none will-change-transform hover:scale-105 hover:brightness-110 active:scale-95 active:duration-75 ${
+                    interests.includes(item.value)
+                      ? "bg-blue-600 text-white shadow-md shadow-blue-500/25"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:shadow-lg"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="pt-4 flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>

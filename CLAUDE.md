@@ -21,7 +21,7 @@
 | **Styling** | Tailwind CSS v4 + shadcn/ui (`base-nova` style, base-ui/react 기반) |
 | **BaaS (DB & Auth)** | Supabase (PostgreSQL + Supabase Auth) |
 | **Hosting** | Vercel |
-| **추가 라이브러리** | `@supabase/ssr`, `react-hook-form`, `zod`, `lucide-react`, `date-fns`, `sonner` |
+| **추가 라이브러리** | `@supabase/ssr`, `react-hook-form`, `zod`, `lucide-react`, `date-fns`, `sonner`, `next-themes` |
 
 > ⚠️ shadcn `base-nova` style 의 Button 은 **`asChild` 미지원**. Link 에 `buttonVariants()` 클래스를 입혀 사용.
 
@@ -174,7 +174,12 @@
 | **Step 3** | `users` / `projects` / `reviews` 테이블 + RLS + 트리거 SQL (`docs/03-supabase-schema.sql`) | ✅ **Supabase 적용 완료 (통합본 단일 파일)** |
 | **Step 4** | 프로젝트 게시 폼(`ProjectForm`) UI + Insert 로직 | ✅ **End-to-end 게시 동작 확인 완료** |
 | **Step 5** | 메인/탐색(Explore) 페이지 + 다중 조건 필터링 | ✅ **DB 연동 완료 + `<ProjectCard />` 추출** |
-| **Step 6** | 프로젝트 상세 페이지 + 댓글/별점(Reviews) 기능 | ✅ **완료 (Reviews CRUD UI 통합)** |
+| **Step 6** | 프로젝트 상세 페이지 + 댓글/별점(Reviews) 기능 | ✅ **완료** |
+| **Step 7** | 개발자 프로필 페이지 및 닉네임/자기소개 설정 | ✅ **완료** |
+| **Step 8** | 프로젝트 아이콘 직접 업로드 및 폼 유효성 고도화 | ✅ **완료** |
+| **Step 9** | UI/UX 폴리싱: 컴팩트 디자인 개편 및 콘솔 이슈 해결 | ✅ **완료** |
+| **Step 10** | **온보딩 시스템**: 최초 로그인 시 전용 페이지 리다이렉트, 닉네임/관심분야 설정 | ✅ **완료** |
+| **Step 11** | **프리미엄 인터랙션**: 전역 다크모드(시스템 연동), Haptic 피드백, 마이크로 애니메이션 | ✅ **완료** |
 
 ---
 
@@ -204,14 +209,13 @@
 
 ---
 
-### 작업 3️⃣ — `reviews` (댓글 + 별점) CRUD UI 구현 ✅ **완료 (2026-06-03)**
+### 작업 7️⃣ — 온보딩 및 프리미엄 인터랙션 구현 ✅ **완료 (2026-06-03)**
 
-- `src/components/projects/review-form.tsx` — RHF + zod 별점/댓글 입력 폼
-- `src/components/projects/review-list.tsx` — 리뷰 목록 + 본인 리뷰 수정/삭제 dropdown
-- `src/components/projects/project-reviews.tsx` — 상세 페이지용 wrapper. create/update/delete + 수정 Dialog 통합. 본인 리뷰가 이미 있으면 작성 폼 대신 "내 리뷰 수정" 버튼 표시
-- `src/app/projects/[id]/page.tsx` — reviews fetch (`user:users(...)` alias join), 헤더에 평균별점 + 리뷰수 표시
-- mutation 후 `router.refresh()` + `sonner` toast
-- ⚠️ DB 레벨 unique constraint(`one_review_per_user`)는 미적용 — 클라이언트 방어 로직만 있음. 강제하려면 별도 SQL 적용 필요
+- `/onboarding` 전용 페이지 및 폼 구현 (닉네임 중복 체크 + 관심 분야 선택).
+- `middleware.ts`를 통한 온보딩 완료 강제화 (닉네임 미설정 시 접근 제한).
+- `next-themes` 기반 전역 테마 시스템 구축 및 시스템 설정 연동.
+- 모든 버튼/체크박스에 `scale` + `brightness` 기반 프리미엄 애니메이션 적용.
+- 로그인 페이지 UI 정제 (뒤로가기 추가, 디자인 간소화).
 
 ---
 

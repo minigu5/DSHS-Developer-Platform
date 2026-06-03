@@ -49,6 +49,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // 4차: 로그인 됐고 닉네임이 없는데 /onboarding이 아닌 곳에 있으면 → /onboarding으로
+  // 단, auth 관련 경로나 정적 파일은 제외 (이미 matcher에서 어느 정도 걸러짐)
+  if (user && !pathname.startsWith('/onboarding') && !pathname.startsWith('/auth') && !pathname.startsWith('/login')) {
+    const { data: profile } = await supabase
+      .from('users')
+      .select('nickname')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile?.nickname) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/onboarding';
+      return NextResponse.redirect(url);
+    }
+  }
+
   return supabaseResponse;
 }
 

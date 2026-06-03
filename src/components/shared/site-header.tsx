@@ -4,6 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { AuthButtons } from "@/components/shared/auth-buttons";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { cn } from "@/lib/utils";
 
 interface SiteHeaderProps {
@@ -45,8 +46,9 @@ export function SiteHeader({
           </Link>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           {rightExtra}
+          <ThemeToggle />
           <AuthButtons />
         </div>
       </div>

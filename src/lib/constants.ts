@@ -57,6 +57,24 @@ export type LicenseFeature = (typeof LICENSE_FEATURES)[number]['value'];
 export type Feature = (typeof FEATURES)[number]['value'];
 export type Visibility = (typeof VISIBILITY)[number]['value'];
 
+export const INTERESTS = [
+  { value: 'math', label: '수학' },
+  { value: 'physics', label: '물리' },
+  { value: 'chemistry', label: '화학' },
+  { value: 'biology', label: '생명과학' },
+  { value: 'earth-science', label: '지구과학' },
+  { value: 'informatics', label: '정보 / 알고리즘' },
+  { value: 'web', label: '웹 개발' },
+  { value: 'app', label: '앱 개발' },
+  { value: 'ai', label: '인공지능' },
+  { value: 'game', label: '게임 개발' },
+  { value: 'robotics', label: '로보틱스 / HW' },
+  { value: 'security', label: '보안' },
+  { value: 'design', label: '디자인 / UIUX' },
+] as const;
+
+export type Interest = (typeof INTERESTS)[number]['value'];
+
 // 허용 이메일 도메인 — middleware/RLS 와 같은 값을 사용해야 함.
 export const ALLOWED_EMAIL_DOMAIN =
   process.env.ALLOWED_EMAIL_DOMAIN ?? 'ts.hs.kr';

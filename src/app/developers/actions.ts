@@ -19,7 +19,12 @@ export async function checkNicknameDuplicate(nickname: string, userId: string) {
   return { isDuplicate: !!data };
 }
 
-export async function updateProfile(data: { nickname: string | null; bio: string | null; avatar_url: string }) {
+export async function updateProfile(data: { 
+  nickname: string | null; 
+  bio: string | null; 
+  avatar_url: string;
+  interests?: string[];
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -42,6 +47,7 @@ export async function updateProfile(data: { nickname: string | null; bio: string
       nickname: data.nickname,
       bio: data.bio,
       avatar_url: data.avatar_url,
+      interests: data.interests,
     })
     .eq("id", user.id);
 

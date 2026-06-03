@@ -3,6 +3,7 @@ import Image from "next/image";
 import { CalendarDays, Mail } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
+import { INTERESTS } from "@/lib/constants";
 import { SiteHeader } from "@/components/shared/site-header";
 import { BackButton } from "@/components/shared/back-button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -58,6 +59,7 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
     month: 'long',
     day: 'numeric'
   });
+  const interests = (developer.interests as string[]) || [];
 
   return (
     <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-black font-sans relative overflow-hidden">
@@ -109,6 +111,22 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
                     </p>
                   </div>
                 )}
+
+                {interests.length > 0 && (
+                  <div className="w-full flex flex-wrap gap-1.5 justify-center mb-6">
+                    {interests.map((value) => {
+                      const label = INTERESTS.find(i => i.value === value)?.label || value;
+                      return (
+                        <div 
+                          key={value}
+                          className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-semibold border border-blue-100 dark:border-blue-800/50"
+                        >
+                          {label}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
                 
                 <div className="w-full space-y-4 text-sm text-left mt-2">
                   {isOwner && (
@@ -130,6 +148,7 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
                       initialNickname={nickname} 
                       initialBio={bio} 
                       initialAvatar={avatarUrl} 
+                      initialInterests={interests}
                       fullName={actualFullName}
                     />
                   </div>

@@ -62,5 +62,16 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // Check if user has a nickname. If not, they need onboarding.
+  const { data: profile } = await supabase
+    .from('users')
+    .select('nickname')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile?.nickname) {
+    return NextResponse.redirect(`${origin}/onboarding`);
+  }
+
   return NextResponse.redirect(`${origin}${next}`);
 }
