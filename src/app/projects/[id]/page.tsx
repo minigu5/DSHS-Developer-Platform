@@ -1,13 +1,16 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { Globe, Code2, Star, ExternalLink, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { Globe, Code2, Star, ExternalLink, ShieldCheck, Pencil } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SiteHeader } from "@/components/shared/site-header";
+import { BackButton } from "@/components/shared/back-button";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import { ProjectReviews } from "@/components/projects/project-reviews";
+import { ProjectIcon } from "@/components/projects/project-icon";
 import type { ReviewItem } from "@/components/projects/review-list";
 
 const LICENSE_LABELS: Record<string, string> = {
@@ -27,7 +30,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     .from('projects')
     .select(`
       *,
-      users (full_name)
+      users (*)
     `)
     .eq('id', id)
     .single();
@@ -40,7 +43,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   const { data: reviewsData } = await supabase
     .from('reviews')
-    .select('id, rating, comment, created_at, user_id, user:users(full_name, avatar_url)')
+    .select('id, rating, comment, created_at, user_id, user:users(*)')
     .eq('project_id', id)
     .order('created_at', { ascending: false });
 
@@ -62,51 +65,40 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const authorName =
     (project.author_role === 'team'
       ? project.team_name
-      : project.users?.full_name) ?? '알 수 없음';
+      : project.users?.nickname || project.users?.full_name) ?? '알 수 없음';
   const tags = project.features || [];
 
   return (
-    <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-black font-sans">
-      <SiteHeader maxWidth="md" back={{ type: "history", fallbackUrl: "/explore" }} />
+    <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-black font-sans relative overflow-hidden">
+      {/* Ambient Background */}
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-500/10 dark:bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/10 dark:bg-purple-600/10 blur-[120px] rounded-full pointer-events-none" />
+      
+      <SiteHeader maxWidth="md" />
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-12">
+        <div className="mb-6">
+          <BackButton fallbackUrl="/explore" />
+        </div>
         {/* Project Header Section */}
-        <div className="flex flex-col md:flex-row gap-8 items-start mb-12">
-          {/* Icon */}
-          <div className="w-32 h-32 shrink-0 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-center justify-center overflow-hidden">
-            {project.icon_url ? (
-              <Image
-                src={project.icon_url}
-                alt={`${project.title} icon`}
-                width={128}
-                height={128}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="text-4xl font-bold text-zinc-300 dark:text-zinc-700">{project.title.substring(0, 1)}</div>
-            )}
-          </div>
-          
+        <div className="flex items-start gap-6 mb-10">
+          <ProjectIcon 
+            src={project.icon_url} 
+            title={project.title} 
+            className="w-16 h-16 md:w-20 md:h-20 shrink-0 shadow-lg border border-zinc-200/50 dark:border-zinc-800/50" 
+          />
           <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-3 mb-3">
-              <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 hover:bg-blue-200">{project.type}</Badge>
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 hover:bg-blue-200 text-[10px] h-5 px-2">{project.type}</Badge>
               {tags.map((tag: string) => (
-                <Badge key={tag} variant="outline" className="text-zinc-600 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700">{tag}</Badge>
+                <Badge key={tag} variant="outline" className="text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 text-[10px] h-5 px-2">{tag}</Badge>
               ))}
             </div>
             
-            <h1 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-4 tracking-tight">{project.title}</h1>
-            <p className="text-lg text-zinc-600 dark:text-zinc-300 mb-4 leading-relaxed">
+            <h1 className="text-2xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-3 tracking-tight leading-tight">{project.title}</h1>
+            <p className="text-base md:text-lg text-zinc-600 dark:text-zinc-400 mb-0 leading-relaxed max-w-2xl">
               {project.short_description}
             </p>
-
-            <div className="flex items-center gap-2 mb-6 text-sm">
-              <div className="flex items-center gap-0.5">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <Star
-                    key={n}
-                    className={cn(
-                      "w-4 h-4",
                       n <= Math.round(avgRating)
                         ? "fill-yellow-400 text-yellow-400"
                         : "text-zinc-300 dark:text-zinc-600",
@@ -134,6 +126,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   <Code2 className="w-4 h-4 mr-2" /> GitHub 저장소
                 </a>
               )}
+              {user?.id === project.author_id && (
+                <Link href={`/projects/${project.id}/edit`} className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "rounded-full font-medium")}>
+                  <Pencil className="w-4 h-4 mr-2 text-zinc-600 dark:text-zinc-400" /> 수정하기
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -141,7 +138,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Main Content: Description */}
           <div className="md:col-span-2 space-y-8">
-            <section className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8">
+            <section className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm rounded-3xl p-8">
               <h3 className="text-xl font-bold mb-6 text-zinc-900 dark:text-white">프로젝트 상세</h3>
               <div className="prose dark:prose-invert max-w-none text-zinc-700 dark:text-zinc-300">
                 {project.description?.split('\\n').map((line: string, i: number) => (
@@ -155,21 +152,46 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <aside className="space-y-6">
             
             {/* Developer / Team Info */}
-            <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6">
+            <div className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm rounded-3xl p-6">
               <h4 className="text-sm font-semibold text-zinc-900 dark:text-white mb-4 uppercase tracking-wider">개발자 정보</h4>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-100 to-purple-100 dark:from-blue-900/40 dark:to-purple-900/40 flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold">
-                  {authorName.substring(0, 1)}
-                </div>
-                <div>
-                  <div className="font-medium text-zinc-900 dark:text-white">
-                    {authorName}
+              {project.author_role === 'team' ? (
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-100 to-purple-100 dark:from-blue-900/40 dark:to-purple-900/40 flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold">
+                    {authorName.substring(0, 1)}
                   </div>
-                  <div className="text-xs text-zinc-500">
-                    {project.author_role === 'team' ? '팀 프로젝트' : '개인 프로젝트'}
+                  <div>
+                    <div className="font-medium text-zinc-900 dark:text-white">
+                      {authorName}
+                    </div>
+                    <div className="text-xs text-zinc-500">
+                      팀 프로젝트
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <Link href={`/developers/${project.author_id}`} className="flex items-center gap-3 mb-4 group block hover:opacity-80 transition-opacity">
+                  <div className="relative w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-tr from-blue-100 to-purple-100 dark:from-blue-900/40 dark:to-purple-900/40 text-blue-700 dark:text-blue-300 font-bold border border-zinc-200 dark:border-zinc-800">
+                    {project.users?.avatar_url ? (
+                      <Image
+                        src={project.users.avatar_url}
+                        alt={authorName}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      authorName.substring(0, 1)
+                    )}
+                  </div>
+                  <div>
+                    <div className="font-medium text-zinc-900 dark:text-white group-hover:underline">
+                      {authorName}
+                    </div>
+                    <div className="text-xs text-zinc-500">
+                      개인 프로젝트
+                    </div>
+                  </div>
+                </Link>
+              )}
               
               {project.author_role === 'team' && project.team_members && project.team_members.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
@@ -186,7 +208,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </div>
 
             {/* Platform & Environment */}
-            <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6">
+            <div className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm rounded-3xl p-6">
               <h4 className="text-sm font-semibold text-zinc-900 dark:text-white mb-4 uppercase tracking-wider">환경 및 플랫폼</h4>
               <div className="space-y-4">
                 <div>
@@ -203,7 +225,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </div>
 
             {/* License & Source */}
-            <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6">
+            <div className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm rounded-3xl p-6">
               <h4 className="text-sm font-semibold text-zinc-900 dark:text-white mb-4 uppercase tracking-wider">라이선스 및 소스코드</h4>
               
               <div className="mb-5">

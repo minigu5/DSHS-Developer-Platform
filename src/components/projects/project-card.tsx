@@ -6,6 +6,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ProjectIcon } from "@/components/projects/project-icon";
 
 // projects 테이블에서 카드 표시에 필요한 최소 컬럼들.
 // users join 결과는 supabase 가 객체 또는 배열로 줄 수 있어 둘 다 허용.
@@ -19,13 +20,20 @@ export type ProjectCardData = {
   team_name: string | null;
   icon_url: string | null;
   features: string[] | null;
-  users: { full_name: string | null } | { full_name: string | null }[] | null;
+  author_id: string;
+  users: { full_name: string | null; nickname: string | null; avatar_url: string | null } | { full_name: string | null; nickname: string | null; avatar_url: string | null }[] | null;
 };
 
 function resolveAuthorName(p: ProjectCardData, fallback = '알 수 없음'): string {
   if (p.author_role === 'team' && p.team_name) return p.team_name;
   const u = Array.isArray(p.users) ? p.users[0] : p.users;
-  return u?.full_name || fallback;
+  return u?.nickname || u?.full_name || fallback;
+}
+
+function resolveAuthorAvatar(p: ProjectCardData): string | null {
+  if (p.author_role === 'team') return null;
+  const u = Array.isArray(p.users) ? p.users[0] : p.users;
+  return u?.avatar_url || null;
 }
 
 interface ProjectCardProps {
@@ -41,6 +49,7 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project, mode = 'showcase', authorFallback }: ProjectCardProps) {
   const authorName = resolveAuthorName(project, authorFallback);
+  const authorAvatar = resolveAuthorAvatar(project);
   const tags = (project.features ?? []).slice(0, 2);
   const platformsLabel = project.platforms && project.platforms.length > 0
     ? project.platforms.join(", ")
@@ -56,51 +65,36 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
 
   const inner = (
     <>
-      {mode === 'showcase' && (
-        <div className="h-48 bg-zinc-100 dark:bg-zinc-950 relative overflow-hidden flex items-center justify-center">
-          <div className="absolute inset-0 bg-gradient-to-br from-zinc-200 to-zinc-100 dark:from-zinc-800 dark:to-zinc-900 opacity-50" />
-          {project.icon_url ? (
-            <Image
-              src={project.icon_url}
-              alt={project.title}
-              width={64}
-              height={64}
-              className="w-16 h-16 relative z-10 group-hover:scale-110 transition-transform duration-500 rounded-2xl shadow-md"
-            />
-          ) : (
-            <Terminal className="w-16 h-16 text-zinc-300 dark:text-zinc-700 relative z-10 group-hover:scale-110 transition-transform duration-500" />
-          )}
-          <div className="absolute top-4 right-4 flex gap-2 z-10">
-            <Badge variant="secondary" className="bg-white/80 dark:bg-black/50 backdrop-blur-md">
-              {project.type}
-            </Badge>
+      <CardHeader className="pt-8 pb-4">
+        <div className="flex items-start gap-4">
+          <ProjectIcon 
+            src={project.icon_url} 
+            title={project.title} 
+            className="w-12 h-12 shrink-0 shadow-sm border border-zinc-100 dark:border-zinc-800 group-hover:scale-105 transition-transform duration-300" 
+          />
+          <div className="flex-1 min-w-0">
+            <div className="flex gap-2 mb-2 flex-wrap">
+              <Badge variant="secondary" className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-[10px] h-5 px-1.5 font-semibold">
+                {project.type}
+              </Badge>
+              {tags.map((tag) => (
+                <Badge key={tag} variant="outline" className="text-[10px] text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 rounded-full h-5 px-2">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+            <CardTitle className="text-lg font-bold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
+              {project.title}
+            </CardTitle>
+            <CardDescription className="line-clamp-2 text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed mt-1">
+              {project.short_description || "설명이 없습니다."}
+            </CardDescription>
           </div>
         </div>
-      )}
-
-      <CardHeader className="pt-6">
-        <div className="flex gap-2 mb-3 flex-wrap">
-          {mode === 'manage' && (
-            <Badge variant="secondary" className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300">
-              {project.type}
-            </Badge>
-          )}
-          {tags.map((tag) => (
-            <Badge key={tag} variant="outline" className="text-xs text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 rounded-full px-2">
-              {tag}
-            </Badge>
-          ))}
-        </div>
-        <CardTitle className="text-xl font-bold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-          {project.title}
-        </CardTitle>
-        <CardDescription className="line-clamp-2 text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed mt-2">
-          {project.short_description || "설명이 없습니다."}
-        </CardDescription>
       </CardHeader>
 
-      <CardContent>
-        <div className="flex items-center gap-4 text-xs font-medium text-zinc-500 dark:text-zinc-500 mt-2">
+      <CardContent className="pb-6">
+        <div className="flex items-center gap-4 text-xs font-medium text-zinc-500 dark:text-zinc-500">
           <span className="flex items-center">
             <Globe className="w-3.5 h-3.5 mr-1" />
             {platformsLabel}
@@ -110,19 +104,35 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
     </>
   );
 
-  const author = (
-    <div className="flex items-center gap-2">
-      <div className={cn(
-        "w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold",
-        mode === 'showcase'
-          ? "bg-gradient-to-tr from-blue-500 to-purple-500 text-white"
-          : "bg-gradient-to-tr from-zinc-200 to-zinc-300 dark:from-zinc-700 dark:to-zinc-800 text-zinc-600 dark:text-zinc-300",
-      )}>
-        {authorName.charAt(0)}
-      </div>
-      <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{authorName}</span>
+  let author = (
+    <div className="flex items-center gap-2 group-hover/author:opacity-80 transition-opacity">
+      {authorAvatar ? (
+        <div className="relative w-7 h-7 rounded-full overflow-hidden shrink-0 border border-zinc-200 dark:border-zinc-800">
+          <Image src={authorAvatar} alt={authorName} fill className="object-cover" />
+        </div>
+      ) : (
+        <div className={cn(
+          "w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0",
+          mode === 'showcase'
+            ? "bg-gradient-to-tr from-blue-500 to-purple-500 text-white"
+            : "bg-gradient-to-tr from-zinc-200 to-zinc-300 dark:from-zinc-700 dark:to-zinc-800 text-zinc-600 dark:text-zinc-300",
+        )}>
+          {authorName.charAt(0)}
+        </div>
+      )}
+      <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 group-hover/author:underline">{authorName}</span>
     </div>
   );
+
+  if (project.author_role !== 'team' && project.author_id) {
+    author = (
+      <Link href={`/developers/${project.author_id}`} className="group/author z-10 relative">
+        {author}
+      </Link>
+    );
+  } else {
+    author = <div className="group/author">{author}</div>;
+  }
 
   if (mode === 'manage') {
     return (
@@ -144,13 +154,13 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
   }
 
   return (
-    <Link href={`/projects/${project.id}`} className="block">
-      <Card className={cardClasses}>
+    <Card className={cardClasses}>
+      <Link href={`/projects/${project.id}`} className="block">
         {inner}
-        <CardFooter className="border-t border-zinc-100 dark:border-zinc-800/50 pt-4 pb-5 flex justify-between items-center">
-          {author}
-        </CardFooter>
-      </Card>
-    </Link>
+      </Link>
+      <CardFooter className="border-t border-zinc-100 dark:border-zinc-800/50 pt-4 pb-5 flex justify-between items-center">
+        {author}
+      </CardFooter>
+    </Card>
   );
 }

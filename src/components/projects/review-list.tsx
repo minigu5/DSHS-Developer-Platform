@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Star, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -22,6 +23,7 @@ export interface ReviewItem {
   user_id: string;
   user: {
     full_name: string | null;
+    nickname: string | null;
     avatar_url: string | null;
   } | null;
 }
@@ -57,6 +59,12 @@ export function ReviewList({
   onEdit,
   onDelete,
 }: ReviewListProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   if (reviews.length === 0) {
     return (
       <div className="py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
@@ -68,7 +76,7 @@ export function ReviewList({
   return (
     <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
       {reviews.map((review) => {
-        const name = review.user?.full_name ?? "알 수 없음";
+        const name = review.user?.nickname || review.user?.full_name || "알 수 없음";
         const isMine = currentUserId === review.user_id;
         return (
           <li key={review.id} className="py-5 first:pt-0 last:pb-0">
@@ -88,25 +96,23 @@ export function ReviewList({
                     </span>
                     <StarDisplay rating={review.rating} />
                     <span className="text-xs text-zinc-500">
-                      {formatDistanceToNow(new Date(review.created_at), {
+                      {mounted ? formatDistanceToNow(new Date(review.created_at), {
                         addSuffix: true,
                         locale: ko,
-                      })}
+                      }) : "잠시만 기다려주세요..."}
                     </span>
                   </div>
 
                   {isMine && (
                     <DropdownMenu>
-                      <DropdownMenuTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label="리뷰 메뉴"
-                          />
-                        }
+                      <DropdownMenuTrigger 
+                        className={cn(
+                          buttonVariants({ variant: "ghost", size: "icon-sm" }),
+                          "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                        )}
+                        aria-label="리뷰 메뉴"
                       >
-                        <MoreVertical />
+                        <MoreVertical className="size-4" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => onEdit(review)}>

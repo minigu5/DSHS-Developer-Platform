@@ -24,7 +24,8 @@ export default async function HomePage() {
       team_name,
       icon_url,
       features,
-      users (full_name)
+      author_id,
+      users (*)
     `)
     .eq('visibility', 'public')
     .order('created_at', { ascending: false })

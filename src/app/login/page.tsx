@@ -54,11 +54,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-purple-500/20 dark:bg-purple-600/20 blur-[100px] rounded-full pointer-events-none" />
 
       <div className="w-full max-w-md relative z-10">
-        <div className="mb-6 flex justify-center">
-          <Link href="/" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors flex items-center text-sm font-medium">
-            <ChevronLeft className="w-4 h-4 mr-1" /> 홈으로 돌아가기
-          </Link>
-        </div>
+
 
         <Card className="rounded-3xl border-zinc-200/50 dark:border-zinc-800/50 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl shadow-2xl overflow-hidden">
           <div className="h-2 w-full bg-gradient-to-r from-blue-500 to-purple-500" />

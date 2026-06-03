@@ -67,7 +67,9 @@
 |---|---|---|
 | `id` | `uuid` (PK) | `auth.users.id`와 연결 |
 | `email` | `text` | `@ts.hs.kr` 도메인만 |
-| `full_name` | `text` | |
+| `full_name` | `text` | 학교 이름/학번 기반 매핑 |
+| `nickname` | `text` | 사용자 설정 표시 이름 (Step 7) |
+| `bio` | `text` | 사용자 자기소개 (Step 7) |
 | `avatar_url` | `text` | |
 | `created_at` | `timestamptz` | |
 
@@ -142,7 +144,10 @@
 | **Step 3** | `users` / `projects` / `reviews` 테이블 + RLS SQL 작성 (Supabase SQL Editor 실행) | ✅ **완료** |
 | **Step 4** | 프로젝트 게시 폼(Form) UI + Supabase Insert/Update 로직 (ProjectForm 모듈화) | ✅ **완료** |
 | **Step 5** | 메인/탐색(Explore) 페이지 + 다중 조건 필터링 | ✅ **완료** |
-| **Step 6** | 프로젝트 상세 페이지(DB 연동) + 댓글/별점(Reviews) | ⏳ **진행 중** (상세 페이지 완료, 리뷰 대기) |
+| **Step 6** | 프로젝트 상세 페이지(DB 연동) + 댓글/별점(Reviews) | ✅ **완료** |
+| **Step 7** | 개발자 프로필 페이지(`/developers/[id]`) 및 닉네임/자기소개 설정, Google 로그인 강제 이름 동기화 | ✅ **완료** |
+| **Step 8** | 프로젝트 아이콘 직접 업로드 기능 (512x512, 1:1, Storage 연동) 및 폼 유효성 검사 고도화 | ✅ **완료** |
+| **Step 9** | UI/UX 폴리싱: 프로젝트 카드/상세 페이지 컴팩트 디자인 개편, 중첩 링크 등 콘솔 이슈 해결 | ✅ **완료** |
 
 ---
 
@@ -159,8 +164,10 @@ src/
 │   │       ├── new/              # 게시
 │   │       ├── [id]/             # 상세
 │   │       │   └── edit/         # 프로젝트 수정
-│   ├── auth/callback/            # OAuth 콜백
-│   ├── me/                       # 마이페이지
+│   ├── auth/callback/            # OAuth 콜백 (이름 동기화 포함)
+│   ├── developers/
+│   │   ├── [id]/                 # 개발자 개인 프로필
+│   │   └── actions.ts            # 프로필 업데이트 서버 액션
 │   ├── layout.tsx
 │   └── globals.css
 ├── components/
@@ -203,6 +210,12 @@ src/
 - ⚠️ 모든 DB 쿼리는 **RLS가 켜진 상태**에서 동작하도록 작성
 - 도메인 검증(`@ts.hs.kr`)은 **Middleware + RLS 모두**에서 처리
 
+### 주요 기술 결정 사항
+- **프로젝트 아이콘:** 512x512 이하, 1:1 비율의 PNG/JPEG 이미지만 허용. Supabase Storage(`project-assets`)에 저장.
+- **폼 유효성 검사:** 누락된 항목이 있을 경우 페이지 상단부터 순차적으로 검증하며, 해당 필드로 부드러운 스크롤 이동(UX 개선).
+- **디자인 컨셉:** "Compact & Focused". 불필요한 배경을 제거하고 프로젝트 아이콘을 제목 옆에 배치하여 정보 밀도 향상.
+- **성능 및 안정성:** 브라우저용 Supabase 클라이언트에 싱글톤 패턴 적용, Hydration 오류 방지를 위한 클라이언트 사이드 가드(mounted check) 사용.
+
 ### 문서
 - 코드 주석은 **WHY가 비자명할 때만**, 짧게 1줄
 - 단계별 가이드/스크립트는 `docs/`에 보관
@@ -217,4 +230,5 @@ src/
 - [`docs/03-supabase-schema.sql`](./docs/03-supabase-schema.sql) — 기본 테이블 스키마 및 RLS
 - [`docs/04-supabase-alter.sql`](./docs/04-supabase-alter.sql) — 컬럼 추가 (icon_url 등)
 - [`docs/05-supabase-alter-2.sql`](./docs/05-supabase-alter-2.sql) — 접근 권한 및 커스텀 기능 관련 컬럼 추가
+- [`docs/06-supabase-alter-users.sql`](./docs/06-supabase-alter-users.sql) — users 테이블 닉네임, 자기소개 컬럼 추가
 - [`.env.local.example`](./.env.local.example) — 환경 변수 템플릿

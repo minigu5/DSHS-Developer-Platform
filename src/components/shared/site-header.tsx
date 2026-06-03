@@ -1,22 +1,14 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ChevronLeft } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { AuthButtons } from "@/components/shared/auth-buttons";
-import { BackButton } from "@/components/shared/back-button";
 import { cn } from "@/lib/utils";
-
-type BackConfig =
-  | { type: "home" }
-  | { type: "custom"; href: string; label: string }
-  | { type: "history"; fallbackUrl?: string };
 
 interface SiteHeaderProps {
   maxWidth?: "sm" | "md" | "lg";
   variant?: "sticky" | "transparent";
-  back?: BackConfig;
-  showLogo?: boolean;
-  pageTitle?: string;
   rightExtra?: ReactNode;
 }
 
@@ -26,36 +18,9 @@ const MAX_WIDTH_CLASS: Record<NonNullable<SiteHeaderProps["maxWidth"]>, string> 
   lg: "max-w-7xl",
 };
 
-function BackSlot({ back }: { back: BackConfig }) {
-  if (back.type === "home") {
-    return (
-      <Link
-        href="/"
-        className="text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors flex items-center text-sm font-medium"
-      >
-        <ChevronLeft className="w-4 h-4 mr-1" /> 홈으로
-      </Link>
-    );
-  }
-  if (back.type === "custom") {
-    return (
-      <Link
-        href={back.href}
-        className="text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors flex items-center text-sm font-medium"
-      >
-        <ChevronLeft className="w-4 h-4 mr-1" /> {back.label}
-      </Link>
-    );
-  }
-  return <BackButton fallbackUrl={back.fallbackUrl} />;
-}
-
 export function SiteHeader({
   maxWidth = "lg",
   variant = "sticky",
-  back,
-  showLogo = false,
-  pageTitle,
   rightExtra,
 }: SiteHeaderProps) {
   const containerClass = cn(MAX_WIDTH_CLASS[maxWidth], "mx-auto px-6 h-16 flex items-center justify-between");
@@ -70,20 +35,17 @@ export function SiteHeader({
     >
       <div className={containerClass}>
         <div className="flex items-center gap-4 min-w-0">
-          {back && <BackSlot back={back} />}
-          {showLogo && (
-            <h1 className="font-bold text-lg hidden sm:block">
+          <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
+            <div className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0 shadow-sm border border-zinc-200/50 dark:border-zinc-800/50">
+              <Image src="/logo.svg" alt="Logo" fill className="object-cover" />
+            </div>
+            <h1 className="font-bold text-lg hidden sm:block text-zinc-900 dark:text-white">
               DSHS Developer Platform
             </h1>
-          )}
+          </Link>
         </div>
 
         <div className="flex items-center gap-4">
-          {pageTitle && (
-            <div className="text-sm font-medium text-zinc-500 hidden sm:block">
-              {pageTitle}
-            </div>
-          )}
           {rightExtra}
           <AuthButtons />
         </div>

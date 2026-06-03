@@ -7,6 +7,7 @@ import { Search, Filter } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SiteHeader } from "@/components/shared/site-header";
+import { BackButton } from "@/components/shared/back-button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -64,11 +65,13 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
   }, [searchQuery, selectedPlatforms, selectedTypes, initialProjects]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-black font-sans">
+    <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-black font-sans relative overflow-hidden">
+      {/* Ambient Background */}
+      <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-500/10 dark:bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-500/10 dark:bg-purple-600/10 blur-[120px] rounded-full pointer-events-none" />
+      
       <SiteHeader
         maxWidth="lg"
-        back={{ type: "home" }}
-        showLogo
         rightExtra={
           <Link
             href="/projects/new"
@@ -82,7 +85,11 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
         }
       />
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8 flex flex-col md:flex-row gap-8">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
+        <div className="mb-6">
+          <BackButton fallbackUrl="/" />
+        </div>
+        <div className="flex flex-col md:flex-row gap-8">
         {/* SIDEBAR / FILTERS */}
         <aside className="w-full md:w-64 shrink-0">
           <div className="sticky top-24 space-y-8">
@@ -140,7 +147,7 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
               placeholder="프로젝트 이름, 설명, 혹은 태그로 검색해보세요..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-12 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm text-base focus-visible:ring-blue-500"
+              className="pl-10 h-12 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border-zinc-200/50 dark:border-zinc-800/50 rounded-2xl shadow-sm text-base focus-visible:ring-blue-500"
             />
           </div>
 
@@ -151,7 +158,7 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
           </div>
 
           {filteredProjects.length === 0 ? (
-            <div className="text-center py-20 bg-white dark:bg-zinc-900/50 rounded-3xl border border-zinc-200 dark:border-zinc-800">
+            <div className="text-center py-20 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl rounded-3xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm">
               <p className="text-zinc-500 dark:text-zinc-400">조건에 맞는 프로젝트가 없습니다.</p>
             </div>
           ) : (
@@ -162,7 +169,8 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
             </div>
           )}
         </div>
-      </main>
+      </div>
+    </main>
     </div>
   );
 }

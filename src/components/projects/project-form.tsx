@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { UploadCloud, Lock, Globe, Code2, Users, User as UserIcon, Plus, X, Image as ImageIcon, Link as LinkIcon, Loader2 } from "lucide-react";
+import { UploadCloud, Lock, Globe, Code2, Users, User as UserIcon, Plus, X, Image as ImageIcon, Link as LinkIcon, Loader2, Upload } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -80,6 +80,11 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
 
   // 아이콘
   const [iconType, setIconType] = useState<IconType>(initialData?.icon_type ?? "auto");
+  const [iconFile, setIconFile] = useState<File | null>(null);
+  const [iconPreview, setIconPreview] = useState<string | null>(initialData?.icon_url ?? null);
+  const [iconError, setIconError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [url, setUrl] = useState<string>(initialData?.url ?? "");
   const [repoUrl, setRepoUrl] = useState<string>(initialData?.repo_url ?? "");
 
@@ -136,24 +141,121 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
     setLicenseFeatures(prev => checked ? [...prev, val] : prev.filter(p => p !== val));
   };
 
+  const validateAndSetIcon = (file: File) => {
+    setIconError("");
+    // 규정: 512*512이하의 정사각형 png, jpeg만 업로드 가능
+    if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
+      setIconError("PNG 또는 JPEG 이미지만 업로드 가능합니다.");
+      return;
+    }
+
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    img.onload = () => {
+      if (img.width !== img.height) {
+        setIconError("아이콘은 정사각형(1:1 비율)이어야 합니다.");
+        URL.revokeObjectURL(img.src);
+        return;
+      }
+      if (img.width > 512 || img.height > 512) {
+        setIconError("아이콘 크기는 최대 512x512까지 허용됩니다.");
+        URL.revokeObjectURL(img.src);
+        return;
+      }
+      
+      setIconFile(file);
+      setIconPreview(img.src);
+      setIconError("");
+    };
+  };
+
+  const handleIconTypeChange = (newType: IconType) => {
+    setIconType(newType);
+    setIconError("");
+    if (newType === 'auto') {
+      setIconFile(null);
+      setIconPreview(initialData?.icon_url || null);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
+
+    const scrollToField = (id: string) => {
+      const el = document.getElementById(id);
+      if (el) {
+        const offset = 120; // Header offset
+        const bodyRect = document.body.getBoundingClientRect().top;
+        const elementRect = el.getBoundingClientRect().top;
+        const elementPosition = elementRect - bodyRect;
+        const offsetPosition = elementPosition - offset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+      }
+    };
     
-    // 유효성 검사
-    if (!title || !shortDesc || !description || !type || !url) {
-      setErrorMsg("필수 입력 항목을 모두 채워주세요.");
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    // 유효성 검사 (순서대로)
+    if (authorRole === 'team' && !teamName) {
+      setErrorMsg("팀 이름을 입력해주세요.");
+      scrollToField("team_name_section");
       return;
     }
+
+    if (iconType === 'upload' && !iconFile && !initialData?.icon_url) {
+      setIconError("프로젝트 아이콘을 업로드해주세요.");
+      scrollToField("icon_section");
+      return;
+    }
+
+    if (!title) {
+      setErrorMsg("프로젝트 이름을 입력해주세요.");
+      scrollToField("title_section");
+      return;
+    }
+
+    if (!url) {
+      setErrorMsg("웹사이트 또는 다운로드 링크를 입력해주세요.");
+      scrollToField("url_section");
+      return;
+    }
+
+    if (!shortDesc) {
+      setErrorMsg("간단 설명을 입력해주세요.");
+      scrollToField("short_description_section");
+      return;
+    }
+
     if (shortDesc.length > 100) {
       setErrorMsg("간단 설명은 100자 이내여야 합니다.");
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollToField("short_description_section");
       return;
     }
+
+    if (!description) {
+      setErrorMsg("상세 설명을 입력해주세요.");
+      scrollToField("description_section");
+      return;
+    }
+
+    if (!type) {
+      setErrorMsg("프로그램 종류를 선택해주세요.");
+      scrollToField("type_section");
+      return;
+    }
+
+    if (type === 'app' && selectedPlatforms.length === 0) {
+      setErrorMsg("지원 플랫폼을 최소 하나 이상 선택해주세요.");
+      scrollToField("platforms_section");
+      return;
+    }
+
     if (sourceType === 'open' && !repoUrl) {
       setErrorMsg("오픈소스인 경우 GitHub Repository URL이 필수입니다.");
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollToField("repo_url_section");
       return;
     }
     
@@ -169,6 +271,29 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
       let platformsToSave = selectedPlatforms;
       if (type !== 'app') {
         platformsToSave = PLATFORMS.map(p => p.value);
+      }
+
+      let finalIconUrl = initialData?.icon_url ?? null;
+
+      if (iconType === 'upload' && iconFile) {
+        // Upload to Supabase Storage
+        const fileExt = iconFile.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+        const filePath = `icons/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('project-assets')
+          .upload(filePath, iconFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('project-assets')
+          .getPublicUrl(filePath);
+        
+        finalIconUrl = publicUrl;
+      } else if (iconType === 'auto') {
+        finalIconUrl = url ? `https://www.google.com/s2/favicons?domain=${url}&sz=128` : null;
       }
 
       const payload = {
@@ -191,7 +316,7 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
         team_members: authorRole === 'team' ? teamMembers : [],
         url,
         icon_type: iconType,
-        icon_url: iconType === 'auto' && url ? `https://www.google.com/s2/favicons?domain=${url}&sz=128` : null, // 간단한 auto 아이콘 로직
+        icon_url: finalIconUrl,
         updated_at: new Date().toISOString()
       };
 
@@ -230,8 +355,8 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
       )}
 
       {/* 작성자 정보 */}
-      <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm rounded-3xl overflow-hidden">
-        <CardHeader className="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-100 dark:border-zinc-800">
+      <Card className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-lg rounded-3xl overflow-hidden">
+        <CardHeader className="bg-white/40 dark:bg-zinc-800/40 backdrop-blur-md border-b border-zinc-200/50 dark:border-zinc-800/50">
           <CardTitle className="text-xl">개발자 정보</CardTitle>
           <CardDescription>개인 프로젝트인지 팀 프로젝트인지 선택해주세요.</CardDescription>
         </CardHeader>
@@ -265,8 +390,8 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
 
           {authorRole === "team" && (
             <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-              <div className="space-y-2">
-                <Label htmlFor="team_name" className="text-sm font-medium">팀 이름</Label>
+              <div className="space-y-2" id="team_name_section">
+                <Label htmlFor="team_name" className="text-sm font-medium">팀 이름 <span className="text-red-500">*</span></Label>
                 <Input id="team_name" value={teamName} onChange={e => setTeamName(e.target.value)} placeholder="팀 이름을 입력하세요" className="h-11 rounded-xl" />
               </div>
               <div className="space-y-2">
@@ -307,18 +432,18 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
       </Card>
 
       {/* 기본 정보 */}
-      <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm rounded-3xl overflow-hidden">
-        <CardHeader className="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-100 dark:border-zinc-800">
+      <Card className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-lg rounded-3xl overflow-hidden">
+        <CardHeader className="bg-white/40 dark:bg-zinc-800/40 backdrop-blur-md border-b border-zinc-200/50 dark:border-zinc-800/50">
           <CardTitle className="text-xl">기본 정보</CardTitle>
           <CardDescription>프로젝트를 잘 나타낼 수 있는 이름과 설명을 작성해주세요.</CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
           
-          <div className="space-y-3">
+          <div className="space-y-4" id="icon_section">
             <Label className="text-sm font-medium">아이콘 설정 <span className="text-red-500">*</span></Label>
             <div className="grid sm:grid-cols-2 gap-4">
               <div 
-                onClick={() => setIconType("auto")}
+                onClick={() => handleIconTypeChange("auto")}
                 className={cn(
                   "flex items-center p-3 rounded-xl border-2 cursor-pointer transition-all",
                   iconType === "auto" 
@@ -329,11 +454,11 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
                 <Globe className={cn("w-5 h-5 mr-3", iconType === "auto" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />
                 <div>
                   <h4 className={cn("font-medium text-sm", iconType === "auto" ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>웹사이트에서 가져오기</h4>
-                  <p className="text-xs text-zinc-500">입력된 URL의 파비콘 자동 추출</p>
+                  <p className="text-xs text-zinc-500">파비콘 자동 추출 (실패 시 기본 아이콘)</p>
                 </div>
               </div>
               <div 
-                onClick={() => setIconType("upload")}
+                onClick={() => handleIconTypeChange("upload")}
                 className={cn(
                   "flex items-center p-3 rounded-xl border-2 cursor-pointer transition-all",
                   iconType === "upload" 
@@ -341,21 +466,61 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
                     : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800"
                 )}
               >
-                <ImageIcon className={cn("w-5 h-5 mr-3", iconType === "upload" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />
+                <Upload className={cn("w-5 h-5 mr-3", iconType === "upload" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />
                 <div>
-                  <h4 className={cn("font-medium text-sm", iconType === "upload" ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>기본 아이콘</h4>
-                  <p className="text-xs text-zinc-500">타이틀 앞글자 표시</p>
+                  <h4 className={cn("font-medium text-sm", iconType === "upload" ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>이미지 업로드</h4>
+                  <p className="text-xs text-zinc-500">512px 이하 정사각형 PNG/JPG</p>
                 </div>
               </div>
             </div>
+
+            {iconType === 'upload' && (
+              <div className="mt-4 p-4 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl flex flex-col items-center justify-center animate-in fade-in slide-in-from-top-2">
+                {iconPreview ? (
+                  <div className="relative group">
+                    <img src={iconPreview} alt="Preview" className="w-24 h-24 rounded-2xl object-cover shadow-md border border-zinc-200 dark:border-zinc-800" />
+                    <button 
+                      type="button" 
+                      onClick={() => { setIconFile(null); setIconPreview(null); setIconError(""); }}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                    <p className="text-center mt-2 text-xs text-zinc-500">이미지가 선택되었습니다.</p>
+                  </div>
+                ) : (
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex flex-col items-center cursor-pointer hover:opacity-70 transition-opacity"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-2">
+                      <ImageIcon className="w-6 h-6 text-zinc-400" />
+                    </div>
+                    <p className="text-sm font-medium text-zinc-600 dark:text-zinc-300">이미지 클릭하여 업로드</p>
+                    <p className="text-xs text-zinc-500 mt-1">PNG, JPG (최대 512x512, 1:1 비율)</p>
+                  </div>
+                )}
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  accept="image/png, image/jpeg" 
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) validateAndSetIcon(file);
+                  }}
+                />
+              </div>
+            )}
+            {iconError && <p className="text-xs text-red-500 font-medium animate-in fade-in slide-in-from-top-1 mt-2">{iconError}</p>}
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2" id="title_section">
             <Label htmlFor="title" className="text-sm font-medium">프로젝트 이름 <span className="text-red-500">*</span></Label>
             <Input id="title" value={title} onChange={e => setTitle(e.target.value)} placeholder="예: 대곽 유틸리티 허브" className="h-11 rounded-xl" />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2" id="url_section">
             <Label htmlFor="url" className="text-sm font-medium">웹사이트 또는 다운로드 링크 <span className="text-red-500">*</span></Label>
             <div className="relative">
               <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
@@ -370,7 +535,7 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
             </div>
           </div>
           
-          <div className="space-y-2">
+          <div className="space-y-2" id="short_description_section">
             <div className="flex justify-between items-end">
               <Label htmlFor="short_description" className="text-sm font-medium">간단 설명 <span className="text-red-500">*</span></Label>
               <span className={cn("text-xs", shortDesc.length > 100 ? "text-red-500 font-bold" : "text-zinc-500")}>
@@ -386,7 +551,7 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2" id="description_section">
             <Label htmlFor="description" className="text-sm font-medium">상세 설명 <span className="text-red-500">*</span></Label>
             <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} placeholder="상세 페이지에서 보여질 프로젝트의 자세한 기능, 개발 배경, 사용 기술 등을 자유롭게 작성해주세요." className="min-h-[200px] rounded-xl resize-none" />
           </div>
@@ -394,14 +559,14 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
       </Card>
 
       {/* 분류 및 기능 */}
-      <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm rounded-3xl overflow-hidden">
-        <CardHeader className="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-100 dark:border-zinc-800">
+      <Card className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-lg rounded-3xl overflow-hidden">
+        <CardHeader className="bg-white/40 dark:bg-zinc-800/40 backdrop-blur-md border-b border-zinc-200/50 dark:border-zinc-800/50">
           <CardTitle className="text-xl">분류 및 기능</CardTitle>
           <CardDescription>어떤 종류의 프로젝트이며, 어떤 기능들을 제공하나요?</CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-8">
           
-          <div className="space-y-3">
+          <div className="space-y-3" id="type_section">
             <Label htmlFor="type" className="text-sm font-medium">프로그램 종류 <span className="text-red-500">*</span></Label>
             <Select value={type} onValueChange={(val) => setType(val || "")}>
               <SelectTrigger id="type" className="h-11 rounded-xl">
@@ -449,14 +614,14 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
       </Card>
 
       {/* 플랫폼 및 라이선스 */}
-      <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm rounded-3xl overflow-hidden">
-        <CardHeader className="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-100 dark:border-zinc-800">
+      <Card className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-lg rounded-3xl overflow-hidden">
+        <CardHeader className="bg-white/40 dark:bg-zinc-800/40 backdrop-blur-md border-b border-zinc-200/50 dark:border-zinc-800/50">
           <CardTitle className="text-xl">환경 및 소스코드</CardTitle>
           <CardDescription>어디서 실행되며 소스코드는 어떻게 관리되나요?</CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-8">
           
-          <div className="space-y-4">
+          <div className="space-y-4" id="platforms_section">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium text-zinc-900 dark:text-zinc-200">지원 플랫폼</Label>
               {type !== 'app' && (
@@ -518,7 +683,7 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
             </div>
 
             {sourceType === 'open' && (
-              <div className="mt-4 p-4 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-xl animate-in fade-in slide-in-from-top-2">
+              <div id="repo_url_section" className="mt-4 p-4 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-xl animate-in fade-in slide-in-from-top-2">
                 <Label htmlFor="repo_url" className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-2 block">
                   GitHub Repository URL <span className="text-red-500">*</span>
                 </Label>
@@ -563,8 +728,8 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
       </Card>
 
       {/* 접근 및 권한 */}
-      <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm rounded-3xl overflow-hidden">
-        <CardHeader className="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-100 dark:border-zinc-800">
+      <Card className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-lg rounded-3xl overflow-hidden">
+        <CardHeader className="bg-white/40 dark:bg-zinc-800/40 backdrop-blur-md border-b border-zinc-200/50 dark:border-zinc-800/50">
           <CardTitle className="text-xl">접근 권한 설정</CardTitle>
           <CardDescription>누가 이 프로젝트를 열람할 수 있는지 설정합니다.</CardDescription>
         </CardHeader>

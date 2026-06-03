@@ -21,6 +21,8 @@ CREATE TABLE public.users (
   id          uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email       text NOT NULL CHECK (email LIKE '%@ts.hs.kr'),
   full_name   text,
+  nickname    text UNIQUE,
+  bio         text,
   avatar_url  text,
   created_at  timestamptz NOT NULL DEFAULT now()
 );

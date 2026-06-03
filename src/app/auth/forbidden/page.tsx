@@ -38,9 +38,7 @@ export default function ForbiddenPage() {
             <Link href="/login" className={buttonVariants()}>
               로그인 화면으로
             </Link>
-            <Link href="/" className={buttonVariants({ variant: 'outline' })}>
-              홈으로
-            </Link>
+
           </div>
         </CardContent>
       </Card>
