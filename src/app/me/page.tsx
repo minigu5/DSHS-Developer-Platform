@@ -1,14 +1,14 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ChevronLeft, Globe, Settings, MapPin, Mail, CalendarDays, Terminal, Pencil } from 'lucide-react';
+import { ChevronLeft, Settings, MapPin, Mail, CalendarDays } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/server';
 import { AuthButtons } from '@/components/shared/auth-buttons';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { ProjectCard, type ProjectCardData } from '@/components/projects/project-card';
 
 export const metadata = {
   title: '내 프로필 — DSHS Developer Platform',
@@ -46,7 +46,8 @@ export default async function MyPage() {
       users (full_name)
     `)
     .eq('author_id', user.id)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .returns<ProjectCardData[]>();
 
   return (
     <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-black font-sans">
@@ -120,56 +121,14 @@ export default async function MyPage() {
 
             {myProjects && myProjects.length > 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {myProjects.map((project: any) => {
-                  const authorName = project.author_role === 'team' ? project.team_name : project.users?.full_name || fullName;
-                  const tags = project.features?.slice(0, 2) || [];
-                  
-                  return (
-                    <Card key={project.id} className="group h-full rounded-3xl overflow-hidden border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-500/50 dark:hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 relative">
-                      <Link href={`/projects/${project.id}`} className="block">
-                        <CardHeader className="pt-6">
-                          <div className="flex justify-between items-start mb-3">
-                            <div className="flex gap-2 flex-wrap">
-                              <Badge variant="secondary" className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300">
-                                {project.type}
-                              </Badge>
-                              {tags.map((tag: string) => (
-                                <Badge key={tag} variant="outline" className="text-xs text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 rounded-full px-2">
-                                  {tag}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                          <CardTitle className="text-xl font-bold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                            {project.title}
-                          </CardTitle>
-                          <CardDescription className="line-clamp-2 text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed mt-2">
-                            {project.short_description || "설명이 없습니다."}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex items-center gap-4 text-xs font-medium text-zinc-500 dark:text-zinc-500 mt-2">
-                            <span className="flex items-center">
-                              <Globe className="w-3.5 h-3.5 mr-1" />
-                              {project.platforms?.join(", ") || '전체'}
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Link>
-                      <CardFooter className="border-t border-zinc-100 dark:border-zinc-800/50 pt-4 pb-5 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-900/20">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-zinc-200 to-zinc-300 dark:from-zinc-700 dark:to-zinc-800 flex items-center justify-center text-[10px] font-bold text-zinc-600 dark:text-zinc-300">
-                            {authorName.charAt(0)}
-                          </div>
-                          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{authorName}</span>
-                        </div>
-                        <Link href={`/projects/${project.id}/edit`} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "rounded-full text-xs hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-800 z-10 relative")}>
-                          <Pencil className="w-3.5 h-3.5 mr-1.5" /> 수정하기
-                        </Link>
-                      </CardFooter>
-                    </Card>
-                  );
-                })}
+                {myProjects.map((project) => (
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    mode="manage"
+                    authorFallback={fullName}
+                  />
+                ))}
               </div>
             ) : (
               <div className="text-center py-20 bg-zinc-50 dark:bg-zinc-900/50 rounded-3xl border border-zinc-200 dark:border-zinc-800">

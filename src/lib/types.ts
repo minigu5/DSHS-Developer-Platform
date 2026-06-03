@@ -56,7 +56,7 @@ export type Database = {
           platforms: string[];
           source_type: string;
           repo_url: string | null;
-          license: string;
+          license: string | null;
           features: string[];
           visibility: 'public' | 'private';
           created_at: string;
@@ -84,7 +84,7 @@ export type Database = {
           platforms?: string[];
           source_type: string;
           repo_url?: string | null;
-          license: string;
+          license?: string | null;
           features?: string[];
           visibility: 'public' | 'private';
           created_at?: string;
@@ -110,7 +110,7 @@ export type Database = {
           platforms?: string[];
           source_type?: string;
           repo_url?: string | null;
-          license?: string;
+          license?: string | null;
           features?: string[];
           visibility?: 'public' | 'private';
           created_at?: string;

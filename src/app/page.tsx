@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, Code2, Globe, Layout, Search, Sparkles, Terminal, Layers } from "lucide-react";
+import { ArrowRight, Code2, Globe, Layout, Search, Sparkles, Layers } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AuthButtons } from "@/components/shared/auth-buttons";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
+import { ProjectCard, type ProjectCardData } from "@/components/projects/project-card";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -28,7 +28,8 @@ export default async function HomePage() {
     `)
     .eq('visibility', 'public')
     .order('created_at', { ascending: false })
-    .limit(6);
+    .limit(6)
+    .returns<ProjectCardData[]>();
 
   return (
     <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-black overflow-hidden font-sans">
@@ -127,61 +128,9 @@ export default async function HomePage() {
 
         {featuredProjects && featuredProjects.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredProjects.map((project: any) => {
-              const authorName = project.author_role === 'team' ? project.team_name : project.users?.full_name || '알 수 없음';
-              const tags = project.features?.slice(0, 2) || [];
-              
-              return (
-                <Link href={`/projects/${project.id}`} key={project.id} className="block">
-                  <Card className="group h-full rounded-3xl overflow-hidden border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-500/50 dark:hover:border-blue-500/50 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 cursor-pointer">
-                    <div className="h-48 bg-zinc-100 dark:bg-zinc-950 relative overflow-hidden flex items-center justify-center">
-                      <div className="absolute inset-0 bg-gradient-to-br from-zinc-200 to-zinc-100 dark:from-zinc-800 dark:to-zinc-900 opacity-50" />
-                      {project.icon_url ? (
-                        <img src={project.icon_url} alt={project.title} className="w-16 h-16 relative z-10 group-hover:scale-110 transition-transform duration-500 rounded-2xl shadow-md" />
-                      ) : (
-                        <Terminal className="w-16 h-16 text-zinc-300 dark:text-zinc-700 relative z-10 group-hover:scale-110 transition-transform duration-500" />
-                      )}
-                      <div className="absolute top-4 right-4 flex gap-2 z-10">
-                        <Badge variant="secondary" className="bg-white/80 dark:bg-black/50 backdrop-blur-md">
-                          {project.type}
-                        </Badge>
-                      </div>
-                    </div>
-                    <CardHeader className="pt-6">
-                      <div className="flex gap-2 mb-3 flex-wrap">
-                        {tags.map((tag: string) => (
-                          <Badge key={tag} variant="outline" className="text-xs text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 rounded-full px-2">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                      <CardTitle className="text-xl font-bold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                        {project.title}
-                      </CardTitle>
-                      <CardDescription className="line-clamp-2 text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed mt-2">
-                        {project.short_description || "설명이 없습니다."}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center gap-4 text-xs font-medium text-zinc-500 dark:text-zinc-500 mt-2">
-                        <span className="flex items-center">
-                          <Globe className="w-3.5 h-3.5 mr-1" />
-                          {project.platforms?.join(", ") || '전체'}
-                        </span>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="border-t border-zinc-100 dark:border-zinc-800/50 pt-4 pb-5 flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-[10px] font-bold text-white">
-                          {authorName.charAt(0)}
-                        </div>
-                        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{authorName}</span>
-                      </div>
-                    </CardFooter>
-                  </Card>
-                </Link>
-              );
-            })}
+            {featuredProjects.map((project) => (
+              <ProjectCard key={project.id} project={project} mode="showcase" />
+            ))}
           </div>
         ) : (
           <div className="text-center py-20 bg-zinc-50 dark:bg-zinc-900/50 rounded-3xl border border-zinc-200 dark:border-zinc-800">

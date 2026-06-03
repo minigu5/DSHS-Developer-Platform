@@ -1,115 +1,181 @@
--- 1. 유저 (Users) 테이블 생성
-create table public.users (
-  id uuid references auth.users(id) on delete cascade primary key,
-  email text not null check (email like '%@ts.hs.kr'),
-  full_name text,
-  avatar_url text,
-  created_at timestamptz default now() not null
+-- ============================================================
+-- DSHS Developer Platform — 통합 스키마 (drop + recreate)
+-- ============================================================
+-- 단일 source of truth. 기존의 04/05/06 alter 는 이 파일로 흡수됨.
+--
+-- 주의: 이 스크립트는 public.users / public.projects / public.reviews 를
+-- 모두 DROP 한 뒤 재생성합니다. 기존 데이터는 모두 사라집니다.
+-- auth.users (Supabase Auth) 는 건드리지 않습니다.
+
+-- 0. 기존 트리거 / 테이블 정리
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+DROP FUNCTION IF EXISTS public.handle_new_user();
+
+DROP TABLE IF EXISTS public.reviews CASCADE;
+DROP TABLE IF EXISTS public.projects CASCADE;
+DROP TABLE IF EXISTS public.users CASCADE;
+
+
+-- 1. users
+CREATE TABLE public.users (
+  id          uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email       text NOT NULL CHECK (email LIKE '%@ts.hs.kr'),
+  full_name   text,
+  avatar_url  text,
+  created_at  timestamptz NOT NULL DEFAULT now()
 );
 
--- 유저 테이블 RLS 활성화 및 정책
-alter table public.users enable row level security;
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
-create policy "누구나 유저 정보를 조회할 수 있습니다."
-  on public.users for select
-  using (true);
+CREATE POLICY "users_select_all"
+  ON public.users FOR SELECT USING (true);
 
-create policy "자신의 프로필만 수정할 수 있습니다."
-  on public.users for update
-  using (auth.uid() = id);
+CREATE POLICY "users_update_self"
+  ON public.users FOR UPDATE USING (auth.uid() = id);
 
--- (선택) Auth 회원가입 시 자동으로 users 테이블에 레코드를 생성하는 트리거
-create or replace function public.handle_new_user()
-returns trigger as $$
-begin
-  insert into public.users (id, email, full_name, avatar_url)
-  values (
+
+-- 2. projects
+CREATE TABLE public.projects (
+  id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  author_id          uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+
+  -- 기본 정보
+  title              text NOT NULL,
+  short_description  text,
+  description        text NOT NULL,
+  url                text,
+
+  -- 분류
+  type               text NOT NULL,
+  platforms          text[] NOT NULL DEFAULT '{}',
+  features           text[] NOT NULL DEFAULT '{}',
+  feature_custom     text,
+
+  -- 소스코드
+  source_type        text NOT NULL CHECK (source_type IN ('open', 'closed')),
+  repo_url           text,
+
+  -- 라이선스 (license_features + license_custom 사용. license 는 legacy/nullable)
+  license            text,
+  license_features   text[] NOT NULL DEFAULT '{}',
+  license_custom     text,
+
+  -- 접근 권한
+  visibility         text NOT NULL CHECK (visibility IN ('public', 'private')),
+  allowed_users      text[] NOT NULL DEFAULT '{}',
+
+  -- 작성자 형태
+  author_role        text NOT NULL DEFAULT 'individual' CHECK (author_role IN ('individual', 'team')),
+  team_name          text,
+  team_members       text[],
+
+  -- 아이콘
+  icon_type          text CHECK (icon_type IN ('upload', 'auto')),
+  icon_url           text,
+
+  created_at         timestamptz NOT NULL DEFAULT now(),
+  updated_at         timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "projects_select_public"
+  ON public.projects FOR SELECT
+  USING (visibility = 'public');
+
+CREATE POLICY "projects_select_private_for_allowed"
+  ON public.projects FOR SELECT
+  USING (
+    visibility = 'private' AND (
+      auth.uid() = author_id OR
+      (SELECT email FROM public.users WHERE id = auth.uid()) = ANY(allowed_users)
+    )
+  );
+
+CREATE POLICY "projects_insert_own"
+  ON public.projects FOR INSERT
+  WITH CHECK (auth.uid() = author_id);
+
+CREATE POLICY "projects_update_own"
+  ON public.projects FOR UPDATE
+  USING (auth.uid() = author_id);
+
+CREATE POLICY "projects_delete_own"
+  ON public.projects FOR DELETE
+  USING (auth.uid() = author_id);
+
+
+-- 3. reviews
+CREATE TABLE public.reviews (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id  uuid NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
+  user_id     uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  rating      int  NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  comment     text NOT NULL,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "reviews_select_when_project_visible"
+  ON public.reviews FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.projects p
+      WHERE p.id = reviews.project_id
+        AND (
+          p.visibility = 'public'
+          OR p.author_id = auth.uid()
+          OR (SELECT email FROM public.users WHERE id = auth.uid()) = ANY(p.allowed_users)
+        )
+    )
+  );
+
+CREATE POLICY "reviews_insert_own"
+  ON public.reviews FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "reviews_update_own"
+  ON public.reviews FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "reviews_delete_own"
+  ON public.reviews FOR DELETE
+  USING (auth.uid() = user_id);
+
+
+-- 4. auth.users → public.users 자동 동기화 트리거
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.users (id, email, full_name, avatar_url)
+  VALUES (
     new.id,
     new.email,
     new.raw_user_meta_data->>'full_name',
     new.raw_user_meta_data->>'avatar_url'
   );
-  return new;
-end;
-$$ language plpgsql security definer;
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute procedure public.handle_new_user();
-
-
--- 2. 프로젝트 (Projects) 테이블 생성
-create table public.projects (
-  id uuid default gen_random_uuid() primary key,
-  author_id uuid references public.users(id) on delete cascade not null,
-  title text not null,
-  description text not null,
-  type text not null,
-  platforms text[] not null default '{}',
-  source_type text not null,
-  repo_url text,
-  license text not null,
-  features text[] not null default '{}',
-  visibility text not null check (visibility in ('public', 'private')),
-  created_at timestamptz default now() not null,
-  updated_at timestamptz default now() not null
-);
-
--- 프로젝트 테이블 RLS 활성화 및 정책
-alter table public.projects enable row level security;
-
-create policy "public 프로젝트는 누구나 볼 수 있습니다."
-  on public.projects for select
-  using (visibility = 'public');
-
-create policy "private 프로젝트는 작성자만 볼 수 있습니다."
-  on public.projects for select
-  using (visibility = 'private' and auth.uid() = author_id);
-
-create policy "로그인한 사용자는 프로젝트를 등록할 수 있습니다."
-  on public.projects for insert
-  with check (auth.uid() = author_id);
-
-create policy "자신의 프로젝트만 수정할 수 있습니다."
-  on public.projects for update
-  using (auth.uid() = author_id);
-
-create policy "자신의 프로젝트만 삭제할 수 있습니다."
-  on public.projects for delete
-  using (auth.uid() = author_id);
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 
--- 3. 리뷰 (Reviews) 테이블 생성
-create table public.reviews (
-  id uuid default gen_random_uuid() primary key,
-  project_id uuid references public.projects(id) on delete cascade not null,
-  user_id uuid references public.users(id) on delete cascade not null,
-  rating int not null check (rating >= 1 and rating <= 5),
-  comment text not null,
-  created_at timestamptz default now() not null
-);
+-- 5. 이미 가입된 auth.users 를 public.users 로 백필
+INSERT INTO public.users (id, email, full_name, avatar_url, created_at)
+SELECT
+  u.id,
+  u.email,
+  u.raw_user_meta_data->>'full_name',
+  u.raw_user_meta_data->>'avatar_url',
+  u.created_at
+FROM auth.users u
+WHERE u.email LIKE '%@ts.hs.kr'
+ON CONFLICT (id) DO NOTHING;
 
--- 리뷰 테이블 RLS 활성화 및 정책
-alter table public.reviews enable row level security;
 
-create policy "프로젝트 조회 권한이 있는 사용자만 리뷰를 볼 수 있습니다."
-  on public.reviews for select
-  using (
-    exists (
-      select 1 from public.projects
-      where projects.id = reviews.project_id
-      and (projects.visibility = 'public' or projects.author_id = auth.uid())
-    )
-  );
-
-create policy "로그인한 사용자는 리뷰를 작성할 수 있습니다."
-  on public.reviews for insert
-  with check (auth.uid() = user_id);
-
-create policy "자신의 리뷰만 수정할 수 있습니다."
-  on public.reviews for update
-  using (auth.uid() = user_id);
-
-create policy "자신의 리뷰만 삭제할 수 있습니다."
-  on public.reviews for delete
-  using (auth.uid() = user_id);
+-- 6. PostgREST schema cache 강제 리로드 (안전장치)
+NOTIFY pgrst, 'reload schema';

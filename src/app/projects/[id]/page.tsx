@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { ChevronLeft, Globe, Code2, Users, Star, MessageSquare, ExternalLink, ShieldCheck, Download, AlertCircle } from "lucide-react";
+import { Globe, Code2, Star, ExternalLink, ShieldCheck } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -7,6 +7,8 @@ import { AuthButtons } from "@/components/shared/auth-buttons";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import { BackButton } from "@/components/shared/back-button";
+import { ProjectReviews } from "@/components/projects/project-reviews";
+import type { ReviewItem } from "@/components/projects/review-list";
 
 const LICENSE_LABELS: Record<string, string> = {
   commercial: "상업적 이용",
@@ -33,6 +35,29 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   if (error || !project) {
     notFound();
   }
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { data: reviewsData } = await supabase
+    .from('reviews')
+    .select('id, rating, comment, created_at, user_id, user:users(full_name, avatar_url)')
+    .eq('project_id', id)
+    .order('created_at', { ascending: false });
+
+  const reviews: ReviewItem[] = (reviewsData ?? []).map((r) => ({
+    id: r.id,
+    rating: r.rating,
+    comment: r.comment,
+    created_at: r.created_at,
+    user_id: r.user_id,
+    user: Array.isArray(r.user) ? r.user[0] ?? null : r.user,
+  }));
+
+  const reviewCount = reviews.length;
+  const avgRating =
+    reviewCount > 0
+      ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount
+      : 0;
 
   const authorName =
     (project.author_role === 'team'
@@ -71,9 +96,32 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </div>
             
             <h1 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-4 tracking-tight">{project.title}</h1>
-            <p className="text-lg text-zinc-600 dark:text-zinc-300 mb-6 leading-relaxed">
+            <p className="text-lg text-zinc-600 dark:text-zinc-300 mb-4 leading-relaxed">
               {project.short_description}
             </p>
+
+            <div className="flex items-center gap-2 mb-6 text-sm">
+              <div className="flex items-center gap-0.5">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <Star
+                    key={n}
+                    className={cn(
+                      "w-4 h-4",
+                      n <= Math.round(avgRating)
+                        ? "fill-yellow-400 text-yellow-400"
+                        : "text-zinc-300 dark:text-zinc-600",
+                    )}
+                  />
+                ))}
+              </div>
+              {reviewCount > 0 ? (
+                <span className="text-zinc-600 dark:text-zinc-400">
+                  {avgRating.toFixed(1)} · 리뷰 {reviewCount}개
+                </span>
+              ) : (
+                <span className="text-zinc-500">아직 리뷰가 없습니다</span>
+              )}
+            </div>
             
             <div className="flex flex-wrap items-center gap-4">
               {project.url && (
@@ -196,6 +244,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
           </aside>
         </div>
+
+        <ProjectReviews
+          projectId={project.id}
+          currentUserId={user?.id ?? null}
+          reviews={reviews}
+        />
       </main>
     </div>
   );

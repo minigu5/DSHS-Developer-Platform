@@ -180,7 +180,6 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
         platforms: platformsToSave,
         source_type: sourceType,
         repo_url: sourceType === 'open' ? repoUrl : null,
-        license: hasCustomLicense ? licenseCustom || 'custom' : (licenseFeatures.length > 0 ? licenseFeatures[0] : 'none'), // 백워드 호환
         license_features: licenseFeatures,
         license_custom: hasCustomLicense ? licenseCustom : null,
         features: selectedFeatures,
@@ -208,7 +207,14 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
       
       router.refresh();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : '오류가 발생했습니다. 다시 시도해주세요.';
+      console.error('[ProjectForm] submit error:', err);
+      let msg = '오류가 발생했습니다. 다시 시도해주세요.';
+      if (err instanceof Error) {
+        msg = err.message;
+      } else if (err && typeof err === 'object') {
+        const e = err as { message?: string; details?: string; hint?: string; code?: string };
+        msg = [e.message, e.details, e.hint, e.code && `(code: ${e.code})`].filter(Boolean).join(' / ') || msg;
+      }
       setErrorMsg(msg);
     } finally {
       setIsLoading(false);

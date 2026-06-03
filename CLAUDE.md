@@ -73,7 +73,7 @@
 
 ## 🗄️ 데이터베이스 스키마 (Supabase PostgreSQL)
 
-> 실제 SQL: `docs/03-supabase-schema.sql` + `docs/04-supabase-alter.sql` + `docs/05-supabase-alter-2.sql`
+> 실제 SQL: `docs/03-supabase-schema.sql` (drop + recreate 통합본, 단일 source of truth)
 > TypeScript 타입: `src/lib/types.ts` (수동 작성, Supabase CLI 자동생성으로 교체 가능)
 
 ### `users`
@@ -100,8 +100,8 @@
 | `source_type` | `text` | `open` / `closed` |
 | `repo_url` | `text` | source_type=open 일 때 필수 (앱 단 검증) |
 | `url` | `text` | 웹사이트 / 다운로드 링크 |
-| `license` | `text` | 호환성 컬럼 (`license_features[0]` 또는 'custom') |
-| `license_features` | `text[]` | 허용 항목 다중 선택 |
+| `license` | `text` | **nullable, legacy** — 신규 데이터는 비워둠. 실 데이터는 `license_features` 사용 |
+| `license_features` | `text[]` | default `'{}'`, 허용 항목 다중 선택 |
 | `license_custom` | `text` | nullable |
 | `features` | `text[]` | default `'{}'` |
 | `feature_custom` | `text` | nullable (features 에 `'other'` 포함 시) |
@@ -171,10 +171,10 @@
 | **Step 0** | Supabase 프로젝트 생성, Google OAuth 셋업, GitHub/Vercel 연결, `.env.local` 작성 | ✅ **완료** |
 | **Step 1** | Next.js 16 (App Router) + Tailwind v4 + shadcn/ui + 필수 라이브러리 설치 | ✅ **완료** |
 | **Step 2** | Supabase 클라이언트(`@supabase/ssr`), 미들웨어 도메인 검증, 로그인/콜백, 헤더(`AuthButtons`) | ✅ **완료** |
-| **Step 3** | `users` / `projects` / `reviews` 테이블 + RLS + 트리거 SQL (`docs/03~05.sql`) | ✅ **Supabase 적용 완료** |
-| **Step 4** | 프로젝트 게시 폼(`ProjectForm`) UI + Insert 로직 | ⚠️ **컴포넌트 작성됨 / End-to-end 게시 동작 검증 필요** |
-| **Step 5** | 메인/탐색(Explore) 페이지 + 다중 조건 필터링 | ⚠️ **UI 완성 / mock data → 실제 DB 호출 전환 필요** |
-| **Step 6** | 프로젝트 상세 페이지 + 댓글/별점(Reviews) 기능 | ⚠️ **상세 페이지 DB 연동 완료 / Reviews 미구현** |
+| **Step 3** | `users` / `projects` / `reviews` 테이블 + RLS + 트리거 SQL (`docs/03-supabase-schema.sql`) | ✅ **Supabase 적용 완료 (통합본 단일 파일)** |
+| **Step 4** | 프로젝트 게시 폼(`ProjectForm`) UI + Insert 로직 | ✅ **End-to-end 게시 동작 확인 완료** |
+| **Step 5** | 메인/탐색(Explore) 페이지 + 다중 조건 필터링 | ✅ **DB 연동 완료 + `<ProjectCard />` 추출** |
+| **Step 6** | 프로젝트 상세 페이지 + 댓글/별점(Reviews) 기능 | ✅ **완료 (Reviews CRUD UI 통합)** |
 
 ---
 
@@ -184,130 +184,34 @@
 > 작업 시작 전에 먼저 확인: `npm run dev` 로 dev server 띄우고 `npx tsc --noEmit` 통과 여부 확인.
 > 작업 순서는 의존성과 임팩트 순. 위에서부터 진행 권장.
 
-### 작업 1️⃣ — 게시 폼 동작 검증 + `license` 컬럼 정리 (우선순위: 🔴 높음)
+### 작업 1️⃣ — 게시 폼 동작 검증 + `license` 컬럼 정리 ✅ **완료 (2026-06-03)**
 
-**현재 상태:**
-- `src/components/projects/project-form.tsx` 가 클라이언트에서 `supabase.from('projects').insert([payload])` 직접 호출
-- `payload.license` 에 fallback 로직 (`hasCustomLicense ? licenseCustom : (licenseFeatures.length > 0 ? licenseFeatures[0] : 'none')`) 이 들어있어서 의미가 모호함
-- DB schema 에서 `license` 는 `not null` 인데 실질 데이터는 `license_features` 배열에 들어감
-
-**해야 할 일:**
-1. **End-to-end 게시 테스트** — `@ts.hs.kr` 계정으로 로그인 후 `/projects/new` 에서 폼 작성 → 제출 → 상세 페이지로 이동되는지 확인
-2. **에러 발생 시 진단** — 브라우저 콘솔 + Supabase 대시보드 → Authentication → Logs / Table Editor → projects 에서 INSERT 결과 확인
-3. **`license` 컬럼 운용 결정 (택 1):**
-   - **Option A (권장):** alter SQL 추가로 `license` 를 nullable 로 변경 + form payload 에서 제거
-     ```sql
-     -- docs/06-supabase-alter-3.sql
-     ALTER TABLE public.projects ALTER COLUMN license DROP NOT NULL;
-     ```
-     그리고 `src/lib/types.ts` 의 `projects.license: string` → `string | null` 로 수정, form payload 에서 `license` 필드 삭제
-   - **Option B:** `license` 에 항상 `'feature-based'` 같은 sentinel 값 넣고 실 데이터는 `license_features` 만 사용. 더 간단하지만 의미 불명확
-
-**검증:** 폼 → DB INSERT → 상세 페이지 표시 까지 1 cycle 통과
+- DB 스키마를 통합본(`docs/03-supabase-schema.sql`)으로 재생성. `license` 컬럼은 nullable 로 변경.
+- `src/components/projects/project-form.tsx` payload 에서 의미 모호한 `license` fallback 라인 제거.
+- `src/lib/types.ts` `projects.license`: `string` → `string | null`.
+- `@ts.hs.kr` 계정으로 `/projects/new` end-to-end 게시 1 cycle 통과 확인.
 
 ---
 
-### 작업 2️⃣ — 메인/탐색/마이페이지 mock data → 실제 DB 호출 교체 (우선순위: 🔴 높음)
+### 작업 2️⃣ — 메인/탐색/마이페이지 DB 연동 + `<ProjectCard />` 추출 ✅ **완료 (2026-06-03)**
 
-**현재 상태:**
-- `src/app/page.tsx` — `FEATURED_PROJECTS` 하드코딩 mock (라인 11~45)
-- `src/app/explore/page.tsx` — `DEMO_PROJECTS` mock + 클라이언트 사이드 필터링 (`useMemo`)
-- `src/app/me/page.tsx` — `MY_PROJECTS` 단일 mock (라인 12~24)
-
-**교체 패턴:**
-
-#### `/` (메인)
-```tsx
-// Server Component 로 유지하고 createClient (server) 사용
-import { createClient } from '@/lib/supabase/server';
-
-export default async function HomePage() {
-  const supabase = await createClient();
-  const { data: featured } = await supabase
-    .from('projects')
-    .select('id, title, short_description, type, platforms, icon_url, author_id, features, users(full_name)')
-    .eq('visibility', 'public')
-    .order('created_at', { ascending: false })
-    .limit(3);
-  // ...
-}
-```
-
-#### `/explore`
-- 현재 `"use client"` + `useMemo` 필터링 → **Server Component 로 전환** 후 URL search params (`?type=&platform=&q=`) 로 필터 상태 유지
-- 클라이언트 필터링 코드는 따로 `<FilterSidebar />` 클라이언트 컴포넌트로 분리, URL 업데이트는 `router.replace` 또는 `<form>` GET 으로
-- 또는 SSR 유지 + 클라이언트 측 `useMemo` 필터링을 **서버 사이드 쿼리**로 옮기되 초기 데이터만 SSR, 추후 필터는 `router.replace(?...)` 로 리렌더
-- 권장: **Server Component + searchParams 기반 필터링** (SEO + 캐싱 이점)
-- Supabase 쿼리:
-  ```ts
-  let query = supabase.from('projects').select('*, users(full_name)').eq('visibility', 'public');
-  if (searchParams.q) query = query.or(`title.ilike.%${q}%,short_description.ilike.%${q}%`);
-  if (searchParams.type) query = query.eq('type', searchParams.type);
-  if (searchParams.platform) query = query.contains('platforms', [searchParams.platform]);
-  ```
-
-#### `/me`
-```tsx
-// 이미 server component. user.id 로 본인 프로젝트만 조회 추가
-const { data: myProjects } = await supabase
-  .from('projects')
-  .select('*')
-  .eq('author_id', user.id)
-  .order('created_at', { ascending: false });
-```
-
-**주의:**
-- `ProjectRow` 의 `users` join 결과 타입은 자동 추론 안 됨 → 필요 시 `as any` 임시 또는 별도 타입 정의 (`type ProjectWithAuthor = ProjectRow & { users: Pick<UserRow, 'full_name'> | null }`)
-- mock 의 `tags`, `likes` 필드는 DB 에 없음 — 제거하거나 `features` 로 대체 (`tags`), `likes` 는 추후 별도 컬럼/테이블 (이번 작업 범위 밖)
-- 클라이언트 카드 컴포넌트로 `<ProjectCard />` 를 `src/components/projects/project-card.tsx` 로 추출 (메인+탐색+마이페이지 카드 형태 거의 동일)
-
-**검증:** 폼으로 등록한 프로젝트가 메인 / 탐색 / 마이페이지에 실제로 나타나는지 확인
+- `/`, `/explore`, `/me` 3개 페이지 모두 Supabase 쿼리로 동작 (이전 mock 데이터 전부 제거).
+- 공통 카드 마크업을 `src/components/projects/project-card.tsx` 로 추출.
+  - `ProjectCardData` 타입을 export 해서 페이지 쿼리에서 `.returns<ProjectCardData[]>()` 로 받음.
+  - `mode="showcase"` (메인/탐색, 아이콘 헤더) / `mode="manage"` (마이페이지, 수정 버튼) 두 가지.
+- 페이지 코드에서 `any` 사용 전부 제거. strict TS + lint 통과.
+- `/explore` 는 SSR + 클라이언트 `useMemo` 필터링 유지 (searchParams 기반 SSR 필터는 SEO 이점이 크지 않아 일단 보류).
 
 ---
 
-### 작업 3️⃣ — `reviews` (댓글 + 별점) CRUD UI 구현 (우선순위: 🟡 중간)
+### 작업 3️⃣ — `reviews` (댓글 + 별점) CRUD UI 구현 ✅ **완료 (2026-06-03)**
 
-**현재 상태:**
-- `reviews` 테이블 + RLS 정책 이미 생성됨 (`docs/03-supabase-schema.sql`)
-- `src/app/projects/[id]/page.tsx` 에 Reviews 영역이 아직 없음
-- 타입: `src/lib/types.ts` 의 `ReviewRow` 사용
-
-**구현 위치:** `src/app/projects/[id]/page.tsx` 하단에 추가, 또는 별도 `<ProjectReviews projectId={id} />` 클라이언트 컴포넌트로 분리
-
-**필요 컴포넌트:**
-
-1. **`src/components/projects/review-form.tsx`** (Client)
-   - 별점 선택 (1~5, lucide `Star` 채움/빈 토글)
-   - `Textarea` 로 댓글
-   - `react-hook-form` + `zod` 권장:
-     ```ts
-     const schema = z.object({
-       rating: z.number().int().min(1).max(5),
-       comment: z.string().min(1, '댓글을 입력해주세요').max(500),
-     });
-     ```
-   - 제출 시 `supabase.from('reviews').insert({ project_id, user_id: session.user.id, rating, comment })`
-   - 비로그인 사용자에게는 "로그인 후 작성" 버튼 (→ `/login?next=/projects/${id}`)
-
-2. **`src/components/projects/review-list.tsx`** (Server Component 또는 Client)
-   - `supabase.from('reviews').select('*, users(full_name, avatar_url)').eq('project_id', projectId).order('created_at', { ascending: false })`
-   - 각 리뷰: 아바타 + 이름 + 별점 시각화 + 댓글 + 작성일 (date-fns 의 `formatDistanceToNow`)
-   - **본인 리뷰만** 우측에 수정/삭제 dropdown (`session.user.id === review.user_id`)
-
-3. **수정/삭제:**
-   - 수정: 다이얼로그(`Dialog`) 안에 review-form 재사용. `supabase.from('reviews').update().eq('id', reviewId)`
-   - 삭제: 확인 dialog → `supabase.from('reviews').delete().eq('id', reviewId)`
-
-4. **상세 페이지 통합:**
-   - 평균 별점 + 리뷰 개수를 Project 헤더에 표시 (현재 mock 의 `<Star />` 자리)
-   - 집계는 `supabase.rpc` 또는 클라이언트 측 계산
-   - 또는 DB view 생성: `CREATE VIEW project_stats AS SELECT project_id, AVG(rating) avg_rating, COUNT(*) review_count FROM reviews GROUP BY project_id;`
-
-**RLS 확인:**
-- INSERT 정책이 `auth.uid() = user_id` 이므로 클라이언트에서 `user_id` 를 세션의 user.id 로 정확히 넣어야 함
-- 동일 사용자가 같은 프로젝트에 여러 리뷰 작성 가능 (의도된 거면 OK, 아니면 unique constraint 추가: `ALTER TABLE reviews ADD CONSTRAINT one_review_per_user UNIQUE (project_id, user_id);`)
-
-**검증:** 로그인 → 리뷰 작성 → 페이지 새로고침 시 표시 → 수정 → 삭제
+- `src/components/projects/review-form.tsx` — RHF + zod 별점/댓글 입력 폼
+- `src/components/projects/review-list.tsx` — 리뷰 목록 + 본인 리뷰 수정/삭제 dropdown
+- `src/components/projects/project-reviews.tsx` — 상세 페이지용 wrapper. create/update/delete + 수정 Dialog 통합. 본인 리뷰가 이미 있으면 작성 폼 대신 "내 리뷰 수정" 버튼 표시
+- `src/app/projects/[id]/page.tsx` — reviews fetch (`user:users(...)` alias join), 헤더에 평균별점 + 리뷰수 표시
+- mutation 후 `router.refresh()` + `sonner` toast
+- ⚠️ DB 레벨 unique constraint(`one_review_per_user`)는 미적용 — 클라이언트 방어 로직만 있음. 강제하려면 별도 SQL 적용 필요
 
 ---
 
@@ -525,7 +429,5 @@ src/
 
 - [`docs/01-supabase-setup.md`](./docs/01-supabase-setup.md) — Supabase 프로젝트 생성 가이드
 - [`docs/02-google-oauth-setup.md`](./docs/02-google-oauth-setup.md) — Google OAuth 연동 가이드
-- [`docs/03-supabase-schema.sql`](./docs/03-supabase-schema.sql) — 초기 테이블 + RLS + 트리거
-- [`docs/04-supabase-alter.sql`](./docs/04-supabase-alter.sql) — projects 컬럼 확장 (short_description, url, author_role, team_*, icon_*, license_features, license_custom)
-- [`docs/05-supabase-alter-2.sql`](./docs/05-supabase-alter-2.sql) — `allowed_users`, `feature_custom` + private 정책 변경
+- [`docs/03-supabase-schema.sql`](./docs/03-supabase-schema.sql) — **단일 통합 스키마** (drop + recreate). users / projects / reviews 테이블 + RLS + 트리거 + auth.users 백필
 - [`.env.local.example`](./.env.local.example) — 환경 변수 템플릿
