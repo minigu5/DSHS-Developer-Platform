@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Globe, Code2, Star, ExternalLink, ShieldCheck, ShieldAlert, Pencil } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, isExternalImage } from "@/lib/utils";
 import { SiteHeader } from "@/components/shared/site-header";
 import { BackButton } from "@/components/shared/back-button";
 import { Badge } from "@/components/ui/badge";
@@ -195,6 +195,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                         alt={authorName}
                         fill
                         className="object-cover"
+                        unoptimized={isExternalImage(project.users.avatar_url)}
                       />
                     ) : (
                       authorName.substring(0, 1)

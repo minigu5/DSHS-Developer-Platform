@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Terminal } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, isExternalImage } from "@/lib/utils";
 
 interface ProjectIconProps {
   src: string | null;
@@ -30,7 +30,7 @@ export function ProjectIcon({ src, title, className }: ProjectIconProps) {
         fill
         className="object-cover"
         onError={() => setError(true)}
-        unoptimized={src.startsWith('https://www.google.com/s2/favicons')} // Favicon service often needs unoptimized
+        unoptimized={isExternalImage(src) || src.startsWith('https://www.google.com/s2/favicons')} 
       />
     </div>
   );

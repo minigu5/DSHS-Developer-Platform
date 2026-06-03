@@ -9,6 +9,7 @@ import { BackButton } from "@/components/shared/back-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProjectCard, type ProjectCardData } from "@/components/projects/project-card";
 import { ProfileSettingsDialog } from "./profile-settings-dialog";
+import { isExternalImage } from "@/lib/utils";
 
 export default async function DeveloperProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -81,7 +82,13 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
               <CardContent className="p-8 flex flex-col items-center text-center">
                 <div className="relative w-32 h-32 rounded-full overflow-hidden mb-6 ring-4 ring-zinc-100 dark:ring-zinc-900 shadow-xl">
                   {avatarUrl ? (
-                    <Image src={avatarUrl} alt={actualFullName} fill className="object-cover" />
+                    <Image 
+                      src={avatarUrl} 
+                      alt={actualFullName} 
+                      fill 
+                      className="object-cover" 
+                      unoptimized={isExternalImage(avatarUrl)}
+                    />
                   ) : (
                     <div className="w-full h-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 flex items-center justify-center text-4xl font-bold">
                       {initials}

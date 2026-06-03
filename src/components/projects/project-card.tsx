@@ -3,7 +3,7 @@ import Image from "next/image";
 import { Globe, Pencil, Terminal } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, isExternalImage } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProjectIcon } from "@/components/projects/project-icon";
@@ -108,7 +108,13 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
     <div className="flex items-center gap-2 group-hover/author:opacity-80 transition-opacity">
       {authorAvatar ? (
         <div className="relative w-7 h-7 rounded-full overflow-hidden shrink-0 border border-zinc-200 dark:border-zinc-800">
-          <Image src={authorAvatar} alt={authorName} fill className="object-cover" />
+          <Image 
+            src={authorAvatar} 
+            alt={authorName} 
+            fill 
+            className="object-cover" 
+            unoptimized={isExternalImage(authorAvatar)}
+          />
         </div>
       ) : (
         <div className={cn(

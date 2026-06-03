@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
+import { isExternalImage } from "@/lib/utils";
 import { updateProfile, checkNicknameDuplicate } from "../actions";
 
 interface ProfileSettingsDialogProps {
@@ -154,15 +156,35 @@ export function ProfileSettingsDialog({ userId, initialNickname, initialBio, ini
               className="flex w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2 text-sm placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
           </div>
-          <div className="space-y-2">
-            <label htmlFor="avatar" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">아바타 URL</label>
-            <input
-              id="avatar"
-              value={avatar}
-              onChange={(e) => setAvatar(e.target.value)}
-              placeholder="https://example.com/avatar.jpg"
-              className="flex h-10 w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2 text-sm placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          <div className="space-y-4">
+            <label htmlFor="avatar" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">아바타</label>
+            <div className="flex items-center gap-4">
+              <div className="relative w-16 h-16 rounded-full overflow-hidden shrink-0 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 shadow-sm">
+                {avatar ? (
+                  <Image 
+                    src={avatar} 
+                    alt="Preview" 
+                    fill 
+                    className="object-cover" 
+                    unoptimized={isExternalImage(avatar)}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-xl font-bold text-zinc-400">
+                    {nickname.charAt(0) || fullName.charAt(0)}
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 space-y-2">
+                <input
+                  id="avatar"
+                  value={avatar}
+                  onChange={(e) => setAvatar(e.target.value)}
+                  placeholder="https://example.com/avatar.jpg"
+                  className="flex h-10 w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2 text-sm placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-[10px] text-zinc-500">외부 이미지 링크나 URL을 입력하세요.</p>
+              </div>
+            </div>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">관심 분야</label>
