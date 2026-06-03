@@ -7,7 +7,6 @@ export const PROJECT_TYPES = [
   { value: 'extension', label: '확장프로그램' },
   { value: 'cli', label: 'CLI / 스크립트' },
   { value: 'library', label: '라이브러리 / 패키지' },
-  { value: 'other', label: '기타' },
 ] as const;
 
 export const PLATFORMS = [
@@ -24,13 +23,13 @@ export const SOURCE_TYPES = [
   { value: 'closed', label: 'Closed Source' },
 ] as const;
 
-export const LICENSES = [
-  { value: 'mit', label: 'MIT' },
-  { value: 'apache-2.0', label: 'Apache 2.0' },
-  { value: 'gpl-3.0', label: 'GPL 3.0' },
-  { value: 'bsd-3-clause', label: 'BSD 3-Clause' },
-  { value: 'custom', label: 'Custom' },
-  { value: 'none', label: '라이선스 없음 / 미정' },
+export const LICENSE_FEATURES = [
+  { value: 'commercial', label: '상업적 이용' },
+  { value: 'modify', label: '수정' },
+  { value: 'distribute', label: '배포' },
+  { value: 'private', label: '개인적 이용' },
+  { value: 'liability', label: '법적 책임' },
+  { value: 'warranty', label: '보증' },
 ] as const;
 
 export const FEATURES = [
@@ -54,7 +53,7 @@ export const VISIBILITY = [
 export type ProjectType = (typeof PROJECT_TYPES)[number]['value'];
 export type Platform = (typeof PLATFORMS)[number]['value'];
 export type SourceType = (typeof SOURCE_TYPES)[number]['value'];
-export type License = (typeof LICENSES)[number]['value'];
+export type LicenseFeature = (typeof LICENSE_FEATURES)[number]['value'];
 export type Feature = (typeof FEATURES)[number]['value'];
 export type Visibility = (typeof VISIBILITY)[number]['value'];
 

@@ -13,7 +13,8 @@ const MY_PROJECTS = [
   {
     id: "1",
     title: "대곽 유틸리티 허브",
-    description: "시간표 관리, 급식 메뉴 확인 등 대곽 학생들을 위한 종합 유틸리티 도구입니다.",
+    short_description: "시간표 관리, 급식 메뉴 확인 등 대곽 학생들을 위한 종합 유틸리티 도구입니다.",
+    description: "시간표 관리, 급식 메뉴 확인 등 대곽 학생들을 위한 종합 유틸리티 도구입니다. 상세 설명...",
     type: "Web App",
     platforms: ["Web", "iOS", "Android"],
     author: "신민규",
@@ -115,50 +116,52 @@ export default async function MyPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {MY_PROJECTS.map((project) => (
-                <Card key={project.id} className="group rounded-3xl overflow-hidden border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-500/50 dark:hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300">
-                  <CardHeader className="pt-6">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex gap-2 flex-wrap">
-                        <Badge variant="secondary" className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300">
-                          {project.type}
-                        </Badge>
-                        {project.tags.slice(0, 1).map(tag => (
-                          <Badge key={tag} variant="outline" className="text-xs text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 rounded-full px-2">
-                            {tag}
+                <Link href={`/projects/${project.id}`} key={project.id} className="block">
+                  <Card className="group h-full rounded-3xl overflow-hidden border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-500/50 dark:hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 cursor-pointer">
+                    <CardHeader className="pt-6">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex gap-2 flex-wrap">
+                          <Badge variant="secondary" className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300">
+                            {project.type}
                           </Badge>
-                        ))}
+                          {project.tags.slice(0, 1).map(tag => (
+                            <Badge key={tag} variant="outline" className="text-xs text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 rounded-full px-2">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                    <CardTitle className="text-xl font-bold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                      {project.title}
-                    </CardTitle>
-                    <CardDescription className="line-clamp-2 text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed mt-2">
-                      {project.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center gap-4 text-xs font-medium text-zinc-500 dark:text-zinc-500 mt-2">
-                      <span className="flex items-center">
-                        <Globe className="w-3.5 h-3.5 mr-1" />
-                        {project.platforms.join(", ")}
-                      </span>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="border-t border-zinc-100 dark:border-zinc-800/50 pt-4 pb-5 flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-zinc-200 to-zinc-300 dark:from-zinc-700 dark:to-zinc-800 flex items-center justify-center text-[10px] font-bold text-zinc-600 dark:text-zinc-300">
-                        {project.author.charAt(0)}
+                      <CardTitle className="text-xl font-bold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        {project.title}
+                      </CardTitle>
+                      <CardDescription className="line-clamp-2 text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed mt-2">
+                        {project.short_description}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center gap-4 text-xs font-medium text-zinc-500 dark:text-zinc-500 mt-2">
+                        <span className="flex items-center">
+                          <Globe className="w-3.5 h-3.5 mr-1" />
+                          {project.platforms.join(", ")}
+                        </span>
                       </div>
-                      <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{project.author}</span>
-                    </div>
-                    <div className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none" className="text-zinc-300 dark:text-zinc-700 mr-1.5 group-hover:text-red-500 transition-colors">
-                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                      </svg>
-                      {project.likes}
-                    </div>
-                  </CardFooter>
-                </Card>
+                    </CardContent>
+                    <CardFooter className="border-t border-zinc-100 dark:border-zinc-800/50 pt-4 pb-5 flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-zinc-200 to-zinc-300 dark:from-zinc-700 dark:to-zinc-800 flex items-center justify-center text-[10px] font-bold text-zinc-600 dark:text-zinc-300">
+                          {project.author.charAt(0)}
+                        </div>
+                        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{project.author}</span>
+                      </div>
+                      <div className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none" className="text-zinc-300 dark:text-zinc-700 mr-1.5 group-hover:text-red-500 transition-colors">
+                          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                        </svg>
+                        {project.likes}
+                      </div>
+                    </CardFooter>
+                  </Card>
+                </Link>
               ))}
             </div>
             
