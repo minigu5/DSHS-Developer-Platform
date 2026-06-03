@@ -35,7 +35,7 @@ export default async function HomePage() {
   return (
     <div className="flex flex-col min-h-screen bg-zinc-50/50 dark:bg-[#09090b] overflow-hidden font-sans">
       
-      <SiteHeader variant="transparent" maxWidth="lg" />
+      <SiteHeader variant="transparent" maxWidth="md" />
 
       {/* HERO SECTION */}
       <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6 flex items-center justify-center flex-col text-center">
@@ -69,8 +69,8 @@ export default async function HomePage() {
       </section>
 
       {/* FEATURE HIGHLIGHTS */}
-      <section className="py-20 px-6 bg-white dark:bg-[#0c0c0e] border-y border-zinc-200 dark:border-zinc-900">
-        <div className="max-w-6xl mx-auto">
+      <section className="py-20 px-6 bg-white dark:bg-zinc-950/50 border-y border-zinc-200 dark:border-zinc-900">
+        <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">학생들을 위해 만들어진 플랫폼</h2>
             <p className="text-zinc-500 dark:text-zinc-400 max-w-2xl mx-auto text-lg break-keep">
@@ -111,7 +111,7 @@ export default async function HomePage() {
       </section>
 
       {/* FEATURED PROJECTS PREVIEW */}
-      <section className="py-24 px-6 max-w-7xl mx-auto w-full">
+      <section className="py-24 px-6 max-w-5xl mx-auto w-full">
         <div className="flex flex-col sm:flex-row justify-between items-end mb-12 gap-6">
           <div>
             <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-4">최근 등록된 프로젝트</h2>

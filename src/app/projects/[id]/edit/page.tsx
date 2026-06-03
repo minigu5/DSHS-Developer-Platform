@@ -38,19 +38,21 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
       <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-purple-500/10 dark:bg-purple-600/10 blur-[120px] rounded-full pointer-events-none" />
       
       <SiteHeader
-        maxWidth="sm"
+        maxWidth="md"
       />
 
-      <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-12">
-        <div className="mb-6">
-          <BackButton variant="link" fallbackUrl={`/projects/${id}`} label="프로젝트로 돌아가기" />
-        </div>
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-2">프로젝트 수정하기</h1>
-          <p className="text-zinc-500 dark:text-zinc-400">프로젝트의 최신 정보를 반영해주세요.</p>
-        </div>
+      <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-12">
+        <div className="max-w-3xl mx-auto">
+          <div className="mb-6">
+            <BackButton variant="link" fallbackUrl={`/projects/${id}`} label="프로젝트로 돌아가기" />
+          </div>
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-2">프로젝트 수정하기</h1>
+            <p className="text-zinc-500 dark:text-zinc-400">프로젝트의 최신 정보를 반영해주세요.</p>
+          </div>
 
-        <ProjectForm initialData={project} isEdit={true} />
+          <ProjectForm initialData={project} isEdit={true} />
+        </div>
       </main>
     </div>
   );

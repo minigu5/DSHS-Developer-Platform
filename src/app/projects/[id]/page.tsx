@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Globe, Code2, Star, ExternalLink, ShieldCheck, Pencil } from "lucide-react";
+import { Globe, Code2, Star, ExternalLink, ShieldCheck, ShieldAlert, Pencil } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -12,14 +12,24 @@ import { createClient } from "@/lib/supabase/server";
 import { ProjectReviews } from "@/components/projects/project-reviews";
 import { ProjectIcon } from "@/components/projects/project-icon";
 import type { ReviewItem } from "@/components/projects/review-list";
+import { LICENSE_FEATURES } from "@/lib/constants";
 
 const LICENSE_LABELS: Record<string, string> = {
   commercial: "상업적 이용",
   modify: "수정",
   distribute: "배포",
   private: "개인적 이용",
-  liability: "법적 책임",
-  warranty: "보증"
+  liability: "법적 책임(Author)",
+  warranty: "보증 제공"
+};
+
+const RESTRICTED_LABELS: Record<string, string> = {
+  commercial: "상업적 이용 불가",
+  modify: "수정 불가",
+  distribute: "배포 불가",
+  private: "개인적 이용 제한",
+  liability: "법적 책임 무관",
+  warranty: "보증 미제공"
 };
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -234,25 +244,59 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
             {/* License & Source */}
             <div className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm rounded-3xl p-6">
-              <h4 className="text-sm font-semibold text-zinc-900 dark:text-white mb-4 uppercase tracking-wider">라이선스 및 소스코드</h4>
+              <h4 className="text-sm font-semibold text-zinc-900 dark:text-white mb-6 uppercase tracking-wider">라이선스 및 소스코드</h4>
               
-              <div className="mb-5">
-                <div className="flex items-center gap-2 mb-2">
-                  <ShieldCheck className="w-4 h-4 text-zinc-500" />
-                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">허용되는 권한</span>
+              <div className="space-y-6">
+                {/* Allowed Section */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-sm font-bold text-zinc-900 dark:text-white">허용됨</span>
+                  </div>
+                  {(project.license_features && project.license_features.length > 0) ? (
+                    <ul className="grid grid-cols-1 gap-2 ml-1">
+                      {project.license_features.map((lf: string) => (
+                        <li key={lf} className="flex items-center text-sm text-zinc-600 dark:text-zinc-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2.5 shrink-0" />
+                          {LICENSE_LABELS[lf] || lf}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-zinc-500 ml-6">허용된 항목이 없습니다.</p>
+                  )}
                 </div>
-                {project.license_features && project.license_features.length > 0 ? (
-                  <ul className="space-y-1 ml-6">
-                    {project.license_features.map((lf: string) => (
-                      <li key={lf} className="text-sm text-zinc-600 dark:text-zinc-400 list-disc">
-                        {LICENSE_LABELS[lf] || lf}
-                      </li>
-                    ))}
-                  </ul>
-                ) : project.license_custom ? (
-                  <span className="text-sm text-zinc-500 ml-6">{project.license_custom}</span>
-                ) : (
-                  <span className="text-sm text-zinc-500 ml-6">설정된 라이선스가 없습니다.</span>
+
+                {/* Restricted Section */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <ShieldAlert className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                    <span className="text-sm font-bold text-zinc-900 dark:text-white">제한 / 조건</span>
+                  </div>
+                  {(() => {
+                    const allowed = project.license_features || [];
+                    const restricted = LICENSE_FEATURES.filter(f => !allowed.includes(f.value));
+                    
+                    if (restricted.length === 0) return <p className="text-xs text-zinc-500 ml-6">모든 권한이 허용되었습니다.</p>;
+                    
+                    return (
+                      <ul className="grid grid-cols-1 gap-2 ml-1">
+                        {restricted.map(f => (
+                          <li key={f.value} className="flex items-center text-sm text-zinc-500 dark:text-zinc-500">
+                            <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-700 mr-2.5 shrink-0" />
+                            {RESTRICTED_LABELS[f.value] || f.label}
+                          </li>
+                        ))}
+                      </ul>
+                    );
+                  })()}
+                </div>
+
+                {project.license_custom && (
+                  <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                    <div className="text-xs font-semibold text-zinc-400 mb-2">커스텀 조건</div>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400 italic">"{project.license_custom}"</p>
+                  </div>
                 )}
               </div>
 

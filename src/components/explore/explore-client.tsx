@@ -71,7 +71,7 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-500/10 dark:bg-purple-600/10 blur-[120px] rounded-full pointer-events-none" />
       
       <SiteHeader
-        maxWidth="lg"
+        maxWidth="md"
         rightExtra={
           <Link
             href="/projects/new"
@@ -85,7 +85,7 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
         }
       />
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
+      <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-8">
         <div className="mb-6">
           <BackButton fallbackUrl="/" />
         </div>
