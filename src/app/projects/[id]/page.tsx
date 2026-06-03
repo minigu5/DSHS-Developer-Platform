@@ -96,9 +96,17 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </div>
             
             <h1 className="text-2xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-3 tracking-tight leading-tight">{project.title}</h1>
-            <p className="text-base md:text-lg text-zinc-600 dark:text-zinc-400 mb-0 leading-relaxed max-w-2xl">
+            <p className="text-base md:text-lg text-zinc-600 dark:text-zinc-400 mb-6 leading-relaxed max-w-2xl">
               {project.short_description}
             </p>
+            
+            <div className="flex items-center gap-2 mb-8 text-sm">
+              <div className="flex items-center">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <Star
+                    key={n}
+                    className={cn(
+                      "w-4 h-4",
                       n <= Math.round(avgRating)
                         ? "fill-yellow-400 text-yellow-400"
                         : "text-zinc-300 dark:text-zinc-600",
