@@ -4,7 +4,6 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 import { isAllowedEmail } from '@/lib/constants';
 import { createClient } from '@/lib/supabase/server';
-import { USER_EMAIL_MAP } from '@/lib/userEmails';
 
 // Supabase Auth 가 Google OAuth 완료 후 호출하는 콜백.
 //   1) authorization code → session 교환
@@ -24,42 +23,39 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = await createClient();
-  const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(
-    code,
-  );
+  const {
+    data: { user },
+    error: exchangeError,
+  } = await supabase.auth.exchangeCodeForSession(code);
 
-  if (exchangeError) {
+  if (exchangeError || !user?.email) {
     return NextResponse.redirect(`${origin}/login?error=exchange_failed`);
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user || !isAllowedEmail(user.email)) {
+  // 1. 도메인 검증 (보안 핵심)
+  if (!isAllowedEmail(user.email)) {
     await supabase.auth.signOut();
     return NextResponse.redirect(`${origin}/auth/forbidden`);
   }
 
-  // Update user's full_name if found in the mapping
-  if (user.email) {
-    const mappedNameEntry = Object.entries(USER_EMAIL_MAP).find(
-      ([, email]) => email === user.email
-    );
-    if (mappedNameEntry) {
-      const [mappedName] = mappedNameEntry;
-      
-      // Use service role key to bypass RLS and guarantee the update succeeds
-      const supabaseAdmin = createSupabaseClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      );
+  // 2. student_mappings 테이블에서 실명 조회 (보안 마이그레이션)
+  const { data: mapping } = await (supabase
+    .from('student_mappings')
+    .select('student_name')
+    .eq('email', user.email)
+    .single() as any);
 
-      await supabaseAdmin
-        .from('users')
-        .update({ full_name: mappedName })
-        .eq('id', user.id);
-    }
+  if (mapping?.student_name) {
+    // Use service role key to bypass RLS for initial name sync
+    const supabaseAdmin = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    await supabaseAdmin
+      .from('users')
+      .update({ full_name: mapping.student_name })
+      .eq('id', user.id);
   }
 
   // Check if user has a nickname. If not, they need onboarding.

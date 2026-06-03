@@ -7,7 +7,6 @@ import { LogOut, User as UserIcon } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/client";
-import { USER_EMAIL_MAP } from "@/lib/userEmails";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -72,15 +71,8 @@ export function AuthButtons() {
   if (user) {
     const avatarUrl = profile?.avatar_url || user.user_metadata?.avatar_url;
     
-    // Find mapped name from email
-    let mappedName = "";
-    if (user.email) {
-      const entry = Object.entries(USER_EMAIL_MAP).find(([, email]) => email === user.email);
-      if (entry) mappedName = entry[0];
-    }
-    
     // Fallback chain for display name
-    const actualFullName = profile?.full_name || mappedName || user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
+    const actualFullName = profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
     const displayName = profile?.nickname || actualFullName;
     
     const initials = displayName.substring(0, 2).toUpperCase();

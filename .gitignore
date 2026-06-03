@@ -34,9 +34,6 @@ yarn-error.log*
 .env*
 !.env*.example
 
-# 학교 구성원 개인정보 (실명-이메일 매핑) — 로컬 전용
-/학생 이름-이메일.txt
-/src/lib/userEmails.private.ts
 
 # vercel
 .vercel
