@@ -7,8 +7,6 @@ import { Globe, Code2, Star, ExternalLink, ShieldCheck, ShieldAlert } from "luci
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn, isExternalImage } from "@/lib/utils";
-import { SiteHeader } from "@/components/shared/site-header";
-import { BackButton } from "@/components/shared/back-button";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import { ProjectReviews } from "@/components/projects/project-reviews";
@@ -87,14 +85,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-500/10 dark:bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/10 dark:bg-purple-600/10 blur-[120px] rounded-full pointer-events-none" />
       
-      <SiteHeader maxWidth="md" />
-
-      <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-12">
-        <div className="mb-6">
-          <BackButton fallbackUrl="/explore" />
-        </div>
+      <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-12">
         {/* Project Header Section */}
-        <div className="flex items-start gap-6 mb-10">
+        <div className="flex items-start gap-4 sm:gap-6 mb-10">
           <ProjectIcon 
             src={project.icon_url} 
             title={project.title} 
@@ -155,7 +148,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Main Content: Description */}
           <div className="md:col-span-2 space-y-8">
-            <section className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm rounded-3xl p-8">
+            <section className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm rounded-3xl p-6 sm:p-8">
               <h3 className="text-xl font-bold mb-6 text-zinc-900 dark:text-white">프로젝트 상세</h3>
               <div className="prose dark:prose-invert max-w-none text-zinc-700 dark:text-zinc-300">
                 {project.description?.split('\\n').map((line: string, i: number) => (

@@ -1,16 +1,17 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ChevronLeft } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { AuthButtons } from "@/components/shared/auth-buttons";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { PageNav } from "@/components/shared/page-nav";
 import { cn } from "@/lib/utils";
 
 interface SiteHeaderProps {
   maxWidth?: "sm" | "md" | "lg";
   variant?: "sticky" | "transparent";
   rightExtra?: ReactNode;
+  showNav?: boolean;
 }
 
 const MAX_WIDTH_CLASS: Record<NonNullable<SiteHeaderProps["maxWidth"]>, string> = {
@@ -23,8 +24,9 @@ export function SiteHeader({
   maxWidth = "lg",
   variant = "sticky",
   rightExtra,
+  showNav = false,
 }: SiteHeaderProps) {
-  const containerClass = cn(MAX_WIDTH_CLASS[maxWidth], "mx-auto px-6 h-16 flex items-center justify-between");
+  const containerClass = cn(MAX_WIDTH_CLASS[maxWidth], "mx-auto px-4 sm:px-6 h-16 flex items-center justify-between");
 
   return (
     <header
@@ -35,8 +37,8 @@ export function SiteHeader({
       )}
     >
       <div className={containerClass}>
-        <div className="flex items-center gap-4 min-w-0">
-          <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+          <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80 shrink-0">
             <div className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0 shadow-sm border border-zinc-200/50 dark:border-zinc-800/50">
               <Image src="/logo.svg" alt="Logo" fill className="object-cover" />
             </div>
@@ -44,9 +46,15 @@ export function SiteHeader({
               DSHS Developer Platform
             </h1>
           </Link>
+          {showNav && (
+            <>
+              <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-800 shrink-0" />
+              <PageNav />
+            </>
+          )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {rightExtra}
           <ThemeToggle />
           <AuthButtons />

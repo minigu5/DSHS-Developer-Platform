@@ -8,7 +8,7 @@ import * as z from "zod";
 import { toast } from "sonner";
 import { User } from "@supabase/supabase-js";
 import { INTERESTS } from "@/lib/constants";
-import { updateProfile, checkNicknameDuplicate } from "@/app/developers/actions";
+import { updateProfile, checkNicknameDuplicate } from "@/app/(nav)/developers/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

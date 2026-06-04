@@ -4,8 +4,6 @@ import { CalendarDays, Mail } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { INTERESTS } from "@/lib/constants";
-import { SiteHeader } from "@/components/shared/site-header";
-import { BackButton } from "@/components/shared/back-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProjectCard, type ProjectCardData } from "@/components/projects/project-card";
 import { ProfileSettingsDialog } from "./profile-settings-dialog";
@@ -68,18 +66,13 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
       <div className="absolute top-1/4 left-0 w-[500px] h-[500px] bg-blue-500/10 dark:bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-1/4 right-0 w-[400px] h-[400px] bg-purple-500/10 dark:bg-purple-600/10 blur-[120px] rounded-full pointer-events-none" />
       
-      <SiteHeader maxWidth="md" />
-
-      <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-12">
-        <div className="mb-6">
-          <BackButton fallbackUrl="/explore" />
-        </div>
+      <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-12">
         <div className="flex flex-col md:flex-row gap-8">
           
           {/* 프로필 사이드바 */}
           <aside className="w-full md:w-80 shrink-0">
             <Card className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border-zinc-200/50 dark:border-zinc-800/50 shadow-lg rounded-3xl overflow-hidden sticky top-24">
-              <CardContent className="p-8 flex flex-col items-center text-center">
+              <CardContent className="p-6 sm:p-8 flex flex-col items-center text-center">
                 <div className="relative w-32 h-32 rounded-full overflow-hidden mb-6 ring-4 ring-zinc-100 dark:ring-zinc-900 shadow-xl">
                   {avatarUrl ? (
                     <Image 
