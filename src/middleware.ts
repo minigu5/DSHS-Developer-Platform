@@ -4,7 +4,7 @@ import { isAllowedEmail } from '@/lib/constants';
 import { updateSession } from '@/lib/supabase/middleware';
 
 // 로그인이 강제되는 경로 prefix. 메인/탐색/상세는 비로그인도 열람 가능.
-const PROTECTED_PREFIXES = ['/projects/new', '/me'] as const;
+const PROTECTED_PREFIXES = ['/projects/new', '/tips/new', '/me'] as const;
 
 // 온보딩 완료 여부를 캐시하는 쿠키 이름
 const ONBOARDING_COOKIE = 'ds_onboarded';
@@ -19,6 +19,7 @@ function isProtectedRoute(pathname: string): boolean {
     return true;
   }
   if (/^\/projects\/[^/]+\/edit$/.test(pathname)) return true;
+  if (/^\/tips\/[^/]+\/edit$/.test(pathname)) return true;
   return false;
 }
 
