@@ -60,7 +60,7 @@ export default async function HomePage() {
           대구과학고 학생들이 개발한 소프트웨어 프로젝트를 전시하고, 유용한 피드백을 주고받으며, 새로운 아이디어를 함께 발전시키는 중앙 허브입니다.
         </p>
         
-        <div className="flex flex-col items-center sm:flex-row sm:flex-wrap sm:items-stretch gap-3 sm:gap-4 w-full sm:w-auto z-10">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-stretch gap-3 sm:gap-4 w-full sm:w-auto z-10">
           <Link href="/explore" className={cn(buttonVariants({ size: "lg" }), "rounded-full h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 transition-all hover:scale-105")}>
             <Search className="mr-2 h-5 w-5" /> 프로젝트 둘러보기
           </Link>

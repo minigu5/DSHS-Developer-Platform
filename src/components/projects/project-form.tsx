@@ -2,9 +2,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { UploadCloud, Lock, Globe, Code2, Users, User as UserIcon, Plus, X, Link as LinkIcon, Loader2, Image as ImageIcon } from "lucide-react";
+import { UploadCloud, Lock, Globe, Code2, Users, User as UserIcon, Plus, X, Link as LinkIcon, Loader2, Image as ImageIcon, Trash2 } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +40,8 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
   const supabase = createClient();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const [title, setTitle] = useState<string>(initialData?.title ?? "");
   const [type, setType] = useState<string>(initialData?.type ?? "");
@@ -207,6 +210,27 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
     }
   };
 
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("로그인이 필요합니다.");
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', initialData!.id)
+        .eq('author_id', session.user.id);
+      if (error) throw error;
+      router.push('/explore');
+      router.refresh();
+    } catch (err) {
+      console.error('[ProjectForm] delete error:', err);
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
@@ -314,8 +338,7 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
         finalIconUrl = null;
       }
 
-      const payload = {
-        author_id: session.user.id,
+      const commonFields = {
         title,
         short_description: shortDesc,
         description,
@@ -339,11 +362,12 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
       };
 
       if (isEdit && initialData?.id) {
-        const { error } = await supabase.from('projects').update(payload).eq('id', initialData.id);
+        // 수정 시 author_id 는 포함하지 않음 — 원작자 변경 방지 (개발자 계정 포함)
+        const { error } = await supabase.from('projects').update(commonFields).eq('id', initialData.id);
         if (error) throw error;
         router.push(`/projects/${initialData.id}`);
       } else {
-        const { data, error } = await supabase.from('projects').insert([payload]).select().single();
+        const { data, error } = await supabase.from('projects').insert([{ ...commonFields, author_id: session.user.id }]).select().single();
         if (error) throw error;
         router.push(`/projects/${data.id}`);
       }
@@ -365,6 +389,7 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="space-y-8">
       {errorMsg && (
         <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded-xl border border-red-200 dark:border-red-800 text-sm font-medium">
@@ -838,30 +863,97 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
         </CardContent>
       </Card>
       
-      <div className="flex justify-end gap-4 pt-4 pb-20">
-        <button 
-          type="button" 
-          onClick={() => router.back()} 
+      <div className="flex justify-end gap-4 pt-4 pb-4">
+        <button
+          type="button"
+          onClick={() => router.back()}
           className={cn(
-            buttonVariants({ variant: "outline", size: "lg" }), 
+            buttonVariants({ variant: "outline", size: "lg" }),
             "rounded-full px-8 text-base h-12 transition-all duration-200 ease-out will-change-transform hover:scale-[1.05] active:scale-[0.95]"
           )}
         >
           취소
         </button>
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           disabled={isLoading || shortDesc.length > 100}
           className={cn(
-            buttonVariants({ size: "lg" }), 
-            "rounded-full px-8 text-base bg-blue-600 hover:bg-blue-700 text-white h-12 flex items-center shadow-lg shadow-blue-500/20 transition-all duration-200 ease-out will-change-transform hover:scale-[1.05] active:scale-[0.95]", 
+            buttonVariants({ size: "lg" }),
+            "rounded-full px-8 text-base bg-blue-600 hover:bg-blue-700 text-white h-12 flex items-center shadow-lg shadow-blue-500/20 transition-all duration-200 ease-out will-change-transform hover:scale-[1.05] active:scale-[0.95]",
             (isLoading || shortDesc.length > 100) && "opacity-50 cursor-not-allowed"
-          )} 
+          )}
         >
           {isLoading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <UploadCloud className="w-5 h-5 mr-2" />}
           {isEdit ? "프로젝트 수정하기" : "프로젝트 게시하기"}
         </button>
       </div>
     </form>
+
+    {isEdit && initialData?.id && (
+      <>
+        <Card className="border-red-200 dark:border-red-900/50 bg-red-50/30 dark:bg-red-950/20 rounded-3xl overflow-hidden shadow-lg">
+          <CardHeader className="bg-red-50/50 dark:bg-red-950/30 backdrop-blur-md border-b border-red-200/50 dark:border-red-900/30">
+            <CardTitle className="text-xl text-red-700 dark:text-red-400">위험 구역</CardTitle>
+            <CardDescription className="text-red-600/70 dark:text-red-500/70">아래 작업은 되돌릴 수 없습니다.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h4 className="font-semibold text-zinc-800 dark:text-zinc-200">프로젝트 삭제하기</h4>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">프로젝트와 모든 관련 데이터(리뷰, 별점 등)가 영구적으로 삭제됩니다.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDeleteDialog(true)}
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "lg" }),
+                  "rounded-full px-6 text-base h-12 border-red-300 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/50 shrink-0 transition-all duration-200 ease-out will-change-transform hover:scale-[1.05] active:scale-[0.95]"
+                )}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                삭제하기
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="pb-20" />
+
+        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <DialogContent showCloseButton={false} className="rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-lg">정말 삭제하시겠습니까?</DialogTitle>
+              <DialogDescription>
+                <span className="font-semibold text-zinc-800 dark:text-zinc-200">{initialData.title}</span> 프로젝트와 모든 관련 데이터가 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <button
+                type="button"
+                onClick={() => setShowDeleteDialog(false)}
+                disabled={isDeleting}
+                className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className={cn(
+                  buttonVariants(),
+                  "rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/20 flex items-center",
+                  isDeleting && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                삭제하기
+              </button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
+    )}
+    </>
   );
 }

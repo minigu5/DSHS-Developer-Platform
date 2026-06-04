@@ -1,0 +1,100 @@
+# =============================================================================
+# .claudeignore — Claude Code 토큰 절약용 제외 패턴
+# =============================================================================
+# Claude가 자동으로 읽거나 인덱싱하지 않아야 할 파일/디렉토리.
+# .gitignore 와 동일한 glob 문법.
+# =============================================================================
+
+# ---- 의존성 (가장 큰 토큰 절약 효과) ----
+node_modules/
+.pnp
+.pnp.*
+.yarn/
+
+# ---- Next.js 빌드 산출물 ----
+.next/
+out/
+build/
+dist/
+
+# ---- 캐시 / 임시 파일 ----
+.cache/
+.turbo/
+.swc/
+.vercel/
+.vscode/
+.idea/
+*.tsbuildinfo
+next-env.d.ts
+
+# ---- 테스트 / 커버리지 ----
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# ---- 로그 ----
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ---- 락 파일 (매우 큼, 직접 편집 불필요) ----
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ---- 환경 변수 / 시크릿 ----
+.env
+.env.*
+!.env.local.example
+!.env.example
+
+# ---- OS / 에디터 메타데이터 ----
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# ---- 바이너리 / 미디어 (텍스트 분석 불필요) ----
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.ico
+*.svg
+*.pdf
+*.zip
+*.tar
+*.tar.gz
+*.mp4
+*.mov
+*.woff
+*.woff2
+*.ttf
+*.otf
+*.eot
+
+# 단, public/ 아이콘/로고 등은 필요 시 예외 처리
+# !public/logo.svg
+
+# ---- Supabase 로컬 개발 산출물 ----
+supabase/.branches/
+supabase/.temp/
+
+# ---- 본 프로젝트 보안 주의 항목 ----
+# 실명 매핑 등 민감 데이터 (CLAUDE.md 보안 섹션 참고)
+**/student_mappings*.json
+**/student_mappings*.csv
+**/*real_names*
+
+# ---- 대용량 문서/마이그레이션 결과물 ----
+docs/archive/
+docs/*.backup.md
+
+# ---- 인증서 / 키 ----
+*.pem
+*.key
+*.crt

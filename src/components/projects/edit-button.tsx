@@ -7,6 +7,7 @@ import { Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { isDeveloper } from "@/lib/constants";
 
 export function EditButton({ projectId, authorId }: { projectId: string; authorId: string }) {
   const [show, setShow] = useState(false);
@@ -14,7 +15,9 @@ export function EditButton({ projectId, authorId }: { projectId: string; authorI
   useEffect(() => {
     createClient()
       .auth.getUser()
-      .then(({ data: { user } }) => setShow(user?.id === authorId));
+      .then(({ data: { user } }) =>
+        setShow(user?.id === authorId || isDeveloper(user?.email))
+      );
   }, [authorId]);
 
   if (!show) return null;

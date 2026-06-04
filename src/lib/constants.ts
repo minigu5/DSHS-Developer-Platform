@@ -126,3 +126,11 @@ export function isAllowedEmail(email: string | undefined | null): boolean {
   if (!email) return false;
   return email.toLowerCase().endsWith(`@${ALLOWED_EMAIL_DOMAIN}`);
 }
+
+// 개발자(관리자) 계정 이메일 — 모든 프로젝트 열람 및 수정 권한 보유.
+export const DEVELOPER_EMAIL = 'ts250024@ts.hs.kr';
+
+export function isDeveloper(email: string | undefined | null): boolean {
+  if (!email) return false;
+  return email.toLowerCase() === DEVELOPER_EMAIL.toLowerCase();
+}

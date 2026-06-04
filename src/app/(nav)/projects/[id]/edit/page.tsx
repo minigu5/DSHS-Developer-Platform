@@ -1,7 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { ProjectForm } from "@/components/projects/project-form";
+import { isDeveloper } from "@/lib/constants";
 
 export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -13,8 +14,13 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
     redirect("/login");
   }
 
+  const userIsDeveloper = isDeveloper(session.user.email);
+
+  // 개발자 계정은 비공개 프로젝트도 조회할 수 있도록 어드민 클라이언트 사용
+  const queryClient = userIsDeveloper ? createAdminClient() : supabase;
+
   // Fetch project
-  const { data: project, error } = await supabase
+  const { data: project, error } = await queryClient
     .from('projects')
     .select('*')
     .eq('id', id)
@@ -24,8 +30,8 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
     notFound();
   }
 
-  // Check ownership
-  if (project.author_id !== session.user.id) {
+  // Check ownership — 개발자 계정은 모든 프로젝트 수정 가능
+  if (!userIsDeveloper && project.author_id !== session.user.id) {
     redirect(`/projects/${id}`);
   }
 

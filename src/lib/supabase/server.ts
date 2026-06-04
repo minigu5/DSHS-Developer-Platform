@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
 import type { Database } from '@/lib/types';
@@ -26,5 +27,14 @@ export async function createClient() {
         },
       },
     },
+  );
+}
+
+// 서비스 롤 키 사용 — RLS 를 우회하여 모든 데이터에 접근 가능.
+// 반드시 서버 사이드(Server Component / Route Handler)에서만 사용할 것.
+export function createAdminClient() {
+  return createSupabaseClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
 }

@@ -1,4 +1,4 @@
-export const revalidate = 120;
+export const dynamic = 'force-dynamic';
 
 import { notFound } from "next/navigation";
 import Image from "next/image";
@@ -8,12 +8,12 @@ import { Globe, Code2, Star, ExternalLink, ShieldCheck, ShieldAlert } from "luci
 import { buttonVariants } from "@/components/ui/button";
 import { cn, isExternalImage } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { ProjectReviews } from "@/components/projects/project-reviews";
 import { ProjectIcon } from "@/components/projects/project-icon";
 import { EditButton } from "@/components/projects/edit-button";
 import type { ReviewItem } from "@/components/projects/review-list";
-import { LICENSE_FEATURES } from "@/lib/constants";
+import { LICENSE_FEATURES, isDeveloper } from "@/lib/constants";
 
 const LICENSE_LABELS: Record<string, string> = {
   commercial: "상업적 이용",
@@ -36,14 +36,18 @@ const RESTRICTED_LABELS: Record<string, string> = {
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // 개발자 계정은 비공개 프로젝트도 볼 수 있도록 어드민 클라이언트 사용
+  const queryClient = isDeveloper(user?.email) ? createAdminClient() : supabase;
 
   const [projectResult, reviewsResult] = await Promise.all([
-    supabase
+    queryClient
       .from('projects')
       .select(`*, users (*)`)
       .eq('id', id)
       .single(),
-    supabase
+    queryClient
       .from('reviews')
       .select('id, rating, comment, created_at, user_id, user:users(*)')
       .eq('project_id', id)

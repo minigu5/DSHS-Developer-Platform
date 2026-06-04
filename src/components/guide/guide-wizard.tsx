@@ -34,10 +34,7 @@ export function GuideWizard() {
   };
 
   const goBack = () => {
-    if (order.length === 0) {
-      router.push("/");
-      return;
-    }
+    if (order.length === 0) return;
     const last = order[order.length - 1];
     const next = { ...answers };
     delete next[last];
@@ -49,16 +46,20 @@ export function GuideWizard() {
 
   return (
     <div className="w-full max-w-2xl">
-      {/* 상단 고정 영역: 이전 버튼 + 단계 표시 (진행바 자리) */}
+      {/* 상단 고정 영역: 이전 버튼(첫 단계에서는 숨김) + 단계 표시 */}
       <div className="mb-8 flex h-10 items-center justify-between">
-        <button
-          type="button"
-          onClick={goBack}
-          className="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-white"
-        >
-          <ChevronLeft className="mr-1 h-4 w-4" />
-          {order.length === 0 ? "나가기" : "이전"}
-        </button>
+        {order.length > 0 ? (
+          <button
+            type="button"
+            onClick={goBack}
+            className="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-white"
+          >
+            <ChevronLeft className="mr-1 h-4 w-4" />
+            이전
+          </button>
+        ) : (
+          <span />
+        )}
         <span className="text-sm font-medium text-zinc-400">{stepNumber}단계</span>
       </div>
 
