@@ -75,10 +75,10 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
       <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-500/10 dark:bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-500/10 dark:bg-purple-600/10 blur-[120px] rounded-full pointer-events-none" />
       
-      <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-8">
-        <div className="flex flex-col md:flex-row gap-8">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-8">
+        <div className="flex flex-col md:flex-row gap-3">
         {/* SIDEBAR / FILTERS (데스크탑 전용) */}
-        <aside className="hidden md:block w-64 shrink-0">
+        <aside className="hidden md:block w-56 shrink-0">
           <div className="sticky top-24 space-y-8">
             <div>
               <h3 className="font-semibold text-lg mb-4 flex items-center">

@@ -54,8 +54,8 @@ export default async function TipsPage() {
       <div className="pointer-events-none absolute right-0 top-0 h-[700px] w-[700px] rounded-full bg-blue-500/10 blur-[120px] dark:bg-blue-600/10" />
       <div className="pointer-events-none absolute bottom-0 left-0 h-[500px] w-[500px] rounded-full bg-purple-500/10 blur-[120px] dark:bg-purple-600/10" />
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 sm:px-6 py-8">
-        <div className="mb-10">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 sm:px-6 py-12">
+        <div className="mb-8">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
             <Lightbulb className="h-4 w-4" /> 개발 팁
           </div>

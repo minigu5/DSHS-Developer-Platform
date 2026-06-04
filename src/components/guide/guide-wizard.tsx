@@ -48,7 +48,7 @@ export function GuideWizard() {
   if (!current) return null;
 
   return (
-    <div className="w-full max-w-xl">
+    <div className="w-full max-w-2xl">
       {/* 상단 고정 영역: 이전 버튼 + 단계 표시 (진행바 자리) */}
       <div className="mb-8 flex h-10 items-center justify-between">
         <button

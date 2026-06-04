@@ -28,7 +28,7 @@ export default async function GuideResultPage({ params }: GuideResultPageProps) 
       <div className="pointer-events-none absolute right-0 top-0 h-[700px] w-[700px] rounded-full bg-blue-500/10 blur-[120px] dark:bg-blue-600/10" />
       <div className="pointer-events-none absolute bottom-0 left-0 h-[500px] w-[500px] rounded-full bg-purple-500/10 blur-[120px] dark:bg-purple-600/10" />
 
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 sm:px-6 py-8">
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 sm:px-6 py-8">
         {/* 선택 요약 */}
         <div className="mb-6 flex flex-wrap gap-2">
           {picks.map((p) => (
