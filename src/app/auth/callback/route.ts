@@ -5,10 +5,27 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { isAllowedEmail } from '@/lib/constants';
 import { createClient } from '@/lib/supabase/server';
 
+// 이메일과 구글 계정 이름으로 full_name을 파생.
+// 학생 이메일 형식: ts250024@ts.hs.kr (25 = 입학연도, 기수 = 입학연도 + 13)
+// 학생 이름 형식: 숫자4자리 + (선택적 공백) + 이름
+// 두 조건 중 하나라도 맞지 않으면 null 반환 (선생님 등 예외 처리)
+function deriveFullName(email: string, googleName: string): string | null {
+  const emailMatch = email.match(/^ts(\d{2})\d+@ts\.hs\.kr$/i);
+  if (!emailMatch) return null;
+
+  const nameMatch = googleName.match(/^\d{4}\s*(.+)$/);
+  if (!nameMatch) return null;
+
+  const generation = parseInt(emailMatch[1], 10) + 13;
+  const name = nameMatch[1].trim();
+  return `${generation}기 ${name}`;
+}
+
 // Supabase Auth 가 Google OAuth 완료 후 호출하는 콜백.
 //   1) authorization code → session 교환
 //   2) 이메일 도메인 검증 (Google hd 우회를 막는 진짜 방어선)
-//   3) 안전한 next 경로로 복귀
+//   3) 이메일+구글 계정명으로 full_name 자동 갱신 (매 로그인마다)
+//   4) 안전한 next 경로로 복귀
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
@@ -38,27 +55,22 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/auth/forbidden`);
   }
 
-  // 2. student_mappings 테이블에서 실명 조회 (보안 마이그레이션)
-  const { data: mapping } = await (supabase
-    .from('student_mappings')
-    .select('student_name')
-    .eq('email', user.email)
-    .single() as any);
+  // 2. 구글 계정명에서 기수+이름 형식으로 full_name 자동 갱신 (매 로그인마다)
+  const googleName = user.user_metadata?.full_name ?? user.user_metadata?.name ?? '';
+  const derivedName = deriveFullName(user.email, googleName);
 
-  if (mapping?.student_name) {
-    // Use service role key to bypass RLS for initial name sync
+  if (derivedName) {
     const supabaseAdmin = createSupabaseClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
     );
-
     await supabaseAdmin
       .from('users')
-      .update({ full_name: mapping.student_name })
+      .update({ full_name: derivedName })
       .eq('id', user.id);
   }
 
-  // Check if user has a nickname. If not, they need onboarding.
+  // 3. 닉네임 없으면 온보딩으로
   const { data: profile } = await supabase
     .from('users')
     .select('nickname')
