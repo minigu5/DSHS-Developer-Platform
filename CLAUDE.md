@@ -83,27 +83,30 @@
 
 ---
 
-## 📅 단계별 개발 진행 상황
+## 🌏 인프라 및 배포 설정
 
-| Step | 핵심 내용 | 상태 |
-|---|---|---|
-| **Step 0-3** | 인프라 셋업, 인증(Google OAuth), 도메인 미들웨어, DB 스키마 및 RLS 구축 | ✅ 완료 |
-| **Step 4-6** | 프로젝트 게시/수정 폼, 메인/탐색 페이지 필터링, 상세 페이지 및 리뷰 시스템 | ✅ 완료 |
-| **Step 7-9** | 개발자 프로필, 프로젝트 아이콘 업로드, UI/UX 컴팩트 디자인 개편 | ✅ 완료 |
-| **Step 10-12** | 온보딩 시스템, 다크모드/애니메이션, 보안 마이그레이션(실명 매핑 DB 이관) | ✅ 완료 |
-| **Step 13** | **UI/UX 고도화**: 카드 가독성 개선, 텍스트 넘침 처리, 시력 보호 배경색 적용 | ✅ 완료 |
-| **Step 14** | **레이아웃 통일**: 모든 페이지 가로 폭(`max-w-5xl`) 통일 및 라이선스 상세 표시 개선 | ✅ 완료 |
+| 항목 | 설정값 |
+|---|---|
+| **Vercel 배포 리전** | `icn1` (서울, ap-northeast-2) |
+| **Supabase DB 리전** | `ap-northeast-2` (서울) |
+
+> 두 서비스를 서울 리전으로 통일하여 서버 → DB 왕복 레이턴시를 최소화함.
 
 ---
 
-## 🚀 다음 세션 작업 가이드 (NEXT UP)
+## ⚡ 성능 최적화 적용 내역
 
-### 작업 1️⃣ — Supabase CLI 타입 자동 생성 셋업
-- `package.json`의 `db:types` 스크립트 실행 환경 구축 및 `src/lib/types.generated.ts` 연동.
+### 미들웨어 온보딩 쿠키 캐시 (`src/middleware.ts`)
+- 문제: 로그인된 사용자의 **모든 페이지 이동마다** Supabase DB에 닉네임 확인 쿼리 발생.
+- 해결: 닉네임 확인 성공 시 `ds_onboarded=1` 쿠키(30일)를 발급. 이후 요청은 DB 쿼리 없이 쿠키만 확인.
 
-### 작업 2️⃣ — 실시간 검색 및 성능 최적화
-- 타이핑 시 Debounce 처리된 검색 기능 및 결과 하이라이팅.
-- 이미지 및 폰트 로딩 최적화.
+### 프로젝트 상세 쿼리 병렬화 (`src/app/projects/[id]/page.tsx`)
+- 문제: `project` → `user` → `reviews` 쿼리가 직렬 실행.
+- 해결: `Promise.all`로 3개 쿼리 동시 실행.
+
+### 공개 페이지 Vercel 캐시 (`src/app/page.tsx`, `src/app/explore/page.tsx`)
+- 홈페이지: `revalidate = 60` (60초 캐시)
+- 탐색 페이지: `revalidate = 30` (30초 캐시)
 
 ---
 
@@ -131,4 +134,4 @@ src/
 - **TS Strict**: `any` 사용 금지, 인터페이스 명확히 정의.
 - **Server First**: 상호작용이 필요한 경우에만 `"use client"` 사용.
 - **Design System**: 글래스모피즘, Zinc/Blue 포인트, `rounded-3xl` 스타일 유지.
-- **Documentation**: `CLAUDE.md` 및 `AGENTS.md`를 항상 최신 상태로 유지.
+- **Documentation**: `CLAUDE.md` 및 `AGENTS.md`를 항상 최신 상태로 유지. — 외부 서비스 정보, 진행 상황, 결정 사항이 바뀌면 즉시 반영

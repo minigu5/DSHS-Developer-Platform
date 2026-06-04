@@ -35,27 +35,29 @@ const RESTRICTED_LABELS: Record<string, string> = {
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  
-  const { data: project, error } = await supabase
-    .from('projects')
-    .select(`
-      *,
-      users (*)
-    `)
-    .eq('id', id)
-    .single();
+
+  const [projectResult, authResult, reviewsResult] = await Promise.all([
+    supabase
+      .from('projects')
+      .select(`*, users (*)`)
+      .eq('id', id)
+      .single(),
+    supabase.auth.getUser(),
+    supabase
+      .from('reviews')
+      .select('id, rating, comment, created_at, user_id, user:users(*)')
+      .eq('project_id', id)
+      .order('created_at', { ascending: false }),
+  ]);
+
+  const { data: project, error } = projectResult;
 
   if (error || !project) {
     notFound();
   }
 
-  const { data: { user } } = await supabase.auth.getUser();
-
-  const { data: reviewsData } = await supabase
-    .from('reviews')
-    .select('id, rating, comment, created_at, user_id, user:users(*)')
-    .eq('project_id', id)
-    .order('created_at', { ascending: false });
+  const { data: { user } } = authResult;
+  const { data: reviewsData } = reviewsResult;
 
   const reviews: ReviewItem[] = (reviewsData ?? []).map((r) => ({
     id: r.id,

@@ -6,6 +6,9 @@ import { updateSession } from '@/lib/supabase/middleware';
 // 로그인이 강제되는 경로 prefix. 메인/탐색/상세는 비로그인도 열람 가능.
 const PROTECTED_PREFIXES = ['/projects/new', '/me'] as const;
 
+// 온보딩 완료 여부를 캐시하는 쿠키 이름
+const ONBOARDING_COOKIE = 'ds_onboarded';
+
 // /projects/[id]/edit 같은 동적 보호 라우트
 function isProtectedRoute(pathname: string): boolean {
   if (
@@ -50,18 +53,31 @@ export async function middleware(request: NextRequest) {
   }
 
   // 4차: 로그인 됐고 닉네임이 없는데 /onboarding이 아닌 곳에 있으면 → /onboarding으로
-  // 단, auth 관련 경로나 정적 파일은 제외 (이미 matcher에서 어느 정도 걸러짐)
+  // 쿠키에 온보딩 완료가 캐시돼 있으면 DB 쿼리 생략 (매 클릭마다 발생하던 왕복 제거)
   if (user && !pathname.startsWith('/onboarding') && !pathname.startsWith('/auth') && !pathname.startsWith('/login')) {
-    const { data: profile } = await supabase
-      .from('users')
-      .select('nickname')
-      .eq('id', user.id)
-      .single();
+    const isOnboarded = request.cookies.get(ONBOARDING_COOKIE)?.value === '1';
 
-    if (!profile?.nickname) {
-      const url = request.nextUrl.clone();
-      url.pathname = '/onboarding';
-      return NextResponse.redirect(url);
+    if (!isOnboarded) {
+      const { data: profile } = await supabase
+        .from('users')
+        .select('nickname')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.nickname) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/onboarding';
+        return NextResponse.redirect(url);
+      }
+
+      // 닉네임 확인됨 → 이후 요청은 DB 쿼리 없이 쿠키로 처리
+      supabaseResponse.cookies.set(ONBOARDING_COOKIE, '1', {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 60 * 60 * 24 * 30, // 30일
+        path: '/',
+      });
     }
   }
 

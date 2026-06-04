@@ -1,3 +1,5 @@
+export const revalidate = 60;
+
 import Link from "next/link";
 import { ArrowRight, Code2, Globe, Layout, Search, Sparkles, Layers } from "lucide-react";
 

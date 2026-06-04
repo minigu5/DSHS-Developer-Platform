@@ -1,3 +1,5 @@
+export const revalidate = 30;
+
 import { createClient } from "@/lib/supabase/server";
 import { ExploreClient } from "@/components/explore/explore-client";
 import type { ProjectCardData } from "@/components/projects/project-card";
