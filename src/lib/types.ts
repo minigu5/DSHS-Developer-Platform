@@ -77,7 +77,7 @@ export type Database = {
           team_name: string | null;
           team_members: string[] | null;
           icon_url: string | null;
-          icon_type: 'upload' | 'auto' | null;
+          icon_type: 'link' | 'auto' | null;
           license_features: string[] | null;
           license_custom: string | null;
           // 05 alter
@@ -104,7 +104,7 @@ export type Database = {
           team_name?: string | null;
           team_members?: string[] | null;
           icon_url?: string | null;
-          icon_type?: 'upload' | 'auto' | null;
+          icon_type?: 'link' | 'auto' | null;
           license_features?: string[] | null;
           license_custom?: string | null;
           allowed_users?: string[];
@@ -130,7 +130,7 @@ export type Database = {
           team_name?: string | null;
           team_members?: string[] | null;
           icon_url?: string | null;
-          icon_type?: 'upload' | 'auto' | null;
+          icon_type?: 'link' | 'auto' | null;
           license_features?: string[] | null;
           license_custom?: string | null;
           allowed_users?: string[];

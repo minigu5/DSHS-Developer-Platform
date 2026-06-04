@@ -4,6 +4,7 @@ import { INTERESTS } from "@/lib/constants";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Settings, Loader2, Check } from "lucide-react";
+import { parseImageInput, isIbbPageUrl } from "@/lib/parse-image-url";
 import { useRouter } from "next/navigation";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -26,12 +27,35 @@ export function ProfileSettingsDialog({ userId, initialNickname, initialBio, ini
   const [nickname, setNickname] = useState(initialNickname);
   const [bio, setBio] = useState(initialBio);
   const [avatar, setAvatar] = useState(initialAvatar);
+  const [avatarRawInput, setAvatarRawInput] = useState(initialAvatar);
+  const [avatarResolving, setAvatarResolving] = useState(false);
   const [interests, setInterests] = useState<string[]>(initialInterests);
   const [loading, setLoading] = useState(false);
   const [checkingNickname, setCheckingNickname] = useState(false);
   const [isNicknameChecked, setIsNicknameChecked] = useState(true);
   
   const router = useRouter();
+
+  const handleAvatarInput = async (raw: string) => {
+    setAvatarRawInput(raw);
+    const parsed = parseImageInput(raw);
+
+    if (isIbbPageUrl(parsed)) {
+      setAvatarResolving(true);
+      try {
+        const res = await fetch(`/api/resolve-image?url=${encodeURIComponent(parsed)}`);
+        const data = await res.json();
+        if (data.imageUrl) {
+          setAvatar(data.imageUrl);
+          setAvatarRawInput(data.imageUrl);
+        }
+      } finally {
+        setAvatarResolving(false);
+      }
+    } else {
+      setAvatar(parsed);
+    }
+  };
 
   const handleNicknameChange = (val: string) => {
     setNickname(val);
@@ -174,15 +198,22 @@ export function ProfileSettingsDialog({ userId, initialNickname, initialBio, ini
                   </div>
                 )}
               </div>
-              <div className="flex-1 space-y-2">
-                <input
-                  id="avatar"
-                  value={avatar}
-                  onChange={(e) => setAvatar(e.target.value)}
-                  placeholder="https://example.com/avatar.jpg"
-                  className="flex h-10 w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2 text-sm placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <p className="text-[10px] text-zinc-500">외부 이미지 링크나 URL을 입력하세요.</p>
+              <div className="flex-1 space-y-1">
+                <div className="relative">
+                  <input
+                    id="avatar"
+                    value={avatarRawInput}
+                    onChange={(e) => handleAvatarInput(e.target.value)}
+                    placeholder="이미지 URL 또는 imgbb 공유 코드 붙여넣기"
+                    className="flex h-10 w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2 text-sm placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-9"
+                  />
+                  {avatarResolving && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-zinc-400" />}
+                </div>
+                <p className="text-[10px] text-zinc-500">
+                  이미지 호스팅은{" "}
+                  <a href="https://imgbb.com/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">imgbb.com</a>
+                  을 추천합니다. 링크, HTML, BBCode 모두 지원합니다.
+                </p>
               </div>
             </div>
           </div>

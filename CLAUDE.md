@@ -62,7 +62,7 @@
 | **라이선스 권한** | `license_features` | 상업적 이용, 수정, 배포, 개인적 이용, 법적 책임, 보증 (다중 선택) |
 | **공개 여부** | `visibility` | `public` / `private` |
 | **작성자 형태** | `author_role` | `individual` / `team` |
-| **아이콘** | `icon_type` | `auto` (URL favicon) / `upload` (직접 업로드) |
+| **아이콘** | `icon_type` | `auto` (URL favicon) / `link` (이미지 링크 입력) |
 
 ---
 
@@ -108,6 +108,12 @@
 - 홈페이지: `revalidate = 60` (60초 캐시)
 - 탐색 페이지: `revalidate = 30` (30초 캐시)
 
+### 이미지 URL 파싱 (`src/lib/parse-image-url.ts`)
+- 프로필 아바타 · 프로젝트 아이콘 모두 링크 입력 방식으로 통일.
+- `parseImageInput()`: HTML embed(`<img src="...">`)와 BBCode(`[img]...[/img]`)에서 직접 이미지 URL 추출.
+- `GET /api/resolve-image?url=`: ibb.co 페이지 URL을 서버에서 og:image로 변환 (직접 링크 불가 케이스 대응).
+- imgbb.com 추천 힌트 텍스트를 두 입력 필드에 표시.
+
 ---
 
 ## 📌 작업 시작 전 체크리스트
@@ -116,7 +122,7 @@
 3. `.env.local` 환경 변수 설정 확인.
 
 ## ⚠️ 보안 및 주의사항
-- **개인정보 매핑**: `student_mappings` 테이블을 사용하며, 실명 데이터가 포함된 로컬 파일은 절대 Git에 포함하거나 클라이언트 사이드에서 import하지 말 것.
+- **실명 파생**: `student_mappings` 테이블은 삭제됨. 이제 `users.full_name`은 로그인 시 이메일(입학연도)과 구글 계정명(숫자4자리+이름)에서 자동 파생 — `src/app/auth/callback/route.ts` 참고.
 - **Supabase Client**: 서버 사이드에서는 `createServerClient`, 클라이언트에서는 `createBrowserClient` 사용. 민감한 작업은 항상 `getUser()`로 검증.
 
 ---

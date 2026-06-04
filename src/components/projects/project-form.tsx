@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { UploadCloud, Lock, Globe, Code2, Users, User as UserIcon, Plus, X, Image as ImageIcon, Link as LinkIcon, Loader2, Upload } from "lucide-react";
+import { UploadCloud, Lock, Globe, Code2, Users, User as UserIcon, Plus, X, Link as LinkIcon, Loader2, Image as ImageIcon } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -27,13 +27,14 @@ import {
   VISIBILITY,
   isAllowedEmail
 } from "@/lib/constants";
+import { parseImageInput, isIbbPageUrl } from "@/lib/parse-image-url";
 import { createClient } from "@/lib/supabase/client";
 import type { ProjectRow } from "@/lib/types";
 
 type Visibility = 'public' | 'private';
 type SourceType = 'open' | 'closed';
 type AuthorRole = 'individual' | 'team';
-type IconType = 'auto' | 'upload';
+type IconType = 'auto' | 'link';
 
 interface ProjectFormProps {
   initialData?: ProjectRow;
@@ -79,11 +80,14 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
   const [featureCustom, setFeatureCustom] = useState<string>(initialData?.feature_custom ?? "");
 
   // 아이콘
-  const [iconType, setIconType] = useState<IconType>(initialData?.icon_type ?? "auto");
-  const [iconFile, setIconFile] = useState<File | null>(null);
+  const [iconType, setIconType] = useState<IconType>(
+    (initialData?.icon_type === 'link') ? 'link' : (initialData?.icon_type ?? "auto")
+  );
+  const [iconUrl, setIconUrl] = useState<string>(initialData?.icon_url ?? "");
+  const [iconRawInput, setIconRawInput] = useState<string>(initialData?.icon_url ?? "");
   const [iconPreview, setIconPreview] = useState<string | null>(initialData?.icon_url ?? null);
   const [iconError, setIconError] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [iconResolving, setIconResolving] = useState(false);
   
   const [url, setUrl] = useState<string>(initialData?.url ?? "");
   const [repoUrl, setRepoUrl] = useState<string>(initialData?.repo_url ?? "");
@@ -141,40 +145,41 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
     setLicenseFeatures(prev => checked ? [...prev, val] : prev.filter(p => p !== val));
   };
 
-  const validateAndSetIcon = (file: File) => {
-    setIconError("");
-    // 규정: 512*512이하의 정사각형 png, jpeg만 업로드 가능
-    if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
-      setIconError("PNG 또는 JPEG 이미지만 업로드 가능합니다.");
-      return;
-    }
-
-    const img = new Image();
-    img.src = URL.createObjectURL(file);
-    img.onload = () => {
-      if (img.width !== img.height) {
-        setIconError("아이콘은 정사각형(1:1 비율)이어야 합니다.");
-        URL.revokeObjectURL(img.src);
-        return;
-      }
-      if (img.width > 512 || img.height > 512) {
-        setIconError("아이콘 크기는 최대 512x512까지 허용됩니다.");
-        URL.revokeObjectURL(img.src);
-        return;
-      }
-      
-      setIconFile(file);
-      setIconPreview(img.src);
-      setIconError("");
-    };
-  };
-
   const handleIconTypeChange = (newType: IconType) => {
     setIconType(newType);
     setIconError("");
     if (newType === 'auto') {
-      setIconFile(null);
-      setIconPreview(initialData?.icon_url || null);
+      setIconUrl("");
+      setIconRawInput("");
+      setIconPreview(null);
+    }
+  };
+
+  const handleIconUrlInput = async (raw: string) => {
+    setIconRawInput(raw);
+    setIconError("");
+    const parsed = parseImageInput(raw);
+
+    if (isIbbPageUrl(parsed)) {
+      setIconResolving(true);
+      try {
+        const res = await fetch(`/api/resolve-image?url=${encodeURIComponent(parsed)}`);
+        const data = await res.json();
+        if (data.imageUrl) {
+          setIconUrl(data.imageUrl);
+          setIconRawInput(data.imageUrl);
+          setIconPreview(data.imageUrl);
+        } else {
+          setIconError("이미지 URL을 자동으로 가져오지 못했습니다. 직접 이미지 링크를 입력해주세요.");
+        }
+      } catch {
+        setIconError("URL 변환 중 오류가 발생했습니다.");
+      } finally {
+        setIconResolving(false);
+      }
+    } else {
+      setIconUrl(parsed);
+      setIconPreview(parsed || null);
     }
   };
 
@@ -205,8 +210,8 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
       return;
     }
 
-    if (iconType === 'upload' && !iconFile && !initialData?.icon_url) {
-      setIconError("프로젝트 아이콘을 업로드해주세요.");
+    if (iconType === 'link' && !iconUrl) {
+      setIconError("아이콘 이미지 링크를 입력해주세요.");
       scrollToField("icon_section");
       return;
     }
@@ -270,26 +275,10 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
       // 플랫폼 로직: 예전에는 앱이 아니면 강제로 전체였으나, 이제 사용자 선택을 존중 (기본값만 세팅)
       const platformsToSave = selectedPlatforms;
 
-      let finalIconUrl = initialData?.icon_url ?? null;
-
-      if (iconType === 'upload' && iconFile) {
-        // Upload to Supabase Storage
-        const fileExt = iconFile.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-        const filePath = `icons/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('project-assets')
-          .upload(filePath, iconFile);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('project-assets')
-          .getPublicUrl(filePath);
-        
-        finalIconUrl = publicUrl;
-      } else if (iconType === 'auto') {
+      let finalIconUrl: string | null;
+      if (iconType === 'link') {
+        finalIconUrl = iconUrl || null;
+      } else {
         finalIconUrl = url ? `https://www.google.com/s2/favicons?domain=${url}&sz=128` : null;
       }
 
@@ -454,59 +443,50 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
                   <p className="text-xs text-zinc-500">파비콘 자동 추출 (실패 시 기본 아이콘)</p>
                 </div>
               </div>
-              <div 
-                onClick={() => handleIconTypeChange("upload")}
+              <div
+                onClick={() => handleIconTypeChange("link")}
                 className={cn(
                   "flex items-center p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
-                  iconType === "upload" 
-                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10" 
+                  iconType === "link"
+                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10"
                     : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800"
                 )}
               >
-                <Upload className={cn("w-5 h-5 mr-3 transition-colors", iconType === "upload" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />
+                <ImageIcon className={cn("w-5 h-5 mr-3 transition-colors", iconType === "link" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />
                 <div>
-                  <h4 className={cn("font-medium text-sm transition-colors", iconType === "upload" ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>이미지 업로드</h4>
-                  <p className="text-xs text-zinc-500">512px 이하 정사각형 PNG/JPG</p>
+                  <h4 className={cn("font-medium text-sm transition-colors", iconType === "link" ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>이미지 링크 입력</h4>
+                  <p className="text-xs text-zinc-500">외부 이미지 URL 붙여넣기</p>
                 </div>
               </div>
             </div>
 
-            {iconType === 'upload' && (
-              <div className="mt-4 p-4 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl flex flex-col items-center justify-center animate-in fade-in slide-in-from-top-2">
-                {iconPreview ? (
-                  <div className="relative group">
-                    <img src={iconPreview} alt="Preview" className="w-24 h-24 rounded-2xl object-cover shadow-md border border-zinc-200 dark:border-zinc-800" />
-                    <button 
-                      type="button" 
-                      onClick={() => { setIconFile(null); setIconPreview(null); setIconError(""); }}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                    <p className="text-center mt-2 text-xs text-zinc-500">이미지가 선택되었습니다.</p>
-                  </div>
-                ) : (
-                  <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex flex-col items-center cursor-pointer hover:opacity-70 transition-opacity"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-2">
+            {iconType === 'link' && (
+              <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-2xl shrink-0 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 overflow-hidden flex items-center justify-center">
+                    {iconPreview ? (
+                      <img src={iconPreview} alt="Preview" className="w-full h-full object-cover" onError={() => setIconPreview(null)} />
+                    ) : (
                       <ImageIcon className="w-6 h-6 text-zinc-400" />
-                    </div>
-                    <p className="text-sm font-medium text-zinc-600 dark:text-zinc-300">이미지 클릭하여 업로드</p>
-                    <p className="text-xs text-zinc-500 mt-1">PNG, JPG (최대 512x512, 1:1 비율)</p>
+                    )}
                   </div>
-                )}
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  className="hidden" 
-                  accept="image/png, image/jpeg" 
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) validateAndSetIcon(file);
-                  }}
-                />
+                  <div className="flex-1 space-y-1">
+                    <div className="relative">
+                      <input
+                        value={iconRawInput}
+                        onChange={(e) => handleIconUrlInput(e.target.value)}
+                        placeholder="이미지 URL 또는 imgbb 공유 코드 붙여넣기"
+                        className="flex h-10 w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2 text-sm placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-9"
+                      />
+                      {iconResolving && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-zinc-400" />}
+                    </div>
+                    <p className="text-[10px] text-zinc-500">
+                      이미지 호스팅은{" "}
+                      <a href="https://imgbb.com/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">imgbb.com</a>
+                      을 추천합니다. 링크, HTML, BBCode 모두 지원합니다.
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
             {iconError && <p className="text-xs text-red-500 font-medium animate-in fade-in slide-in-from-top-1 mt-2">{iconError}</p>}
