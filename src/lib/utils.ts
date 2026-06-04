@@ -8,7 +8,6 @@ export function cn(...inputs: ClassValue[]) {
 const ALLOWED_IMAGE_HOSTS = [
   'lh3.googleusercontent.com',
   'avatars.githubusercontent.com',
-  'www.google.com',
 ];
 
 export function isExternalImage(url: string | null | undefined): boolean {

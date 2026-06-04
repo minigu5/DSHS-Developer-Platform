@@ -30,7 +30,7 @@ export function ProjectIcon({ src, title, className }: ProjectIconProps) {
         fill
         className="object-cover"
         onError={() => setError(true)}
-        unoptimized={isExternalImage(src) || src.startsWith('https://www.google.com/s2/favicons')} 
+        unoptimized={isExternalImage(src)}
       />
     </div>
   );

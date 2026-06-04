@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { UploadCloud, Lock, Globe, Code2, Users, User as UserIcon, Plus, X, Link as LinkIcon, Loader2, Image as ImageIcon } from "lucide-react";
 
@@ -11,13 +11,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   PROJECT_TYPES,
   PLATFORMS,
@@ -88,7 +81,11 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
   const [iconPreview, setIconPreview] = useState<string | null>(initialData?.icon_url ?? null);
   const [iconError, setIconError] = useState("");
   const [iconResolving, setIconResolving] = useState(false);
-  
+  const [autoIconPreview, setAutoIconPreview] = useState<string | null>(
+    initialData?.icon_type === 'auto' ? (initialData?.icon_url ?? null) : null
+  );
+  const autoFaviconTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [url, setUrl] = useState<string>(initialData?.url ?? "");
   const [repoUrl, setRepoUrl] = useState<string>(initialData?.repo_url ?? "");
 
@@ -145,6 +142,32 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
     setLicenseFeatures(prev => checked ? [...prev, val] : prev.filter(p => p !== val));
   };
 
+  const fetchAutoFavicon = (targetUrl: string) => {
+    if (!targetUrl) { setAutoIconPreview(null); return; }
+    try { new URL(targetUrl); } catch { setAutoIconPreview(null); return; }
+    if (autoFaviconTimer.current) clearTimeout(autoFaviconTimer.current);
+    autoFaviconTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/favicon?url=${encodeURIComponent(targetUrl)}`);
+        const data = await res.json();
+        setAutoIconPreview(data.faviconUrl ?? null);
+      } catch {
+        setAutoIconPreview(null);
+      }
+    }, 600);
+  };
+
+  useEffect(() => {
+    if (iconType === 'auto') fetchAutoFavicon(url);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (type === 'website') {
+      setSelectedPlatforms(PLATFORMS.map(p => p.value));
+    }
+  }, [type]);
+
   const handleIconTypeChange = (newType: IconType) => {
     setIconType(newType);
     setIconError("");
@@ -152,6 +175,7 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
       setIconUrl("");
       setIconRawInput("");
       setIconPreview(null);
+      fetchAutoFavicon(url);
     }
   };
 
@@ -278,8 +302,16 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
       let finalIconUrl: string | null;
       if (iconType === 'link') {
         finalIconUrl = iconUrl || null;
+      } else if (url) {
+        try {
+          const res = await fetch(`/api/favicon?url=${encodeURIComponent(url)}`);
+          const data = await res.json();
+          finalIconUrl = data.faviconUrl ?? null;
+        } catch {
+          finalIconUrl = null;
+        }
       } else {
-        finalIconUrl = url ? `https://www.google.com/s2/favicons?domain=${url}&sz=128` : null;
+        finalIconUrl = null;
       }
 
       const payload = {
@@ -428,16 +460,22 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
           <div className="space-y-4" id="icon_section">
             <Label className="text-sm font-medium">아이콘 설정 <span className="text-red-500">*</span></Label>
             <div className="grid sm:grid-cols-2 gap-4">
-              <div 
+              <div
                 onClick={() => handleIconTypeChange("auto")}
                 className={cn(
                   "flex items-center p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
-                  iconType === "auto" 
-                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10" 
+                  iconType === "auto"
+                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10"
                     : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800"
                 )}
               >
-                <Globe className={cn("w-5 h-5 mr-3 transition-colors", iconType === "auto" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />
+                <div className="w-8 h-8 mr-3 rounded-lg shrink-0 overflow-hidden flex items-center justify-center bg-zinc-100 dark:bg-zinc-800">
+                  {autoIconPreview ? (
+                    <img src={autoIconPreview} alt="" className="w-full h-full object-contain" onError={() => setAutoIconPreview(null)} />
+                  ) : (
+                    <Globe className={cn("w-4 h-4 transition-colors", iconType === "auto" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />
+                  )}
+                </div>
                 <div>
                   <h4 className={cn("font-medium text-sm transition-colors", iconType === "auto" ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>웹사이트에서 가져오기</h4>
                   <p className="text-xs text-zinc-500">파비콘 자동 추출 (실패 시 기본 아이콘)</p>
@@ -505,7 +543,7 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
                 id="url" 
                 type="url"
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                onChange={(e) => { setUrl(e.target.value); if (iconType === 'auto') fetchAutoFavicon(e.target.value); }}
                 placeholder="https://..." 
                 className="h-11 rounded-xl pl-9" 
               />
@@ -544,21 +582,25 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
         <CardContent className="p-6 space-y-8">
           
           <div className="space-y-3" id="type_section">
-            <Label htmlFor="type" className="text-sm font-medium">프로그램 종류 <span className="text-red-500">*</span></Label>
-            <Select value={type} onValueChange={(val) => setType(val || "")}>
-              <SelectTrigger id="type" className="h-11 rounded-xl bg-white dark:bg-zinc-900/50">
-                <SelectValue placeholder="프로그램 종류를 선택하세요">
-                  {PROJECT_TYPES.find(pt => pt.value === type)?.label}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
-                {PROJECT_TYPES.map(pt => (
-                  <SelectItem key={pt.value} value={pt.value} className="focus:bg-blue-50 dark:focus:bg-blue-900/20 focus:text-blue-600 dark:focus:text-blue-400">
+            <Label className="text-sm font-medium">프로그램 종류 <span className="text-red-500">*</span></Label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {PROJECT_TYPES.map(pt => (
+                <div
+                  key={pt.value}
+                  onClick={() => setType(pt.value)}
+                  className={cn(
+                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-all duration-200 ease-out cursor-pointer select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
+                    type === pt.value
+                      ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400 shadow-md shadow-blue-500/10"
+                      : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-blue-200 dark:hover:border-blue-800"
+                  )}
+                >
+                  <Label className="cursor-pointer text-sm font-semibold w-full">
                     {pt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  </Label>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -610,19 +652,20 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
         </CardHeader>
         <CardContent className="p-6 space-y-8">
           
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 animate-in fade-in slide-in-from-top-2">
+            <div className={cn("grid grid-cols-2 sm:grid-cols-3 gap-3 animate-in fade-in slide-in-from-top-2", type === 'website' && "opacity-70 pointer-events-none")}>
               {PLATFORMS.map(platform => (
-                <div 
-                  key={platform.value} 
-                  onClick={() => handlePlatformChange(platform.value, !selectedPlatforms.includes(platform.value))}
+                <div
+                  key={platform.value}
+                  onClick={type === 'website' ? undefined : () => handlePlatformChange(platform.value, !selectedPlatforms.includes(platform.value))}
                   className={cn(
-                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-all duration-200 ease-out cursor-pointer select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
+                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-all duration-200 ease-out select-none",
+                    type !== 'website' && "cursor-pointer will-change-transform hover:scale-[1.02] active:scale-[0.98]",
                     selectedPlatforms.includes(platform.value)
                       ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400 shadow-md shadow-blue-500/10"
                       : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-blue-200 dark:hover:border-blue-800"
                   )}
                 >
-                  <Checkbox 
+                  <Checkbox
                     checked={selectedPlatforms.includes(platform.value)}
                     className="hidden"
                   />
@@ -632,9 +675,9 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
                 </div>
               ))}
             </div>
-            {type !== 'app' && (
+            {type === 'website' && (
               <p className="text-[11px] text-zinc-500 bg-zinc-800/5 py-1.5 px-3 rounded-lg border border-zinc-800/10 inline-block">
-                💡 {type === 'website' ? '웹사이트는 보통 모든 플랫폼을 지원하므로 전체 선택을 권장합니다.' : '이 종류의 프로젝트는 일반적으로 모든 플랫폼에서 실행 가능합니다.'}
+                💡 모든 플랫폼은 web 사이트를 실행할 수 있습니다.
               </p>
             )}
 
