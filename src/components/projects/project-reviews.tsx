@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -22,17 +22,19 @@ import { ReviewList, type ReviewItem } from "./review-list";
 
 interface ProjectReviewsProps {
   projectId: string;
-  currentUserId: string | null;
   reviews: ReviewItem[];
 }
 
-export function ProjectReviews({
-  projectId,
-  currentUserId,
-  reviews,
-}: ProjectReviewsProps) {
+export function ProjectReviews({ projectId, reviews }: ProjectReviewsProps) {
   const router = useRouter();
   const supabase = createClient();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setCurrentUserId(user?.id ?? null);
+    });
+  }, []);
 
   const [editing, setEditing] = useState<ReviewItem | null>(null);
 

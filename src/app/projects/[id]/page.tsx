@@ -1,7 +1,9 @@
+export const revalidate = 120;
+
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Globe, Code2, Star, ExternalLink, ShieldCheck, ShieldAlert, Pencil } from "lucide-react";
+import { Globe, Code2, Star, ExternalLink, ShieldCheck, ShieldAlert } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn, isExternalImage } from "@/lib/utils";
@@ -11,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import { ProjectReviews } from "@/components/projects/project-reviews";
 import { ProjectIcon } from "@/components/projects/project-icon";
+import { EditButton } from "@/components/projects/edit-button";
 import type { ReviewItem } from "@/components/projects/review-list";
 import { LICENSE_FEATURES } from "@/lib/constants";
 
@@ -36,13 +39,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const supabase = await createClient();
 
-  const [projectResult, authResult, reviewsResult] = await Promise.all([
+  const [projectResult, reviewsResult] = await Promise.all([
     supabase
       .from('projects')
       .select(`*, users (*)`)
       .eq('id', id)
       .single(),
-    supabase.auth.getUser(),
     supabase
       .from('reviews')
       .select('id, rating, comment, created_at, user_id, user:users(*)')
@@ -56,7 +58,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     notFound();
   }
 
-  const { data: { user } } = authResult;
   const { data: reviewsData } = reviewsResult;
 
   const reviews: ReviewItem[] = (reviewsData ?? []).map((r) => ({
@@ -146,11 +147,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   <Code2 className="w-4 h-4 mr-2" /> GitHub 저장소
                 </a>
               )}
-              {user?.id === project.author_id && (
-                <Link href={`/projects/${project.id}/edit`} className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "rounded-full font-medium")}>
-                  <Pencil className="w-4 h-4 mr-2 text-zinc-600 dark:text-zinc-400" /> 수정하기
-                </Link>
-              )}
+              <EditButton projectId={project.id} authorId={project.author_id} />
             </div>
           </div>
         </div>
@@ -324,7 +321,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
         <ProjectReviews
           projectId={project.id}
-          currentUserId={user?.id ?? null}
           reviews={reviews}
         />
       </main>
