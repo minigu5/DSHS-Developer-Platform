@@ -47,7 +47,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   if (user) redirect(next ?? '/');
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-6 bg-zinc-50 dark:bg-black relative overflow-hidden font-sans">
+    <main className="flex min-h-screen items-center justify-center p-4 sm:p-6 bg-zinc-50 dark:bg-black relative overflow-hidden font-sans">
       
       {/* Background ambient glow matching the main aesthetic */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/20 dark:bg-blue-600/20 blur-[120px] rounded-full pointer-events-none" />

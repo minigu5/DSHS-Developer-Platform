@@ -1,7 +1,7 @@
 export const revalidate = 60;
 
 import Link from "next/link";
-import { ArrowRight, Code2, Globe, Layout, Search, Sparkles, Layers } from "lucide-react";
+import { ArrowRight, Code2, Globe, Layout, Lightbulb, Search, Sparkles, Layers } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -40,7 +40,7 @@ export default async function HomePage() {
       <SiteHeader variant="transparent" maxWidth="md" />
 
       {/* HERO SECTION */}
-      <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6 flex items-center justify-center flex-col text-center">
+      <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-4 sm:px-6 flex items-center justify-center flex-col text-center">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/20 dark:bg-blue-600/20 blur-[120px] rounded-full pointer-events-none" />
         <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-purple-500/20 dark:bg-purple-600/20 blur-[100px] rounded-full pointer-events-none" />
 
@@ -49,7 +49,7 @@ export default async function HomePage() {
           DSHS Developer Platform에 오신 것을 환영합니다
         </Badge>
         
-        <h1 className="max-w-4xl text-5xl md:text-7xl font-bold tracking-tight text-zinc-900 dark:text-white mb-8 leading-tight break-keep">
+        <h1 className="max-w-4xl text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight text-zinc-900 dark:text-white mb-8 leading-tight break-keep">
           발견하고, 공유하고, <br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
             새로움을 창조하세요.
@@ -60,18 +60,24 @@ export default async function HomePage() {
           대구과학고 학생들이 개발한 소프트웨어 프로젝트를 전시하고, 유용한 피드백을 주고받으며, 새로운 아이디어를 함께 발전시키는 중앙 허브입니다.
         </p>
         
-        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto z-10">
-          <Link href="/explore" className={cn(buttonVariants({ size: "lg" }), "rounded-full h-14 px-8 text-base bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 transition-all hover:scale-105")}>
+        <div className="flex flex-col items-center sm:flex-row sm:flex-wrap sm:items-stretch gap-3 sm:gap-4 w-full sm:w-auto z-10">
+          <Link href="/explore" className={cn(buttonVariants({ size: "lg" }), "rounded-full h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 transition-all hover:scale-105")}>
             <Search className="mr-2 h-5 w-5" /> 프로젝트 둘러보기
           </Link>
-          <Link href="/projects/new" className={cn(buttonVariants({ size: "lg", variant: "outline" }), "rounded-full h-14 px-8 text-base border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all hover:scale-105")}>
+          <Link href="/projects/new" className={cn(buttonVariants({ size: "lg", variant: "outline" }), "rounded-full h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all hover:scale-105")}>
             <Code2 className="mr-2 h-5 w-5" /> 내 프로젝트 등록하기
+          </Link>
+          <Link href="/guide" className={cn(buttonVariants({ size: "lg", variant: "ghost" }), "rounded-full h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all hover:scale-105")}>
+            <Sparkles className="mr-2 h-5 w-5" /> 바이브 코딩 가이드
+          </Link>
+          <Link href="/tips" className={cn(buttonVariants({ size: "lg", variant: "ghost" }), "rounded-full h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all hover:scale-105")}>
+            <Lightbulb className="mr-2 h-5 w-5" /> 개발 팁
           </Link>
         </div>
       </section>
 
       {/* FEATURE HIGHLIGHTS */}
-      <section className="py-20 px-6 bg-white dark:bg-zinc-950/50 border-y border-zinc-200 dark:border-zinc-900">
+      <section className="py-20 px-4 sm:px-6 bg-white dark:bg-zinc-950/50 border-y border-zinc-200 dark:border-zinc-900">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">학생들을 위해 만들어진 플랫폼</h2>
@@ -81,7 +87,7 @@ export default async function HomePage() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="p-8 rounded-3xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="p-6 sm:p-8 rounded-3xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
               <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-6">
                 <Layers className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
@@ -90,7 +96,7 @@ export default async function HomePage() {
                 프로그램 종류, 지원 플랫폼, 라이선스별로 어플리케이션을 분류하여 누구나 필요한 프로그램을 쉽게 찾을 수 있습니다.
               </p>
             </div>
-            <div className="p-8 rounded-3xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="p-6 sm:p-8 rounded-3xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
               <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mb-6">
                 <Globe className="w-6 h-6 text-purple-600 dark:text-purple-400" />
               </div>
@@ -99,7 +105,7 @@ export default async function HomePage() {
                 커뮤니티에 코드 저장소를 공유하거나 비공개로 유지할 수 있습니다. 프로젝트 공개 여부를 완전히 제어할 수 있습니다.
               </p>
             </div>
-            <div className="p-8 rounded-3xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="p-6 sm:p-8 rounded-3xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
               <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-6">
                 <Layout className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
               </div>
@@ -113,11 +119,11 @@ export default async function HomePage() {
       </section>
 
       {/* FEATURED PROJECTS PREVIEW */}
-      <section className="py-24 px-6 max-w-5xl mx-auto w-full">
+      <section className="py-24 px-4 sm:px-6 max-w-5xl mx-auto w-full">
         <div className="flex flex-col sm:flex-row justify-between items-end mb-12 gap-6">
           <div>
             <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-4">최근 등록된 프로젝트</h2>
-            <p className="text-lg text-zinc-500 dark:text-zinc-400">학우들이 최근에 개발한 놀라운 프로젝트들을 확인해보세요.</p>
+            <p className="text-lg text-zinc-500 dark:text-zinc-400">친구들이 최근에 개발한 놀라운 프로젝트들을 확인해보세요.</p>
           </div>
           <Link href="/explore" className={cn(buttonVariants({ variant: "ghost" }), "group rounded-full text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20")}>
             전체 보기 <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
@@ -138,7 +144,7 @@ export default async function HomePage() {
       </section>
 
       {/* FOOTER */}
-      <footer className="mt-auto py-12 px-6 border-t border-zinc-200 dark:border-zinc-900 bg-zinc-50/30 dark:bg-[#09090b] text-center text-zinc-500 dark:text-zinc-400">
+      <footer className="mt-auto py-12 px-4 sm:px-6 border-t border-zinc-200 dark:border-zinc-900 bg-zinc-50/30 dark:bg-[#09090b] text-center text-zinc-500 dark:text-zinc-400">
         <p>© {new Date().getFullYear()} DSHS Developer Platform. Built by students, for students.</p>
         <p className="mt-2 text-sm">오직 @ts.hs.kr 도메인 사용자만 인증을 통해 접속할 수 있습니다.</p>
       </footer>

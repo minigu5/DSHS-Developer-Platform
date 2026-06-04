@@ -88,7 +88,7 @@ export function ProjectReviews({ projectId, reviews }: ProjectReviewsProps) {
   }
 
   return (
-    <section className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 mt-8">
+    <section className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 mt-8">
       <div className="flex items-center gap-2 mb-6">
         <MessageSquare className="w-5 h-5 text-zinc-700 dark:text-zinc-300" />
         <h3 className="text-xl font-bold text-zinc-900 dark:text-white">
@@ -112,7 +112,7 @@ export function ProjectReviews({ projectId, reviews }: ProjectReviewsProps) {
             </Link>
           </div>
         ) : myReview ? (
-          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-4 flex items-center justify-between">
+          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
               <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
               이미 이 프로젝트에 리뷰를 작성하셨습니다.
