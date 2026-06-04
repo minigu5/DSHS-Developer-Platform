@@ -75,6 +75,49 @@ export const INTERESTS = [
 
 export type Interest = (typeof INTERESTS)[number]['value'];
 
+// ── 바이브 코딩 가이드 선택 옵션 ──
+// /guide 위저드에서 사용. 슬러그 → 가이드 페이지 라우팅에 그대로 쓰이므로
+// value 는 URL-safe 한 영소문자/하이픈만 사용할 것.
+
+export const GUIDE_PROGRAM_TYPES = [
+  { value: 'website', label: '웹사이트', desc: '브라우저에서 동작하는 웹 서비스' },
+  { value: 'app', label: '응용프로그램 / 앱', desc: '데스크톱 또는 모바일 앱' },
+  { value: 'extension', label: '확장프로그램', desc: '브라우저·에디터 확장' },
+  { value: 'cli', label: 'CLI / 스크립트', desc: '터미널에서 실행하는 도구' },
+  { value: 'library', label: '라이브러리 / 패키지', desc: '다른 코드에서 가져다 쓰는 모듈' },
+] as const;
+
+export const GUIDE_APP_PLATFORMS = [
+  { value: 'android', label: 'Android', desc: '구글 안드로이드 앱' },
+  { value: 'ios', label: 'iOS', desc: '아이폰 앱' },
+  { value: 'ipados', label: 'iPadOS', desc: '아이패드 앱' },
+  { value: 'macos', label: 'macOS', desc: '맥 데스크톱 앱' },
+  { value: 'windows', label: 'Windows', desc: '윈도우 데스크톱 앱' },
+] as const;
+
+export const GUIDE_TERMINAL = [
+  { value: 'terminal', label: '터미널을 사용해요', desc: 'CLI 명령어 입력이 익숙해요' },
+  { value: 'gui', label: '터미널은 어려워요', desc: 'GUI 위주로 작업하고 싶어요' },
+] as const;
+
+export const GUIDE_AI_TOOLS = [
+  { value: 'chatgpt-codex', label: 'ChatGPT / Codex', desc: 'OpenAI 기반 코딩 도구' },
+  { value: 'claude-code', label: 'Claude Code', desc: 'Anthropic 의 터미널 코딩 에이전트' },
+  { value: 'gemini', label: 'Gemini', desc: 'Google 의 AI 코딩 도구' },
+] as const;
+
+export const GUIDE_OS = [
+  { value: 'windows', label: 'Windows', desc: '' },
+  { value: 'mac', label: 'macOS', desc: '' },
+  { value: 'linux', label: 'Linux', desc: '' },
+] as const;
+
+export type GuideProgramType = (typeof GUIDE_PROGRAM_TYPES)[number]['value'];
+export type GuideAppPlatform = (typeof GUIDE_APP_PLATFORMS)[number]['value'];
+export type GuideTerminal = (typeof GUIDE_TERMINAL)[number]['value'];
+export type GuideAiTool = (typeof GUIDE_AI_TOOLS)[number]['value'];
+export type GuideOs = (typeof GUIDE_OS)[number]['value'];
+
 // 허용 이메일 도메인 — middleware/RLS 와 같은 값을 사용해야 함.
 export const ALLOWED_EMAIL_DOMAIN =
   process.env.ALLOWED_EMAIL_DOMAIN ?? 'ts.hs.kr';
