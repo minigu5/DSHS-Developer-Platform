@@ -10,7 +10,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { resolveFavicon } from '../src/lib/favicon.ts';
+import { resolveFavicon } from '../src/lib/favicon';
 
 function loadEnv() {
   try {
