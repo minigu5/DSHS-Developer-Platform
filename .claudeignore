@@ -98,3 +98,37 @@ docs/*.backup.md
 *.pem
 *.key
 *.crt
+
+# ---- shadcn/ui 자동 생성 컴포넌트 ----
+# Claude는 shadcn API를 이미 알고 있음. 주요 차이점은 CLAUDE.md에 문서화됨.
+src/components/ui/
+
+# ---- 자동 생성 타입 파일 ----
+# Supabase CLI 생성 타입. 수동 작성 types.ts 가 source of truth.
+src/lib/types.generated.ts
+
+# ---- Supabase 마이그레이션 스냅샷 ----
+# 자동 생성된 원격 스키마 덤프. source of truth는 docs/03-supabase-schema.sql.
+supabase/migrations/
+
+# ---- 인간용 셋업 문서 ----
+# 초기 환경 구성 가이드. 핵심 스키마(SQL)는 제외하지 않음.
+docs/01-supabase-setup.md
+docs/02-google-oauth-setup.md
+
+# ---- 인간/다른 AI용 문서 ----
+README.md
+AGENTS.md
+LICENSE
+
+# ---- 정적 에셋 디렉토리 ----
+# *.svg 패턴으로 이미 차단되지만 명시적으로 제외.
+public/
+
+# ---- 일회성 유틸 스크립트 ----
+scripts/
+
+# ---- 빌드·설정 파일 ----
+eslint.config.mjs
+postcss.config.mjs
+components.json

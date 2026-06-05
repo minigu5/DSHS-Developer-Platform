@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Globe, Pencil, Terminal } from "lucide-react";
+import { Globe, Lock, Pencil, Terminal } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn, isExternalImage } from "@/lib/utils";
@@ -21,6 +21,7 @@ export type ProjectCardData = {
   icon_url: string | null;
   features: string[] | null;
   author_id: string;
+  visibility?: 'public' | 'private' | null;
   users: { full_name: string | null; nickname: string | null; avatar_url: string | null } | { full_name: string | null; nickname: string | null; avatar_url: string | null }[] | null;
 };
 
@@ -77,6 +78,11 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
               <Badge variant="secondary" className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] h-5 px-1.5 font-semibold shrink-0">
                 {project.type}
               </Badge>
+              {project.visibility === 'private' && (
+                <Badge variant="outline" className="text-[10px] text-zinc-500 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 rounded-full h-5 px-1.5 gap-0.5 shrink-0">
+                  <Lock className="w-2.5 h-2.5" /> 비공개
+                </Badge>
+              )}
               {tags.map((tag) => (
                 <Badge key={tag} variant="outline" className="text-[10px] text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 rounded-full h-5 px-2 shrink-0">
                   {tag}
@@ -154,15 +160,28 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
           {author}
         </div>
         {mode === 'manage' && (
-          <Link
-            href={`/projects/${project.id}/edit`}
-            className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }), 
-              "rounded-full text-xs hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-800 relative z-20"
-            )}
-          >
-            <Pencil className="w-3.5 h-3.5 mr-1.5" /> 수정하기
-          </Link>
+          <div className="flex items-center gap-2 relative z-20">
+            <span className={cn(
+              "inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full",
+              project.visibility === 'private'
+                ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"
+                : "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+            )}>
+              {project.visibility === 'private'
+                ? <><Lock className="w-3 h-3" /> 비공개</>
+                : <><Globe className="w-3 h-3" /> 공개</>
+              }
+            </span>
+            <Link
+              href={`/projects/${project.id}/edit`}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "rounded-full text-xs hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-800"
+              )}
+            >
+              <Pencil className="w-3.5 h-3.5 mr-1.5" /> 수정하기
+            </Link>
+          </div>
         )}
       </CardFooter>
 

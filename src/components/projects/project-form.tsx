@@ -405,24 +405,30 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
         </CardHeader>
         <CardContent className="p-6 space-y-6">
           <div className="grid sm:grid-cols-2 gap-4">
-            <div 
+            <div
               onClick={() => setAuthorRole("individual")}
+              tabIndex={0}
+              role="button"
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setAuthorRole("individual"); } }}
               className={cn(
-                "flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
-                authorRole === "individual" 
-                  ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10" 
+                "flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+                authorRole === "individual"
+                  ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10"
                   : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-lg hover:shadow-black/5"
               )}
             >
               <UserIcon className={cn("w-6 h-6 mb-2 transition-colors", authorRole === "individual" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />
               <h4 className={cn("font-semibold transition-colors", authorRole === "individual" ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>개인</h4>
             </div>
-            <div 
+            <div
               onClick={() => setAuthorRole("team")}
+              tabIndex={0}
+              role="button"
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setAuthorRole("team"); } }}
               className={cn(
-                "flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
-                authorRole === "team" 
-                  ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10" 
+                "flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+                authorRole === "team"
+                  ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10"
                   : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-lg hover:shadow-black/5"
               )}
             >
@@ -487,8 +493,11 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
             <div className="grid sm:grid-cols-2 gap-4">
               <div
                 onClick={() => handleIconTypeChange("auto")}
+                tabIndex={0}
+                role="button"
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleIconTypeChange("auto"); } }}
                 className={cn(
-                  "flex items-center p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
+                  "flex items-center p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
                   iconType === "auto"
                     ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10"
                     : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800"
@@ -508,8 +517,11 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
               </div>
               <div
                 onClick={() => handleIconTypeChange("link")}
+                tabIndex={0}
+                role="button"
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleIconTypeChange("link"); } }}
                 className={cn(
-                  "flex items-center p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
+                  "flex items-center p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
                   iconType === "link"
                     ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10"
                     : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800"
@@ -613,8 +625,11 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
                 <div
                   key={pt.value}
                   onClick={() => setType(pt.value)}
+                  tabIndex={0}
+                  role="button"
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setType(pt.value); } }}
                   className={cn(
-                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-all duration-200 ease-out cursor-pointer select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
+                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-all duration-200 ease-out cursor-pointer select-none will-change-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
                     type === pt.value
                       ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400 shadow-md shadow-blue-500/10"
                       : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-blue-200 dark:hover:border-blue-800"
@@ -632,11 +647,14 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
             <Label className="text-sm font-medium text-zinc-900 dark:text-zinc-200">주요 기능 / 카테고리 (다중 선택)</Label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {FEATURES.map(feature => (
-                <div 
-                  key={feature.value} 
+                <div
+                  key={feature.value}
                   onClick={() => handleFeatureChange(feature.value, !selectedFeatures.includes(feature.value))}
+                  tabIndex={0}
+                  role="button"
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleFeatureChange(feature.value, !selectedFeatures.includes(feature.value)); } }}
                   className={cn(
-                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-all duration-200 ease-out cursor-pointer select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
+                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-all duration-200 ease-out cursor-pointer select-none will-change-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
                     selectedFeatures.includes(feature.value)
                       ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400 shadow-md shadow-blue-500/10"
                       : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-blue-200 dark:hover:border-blue-800"
@@ -682,9 +700,13 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
                 <div
                   key={platform.value}
                   onClick={type === 'website' ? undefined : () => handlePlatformChange(platform.value, !selectedPlatforms.includes(platform.value))}
+                  tabIndex={type === 'website' ? -1 : 0}
+                  role="button"
+                  aria-disabled={type === 'website'}
+                  onKeyDown={(e) => { if (type !== 'website' && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); handlePlatformChange(platform.value, !selectedPlatforms.includes(platform.value)); } }}
                   className={cn(
                     "flex items-center space-x-2 p-3 rounded-xl border-2 transition-all duration-200 ease-out select-none",
-                    type !== 'website' && "cursor-pointer will-change-transform hover:scale-[1.02] active:scale-[0.98]",
+                    type !== 'website' && "cursor-pointer will-change-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
                     selectedPlatforms.includes(platform.value)
                       ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400 shadow-md shadow-blue-500/10"
                       : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-blue-200 dark:hover:border-blue-800"
@@ -710,13 +732,16 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
             <Label className="text-sm font-medium text-zinc-900 dark:text-zinc-200">소스코드 공개 여부</Label>
             <div className="grid sm:grid-cols-2 gap-4">
               {SOURCE_TYPES.map(stype => (
-                <div 
+                <div
                   key={stype.value}
                   onClick={() => setSourceType(stype.value as SourceType)}
+                  tabIndex={0}
+                  role="button"
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSourceType(stype.value as SourceType); } }}
                   className={cn(
-                    "flex flex-col items-start p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
-                    sourceType === stype.value 
-                      ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10" 
+                    "flex flex-col items-start p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+                    sourceType === stype.value
+                      ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10"
                       : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800"
                   )}
                 >
@@ -747,11 +772,14 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
             
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {LICENSE_FEATURES.map(lf => (
-                <div 
-                  key={lf.value} 
+                <div
+                  key={lf.value}
                   onClick={() => handleLicenseFeatureChange(lf.value, !licenseFeatures.includes(lf.value))}
+                  tabIndex={0}
+                  role="button"
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleLicenseFeatureChange(lf.value, !licenseFeatures.includes(lf.value)); } }}
                   className={cn(
-                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-all duration-200 ease-out cursor-pointer select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
+                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-all duration-200 ease-out cursor-pointer select-none will-change-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
                     licenseFeatures.includes(lf.value)
                       ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400 shadow-md shadow-blue-500/10"
                       : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-blue-200 dark:hover:border-blue-800"
@@ -766,10 +794,13 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
                   </Label>
                 </div>
               ))}
-              <div 
+              <div
                 onClick={() => setHasCustomLicense(!hasCustomLicense)}
+                tabIndex={0}
+                role="button"
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setHasCustomLicense(!hasCustomLicense); } }}
                 className={cn(
-                  "flex items-center space-x-2 p-3 rounded-xl border-2 transition-all duration-200 ease-out cursor-pointer select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
+                  "flex items-center space-x-2 p-3 rounded-xl border-2 transition-all duration-200 ease-out cursor-pointer select-none will-change-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
                   hasCustomLicense
                     ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400 shadow-md shadow-blue-500/10"
                     : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-blue-200 dark:hover:border-blue-800"
@@ -802,13 +833,16 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
           
           <div className="grid sm:grid-cols-2 gap-4">
             {VISIBILITY.map(v => (
-              <div 
+              <div
                 key={v.value}
                 onClick={() => setVisibility(v.value as Visibility)}
+                tabIndex={0}
+                role="button"
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setVisibility(v.value as Visibility); } }}
                 className={cn(
-                  "flex flex-col items-start p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98]",
-                  visibility === v.value 
-                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10" 
+                  "flex flex-col items-start p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+                  visibility === v.value
+                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10"
                     : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800"
                 )}
               >

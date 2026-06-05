@@ -144,9 +144,23 @@ export function OnboardingForm({ user }: { user: User }) {
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
               <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto p-2 -m-2 custom-scrollbar">
                 {INTERESTS.map((interest) => (
-                  <div 
+                  <div
                     key={interest.value}
-                    className={`flex items-center space-x-2 p-3 rounded-xl border transition-all duration-200 ease-out cursor-pointer select-none will-change-transform hover:scale-[1.02] hover:brightness-110 active:scale-[0.98] active:duration-75 ${
+                    tabIndex={0}
+                    role="button"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        const current = form.getValues("interests");
+                        if (current.includes(interest.value)) {
+                          form.setValue("interests", current.filter(v => v !== interest.value));
+                        } else {
+                          form.setValue("interests", [...current, interest.value]);
+                        }
+                        form.trigger("interests");
+                      }
+                    }}
+                    className={`flex items-center space-x-2 p-3 rounded-xl border transition-all duration-200 ease-out cursor-pointer select-none will-change-transform hover:scale-[1.02] hover:brightness-110 active:scale-[0.98] active:duration-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 ${
                       form.watch("interests").includes(interest.value)
                         ? "bg-blue-600/20 border-blue-500/50 text-white shadow-md shadow-blue-500/10"
                         : "bg-zinc-800/30 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:shadow-lg hover:shadow-black/20"

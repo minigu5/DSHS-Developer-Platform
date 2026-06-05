@@ -1,7 +1,29 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
+
+import { INTERESTS } from "@/lib/constants";
+import { createClient } from "@/lib/supabase/server";
+
+const INTEREST_VALUES = INTERESTS.map((i) => i.value) as [string, ...string[]];
+
+const NicknameSchema = z
+  .string()
+  .trim()
+  .min(2, "닉네임은 2자 이상이어야 합니다.")
+  .max(20, "닉네임은 20자 이하여야 합니다.");
+
+const ProfileSchema = z.object({
+  nickname: z.union([NicknameSchema, z.null()]),
+  bio: z.union([z.string().trim().max(500, "자기소개는 500자 이하여야 합니다."), z.null()]),
+  avatar_url: z
+    .string()
+    .trim()
+    .max(500, "아바타 URL이 너무 깁니다.")
+    .refine((v) => v === "" || /^https?:\/\//i.test(v), "아바타는 http(s) URL 이어야 합니다."),
+  interests: z.array(z.enum(INTEREST_VALUES)).max(INTERESTS.length).optional(),
+});
 
 export async function checkNicknameDuplicate(nickname: string, userId: string) {
   const supabase = await createClient();
@@ -19,9 +41,9 @@ export async function checkNicknameDuplicate(nickname: string, userId: string) {
   return { isDuplicate: !!data };
 }
 
-export async function updateProfile(data: { 
-  nickname: string | null; 
-  bio: string | null; 
+export async function updateProfile(data: {
+  nickname: string | null;
+  bio: string | null;
   avatar_url: string;
   interests?: string[];
 }) {
@@ -35,9 +57,15 @@ export async function updateProfile(data: {
       return { error: "Unauthorized" };
     }
 
+    const parsed = ProfileSchema.safeParse(data);
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0]?.message ?? "입력값이 올바르지 않습니다." };
+    }
+    const { nickname, bio, avatar_url, interests } = parsed.data;
+
     // Nickname duplicate check again on server side for safety
-    if (data.nickname) {
-      const { isDuplicate, error: checkError } = await checkNicknameDuplicate(data.nickname, user.id);
+    if (nickname) {
+      const { isDuplicate, error: checkError } = await checkNicknameDuplicate(nickname, user.id);
       if (checkError) return { error: checkError };
       if (isDuplicate) return { error: "이미 사용 중인 닉네임입니다." };
     }
@@ -48,10 +76,10 @@ export async function updateProfile(data: {
       .upsert({
         id: user.id,
         email: user.email!,
-        nickname: data.nickname,
-        bio: data.bio,
-        avatar_url: data.avatar_url,
-        interests: data.interests || [],
+        nickname,
+        bio,
+        avatar_url,
+        interests: interests || [],
       }, {
         onConflict: 'id'
       });
@@ -63,7 +91,7 @@ export async function updateProfile(data: {
 
     revalidatePath(`/developers/${user.id}`);
     revalidatePath("/", "layout");
-    
+
     return { success: true };
   } catch (err) {
     console.error("Unexpected error in updateProfile:", err);

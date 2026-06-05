@@ -1,12 +1,16 @@
 // 사이트 URL에서 favicon/대표 이미지를 찾아 검증된 URL을 반환.
 // /api/favicon 라우트와 백필 스크립트가 공유.
 
+import { assertSafePublicUrl } from '@/lib/ssrf-guard';
+
 const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 async function isImageOk(u: string): Promise<boolean> {
+  const safe = await assertSafePublicUrl(u);
+  if (!safe.ok) return false;
   try {
-    const res = await fetch(u, {
+    const res = await fetch(safe.url.href, {
       method: 'GET',
       headers: { 'User-Agent': UA, Accept: 'image/*,*/*;q=0.5' },
       redirect: 'follow',
@@ -83,12 +87,9 @@ function findMetaImage(html: string): string | null {
 }
 
 export async function resolveFavicon(rawUrl: string): Promise<string | null> {
-  let pageUrl: URL;
-  try {
-    pageUrl = new URL(rawUrl);
-  } catch {
-    return null;
-  }
+  const safeInput = await assertSafePublicUrl(rawUrl);
+  if (!safeInput.ok) return null;
+  const pageUrl = safeInput.url;
 
   const candidates: string[] = [];
   let resolveBase = toDirectoryBase(pageUrl);
@@ -104,9 +105,14 @@ export async function resolveFavicon(rawUrl: string): Promise<string | null> {
       signal: AbortSignal.timeout(6000),
     });
 
+    // 리다이렉트 follow 결과가 사설 IP/내부망으로 빠지지 않았는지 재검증
+    const finalUrlStr = res.url || pageUrl.href;
+    const safeFinal = await assertSafePublicUrl(finalUrlStr);
+    if (!safeFinal.ok) return null;
+
     if (res.ok) {
       try {
-        resolveBase = toDirectoryBase(new URL(res.url || pageUrl.href));
+        resolveBase = toDirectoryBase(new URL(finalUrlStr));
       } catch {
         // 무시
       }

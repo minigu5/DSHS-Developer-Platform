@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Globe, Code2, Star, ExternalLink, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Globe, Code2, Lock, Star, ExternalLink, ShieldCheck, ShieldAlert } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn, isExternalImage } from "@/lib/utils";
@@ -297,14 +297,26 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 )}
               </div>
 
-              <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
+              <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-2">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-zinc-500">공개 여부</span>
+                  {project.visibility === 'private' ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">
+                      <Lock className="w-3 h-3" /> 비공개
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+                      <Globe className="w-3 h-3" /> 공개
+                    </span>
+                  )}
+                </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-zinc-500">소스코드</span>
                   <span className="font-medium text-zinc-900 dark:text-white">
                     {project.source_type === 'open' ? '오픈소스' : '비공개'}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-sm mt-2">
+                <div className="flex justify-between items-center text-sm">
                   <span className="text-zinc-500">등록일</span>
                   <span className="text-zinc-900 dark:text-white">
                     {new Date(project.created_at).toLocaleDateString()}

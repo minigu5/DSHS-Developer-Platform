@@ -23,10 +23,24 @@ function join(values: (string | undefined)[]): string | null {
 
 // 구체적 → 일반적 순서의 후보 파일명(확장자 제외).
 function candidateNames(a: GuideAnswers): string[] {
-  const { type, appPlatform, terminal, ai, os } = a;
+  const { type, appPlatform, terminal, ai, androidGeminiTool, os } = a;
   const raw = [
-    join([type, appPlatform, terminal, ai, os]),
-    join([type, appPlatform, ai, os]),
+    // level 1: 가장 구체적 (androidGeminiTool 포함)
+    join([type, appPlatform, terminal, ai, androidGeminiTool, os]),
+    // level 2: terminal 제외. 앱 타입(appPlatform 있음)에서만 활성화.
+    //          비앱에서 활성화하면 extension--claude-code--windows 등이
+    //          gui--claude-code보다 먼저 매칭되어 GUI 사용자에게 터미널 가이드가 노출됨
+    appPlatform ? join([type, appPlatform, ai, androidGeminiTool, os]) : null,
+    // level 2b: OS 없는 androidGeminiTool 합본 파일 폴백 (macOS·Windows 공용 파일)
+    appPlatform ? join([type, appPlatform, ai, androidGeminiTool]) : null,
+    // level 3: androidGeminiTool 없는 앱 타입 폴백 (appPlatform 필수)
+    appPlatform ? join([type, appPlatform, ai, os]) : null,
+    // level 3b: OS 없는 앱+플랫폼+AI 합본 파일 폴백 (macOS·Windows 공용 파일)
+    appPlatform ? join([type, appPlatform, ai]) : null,
+    // level 4-5: GUI/터미널 선택 우선 (타입 특화 가이드보다 앞)
+    join([terminal, ai, os]),
+    join([terminal, ai]),
+    // level 6-9: 일반적 폴백
     join([type, ai, os]),
     join([ai, os]),
     join([type, ai]),

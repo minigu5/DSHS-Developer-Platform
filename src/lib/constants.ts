@@ -112,11 +112,17 @@ export const GUIDE_OS = [
   { value: 'linux', label: 'Linux', desc: '' },
 ] as const;
 
+export const GUIDE_ANDROID_GEMINI_TOOL = [
+  { value: 'aistudio',    label: 'Google AI Studio',                   desc: '브라우저에서 바로 시작 — 단, 성인 인증된 Google 계정 필요' },
+  { value: 'antigravity', label: 'Google Antigravity + Android Studio', desc: '설치형 IDE, 더 강력한 개발 환경 (무료)' },
+] as const;
+
 export type GuideProgramType = (typeof GUIDE_PROGRAM_TYPES)[number]['value'];
 export type GuideAppPlatform = (typeof GUIDE_APP_PLATFORMS)[number]['value'];
 export type GuideTerminal = (typeof GUIDE_TERMINAL)[number]['value'];
 export type GuideAiTool = (typeof GUIDE_AI_TOOLS)[number]['value'];
 export type GuideOs = (typeof GUIDE_OS)[number]['value'];
+export type GuideAndroidGeminiTool = (typeof GUIDE_ANDROID_GEMINI_TOOL)[number]['value'];
 
 // 허용 이메일 도메인 — middleware/RLS 와 같은 값을 사용해야 함.
 export const ALLOWED_EMAIL_DOMAIN =

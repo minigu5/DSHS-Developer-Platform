@@ -16,6 +16,7 @@ const PROJECT_SELECT = `
   icon_url,
   features,
   author_id,
+  visibility,
   users (*)
 `;
 

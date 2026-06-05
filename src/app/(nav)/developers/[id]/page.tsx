@@ -41,6 +41,7 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
       icon_url,
       features,
       author_id,
+      visibility,
       users (*)
     `)
     .eq('author_id', id)

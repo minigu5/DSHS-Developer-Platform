@@ -8,6 +8,7 @@ import {
   GUIDE_TERMINAL,
   GUIDE_AI_TOOLS,
   GUIDE_OS,
+  GUIDE_ANDROID_GEMINI_TOOL,
 } from "@/lib/constants";
 
 export type GuideAnswers = Record<string, string>;
@@ -61,6 +62,14 @@ export const GUIDE_STEPS: GuideStep[] = [
     description: "바이브 코딩에 함께할 AI 코딩 도구를 골라주세요.",
     options: GUIDE_AI_TOOLS,
     visible: () => true,
+  },
+  {
+    key: "androidGeminiTool",
+    segmentLabel: "개발 방식",
+    title: "어떤 방식으로 Android 앱을 만들 건가요?",
+    description: "Gemini로 Android 앱을 만드는 두 가지 방법 중 하나를 선택해주세요.",
+    options: GUIDE_ANDROID_GEMINI_TOOL,
+    visible: (a) => a.type === "app" && a.appPlatform === "android" && a.ai === "gemini",
   },
   {
     key: "os",

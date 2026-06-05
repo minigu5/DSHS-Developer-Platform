@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
 
@@ -12,14 +13,20 @@ export type TipFormInput = {
   tags: string[];
 };
 
-function validate(input: TipFormInput): string | null {
-  if (!input.title.trim()) return "제목을 입력해주세요.";
-  if (input.title.trim().length > 120) return "제목은 120자 이하여야 합니다.";
-  if (!input.summary.trim()) return "한 줄 요약을 입력해주세요.";
-  if (input.summary.trim().length > 30) return "한 줄 요약은 30자 이하여야 합니다.";
-  if (!input.cover_url.trim()) return "대표 이미지 URL을 입력해주세요.";
-  if (!input.content.trim()) return "본문 내용을 입력해주세요.";
-  return null;
+const TipSchema = z.object({
+  title: z.string().trim().min(1, "제목을 입력해주세요.").max(120, "제목은 120자 이하여야 합니다."),
+  summary: z.string().trim().min(1, "한 줄 요약을 입력해주세요.").max(30, "한 줄 요약은 30자 이하여야 합니다."),
+  content: z.string().min(1, "본문 내용을 입력해주세요.").max(50_000, "본문은 50,000자 이하여야 합니다."),
+  cover_url: z.string().trim().min(1, "대표 이미지 URL을 입력해주세요.").max(500, "대표 이미지 URL이 너무 깁니다.").url("올바른 URL 형식이 아닙니다."),
+  tags: z.array(z.string().trim().min(1).max(30)).max(20, "태그는 20개 이하여야 합니다."),
+});
+
+function parse(input: TipFormInput) {
+  const result = TipSchema.safeParse(input);
+  if (!result.success) {
+    return { ok: false as const, error: result.error.issues[0]?.message ?? "입력값이 올바르지 않습니다." };
+  }
+  return { ok: true as const, data: result.data };
 }
 
 export async function createTip(
@@ -31,18 +38,18 @@ export async function createTip(
   } = await supabase.auth.getUser();
   if (!user) return { error: "로그인이 필요합니다." };
 
-  const invalid = validate(input);
-  if (invalid) return { error: invalid };
+  const parsed = parse(input);
+  if (!parsed.ok) return { error: parsed.error };
 
   const { data, error } = await supabase
     .from("tips")
     .insert({
       author_id: user.id,
-      title: input.title.trim(),
-      summary: input.summary.trim() || null,
-      content: input.content,
-      cover_url: input.cover_url.trim() || null,
-      tags: input.tags,
+      title: parsed.data.title,
+      summary: parsed.data.summary,
+      content: parsed.data.content,
+      cover_url: parsed.data.cover_url,
+      tags: parsed.data.tags,
     })
     .select("id")
     .single();
@@ -65,17 +72,17 @@ export async function updateTip(
   } = await supabase.auth.getUser();
   if (!user) return { error: "로그인이 필요합니다." };
 
-  const invalid = validate(input);
-  if (invalid) return { error: invalid };
+  const parsed = parse(input);
+  if (!parsed.ok) return { error: parsed.error };
 
   const { error } = await supabase
     .from("tips")
     .update({
-      title: input.title.trim(),
-      summary: input.summary.trim() || null,
-      content: input.content,
-      cover_url: input.cover_url.trim() || null,
-      tags: input.tags,
+      title: parsed.data.title,
+      summary: parsed.data.summary,
+      content: parsed.data.content,
+      cover_url: parsed.data.cover_url,
+      tags: parsed.data.tags,
     })
     .eq("id", id)
     .eq("author_id", user.id);
