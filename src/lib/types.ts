@@ -296,6 +296,58 @@ export type Database = {
           },
         ];
       };
+      ideas: {
+        Row: {
+          id: string;
+          author_id: string;
+          title: string;
+          type: string;
+          category: string;
+          content: string;
+          status: 'open' | 'in_progress' | 'done';
+          linked_project_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          author_id: string;
+          title: string;
+          type: string;
+          category: string;
+          content: string;
+          status?: 'open' | 'in_progress' | 'done';
+          linked_project_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          author_id?: string;
+          title?: string;
+          type?: string;
+          category?: string;
+          content?: string;
+          status?: 'open' | 'in_progress' | 'done';
+          linked_project_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'ideas_author_id_fkey';
+            columns: ['author_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'ideas_linked_project_id_fkey';
+            columns: ['linked_project_id'];
+            referencedRelation: 'projects';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -314,3 +366,6 @@ export type TipRow = Database['public']['Tables']['tips']['Row'];
 export type TipInsert = Database['public']['Tables']['tips']['Insert'];
 export type TipUpdate = Database['public']['Tables']['tips']['Update'];
 export type TipCommentRow = Database['public']['Tables']['tip_comments']['Row'];
+export type IdeaRow = Database['public']['Tables']['ideas']['Row'];
+export type IdeaInsert = Database['public']['Tables']['ideas']['Insert'];
+export type IdeaUpdate = Database['public']['Tables']['ideas']['Update'];

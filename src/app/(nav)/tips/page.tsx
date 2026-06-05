@@ -1,7 +1,7 @@
 export const revalidate = 30;
 
 import Link from "next/link";
-import { Lightbulb, PenLine } from "lucide-react";
+import { Lightbulb, PenLine, Megaphone } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { buttonVariants } from "@/components/ui/button";
@@ -68,17 +68,30 @@ export default async function TipsPage() {
                 막힐 때 도움이 된 팁, 직접 터득한 노하우를 자유롭게 나눠보세요.
               </p>
             </div>
-            <Link
-              href="/tips/new"
-              className={cn(
-                buttonVariants({ size: "sm" }),
-                "rounded-full bg-blue-600 text-white hover:bg-blue-700 shrink-0",
-              )}
-            >
-              <PenLine className="mr-1.5 h-4 w-4" />
-              <span className="hidden sm:inline">팁 작성</span>
-              <span className="sm:hidden">작성</span>
-            </Link>
+            <div className="flex items-center gap-2 shrink-0">
+              <Link
+                href="/haejwo"
+                className={cn(
+                  buttonVariants({ size: "sm", variant: "outline" }),
+                  "rounded-full border-orange-200 text-orange-600 hover:bg-orange-50 dark:border-orange-900/50 dark:text-orange-400 dark:hover:bg-orange-950/30",
+                )}
+              >
+                <Megaphone className="mr-1.5 h-4 w-4" />
+                <span className="hidden sm:inline">해줘!</span>
+                <span className="sm:hidden">해줘!</span>
+              </Link>
+              <Link
+                href="/tips/new"
+                className={cn(
+                  buttonVariants({ size: "sm" }),
+                  "rounded-full bg-blue-600 text-white hover:bg-blue-700",
+                )}
+              >
+                <PenLine className="mr-1.5 h-4 w-4" />
+                <span className="hidden sm:inline">팁 작성</span>
+                <span className="sm:hidden">작성</span>
+              </Link>
+            </div>
           </div>
         </div>
 

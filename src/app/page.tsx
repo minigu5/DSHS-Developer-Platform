@@ -1,7 +1,7 @@
 export const revalidate = 60;
 
 import Link from "next/link";
-import { ArrowRight, Code2, Globe, Layout, Lightbulb, Search, Sparkles, Layers } from "lucide-react";
+import { ArrowRight, Code2, Globe, Layout, Search, Sparkles, Layers } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -69,9 +69,6 @@ export default async function HomePage() {
           </Link>
           <Link href="/guide" className={cn(buttonVariants({ size: "lg", variant: "ghost" }), "rounded-full h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all hover:scale-105")}>
             <Sparkles className="mr-2 h-5 w-5" /> 바이브 코딩 가이드
-          </Link>
-          <Link href="/tips" className={cn(buttonVariants({ size: "lg", variant: "ghost" }), "rounded-full h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all hover:scale-105")}>
-            <Lightbulb className="mr-2 h-5 w-5" /> 개발 팁
           </Link>
         </div>
       </section>

@@ -44,7 +44,7 @@
 | **User** (로그인) | 위 + 프로젝트 게시/수정/삭제, 댓글/별점 작성. Private 프로젝트는 작성자 또는 `allowed_users`에 포함된 사용자만 접근 |
 
 ### 보호 라우트 (`src/middleware.ts`)
-- `/projects/new`, `/projects/[id]/edit`, `/me`
+- `/projects/new`, `/projects/[id]/edit`, `/tips/new`, `/haejwo/new`, `/me`
 - 비로그인 시 `/login?next=<원래경로>` 로 리다이렉트
 - 이미 로그인된 사용자가 `/login` 진입 시 홈으로
 
@@ -141,6 +141,24 @@
 
 ---
 
+## 💡 해줘! 아이디어 요청 (`/haejwo`)
+- **목적**: 비개발자가 아이디어를 올리고 개발자에게 구현을 요청하는 기능. 기능 이름 "해줘".
+- **진입점**: `/tips` 페이지 헤더의 "해줘!" 버튼(오렌지 색상) → `/haejwo` 목록 페이지.
+- **목록** `/haejwo`(`revalidate=30`): 카드 그리드(종류·카테고리·상태·작성자·상대시간).
+- **위저드** `/haejwo/new` (보호 라우트): 단계별 아이디어 작성.
+  - 1단계: 프로그램 종류 선택 (`PROJECT_TYPES` 기반 카드 리스트)
+  - 2단계: 카테고리 선택 (`FEATURES` 기반 카드 리스트)
+  - 3단계: 아이디어 작성 — 제목 + 마크다운 에디터(작성/미리보기 탭). "해줘! 등록" 버튼으로 제출.
+- **상세** `/haejwo/[id]`: 마크다운 렌더 + 종류·카테고리·상태 칩 + 작성자 정보. 작성자에게만 삭제 버튼(`HaejwoOwnerActions`).
+- 서버 액션: `src/lib/haejwo/actions.ts`(`createIdea`/`deleteIdea`) — `(nav)` 밖에 위치(Turbopack 바인딩 문제 회피).
+- DB 스키마: `docs/10-supabase-haejwo.sql` — `ideas` 테이블 (`id`, `author_id`, `title`, `type`, `category`, `content`, `status`(`open`/`in_progress`/`done`), `linked_project_id`(nullable FK → projects), `created_at`, `updated_at`).
+- 컴포넌트: `src/components/haejwo/haejwo-wizard.tsx`, `src/components/haejwo/haejwo-owner-actions.tsx`, `src/components/haejwo/haejwo-complete-button.tsx`.
+- **구현완료 흐름**: 로그인된 사용자가 상세 페이지 하단 "구현완료" 버튼 클릭 → 다이얼로그에서 내 프로젝트 목록 표시 → 선택 시 `markIdeaDone(ideaId, projectId)` 서버 액션 호출 → `status='done'`, `linked_project_id` 업데이트 → 완료 후 연결된 프로젝트 카드 노출. 프로젝트 미등록 시 "프로젝트 등록하기" 버튼 제공.
+- 색상 포인트: **오렌지** (`orange-500`) — 개발 팁(amber)과 구별.
+- ⚠️ 새 환경에서는 `docs/10-supabase-haejwo.sql` → `docs/11-supabase-haejwo-alter.sql` 순서로 Supabase에서 실행해야 함.
+
+---
+
 ## 🌏 인프라 및 배포 설정
 
 | 항목 | 설정값 |
@@ -219,16 +237,18 @@
 src/
 ├── app/                  # App Router 레이어 (auth, projects, developers, explore, guide, tips 등)
 │   ├── guide/            # 바이브 코딩 가이드 (page=위저드, [...slug]=결과 페이지)
-│   └── tips/             # 개발 팁 블로그 (page=목록, new, [id], [id]/edit, actions.ts)
+│   ├── tips/             # 개발 팁 블로그 (page=목록, new, [id], [id]/edit, actions.ts)
+│   └── haejwo/           # 해줘! 아이디어 요청 (page=목록, new, [id])
 ├── components/
 │   ├── shared/           # site-header, page-nav, auth-buttons, back-button, markdown 등
 │   ├── projects/         # project-card, project-form, project-icon, project-reviews 등
 │   ├── explore/          # explore-client
 │   ├── guide/            # guide-wizard, guide-viewer
 │   ├── tips/             # tip-card, tip-editor, tip-like-button, tip-comments 등
+│   ├── haejwo/           # haejwo-wizard, haejwo-owner-actions
 │   └── ui/               # shadcn 컴포넌트
 ├── content/guides/       # 가이드 마크다운 콘텐츠 (.md, 직접 작성)
-├── lib/                  # 유틸리티 및 설정 (supabase, constants, types, utils, guide, guide-content)
+├── lib/                  # 유틸리티 및 설정 (supabase, constants, types, utils, guide, guide-content, haejwo)
 └── middleware.ts         # 세션 관리 및 도메인 검증
 ```
 

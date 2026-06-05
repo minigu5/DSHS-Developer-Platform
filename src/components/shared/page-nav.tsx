@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Search, Code2, Sparkles, Lightbulb } from "lucide-react";
+import { Search, Code2, Sparkles, Lightbulb, Megaphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/projects/new", label: "프로젝트 등록", icon: Code2, pillClass: "bg-emerald-600 shadow-emerald-600/30" },
   { href: "/guide", label: "나도 개발해볼래!", icon: Sparkles, pillClass: "bg-purple-600 shadow-purple-600/30" },
   { href: "/tips", label: "개발 팁", icon: Lightbulb, pillClass: "bg-amber-500 shadow-amber-500/30" },
+  { href: "/haejwo", label: "해줘!", icon: Megaphone, pillClass: "bg-orange-500 shadow-orange-500/30" },
 ] as const;
 
 const STORAGE_KEY = "pagenav-pill";
@@ -18,6 +19,7 @@ const STORAGE_KEY = "pagenav-pill";
 function resolveActive(pathname: string): string {
   if (pathname.startsWith("/guide")) return "/guide";
   if (pathname.startsWith("/tips")) return "/tips";
+  if (pathname.startsWith("/haejwo")) return "/haejwo";
   if (pathname === "/projects/new" || pathname.endsWith("/edit")) return "/projects/new";
   if (
     pathname.startsWith("/explore") ||
