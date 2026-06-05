@@ -49,14 +49,14 @@ export default async function HomePage() {
           DSHS Developer Platform에 오신 것을 환영합니다
         </Badge>
         
-        <h1 className="max-w-4xl text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight text-zinc-900 dark:text-white mb-8 leading-tight break-keep">
+        <h1 className="max-w-4xl text-4xl sm:text-5xl md:text-7xl font-bold tracking-normal text-zinc-900 dark:text-white mb-8 leading-snug break-keep">
           발견하고, 공유하고, <br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
             새로움을 창조하세요.
           </span>
         </h1>
         
-        <p className="max-w-2xl text-lg md:text-xl text-zinc-600 dark:text-zinc-400 mb-10 leading-relaxed break-keep">
+        <p className="max-w-2xl text-lg md:text-xl text-zinc-600 dark:text-zinc-400 mb-10 leading-[1.85] break-keep">
           대구과학고 학생들이 개발한 소프트웨어 프로젝트를 전시하고, 유용한 피드백을 주고받으며, 새로운 아이디어를 함께 발전시키는 중앙 허브입니다.
         </p>
         
@@ -77,8 +77,8 @@ export default async function HomePage() {
       <section className="py-20 px-4 sm:px-6 bg-white dark:bg-zinc-950/50 border-y border-zinc-200 dark:border-zinc-900">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4">학생들을 위해 만들어진 플랫폼</h2>
-            <p className="text-zinc-500 dark:text-zinc-400 max-w-2xl mx-auto text-lg break-keep">
+            <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-4 leading-snug tracking-normal">학생들을 위해 만들어진 플랫폼</h2>
+            <p className="text-zinc-500 dark:text-zinc-400 max-w-2xl mx-auto text-lg leading-[1.85] break-keep">
               @ts.hs.kr 계정으로 안전하게 로그인하고 대곽 개발자들의 창의적인 세계에 빠져보세요.
             </p>
           </div>
@@ -88,7 +88,7 @@ export default async function HomePage() {
               <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-6">
                 <Layers className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-3">체계적인 포트폴리오</h3>
+              <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-3 leading-snug">체계적인 포트폴리오</h3>
               <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed break-keep">
                 프로그램 종류, 지원 플랫폼, 라이선스별로 어플리케이션을 분류하여 누구나 필요한 프로그램을 쉽게 찾을 수 있습니다.
               </p>
@@ -97,7 +97,7 @@ export default async function HomePage() {
               <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mb-6">
                 <Globe className="w-6 h-6 text-purple-600 dark:text-purple-400" />
               </div>
-              <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-3">오픈소스 & 클로즈드소스</h3>
+              <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-3 leading-snug">오픈소스 & 클로즈드소스</h3>
               <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed break-keep">
                 커뮤니티에 코드 저장소를 공유하거나 비공개로 유지할 수 있습니다. 프로젝트 공개 여부를 완전히 제어할 수 있습니다.
               </p>
@@ -106,7 +106,7 @@ export default async function HomePage() {
               <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-6">
                 <Layout className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-3">건설적인 피드백</h3>
+              <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-3 leading-snug">건설적인 피드백</h3>
               <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed break-keep">
                 인증된 대곽 학생들로부터 별점과 댓글을 받아 프로젝트를 지속적으로 발전시킬 수 있습니다.
               </p>
@@ -119,8 +119,8 @@ export default async function HomePage() {
       <section className="py-24 px-4 sm:px-6 max-w-5xl mx-auto w-full">
         <div className="flex flex-col sm:flex-row justify-between items-end mb-12 gap-6">
           <div>
-            <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-4">최근 등록된 프로젝트</h2>
-            <p className="text-lg text-zinc-500 dark:text-zinc-400">친구들이 최근에 개발한 놀라운 프로젝트들을 확인해보세요.</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-4 leading-snug tracking-normal">최근 등록된 프로젝트</h2>
+            <p className="text-lg text-zinc-500 dark:text-zinc-400 leading-relaxed">친구들이 최근에 개발한 놀라운 프로젝트들을 확인해보세요.</p>
           </div>
           <Link href="/explore" className={cn(buttonVariants({ variant: "ghost" }), "group rounded-full text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20")}>
             전체 보기 <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
