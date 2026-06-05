@@ -99,9 +99,12 @@
 
 ## 📝 개발 팁 블로그 (`/tips`)
 - **목록** `/tips`(`revalidate=30`): 카드 그리드(커버·태그·작성자·좋아요/댓글 수·상대시간). 헤더 우측 "팁 작성".
-- **작성** `/tips/new` · **수정** `/tips/[id]/edit`: `TipEditor`(`src/components/tips/tip-editor.tsx`) — 마크다운 작성/미리보기 탭. 둘 다 보호 라우트(미들웨어). 수정은 작성자만(서버에서 `author_id` 검증 후 아니면 리다이렉트).
+- **작성** `/tips/new` · **수정** `/tips/[id]/edit`: `TipEditor`(`src/components/tips/tip-editor.tsx`) — 마크다운 작성/분할/미리보기 3탭, Tab 들여쓰기 지원. 둘 다 보호 라우트(미들웨어). 수정은 작성자만.
 - **상세** `/tips/[id]`(`revalidate=30`): `Markdown` 렌더, 좋아요(`TipLikeButton`, 낙관적), 댓글(`TipComments`, 작성/삭제). 작성자에게만 수정/삭제 노출(`TipOwnerActions`).
-- 서버 액션: `src/app/tips/actions.ts`(`createTip`/`updateTip`/`deleteTip`, 모두 `getUser` + `author_id` 검증).
+- 서버 액션: **`src/lib/tips/actions.ts`**(`createTip`/`updateTip`/`deleteTip`). 라우트 그룹 밖에 위치 — `(nav)` 경로에 두면 Turbopack에서 client→server action 바인딩이 깨지는 문제 있음.
+- 팁 작성 필수 필드: 제목, **한 줄 요약(최대 30자)**, **대표 이미지 URL**, 본문.
+- 삭제 확인창은 `window.confirm` 대신 shadcn `Dialog` 컴포넌트 사용(팁 삭제·댓글 삭제 모두).
+- Supabase join 시 `users` 테이블 관계가 모호하면 PGRST201 오류 발생 → `author:users!tips_author_id_fkey(...)` 처럼 **FK 이름을 명시**해야 함.
 - 마크다운 렌더 공용 컴포넌트: `src/components/shared/markdown.tsx`(팁·가이드 공유).
 
 ---
