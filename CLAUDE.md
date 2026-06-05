@@ -68,6 +68,7 @@
 - **프로그램 종류 선택**: `<Select>` 드롭다운 대신 다른 항목들과 동일한 **카드 그리드 UI** (단일 선택). 5개 항목, 2~3열 배치.
 - **플랫폼 자동 선택**: `type === 'website'` 선택 시 `useEffect`로 모든 플랫폼을 자동 선택하고 카드를 비활성화(`pointer-events-none`). "💡 모든 플랫폼은 web 사이트를 실행할 수 있습니다." 안내 표시. 다른 종류로 바꾸면 잠금 해제.
 - 플랫폼 힌트 문구(웹사이트 제외)는 제거됨 — 사용자가 직접 선택.
+- **키보드 접근성**: 카드 그리드 UI(`div` 기반)에 `tabIndex={0}` · `role="button"` · `onKeyDown`(Enter/Space) · `focus-visible:ring-2` 적용. Tab 키로 모든 카드 포커스 이동, Enter/Space로 선택 가능. 웹사이트 타입 선택 시 비활성화된 플랫폼 카드는 `tabIndex={-1}`로 Tab 순서에서 제외.
 
 ---
 
@@ -94,6 +95,20 @@
 - **부분 매칭 + 폴백**: 구체적 파일 → 일반 파일 → `default.md` 순. 모든 조합을 만들 필요 없음. 매칭 로직: `src/lib/guide-content.ts` (`loadGuide`, server 전용 `fs`).
 - 파일 내 `---` 한 줄로 단계 구분. 결과 페이지 `GuideViewer`(`src/components/guide/guide-viewer.tsx`)가 이전/다음으로 한 단계씩 표시.
 - **마지막 "다음으로 해볼 것" 카드**: 파일 끝에 `===` 한 줄 뒤 섹션을 두면, 마지막 단계에서 "다시 선택하기" 대신 카드 묶음으로 노출되고 자동 부드러운 스크롤. 형식: 첫 헤딩=섹션 제목, 리스트 `- [버튼라벨](링크) — 설명`. 내부 링크(`/`로 시작)는 `Link`, 외부는 새 탭.
+- **설치 링크 규칙**: 앱/도구 설치 안내 시 "앱스토어에서 검색 후 설치" 식의 텍스트 대신 **반드시 직접 링크**를 제공한다. 주요 링크:
+  - Xcode: `[Mac App Store](https://apps.apple.com/us/app/xcode/id497799835?l=ko&mt=12)`
+  - Windows Terminal: `[Microsoft Store](https://aka.ms/terminal)`
+  - Android Studio: `[developer.android.com/studio](https://developer.android.com/studio)`
+- **Claude Code(macOS) 설치 블록 표준**: Homebrew 미설치 환경을 고려해 `brew` 명령 사용 금지. 모든 macOS 가이드에서 아래 블록을 동일하게 사용한다.
+  ```bash
+  # Node.js가 없다면 먼저 설치
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+  source ~/.zshrc
+  nvm install --lts && nvm use --lts
+
+  # Claude Code 설치
+  npm install -g @anthropic-ai/claude-code
+  ```
 
 ---
 
@@ -250,6 +265,23 @@
 - **세로 스택 전환**: 좁은 폭에서 잘리는 행은 `flex-col sm:flex-row`로 전환 (예: 프로젝트 리뷰의 "이미 작성하셨습니다" 행).
 - 신규 페이지/컴포넌트 작성 시에도 위 패턴을 따를 것.
 
+## 🚫 Claude 컨텍스트 제외 목록 (`.claudeignore`)
+
+토큰 절약을 위해 자동 읽기/인덱싱에서 제외된 항목. 필요 시 직접 `Read` 도구로는 접근 가능.
+
+| 경로 | 이유 |
+|---|---|
+| `src/components/ui/` | shadcn/ui 자동 생성. API는 학습 데이터에 포함. 주의사항은 위 Tech Stack 섹션 참고 |
+| `src/lib/types.generated.ts` | Supabase CLI 자동 생성 타입. Source of truth는 `src/lib/types.ts` |
+| `supabase/migrations/` | 원격 스키마 자동 스냅샷. Source of truth는 `docs/03-supabase-schema.sql` |
+| `docs/01-supabase-setup.md`, `docs/02-google-oauth-setup.md` | 초기 환경 구성용 인간용 가이드 |
+| `README.md`, `AGENTS.md`, `LICENSE` | 인간/다른 AI 대상 문서 |
+| `public/` | 정적 SVG 에셋 (이미 `*.svg` 패턴으로 차단) |
+| `scripts/` | 일회성 유틸 스크립트 (`backfill-favicons.mts` 등) |
+| `eslint.config.mjs`, `postcss.config.mjs`, `components.json` | 빌드·설정 파일 |
+
+---
+
 ## 📌 작업 시작 전 체크리스트
 1. `npm run dev` 실행 및 `http://localhost:3000` 확인.
 2. `npx tsc --noEmit` 실행하여 타입 에러 0 확인.
@@ -280,6 +312,23 @@ src/
 ├── lib/                  # 유틸리티 및 설정 (supabase, constants, types, utils, guide, guide-content, haejwo)
 └── middleware.ts         # 세션 관리 및 도메인 검증
 ```
+
+## ♿ 키보드 접근성 규칙
+
+카드 그리드 UI처럼 `<div onClick>` 기반의 클릭 가능한 요소에는 반드시 아래 속성을 추가해야 Tab 키 내비게이션이 동작한다.
+
+```tsx
+tabIndex={0}
+role="button"
+onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); /* 액션 */; } }}
+className={cn("... focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2")}
+```
+
+- 비활성(disabled) 카드는 `tabIndex={-1}` + `aria-disabled={true}`로 Tab 순서에서 제외.
+- 이미 `<button>` 요소를 사용하는 곳(`guide-wizard`, `haejwo-wizard`, `profile-settings-dialog`, `review-form`, `tip-editor`)은 기본 키보드 접근성이 보장되므로 별도 처리 불필요.
+- 다크 배경 모달/카드의 경우 `focus-visible:ring-offset-zinc-900`을 추가로 지정.
+
+---
 
 ## 📝 협업 및 코드 스타일 규칙
 - **TS Strict**: `any` 사용 금지, 인터페이스 명확히 정의.
