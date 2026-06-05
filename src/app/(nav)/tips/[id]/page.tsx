@@ -73,25 +73,22 @@ export default async function TipDetailPage({ params }: { params: Promise<{ id: 
       <div className="pointer-events-none absolute bottom-0 left-0 h-[500px] w-[500px] rounded-full bg-purple-500/10 blur-[120px] dark:bg-purple-600/10" />
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 sm:px-6 py-8">
-        <div className="mb-6 flex items-center justify-end">
+        <div className="mb-2 mt-4 flex min-h-[32px] items-center justify-between gap-4">
+          <div className="flex flex-wrap gap-1.5">
+            {tip.tags.map((tag) => (
+              <Badge
+                key={tag}
+                variant="outline"
+                className="h-6 rounded-full border-zinc-200 px-2.5 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400"
+              >
+                {tag}
+              </Badge>
+            ))}
+          </div>
           <TipOwnerActions tipId={tip.id} authorId={tip.author_id} />
         </div>
 
         <article>
-          {tip.tags.length > 0 && (
-            <div className="mb-4 flex flex-wrap gap-1.5">
-              {tip.tags.map((tag) => (
-                <Badge
-                  key={tag}
-                  variant="outline"
-                  className="h-6 rounded-full border-zinc-200 px-2.5 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400"
-                >
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          )}
-
           <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl">
             {tip.title}
           </h1>

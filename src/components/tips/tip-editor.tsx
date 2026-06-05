@@ -139,6 +139,8 @@ export function TipEditor({ mode, defaults = EMPTY }: TipEditorProps) {
     router.refresh();
   }
 
+  const tagCount = tagsText.split(",").map((t) => t.trim()).filter(Boolean).length;
+
   const textareaClass =
     "min-h-[400px] w-full resize-y rounded-2xl border border-zinc-200 bg-white/70 p-4 font-mono text-sm leading-relaxed text-zinc-900 outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-100";
   const previewClass =
@@ -200,7 +202,12 @@ export function TipEditor({ mode, defaults = EMPTY }: TipEditorProps) {
           </p>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="tags">태그 <span className="text-zinc-400">(쉼표로 구분)</span></Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="tags">태그 <span className="text-zinc-400">(쉼표로 구분)</span></Label>
+            <span className={cn("text-xs", tagCount >= 8 ? "text-red-500 font-medium" : "text-zinc-400")}>
+              {tagCount} / 8
+            </span>
+          </div>
           <Input
             id="tags"
             value={tagsText}
@@ -208,6 +215,9 @@ export function TipEditor({ mode, defaults = EMPTY }: TipEditorProps) {
             placeholder="claude-code, 디버깅, 팁"
             className="rounded-xl"
           />
+          {tagCount >= 8 && (
+            <p className="text-[10px] text-red-500">태그는 최대 8개까지 등록할 수 있습니다.</p>
+          )}
         </div>
       </div>
 
