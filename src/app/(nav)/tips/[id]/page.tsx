@@ -126,12 +126,23 @@ export default async function TipDetailPage({ params }: { params: Promise<{ id: 
           </div>
 
           {tip.cover_url && (
-            <div className="relative mt-8 aspect-[16/9] w-full overflow-hidden rounded-3xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800">
+            <div className="relative mt-8 aspect-[16/9] w-full overflow-hidden rounded-3xl border border-zinc-200 dark:border-zinc-800">
+              {/* 이미지 끝 색상을 블러 처리해 letterbox 배경으로 사용 */}
+              <Image
+                src={tip.cover_url}
+                alt=""
+                fill
+                className="scale-110 object-cover blur-2xl"
+                unoptimized={isExternalImage(tip.cover_url)}
+                aria-hidden
+              />
               <Image
                 src={tip.cover_url}
                 alt={tip.title}
                 fill
-                className="object-cover"
+                sizes="(max-width: 768px) calc(100vw - 2rem), 768px"
+                className="object-contain"
+                quality={90}
                 unoptimized={isExternalImage(tip.cover_url)}
               />
             </div>

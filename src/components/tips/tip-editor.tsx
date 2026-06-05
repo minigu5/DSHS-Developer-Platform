@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { parseImageInput, isIbbPageUrl } from "@/lib/parse-image-url";
 import { Markdown } from "@/components/shared/markdown";
 import { createTip, updateTip, type TipFormInput } from "@/lib/tips/actions";
 
@@ -45,8 +46,37 @@ export function TipEditor({ mode, defaults = EMPTY }: TipEditorProps) {
   const [title, setTitle] = useState(defaults.title);
   const [summary, setSummary] = useState(defaults.summary);
   const [coverUrl, setCoverUrl] = useState(defaults.cover_url);
+  const [coverRawInput, setCoverRawInput] = useState(defaults.cover_url);
+  const [coverResolving, setCoverResolving] = useState(false);
+  const [coverError, setCoverError] = useState("");
   const [tagsText, setTagsText] = useState(defaults.tags.join(", "));
   const [content, setContent] = useState(defaults.content);
+
+  const handleCoverInput = async (raw: string) => {
+    setCoverRawInput(raw);
+    setCoverError("");
+    const parsed = parseImageInput(raw);
+
+    if (isIbbPageUrl(parsed)) {
+      setCoverResolving(true);
+      try {
+        const res = await fetch(`/api/resolve-image?url=${encodeURIComponent(parsed)}`);
+        const data = await res.json();
+        if (data.imageUrl) {
+          setCoverUrl(data.imageUrl);
+          setCoverRawInput(data.imageUrl);
+        } else {
+          setCoverError("이미지 URL을 자동으로 가져오지 못했습니다. 직접 이미지 링크를 입력해주세요.");
+        }
+      } catch {
+        setCoverError("URL 변환 중 오류가 발생했습니다.");
+      } finally {
+        setCoverResolving(false);
+      }
+    } else {
+      setCoverUrl(parsed);
+    }
+  };
 
   function handleTextareaKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     // Tab → 두 칸 들여쓰기, Shift+Tab → 들여쓰기 해제
@@ -149,11 +179,18 @@ export function TipEditor({ mode, defaults = EMPTY }: TipEditorProps) {
           <Label htmlFor="cover">대표 이미지 URL <span className="text-red-500">*</span></Label>
           <Input
             id="cover"
-            value={coverUrl}
-            onChange={(e) => setCoverUrl(e.target.value)}
+            value={coverRawInput}
+            onChange={(e) => handleCoverInput(e.target.value)}
             placeholder="https://i.ibb.co/..."
             className="rounded-xl"
+            disabled={coverResolving}
           />
+          {coverResolving && (
+            <p className="text-[10px] text-zinc-400">이미지 URL 변환 중...</p>
+          )}
+          {coverError && (
+            <p className="text-[10px] text-red-500">{coverError}</p>
+          )}
           <p className="text-[10px] text-zinc-500">
             이미지 호스팅은{" "}
             <a href="https://imgbb.com/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">

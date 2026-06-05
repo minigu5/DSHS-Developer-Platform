@@ -28,13 +28,23 @@ export function TipCard({ tip }: { tip: TipCardData }) {
       className="group flex flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 dark:border-zinc-800 dark:bg-zinc-900"
     >
       {tip.cover_url && (
-        <div className="relative h-40 w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+        <div className="relative h-40 w-full overflow-hidden">
+          {/* 이미지 끝 색상을 블러 처리해 letterbox 배경으로 사용 */}
+          <Image
+            src={tip.cover_url}
+            alt=""
+            fill
+            className="scale-110 object-cover blur-xl"
+            unoptimized={isExternalImage(tip.cover_url)}
+            aria-hidden
+          />
           <Image
             src={tip.cover_url}
             alt={tip.title}
             fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            className="object-contain transition-transform duration-300 group-hover:scale-105"
             unoptimized={isExternalImage(tip.cover_url)}
+            quality={90}
           />
         </div>
       )}
