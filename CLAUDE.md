@@ -180,9 +180,15 @@
 - 문제: `project` → `user` → `reviews` 쿼리가 직렬 실행.
 - 해결: `Promise.all`로 3개 쿼리 동시 실행.
 
-### 공개 페이지 Vercel 캐시 (`src/app/page.tsx`, `src/app/explore/page.tsx`)
-- 홈페이지: `revalidate = 60` (60초 캐시)
-- 탐색 페이지: `revalidate = 30` (30초 캐시)
+### 페이지별 캐시 전략
+- 홈(`/`): `revalidate = 60` (ISR, 60초)
+- 팁 목록·상세(`/tips`, `/tips/[id]`), 해줘 목록(`/haejwo`): `revalidate = 30` (ISR, 30초)
+- 탐색(`/explore`), 프로젝트 상세(`/projects/[id]`): `force-dynamic` — RLS 기반 사용자별 콘텐츠(개발자 계정은 비공개 프로젝트까지 조회)이므로 서버 캐시 사용 불가
+
+### Router Cache (클라이언트 캐시) — `next.config.ts`
+- Next.js 15+에서 `staleTimes.dynamic` 기본값이 `0`으로 바뀌어 `force-dynamic` 페이지가 매 이동마다 서버 요청을 발생시키는 문제 해결.
+- `experimental.staleTimes: { dynamic: 30, static: 180 }` 설정으로 동적 페이지도 클라이언트 Router Cache에 30초, 정적 페이지는 3분간 캐시.
+- Router Cache는 클라이언트·사용자별 독립 저장소이므로 RLS 우회 없음. 서버 액션의 `revalidatePath()` 호출 시 관련 캐시 항목은 자동 무효화됨.
 
 ### 이미지 URL 파싱 (`src/lib/parse-image-url.ts`)
 - 프로필 아바타 · 프로젝트 아이콘 모두 링크 입력 방식으로 통일.
@@ -190,21 +196,44 @@
 - `GET /api/resolve-image?url=`: ibb.co 페이지 URL을 서버에서 og:image로 변환 (직접 링크 불가 케이스 대응).
 - imgbb.com 추천 힌트 텍스트를 두 입력 필드에 표시.
 
+### 이미지 포맷 최적화 — `next.config.ts`
+- `images.formats: ['image/avif', 'image/webp']` 설정으로 브라우저 지원 시 AVIF(WebP 대비 ~50% 작음) → WebP 순으로 자동 변환 제공.
+- `images.remotePatterns`에 `i.ibb.co`, `ibb.co` 추가 → ibb.co 이미지도 Next.js 이미지 최적화 파이프라인 적용 가능.
+
+### 패키지 import 최적화 — `next.config.ts`
+- `experimental.optimizePackageImports: ['lucide-react', 'date-fns']` 설정.
+- lucide-react는 1000개 이상의 아이콘을 포함하나 이 설정으로 실제 사용하는 아이콘만 번들에 포함됨 (JS 크기 대폭 감소).
+
+### API 라우트 캐시 헤더
+- `/api/favicon`: `Cache-Control: public, s-maxage=86400, stale-while-revalidate=3600` — 엣지에서 1일 캐시, 이후 1시간 stale 허용.
+- `/api/resolve-image`: 동일한 캐시 헤더 추가 (기존엔 없었음). ibb.co URL 변환 결과를 엣지에 캐시해 반복 요청 제거.
+
+### preconnect / dns-prefetch — `src/app/layout.tsx`
+- `<link rel="preconnect" href="https://aclcleemnsmxyixcfqro.supabase.co" />` — 모든 페이지 요청 전 Supabase DNS·TCP·TLS 핸드셰이크를 미리 수행.
+- `<link rel="preconnect" href="https://lh3.googleusercontent.com" />` — 구글 프로필 사진 도메인 사전 준비.
+- `<link rel="dns-prefetch" />` — preconnect 미지원 구형 브라우저 대응.
+
+### 홈 페이지 CTA 프리패치 — `src/app/page.tsx`
+- 홈 페이지는 PageNav가 없어 `/explore`(force-dynamic) 등 동적 페이지가 자동 프리패치되지 않음.
+- 3개 CTA 링크(`/explore`, `/projects/new`, `/guide`)에 `prefetch={true}` 추가 — 사용자가 히어로 섹션을 읽는 동안 백그라운드에서 미리 로드.
+
 ---
 
 ## 🧭 전역 페이지 내비게이션 (`PageNav`)
 
 - 컴포넌트: `src/components/shared/page-nav.tsx` (`"use client"`, `usePathname()` + `useRef` + `useEffect` 사용)
 - **표시 위치**: `SiteHeader` 로고·프로필과 **동일한 h-16 행** 안, 로고 우측에 얇은 구분선(`w-px h-5`)으로 분리하여 인라인 배치.
-- **4개 버튼**: 모든 프로젝트(→ `/explore`), 프로젝트 등록(→ `/projects/new`), 나도 개발해볼래!(→ `/guide`), 개발 팁(→ `/tips`)
+- **5개 버튼**: 모든 프로젝트(→ `/explore`), 프로젝트 등록(→ `/projects/new`), 나도 개발해볼래!(→ `/guide`), 개발 팁(→ `/tips`), 해줘!(→ `/haejwo`)
+- **모든 Link에 `prefetch={true}`** — `force-dynamic` 페이지 포함 전체 콘텐츠를 뷰포트 진입 시 미리 패치.
 - **활성 버튼 판정**:
   - `/explore`, `/projects/*`(등록·수정 제외), `/developers/*` → "모든 프로젝트"
   - `/projects/new`, `*/edit` → "프로젝트 등록"
   - `/guide/*` → "나도 개발해볼래!"
   - `/tips/*` → "개발 팁"
+  - `/haejwo/*` → "해줘!"
 - **슬라이딩 pill 애니메이션**: `absolute` pill 하나가 활성 버튼 위치로 부드럽게 이동·확장(`transition-all duration-300 ease-out`). `useRef` 배열 + `useEffect`로 활성 항목의 `offsetLeft`/`offsetWidth`를 읽어 `translateX` + `width` 적용.
 - **라벨 펼침**: 활성 버튼만 라벨 텍스트 노출(`max-w-[160px] opacity-100`), 비활성은 **아이콘만**(`max-w-0 opacity-0`). 전환 시 부드럽게 slide-in/out.
-- **버튼별 고유 색**: 모든 프로젝트=blue, 프로젝트 등록=emerald, 나도 개발해볼래!=purple, 개발 팁=amber.
+- **버튼별 고유 색**: 모든 프로젝트=blue, 프로젝트 등록=emerald, 나도 개발해볼래!=purple, 개발 팁=amber, 해줘!=orange.
 - **너비 통일**: 모든 버튼 `min-w-9 justify-center` → 비활성 아이콘 크기 균일.
 - **적용 방법**: `SiteHeader`에 `showNav` prop → `<SiteHeader showNav />`. 홈(`/`)·로그인(`/login`) 페이지는 미적용.
 

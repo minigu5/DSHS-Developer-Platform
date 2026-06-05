@@ -61,13 +61,14 @@ export default async function HomePage() {
         </p>
         
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-stretch gap-3 sm:gap-4 w-full sm:w-auto z-10">
-          <Link href="/explore" className={cn(buttonVariants({ size: "lg" }), "rounded-full h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 transition-all hover:scale-105")}>
+          {/* prefetch={true}: 홈에는 PageNav가 없으므로 force-dynamic 페이지를 명시적으로 프리패치 (기법 10) */}
+          <Link href="/explore" prefetch={true} className={cn(buttonVariants({ size: "lg" }), "rounded-full h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 transition-all hover:scale-105")}>
             <Search className="mr-2 h-5 w-5" /> 프로젝트 둘러보기
           </Link>
-          <Link href="/projects/new" className={cn(buttonVariants({ size: "lg", variant: "outline" }), "rounded-full h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all hover:scale-105")}>
+          <Link href="/projects/new" prefetch={true} className={cn(buttonVariants({ size: "lg", variant: "outline" }), "rounded-full h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all hover:scale-105")}>
             <Code2 className="mr-2 h-5 w-5" /> 내 프로젝트 등록하기
           </Link>
-          <Link href="/guide" className={cn(buttonVariants({ size: "lg", variant: "ghost" }), "rounded-full h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all hover:scale-105")}>
+          <Link href="/guide" prefetch={true} className={cn(buttonVariants({ size: "lg", variant: "ghost" }), "rounded-full h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all hover:scale-105")}>
             <Sparkles className="mr-2 h-5 w-5" /> 바이브 코딩 가이드
           </Link>
         </div>

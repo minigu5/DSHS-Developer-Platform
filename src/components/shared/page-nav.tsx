@@ -101,6 +101,7 @@ export function PageNav() {
               itemRefs.current[i] = el;
             }}
             href={href}
+            prefetch={true}
             className={cn(
               "relative z-10 flex min-w-9 items-center justify-center rounded-full px-2.5 py-1.5 text-sm transition-colors duration-300",
               isActive

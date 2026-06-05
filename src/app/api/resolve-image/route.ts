@@ -29,7 +29,10 @@ export async function GET(request: NextRequest) {
       html.match(/<meta[^>]+content=["'](https?:\/\/[^"']+)["'][^>]+property=["']og:image["']/i);
 
     if (match) {
-      return NextResponse.json({ imageUrl: match[1] });
+      // 기법 7: 1일 엣지 캐시 + 1시간 stale-while-revalidate (기법 8: 재검증)
+      return NextResponse.json({ imageUrl: match[1] }, {
+        headers: { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600' },
+      });
     }
     return NextResponse.json({ error: 'not found' }, { status: 422 });
   } catch {

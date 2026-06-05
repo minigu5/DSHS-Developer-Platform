@@ -33,6 +33,16 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
+      <head>
+        {/* Supabase DB/Auth 연결 사전 준비 (기법 10: 프리커넥트) */}
+        <link rel="preconnect" href="https://aclcleemnsmxyixcfqro.supabase.co" />
+        {/* 구글 프로필 사진 도메인 사전 준비 */}
+        <link rel="preconnect" href="https://lh3.googleusercontent.com" crossOrigin="anonymous" />
+        {/* DNS 조회 사전 캐시 — preconnect 미지원 구형 브라우저 대응 */}
+        <link rel="dns-prefetch" href="https://aclcleemnsmxyixcfqro.supabase.co" />
+        <link rel="dns-prefetch" href="https://lh3.googleusercontent.com" />
+        <link rel="dns-prefetch" href="https://i.ibb.co" />
+      </head>
       <body className="flex min-h-full flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {children}

@@ -12,5 +12,6 @@ export async function GET(request: NextRequest) {
   }
 
   const faviconUrl = await resolveFavicon(url);
-  return NextResponse.json({ faviconUrl }, { headers: { 'Cache-Control': 's-maxage=3600' } });
+  // 기법 7: 1일 엣지 캐시 + 1시간 stale-while-revalidate (기법 8: 재검증)
+  return NextResponse.json({ faviconUrl }, { headers: { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=3600' } });
 }
