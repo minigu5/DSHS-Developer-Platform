@@ -5,11 +5,19 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
-import { MessageSquare, Trash2 } from "lucide-react";
+import { Loader2, MessageSquare, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 
 import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
 import { cn, isExternalImage } from "@/lib/utils";
 
@@ -32,6 +40,8 @@ export function TipComments({ tipId, comments }: TipCommentsProps) {
   const [userId, setUserId] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [pending, setPending] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id ?? null));
@@ -53,18 +63,22 @@ export function TipComments({ tipId, comments }: TipCommentsProps) {
     router.refresh();
   }
 
-  async function remove(id: string) {
-    if (!window.confirm("이 댓글을 삭제할까요?")) return;
-    const { error } = await supabase.from("tip_comments").delete().eq("id", id);
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    const { error } = await supabase.from("tip_comments").delete().eq("id", deleteTarget);
+    setDeleteLoading(false);
     if (error) {
       toast.error("댓글 삭제에 실패했습니다.", { description: error.message });
       return;
     }
+    setDeleteTarget(null);
     toast.success("댓글이 삭제되었습니다.");
     router.refresh();
   }
 
   return (
+    <>
     <section className="mt-8 rounded-3xl border border-zinc-200 bg-white/70 p-6 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/60 sm:p-8">
       <div className="mb-6 flex items-center gap-2">
         <MessageSquare className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
@@ -139,7 +153,7 @@ export function TipComments({ tipId, comments }: TipCommentsProps) {
                     {userId === c.user_id && (
                       <button
                         type="button"
-                        onClick={() => remove(c.id)}
+                        onClick={() => setDeleteTarget(c.id)}
                         className="ml-auto text-zinc-400 transition-colors hover:text-rose-500"
                         aria-label="댓글 삭제"
                       >
@@ -157,5 +171,44 @@ export function TipComments({ tipId, comments }: TipCommentsProps) {
         </ul>
       )}
     </section>
+
+      <Dialog open={Boolean(deleteTarget)} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <DialogContent showCloseButton={false} className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg">댓글을 삭제하시겠습니까?</DialogTitle>
+            <DialogDescription>
+              삭제한 댓글은 복구할 수 없습니다.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleteLoading}
+              className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              onClick={confirmDelete}
+              disabled={deleteLoading}
+              className={cn(
+                buttonVariants(),
+                "rounded-xl bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-500/20 flex items-center",
+                deleteLoading && "opacity-50 cursor-not-allowed",
+              )}
+            >
+              {deleteLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              삭제하기
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

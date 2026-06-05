@@ -38,14 +38,16 @@ export default async function TipDetailPage({ params }: { params: Promise<{ id: 
       .from("tips")
       .select(
         `id, author_id, title, summary, content, cover_url, tags, created_at,
-         author:users(nickname, full_name, avatar_url),
+         author:users!tips_author_id_fkey(nickname, full_name, avatar_url),
          tip_likes(count)`,
       )
       .eq("id", id)
       .single<TipDetailRow>(),
     supabase
       .from("tip_comments")
-      .select("id, content, created_at, user_id, user:users(nickname, full_name, avatar_url)")
+      .select(
+        "id, content, created_at, user_id, user:users!tip_comments_user_id_fkey(nickname, full_name, avatar_url)",
+      )
       .eq("tip_id", id)
       .order("created_at", { ascending: true }),
   ]);

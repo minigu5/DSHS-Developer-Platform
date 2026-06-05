@@ -31,7 +31,7 @@ export default async function TipsPage() {
     .from("tips")
     .select(
       `id, title, summary, cover_url, tags, created_at,
-       author:users(nickname, full_name, avatar_url),
+       author:users!tips_author_id_fkey(nickname, full_name, avatar_url),
        tip_likes(count), tip_comments(count)`,
     )
     .order("created_at", { ascending: false })
