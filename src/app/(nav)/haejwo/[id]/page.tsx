@@ -88,7 +88,7 @@ export default async function HaejwoDetailPage({
       <div className="pointer-events-none absolute right-0 top-0 h-[600px] w-[600px] rounded-full bg-orange-500/8 blur-[120px] dark:bg-orange-600/8" />
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 sm:px-6 py-12">
-        <div className="mb-8 flex items-center gap-3">
+        <div className="mb-3 flex items-center gap-3">
           <Link
             href="/haejwo"
             className={cn(
