@@ -43,6 +43,37 @@ export async function createIdea(
   return { id: data.id };
 }
 
+export async function updateIdea(
+  id: string,
+  input: IdeaFormInput,
+): Promise<{ id: string } | { error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "로그인이 필요합니다." };
+
+  if (!input.title.trim()) return { error: "제목을 입력해주세요." };
+  if (!input.content.trim()) return { error: "아이디어 내용을 입력해주세요." };
+
+  const { error } = await supabase
+    .from("ideas")
+    .update({
+      title: input.title.trim(),
+      type: input.type,
+      category: input.category,
+      content: input.content,
+    })
+    .eq("id", id)
+    .eq("author_id", user.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/haejwo");
+  revalidatePath(`/haejwo/${id}`);
+  return { id };
+}
+
 export async function markIdeaDone(
   ideaId: string,
   projectId: string,

@@ -11,21 +11,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Markdown } from "@/components/shared/markdown";
-import { createIdea } from "@/lib/haejwo/actions";
+import { createIdea, updateIdea } from "@/lib/haejwo/actions";
 
 type Step = "type" | "category" | "write";
 type EditorTab = "write" | "preview";
 
-export function HaejwoWizard() {
+export interface HaejwoWizardDefaults {
+  id: string;
+  type: string;
+  category: string;
+  title: string;
+  content: string;
+}
+
+interface HaejwoWizardProps {
+  mode?: "create" | "edit";
+  defaults?: HaejwoWizardDefaults;
+}
+
+export function HaejwoWizard({ mode = "create", defaults }: HaejwoWizardProps) {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const [step, setStep] = useState<Step>("type");
-  const [type, setType] = useState("");
-  const [category, setCategory] = useState("");
+  const [step, setStep] = useState<Step>(mode === "edit" ? "write" : "type");
+  const [type, setType] = useState(defaults?.type ?? "");
+  const [category, setCategory] = useState(defaults?.category ?? "");
 
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const [title, setTitle] = useState(defaults?.title ?? "");
+  const [content, setContent] = useState(defaults?.content ?? "");
   const [editorTab, setEditorTab] = useState<EditorTab>("write");
   const [loading, setLoading] = useState(false);
 
@@ -77,14 +90,20 @@ export function HaejwoWizard() {
       return;
     }
     setLoading(true);
-    const result = await createIdea({ title, type, category, content });
-    setLoading(false);
-    if ("error" in result) {
-      toast.error(result.error);
-      return;
+    if (mode === "edit" && defaults?.id) {
+      const result = await updateIdea(defaults.id, { title, type, category, content });
+      setLoading(false);
+      if ("error" in result) { toast.error(result.error); return; }
+      toast.success("아이디어가 수정되었습니다.");
+      router.push(`/haejwo/${defaults.id}`);
+      router.refresh();
+    } else {
+      const result = await createIdea({ title, type, category, content });
+      setLoading(false);
+      if ("error" in result) { toast.error(result.error); return; }
+      toast.success("아이디어가 등록되었습니다!");
+      router.push(`/haejwo/${result.id}`);
     }
-    toast.success("아이디어가 등록되었습니다!");
-    router.push(`/haejwo/${result.id}`);
   }
 
   const typeName = PROJECT_TYPES.find((t) => t.value === type)?.label ?? "";
@@ -105,7 +124,9 @@ export function HaejwoWizard() {
         ) : (
           <span />
         )}
-        <span className="text-sm font-medium text-zinc-400">{stepNumber}단계</span>
+        {mode !== "edit" && (
+          <span className="text-sm font-medium text-zinc-400">{stepNumber}단계</span>
+        )}
       </div>
 
       {step === "type" && (
@@ -180,10 +201,10 @@ export function HaejwoWizard() {
               </span>
             </div>
             <h2 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
-              아이디어를 자세히 설명해주세요
+              {mode === "edit" ? "아이디어 수정" : "아이디어를 자세히 설명해주세요"}
             </h2>
             <p className="mt-2 text-zinc-500 dark:text-zinc-400">
-              개발자가 이해할 수 있도록 구체적으로 작성해주세요.
+              {mode === "edit" ? "내용을 수정한 뒤 저장하세요." : "개발자가 이해할 수 있도록 구체적으로 작성해주세요."}
             </p>
           </div>
 
@@ -253,7 +274,11 @@ export function HaejwoWizard() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => router.back()}
+                onClick={() =>
+                  mode === "edit" && defaults?.id
+                    ? router.push(`/haejwo/${defaults.id}`)
+                    : router.back()
+                }
                 className="rounded-full"
               >
                 취소
@@ -264,7 +289,9 @@ export function HaejwoWizard() {
                 disabled={loading}
                 className="rounded-full bg-orange-500 px-6 text-white hover:bg-orange-600"
               >
-                {loading ? "등록 중..." : "해줘! 등록"}
+                {loading
+                  ? mode === "edit" ? "저장 중..." : "등록 중..."
+                  : mode === "edit" ? "수정 저장" : "해줘! 등록"}
               </Button>
             </div>
           </div>

@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Pencil, Trash2 } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -38,16 +39,24 @@ export function HaejwoOwnerActions({ ideaId }: { ideaId: string }) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className={cn(
-          buttonVariants({ variant: "outline", size: "sm" }),
-          "ml-auto rounded-full border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-900/50 dark:text-rose-400 dark:hover:bg-rose-950/30",
-        )}
-      >
-        <Trash2 className="mr-1.5 h-3.5 w-3.5" /> 삭제
-      </button>
+      <div className="ml-auto flex items-center gap-2">
+        <Link
+          href={`/haejwo/${ideaId}/edit`}
+          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "rounded-full")}
+        >
+          <Pencil className="mr-1.5 h-3.5 w-3.5" /> 수정
+        </Link>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className={cn(
+            buttonVariants({ variant: "outline", size: "sm" }),
+            "rounded-full border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-900/50 dark:text-rose-400 dark:hover:bg-rose-950/30",
+          )}
+        >
+          <Trash2 className="mr-1.5 h-3.5 w-3.5" /> 삭제
+        </button>
+      </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent showCloseButton={false} className="rounded-2xl">

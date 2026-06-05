@@ -20,6 +20,7 @@ function isProtectedRoute(pathname: string): boolean {
   }
   if (/^\/projects\/[^/]+\/edit$/.test(pathname)) return true;
   if (/^\/tips\/[^/]+\/edit$/.test(pathname)) return true;
+  if (/^\/haejwo\/[^/]+\/edit$/.test(pathname)) return true;
   return false;
 }
 
