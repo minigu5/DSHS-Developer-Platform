@@ -121,7 +121,7 @@ export default async function HaejwoDetailPage({
             >
               {status.label}
             </span>
-            {isOwner && <HaejwoOwnerActions ideaId={idea.id} />}
+            {isOwner && idea.status !== "done" && <HaejwoOwnerActions ideaId={idea.id} />}
           </div>
 
           <h1 className="mb-6 text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
