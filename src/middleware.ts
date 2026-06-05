@@ -28,13 +28,23 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // Supabase가 supabaseResponse에 기록한 세션 갱신 쿠키를 리다이렉트 응답에도 복사한다.
+  // 이를 빠뜨리면 토큰 갱신 결과가 유실되어 배포 직후 로그인이 풀리는 버그가 발생한다.
+  function redirectWithSession(url: URL) {
+    const res = NextResponse.redirect(url);
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      res.cookies.set(cookie.name, cookie.value, cookie);
+    });
+    return res;
+  }
+
   // 1차: 로그인은 됐지만 허용되지 않은 도메인 → 강제 로그아웃 + forbidden 페이지
   if (user && !isAllowedEmail(user.email)) {
     await supabase.auth.signOut();
     const url = request.nextUrl.clone();
     url.pathname = '/auth/forbidden';
     url.search = '';
-    return NextResponse.redirect(url);
+    return redirectWithSession(url);
   }
 
   // 2차: 보호 라우트인데 비로그인 → /login 으로 (원래 가려던 경로 보존)
@@ -42,7 +52,7 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('next', pathname);
-    return NextResponse.redirect(url);
+    return redirectWithSession(url);
   }
 
   // 3차: 이미 로그인 됐는데 /login 접근 → 홈으로
@@ -50,7 +60,7 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = '/';
     url.search = '';
-    return NextResponse.redirect(url);
+    return redirectWithSession(url);
   }
 
   // 4차: 로그인 됐고 닉네임이 없는데 /onboarding이 아닌 곳에 있으면 → /onboarding으로
@@ -68,7 +78,7 @@ export async function middleware(request: NextRequest) {
       if (!profile?.nickname) {
         const url = request.nextUrl.clone();
         url.pathname = '/onboarding';
-        return NextResponse.redirect(url);
+        return redirectWithSession(url);
       }
 
       // 닉네임 확인됨 → 이후 요청은 DB 쿼리 없이 쿠키로 처리
