@@ -21,7 +21,7 @@ import {
   VISIBILITY,
   isAllowedEmail
 } from "@/lib/constants";
-import { parseImageInput, isIbbPageUrl } from "@/lib/parse-image-url";
+import { ImageUploadInput } from "@/components/shared/image-upload-input";
 import { createClient } from "@/lib/supabase/client";
 import type { ProjectRow } from "@/lib/types";
 
@@ -80,10 +80,7 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
     (initialData?.icon_type === 'link') ? 'link' : (initialData?.icon_type ?? "auto")
   );
   const [iconUrl, setIconUrl] = useState<string>(initialData?.icon_url ?? "");
-  const [iconRawInput, setIconRawInput] = useState<string>(initialData?.icon_url ?? "");
   const [iconPreview, setIconPreview] = useState<string | null>(initialData?.icon_url ?? null);
-  const [iconError, setIconError] = useState("");
-  const [iconResolving, setIconResolving] = useState(false);
   const [autoIconPreview, setAutoIconPreview] = useState<string | null>(
     initialData?.icon_type === 'auto' ? (initialData?.icon_url ?? null) : null
   );
@@ -173,41 +170,16 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
 
   const handleIconTypeChange = (newType: IconType) => {
     setIconType(newType);
-    setIconError("");
     if (newType === 'auto') {
       setIconUrl("");
-      setIconRawInput("");
       setIconPreview(null);
       fetchAutoFavicon(url);
     }
   };
 
-  const handleIconUrlInput = async (raw: string) => {
-    setIconRawInput(raw);
-    setIconError("");
-    const parsed = parseImageInput(raw);
-
-    if (isIbbPageUrl(parsed)) {
-      setIconResolving(true);
-      try {
-        const res = await fetch(`/api/resolve-image?url=${encodeURIComponent(parsed)}`);
-        const data = await res.json();
-        if (data.imageUrl) {
-          setIconUrl(data.imageUrl);
-          setIconRawInput(data.imageUrl);
-          setIconPreview(data.imageUrl);
-        } else {
-          setIconError("이미지 URL을 자동으로 가져오지 못했습니다. 직접 이미지 링크를 입력해주세요.");
-        }
-      } catch {
-        setIconError("URL 변환 중 오류가 발생했습니다.");
-      } finally {
-        setIconResolving(false);
-      }
-    } else {
-      setIconUrl(parsed);
-      setIconPreview(parsed || null);
-    }
+  const handleIconChange = (url: string) => {
+    setIconUrl(url);
+    setIconPreview(url || null);
   };
 
   const handleDelete = async () => {
@@ -259,7 +231,7 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
     }
 
     if (iconType === 'link' && !iconUrl) {
-      setIconError("아이콘 이미지 링크를 입력해주세요.");
+      setErrorMsg("아이콘 이미지를 업로드하거나 URL을 입력해주세요.");
       scrollToField("icon_section");
       return;
     }
@@ -536,35 +508,15 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
             </div>
 
             {iconType === 'link' && (
-              <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-2xl shrink-0 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 overflow-hidden flex items-center justify-center">
-                    {iconPreview ? (
-                      <img src={iconPreview} alt="Preview" className="w-full h-full object-cover" onError={() => setIconPreview(null)} />
-                    ) : (
-                      <ImageIcon className="w-6 h-6 text-zinc-400" />
-                    )}
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <div className="relative">
-                      <input
-                        value={iconRawInput}
-                        onChange={(e) => handleIconUrlInput(e.target.value)}
-                        placeholder="이미지 URL 또는 imgbb 공유 코드 붙여넣기"
-                        className="flex h-10 w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2 text-sm placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-9"
-                      />
-                      {iconResolving && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-zinc-400" />}
-                    </div>
-                    <p className="text-[10px] text-zinc-500">
-                      이미지 호스팅은{" "}
-                      <a href="https://imgbb.com/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">imgbb.com</a>
-                      을 추천합니다. 링크, HTML, BBCode 모두 지원합니다.
-                    </p>
-                  </div>
-                </div>
+              <div className="mt-4 animate-in fade-in slide-in-from-top-2">
+                <ImageUploadInput
+                  value={iconUrl}
+                  onChange={handleIconChange}
+                  shape="square"
+                  previewSize="md"
+                />
               </div>
             )}
-            {iconError && <p className="text-xs text-red-500 font-medium animate-in fade-in slide-in-from-top-1 mt-2">{iconError}</p>}
           </div>
 
           <div className="space-y-2" id="title_section">

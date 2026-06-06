@@ -21,7 +21,7 @@
 | **Styling** | Tailwind CSS v4 + shadcn/ui (`base-nova` style, base-ui/react 기반) |
 | **BaaS (DB & Auth)** | Supabase (PostgreSQL + Supabase Auth + **RLS**) |
 | **Hosting** | Vercel |
-| **추가 라이브러리** | `@supabase/ssr`, `react-hook-form`, `zod`, `lucide-react`, `date-fns`, `sonner`, `next-themes`, `react-markdown` + `remark-gfm` (바이브 코딩 가이드 렌더링) |
+| **추가 라이브러리** | `@supabase/ssr`, `react-hook-form`, `zod`, `lucide-react`, `date-fns`, `sonner`, `next-themes`, `react-markdown` + `remark-gfm` (바이브 코딩 가이드 렌더링), `cloudinary` (이미지 업로드) |
 
 > ⚠️ shadcn `base-nova` style 의 Button 은 **`asChild` 미지원**. Link 에 `buttonVariants()` 클래스를 입혀 사용.
 
@@ -205,11 +205,13 @@
 - `experimental.staleTimes: { dynamic: 30, static: 180 }` 설정으로 동적 페이지도 클라이언트 Router Cache에 30초, 정적 페이지는 3분간 캐시.
 - Router Cache는 클라이언트·사용자별 독립 저장소이므로 RLS 우회 없음. 서버 액션의 `revalidatePath()` 호출 시 관련 캐시 항목은 자동 무효화됨.
 
-### 이미지 URL 파싱 (`src/lib/parse-image-url.ts`)
-- 프로필 아바타 · 프로젝트 아이콘 모두 링크 입력 방식으로 통일.
-- `parseImageInput()`: HTML embed(`<img src="...">`)와 BBCode(`[img]...[/img]`)에서 직접 이미지 URL 추출.
-- `GET /api/resolve-image?url=`: ibb.co 페이지 URL을 서버에서 og:image로 변환 (직접 링크 불가 케이스 대응).
-- imgbb.com 추천 힌트 텍스트를 두 입력 필드에 표시.
+### Cloudinary 이미지 업로드 (`src/app/api/upload/route.ts`)
+- 프로필 아바타 · 프로젝트 아이콘 · 팁 커버 이미지를 사이트 내에서 직접 업로드.
+- 공용 컴포넌트: `src/components/shared/image-upload-input.tsx` — 파일 드래그·선택 드롭존 + URL 직접 입력 폴백.
+- 서버: `POST /api/upload` — 로그인 검증 후 Cloudinary에 업로드, `secure_url` 반환. 최대 10MB, 이미지 포맷만 허용.
+- 자동 압축: `quality: "auto:good"`, `fetch_format: "auto"` 변환 적용.
+- 환경변수 3개 필요: `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` (Vercel에도 동일하게 설정 필요).
+- `src/lib/parse-image-url.ts`와 `GET /api/resolve-image`는 기존 imgbb URL을 위해 유지.
 
 ### 이미지 포맷 최적화 — `next.config.ts`
 - `images.formats: ['image/avif', 'image/webp']` 설정으로 브라우저 지원 시 AVIF(WebP 대비 ~50% 작음) → WebP 순으로 자동 변환 제공.
