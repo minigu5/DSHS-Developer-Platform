@@ -70,6 +70,7 @@
 - 플랫폼 힌트 문구(웹사이트 제외)는 제거됨 — 사용자가 직접 선택.
 - **아이콘 link 모드**: `ImageUploadInput` 컴포넌트 사용 — 파일 드래그·선택 업로드 + URL 직접 입력 폴백. 업로드된 이미지는 Cloudinary에 자동 저장.
 - **키보드 접근성**: 카드 그리드 UI(`div` 기반)에 `tabIndex={0}` · `role="button"` · `onKeyDown`(Enter/Space) · `focus-visible:ring-2` 적용. Tab 키로 모든 카드 포커스 이동, Enter/Space로 선택 가능. 웹사이트 타입 선택 시 비활성화된 플랫폼 카드는 `tabIndex={-1}`로 Tab 순서에서 제외.
+- **상세 설명 마크다운 에디터**: `<Textarea>` 대신 작성 / 분할 / 미리보기 3탭 UI. Tab 키 두 칸 들여쓰기(Shift+Tab으로 해제) 지원. `Markdown` 컴포넌트로 실시간 미리보기.
 - **팀 프로젝트 팀원 관리**:
   - 이메일 입력 시 `@ts.hs.kr` 도메인 확인 후 `users` 테이블에서 **실제 가입 여부를 검증** (미가입이면 "가입되지 않은 사용자입니다." 에러).
   - `authorRole === 'team'` 전환 시 `useEffect`로 현재 로그인 사용자를 자동 추가. 자신은 X 버튼이 없어 삭제 불가.
@@ -80,6 +81,7 @@
 - `author_role === 'team'`이면 `team_members` 이메일 배열로 `users` 테이블을 `.in('email', ...)` 쿼리해 프로필 일괄 조회.
 - 팀원 표시: 이메일 chip → **아바타 + 닉네임 세로 목록**. 각 항목은 `/developers/[id]` 로 링크됨.
 - `EditButton`에 `teamMembers` prop 전달 — 팀원에게도 "수정하기" 버튼 노출.
+- **상세 설명 렌더링**: `project.description`을 `Markdown` 컴포넌트로 렌더링 (기존 `split('\\n')` 방식 대체).
 
 ### 프로젝트 카드 UI (`src/components/projects/project-card.tsx`)
 - **플랫폼 표시**: 작은 둥근 칩 형태(`rounded-full bg-zinc-100`). `PLATFORMS` 상수에서 value → label 변환 후 전체 표시.

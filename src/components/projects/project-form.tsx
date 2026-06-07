@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import { UploadCloud, Lock, Globe, Code2, Users, User as UserIcon, Plus, X, Link as LinkIcon, Loader2, Image as ImageIcon, Trash2 } from "lucide-react";
+import { UploadCloud, Lock, Globe, Code2, Users, User as UserIcon, Plus, X, Link as LinkIcon, Loader2, Image as ImageIcon, Trash2, Pencil, Columns2, Eye } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -22,6 +22,7 @@ import {
   isAllowedEmail
 } from "@/lib/constants";
 import { ImageUploadInput } from "@/components/shared/image-upload-input";
+import { Markdown } from "@/components/shared/markdown";
 import { createClient } from "@/lib/supabase/client";
 import type { ProjectRow } from "@/lib/types";
 
@@ -63,6 +64,8 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
   // 설명
   const [shortDesc, setShortDesc] = useState<string>(initialData?.short_description ?? "");
   const [description, setDescription] = useState<string>(initialData?.description ?? "");
+  const [descTab, setDescTab] = useState<"write" | "preview" | "split">("write");
+  const descTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // 작성자 정보
   const [authorRole, setAuthorRole] = useState<AuthorRole>(
@@ -104,6 +107,32 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
   const [licenseFeatures, setLicenseFeatures] = useState<string[]>(initialData?.license_features ?? []);
   const [hasCustomLicense, setHasCustomLicense] = useState(!!initialData?.license_custom);
   const [licenseCustom, setLicenseCustom] = useState<string>(initialData?.license_custom ?? "");
+
+  const handleDescKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const el = e.currentTarget;
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      const value = el.value;
+      const INDENT = "  ";
+      if (start === end) {
+        const next = value.slice(0, start) + INDENT + value.slice(end);
+        setDescription(next);
+        requestAnimationFrame(() => { el.selectionStart = el.selectionEnd = start + INDENT.length; });
+      } else {
+        const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+        const selected = value.slice(lineStart, end);
+        const lines = selected.split("\n");
+        const transformed = e.shiftKey
+          ? lines.map(l => l.replace(/^( {1,2}|\t)/, "")).join("\n")
+          : lines.map(l => INDENT + l).join("\n");
+        const next = value.slice(0, lineStart) + transformed + value.slice(end);
+        setDescription(next);
+        requestAnimationFrame(() => { el.selectionStart = lineStart; el.selectionEnd = lineStart + transformed.length; });
+      }
+    }
+  };
 
   const addTeamMember = async () => {
     const email = currentMember.trim();
@@ -644,8 +673,57 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
           </div>
 
           <div className="space-y-2" id="description_section">
-            <Label htmlFor="description" className="text-sm font-medium">상세 설명 <span className="text-red-500">*</span></Label>
-            <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} placeholder="상세 페이지에서 보여질 프로젝트의 자세한 기능, 개발 배경, 사용 기술 등을 자유롭게 작성해주세요." className="min-h-[200px] rounded-xl resize-none" />
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Label className="text-sm font-medium">상세 설명 (마크다운) <span className="text-red-500">*</span></Label>
+              <div className="inline-flex rounded-full border border-zinc-200 dark:border-zinc-800 p-0.5">
+                <DescTabButton active={descTab === "write"} onClick={() => setDescTab("write")} icon={<Pencil className="mr-1.5 h-3.5 w-3.5" />} label="작성" />
+                <DescTabButton active={descTab === "split"} onClick={() => setDescTab("split")} icon={<Columns2 className="mr-1.5 h-3.5 w-3.5" />} label="분할" hideOnMobile />
+                <DescTabButton active={descTab === "preview"} onClick={() => setDescTab("preview")} icon={<Eye className="mr-1.5 h-3.5 w-3.5" />} label="미리보기" />
+              </div>
+            </div>
+            {descTab === "write" && (
+              <textarea
+                ref={descTextareaRef}
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                onKeyDown={handleDescKeyDown}
+                spellCheck={false}
+                placeholder={"# 프로젝트 이름\n\n프로젝트의 자세한 기능, 개발 배경, 사용 기술 등을 자유롭게 작성해주세요.\n\n## 주요 기능\n- 기능 1\n- 기능 2"}
+                className="min-h-[240px] w-full resize-y rounded-xl border border-zinc-200 bg-white/70 p-4 font-mono text-sm leading-relaxed text-zinc-900 outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-100"
+              />
+            )}
+            {descTab === "preview" && (
+              <div className="min-h-[240px] overflow-auto rounded-xl border border-zinc-200 bg-white/70 p-6 dark:border-zinc-800 dark:bg-zinc-900/60">
+                {description.trim() ? (
+                  <Markdown>{description}</Markdown>
+                ) : (
+                  <p className="text-sm text-zinc-400">작성한 내용이 여기에 미리보기로 표시됩니다.</p>
+                )}
+              </div>
+            )}
+            {descTab === "split" && (
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <textarea
+                  ref={descTextareaRef}
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  onKeyDown={handleDescKeyDown}
+                  spellCheck={false}
+                  placeholder={"# 프로젝트 이름\n\n마크다운으로 자유롭게 작성하세요."}
+                  className="min-h-[240px] w-full resize-y rounded-xl border border-zinc-200 bg-white/70 p-4 font-mono text-sm leading-relaxed text-zinc-900 outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-100"
+                />
+                <div className="min-h-[240px] overflow-auto rounded-xl border border-zinc-200 bg-white/70 p-6 dark:border-zinc-800 dark:bg-zinc-900/60">
+                  {description.trim() ? (
+                    <Markdown>{description}</Markdown>
+                  ) : (
+                    <p className="text-sm text-zinc-400">작성한 내용이 여기에 미리보기로 표시됩니다.</p>
+                  )}
+                </div>
+              </div>
+            )}
+            <p className="text-xs text-zinc-400">
+              Tab으로 두 칸 들여쓰기, Shift+Tab으로 해제. 코드 블록은 <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">```언어</code>로 감쌀 수 있어요.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -1029,5 +1107,29 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
       </>
     )}
     </>
+  );
+}
+
+function DescTabButton({
+  active, onClick, icon, label, hideOnMobile,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  hideOnMobile?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center rounded-full px-3 py-1 text-sm font-medium transition-colors",
+        active ? "bg-blue-600 text-white" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white",
+        hideOnMobile && "hidden sm:inline-flex",
+      )}
+    >
+      {icon}{label}
+    </button>
   );
 }

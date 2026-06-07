@@ -14,6 +14,7 @@ import { ProjectIcon } from "@/components/projects/project-icon";
 import { EditButton } from "@/components/projects/edit-button";
 import type { ReviewItem } from "@/components/projects/review-list";
 import { LICENSE_FEATURES, isDeveloper } from "@/lib/constants";
+import { Markdown } from "@/components/shared/markdown";
 
 const LICENSE_LABELS: Record<string, string> = {
   commercial: "상업적 이용",
@@ -170,11 +171,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <div className="md:col-span-2 space-y-8">
             <section className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm rounded-3xl p-6 sm:p-8">
               <h3 className="text-xl font-bold mb-6 text-zinc-900 dark:text-white">프로젝트 상세</h3>
-              <div className="prose dark:prose-invert max-w-none text-zinc-700 dark:text-zinc-300">
-                {project.description?.split('\\n').map((line: string, i: number) => (
-                  <p key={i} className="mb-4 whitespace-pre-wrap leading-relaxed">{line}</p>
-                ))}
-              </div>
+              <Markdown>{project.description ?? ""}</Markdown>
             </section>
           </div>
 
