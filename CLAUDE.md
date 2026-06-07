@@ -262,11 +262,10 @@
 
 ---
 
-## 🧭 전역 페이지 내비게이션 (`PageNav`)
+## 🧭 전역 페이지 내비게이션 (`PageNav` / `MobileNav`)
 
-- 컴포넌트: `src/components/shared/page-nav.tsx` (`"use client"`, `usePathname()` + `useRef` + `useEffect` 사용)
-- **표시 위치**: `SiteHeader` 로고·프로필과 **동일한 h-16 행** 안, 로고 우측에 얇은 구분선(`w-px h-5`)으로 분리하여 인라인 배치.
-- **6개 버튼**: 모든 프로젝트(→ `/explore`), 프로젝트 등록(→ `/projects/new`), 나도 개발해볼래!(→ `/guide`), 개발 팁(→ `/tips`), 해줘!(→ `/haejwo`), 공지사항(→ `/announcements`)
+- 파일: `src/components/shared/page-nav.tsx` (`"use client"`, 두 컴포넌트 모두 export)
+- **6개 항목**: 모든 프로젝트(→ `/explore`), 프로젝트 등록(→ `/projects/new`), 나도 개발해볼래!(→ `/guide`), 개발 팁(→ `/tips`), 해줘!(→ `/haejwo`), 공지사항(→ `/announcements`)
 - **모든 Link에 `prefetch={true}`** — `force-dynamic` 페이지 포함 전체 콘텐츠를 뷰포트 진입 시 미리 패치.
 - **활성 버튼 판정**:
   - `/explore`, `/projects/*`(등록·수정 제외), `/developers/*` → "모든 프로젝트"
@@ -275,11 +274,24 @@
   - `/tips/*` → "개발 팁"
   - `/haejwo/*` → "해줘!"
   - `/announcements/*` → "공지사항"
-- **슬라이딩 pill 애니메이션**: `absolute` pill 하나가 활성 버튼 위치로 부드럽게 이동·확장(`transition-all duration-300 ease-out`). `useRef` 배열 + `useEffect`로 활성 항목의 `offsetLeft`/`offsetWidth`를 읽어 `translateX` + `width` 적용.
-- **라벨 펼침**: 활성 버튼만 라벨 텍스트 노출(`max-w-[160px] opacity-100`), 비활성은 **아이콘만**(`max-w-0 opacity-0`). 전환 시 부드럽게 slide-in/out.
 - **버튼별 고유 색**: 모든 프로젝트=blue, 프로젝트 등록=emerald, 나도 개발해볼래!=purple, 개발 팁=amber, 해줘!=orange, 공지사항=sky.
+
+### 데스크탑 (`PageNav`, `sm:` 이상)
+- `SiteHeader` 로고 우측에 얇은 구분선(`hidden sm:block w-px h-5`)으로 분리하여 인라인 배치. `<div className="hidden sm:block">` 래퍼로 모바일에서 완전히 숨김.
+- **슬라이딩 pill 애니메이션**: `absolute` pill 하나가 활성 버튼 위치로 부드럽게 이동·확장(`transition-all duration-300 ease-out`). `useRef` 배열 + `useEffect`로 활성 항목의 `offsetLeft`/`offsetWidth`를 읽어 `translateX` + `width` 적용.
+- **라벨 펼침**: 활성 버튼만 라벨 텍스트 노출, 비활성은 **아이콘만**. 전환 시 부드럽게 slide-in/out.
 - **너비 통일**: 모든 버튼 `min-w-9 justify-center` → 비활성 아이콘 크기 균일.
-- **적용 방법**: `SiteHeader`에 `showNav` prop → `<SiteHeader showNav />`. 홈(`/`)·로그인(`/login`) 페이지는 미적용.
+
+### 모바일 (`MobileNav`, `sm:` 미만)
+- **`(nav)/layout.tsx` DOM 최하단**에 `<SiteHeader>` 및 콘텐츠와 분리된 독립 컴포넌트로 배치. 헤더 CSS stacking context 영향 없음.
+- `fixed bottom-0 inset-x-0 z-50 flex sm:hidden` — 뷰포트 바닥에 고정.
+- **아이콘만** 표시(`h-5 w-5`). 활성 항목은 해당 색상, 비활성은 zinc.
+- 모바일 헤더: 로고 + 다크모드 토글 + 프로필만 표시 (네비게이션 없음).
+- `(nav)/layout.tsx`에서 콘텐츠를 `<div className="pb-16 sm:pb-0">` 로 감싸 탭바(56px)에 가려지지 않도록 여백 확보.
+
+### 적용 방법
+- `SiteHeader`에 `showNav` prop → `<SiteHeader showNav />`. 홈(`/`)·로그인(`/login`) 페이지는 미적용.
+- `(nav)/layout.tsx`: `<SiteHeader showNav />` + 콘텐츠 래퍼 + `<MobileNav />` 순서로 배치.
 
 ---
 
@@ -288,7 +300,8 @@
 > 원칙: **데스크탑(`sm:` 640px 이상) 디자인은 그대로 두고, 모바일(기본 브레이크포인트)에서만 보강**한다. 모든 반응형 클래스는 `기본값(모바일) + sm:기존값(데스크탑 동일)` 패턴으로 작성해 데스크탑 레이아웃이 픽셀 단위로 동일하게 유지되도록 한다.
 
 - **좌우 여백**: 페이지 `<main>`/섹션은 `px-4 sm:px-6` (모바일 16px, 데스크탑 24px). 헤더(`SiteHeader`) 컨테이너도 동일.
-- **헤더 우측 버튼**: 좁은 폰에서 오버플로우 방지를 위해 라벨을 반응형 처리. 예) tips의 "팁 작성"은 모바일 "작성"/데스크탑 "팁 작성"(`<span className="hidden sm:inline">`). `PageNav` 버튼은 비활성 시 아이콘만 표시하므로 별도 처리 불필요.
+- **헤더 우측 버튼**: 좁은 폰에서 오버플로우 방지를 위해 라벨을 반응형 처리. 예) tips의 "팁 작성"은 모바일 "작성"/데스크탑 "팁 작성"(`<span className="hidden sm:inline">`). 모바일 헤더는 로고·다크모드·프로필만 표시 (`PageNav`는 하단 탭바로 분리).
+- **모바일 하단 탭바**: `MobileNav`(`sm:hidden`)가 뷰포트 바닥에 고정. 아이콘 전용, 활성 항목 색상 강조. 콘텐츠가 가려지지 않도록 `(nav)/layout.tsx`에서 `pb-16 sm:pb-0` 여백 처리.
 - **큰 제목**: 모바일에서 한 단계 작게. 홈 히어로 `text-4xl sm:text-5xl md:text-7xl`, 각 페이지 h1 `text-3xl sm:text-4xl`.
 - **카드/섹션 패딩**: `p-6 sm:p-8` (모바일 24px, 데스크탑 32px).
 - **세로 스택 전환**: 좁은 폭에서 잘리는 행은 `flex-col sm:flex-row`로 전환 (예: 프로젝트 리뷰의 "이미 작성하셨습니다" 행).

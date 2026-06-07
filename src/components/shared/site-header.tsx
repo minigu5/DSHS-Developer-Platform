@@ -48,8 +48,10 @@ export function SiteHeader({
           </Link>
           {showNav && (
             <>
-              <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-800 shrink-0" />
-              <PageNav />
+              <div className="hidden sm:block w-px h-5 bg-zinc-200 dark:bg-zinc-800 shrink-0" />
+              <div className="hidden sm:block">
+                <PageNav />
+              </div>
             </>
           )}
         </div>
