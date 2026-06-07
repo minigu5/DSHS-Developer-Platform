@@ -119,7 +119,7 @@
 - 팁 작성 필수 필드: 제목, **한 줄 요약(최대 30자)**, **대표 이미지 (파일 업로드 또는 URL)**, 본문.
 - 삭제 확인창은 `window.confirm` 대신 shadcn `Dialog` 컴포넌트 사용(팁 삭제·댓글 삭제 모두).
 - Supabase join 시 `users` 테이블 관계가 모호하면 PGRST201 오류 발생 → `author:users!tips_author_id_fkey(...)` 처럼 **FK 이름을 명시**해야 함.
-- 마크다운 렌더 공용 컴포넌트: `src/components/shared/markdown.tsx`(팁·가이드 공유).
+- 마크다운 렌더 공용 컴포넌트: `src/components/shared/markdown.tsx`(팁·가이드 공유). `table`/`thead`/`tbody`/`tr`/`th`/`td` 커스텀 컴포넌트로 표 테두리·구분선·헤더 배경 스타일 적용(다크모드 포함). 바깥 테두리는 `rounded-xl` 컨테이너로 감싸 오버플로우 처리.
 
 ---
 

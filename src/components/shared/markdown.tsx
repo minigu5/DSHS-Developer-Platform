@@ -63,6 +63,29 @@ const components = {
   hr: (props: React.ComponentProps<"hr">) => (
     <hr className="my-6 border-zinc-200 dark:border-zinc-800" {...props} />
   ),
+  table: (props: React.ComponentProps<"table">) => (
+    <div className="mb-4 overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-700">
+      <table className="w-full border-collapse text-sm" {...props} />
+    </div>
+  ),
+  thead: (props: React.ComponentProps<"thead">) => (
+    <thead className="bg-zinc-50 dark:bg-zinc-800/60" {...props} />
+  ),
+  tbody: (props: React.ComponentProps<"tbody">) => (
+    <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700" {...props} />
+  ),
+  tr: (props: React.ComponentProps<"tr">) => (
+    <tr className="divide-x divide-zinc-200 dark:divide-zinc-700" {...props} />
+  ),
+  th: (props: React.ComponentProps<"th">) => (
+    <th
+      className="px-4 py-2.5 text-left font-semibold text-zinc-700 dark:text-zinc-200"
+      {...props}
+    />
+  ),
+  td: (props: React.ComponentProps<"td">) => (
+    <td className="px-4 py-2.5 text-zinc-700 dark:text-zinc-300" {...props} />
+  ),
 };
 
 export function Markdown({ children }: { children: string }) {
