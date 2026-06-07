@@ -151,7 +151,7 @@ export default async function HomePage() {
           대구과학고 학생들이 개발한 소프트웨어 프로젝트를 전시하고, 유용한 피드백을 주고받으며, 새로운 아이디어를 함께 발전시키는 중앙 허브입니다.
         </p>
 
-        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-stretch gap-3 sm:gap-4 w-full sm:w-auto z-10">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-stretch gap-3 sm:gap-4 w-full max-w-[280px] sm:max-w-none sm:w-auto z-10">
           {/* prefetch={true}: 홈에는 PageNav가 없으므로 force-dynamic 페이지를 명시적으로 프리패치 (기법 10) */}
           <Link href="/explore" prefetch={true} className={cn(buttonVariants({ size: "lg" }), "rounded-full h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 transition-all hover:scale-105")}>
             <Search className="mr-2 h-5 w-5" /> 프로젝트 둘러보기
@@ -209,7 +209,7 @@ export default async function HomePage() {
 
       {/* FEATURED PROJECTS PREVIEW */}
       <section className="py-24 px-4 sm:px-6 max-w-5xl mx-auto w-full">
-        <div className="flex flex-col sm:flex-row justify-between items-end mb-12 gap-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-12 gap-6">
           <div>
             <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-4 leading-snug tracking-normal">최근 등록된 프로젝트</h2>
             <p className="text-lg text-zinc-500 dark:text-zinc-400 leading-relaxed">친구들이 최근에 개발한 놀라운 프로젝트들을 확인해보세요.</p>
@@ -221,8 +221,10 @@ export default async function HomePage() {
 
         {featuredProjects && featuredProjects.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredProjects.map((project) => (
-              <ProjectCard key={project.id} project={project} mode="showcase" />
+            {featuredProjects.map((project, index) => (
+              <div key={project.id} className={index >= 3 ? "hidden sm:block" : ""}>
+                <ProjectCard project={project} mode="showcase" />
+              </div>
             ))}
           </div>
         ) : (
@@ -235,7 +237,7 @@ export default async function HomePage() {
       {/* RECENT TIPS */}
       <section className="py-20 px-4 sm:px-6 bg-white dark:bg-zinc-950/50 border-y border-zinc-200 dark:border-zinc-900">
         <div className="max-w-5xl mx-auto">
-          <div className="flex flex-col sm:flex-row justify-between items-end mb-12 gap-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-12 gap-6">
             <div>
               <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-sm font-medium text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
                 <Lightbulb className="h-4 w-4" /> 개발 팁
@@ -264,7 +266,7 @@ export default async function HomePage() {
 
       {/* RECENT HAEJWO IDEAS */}
       <section className="py-24 px-4 sm:px-6 max-w-5xl mx-auto w-full">
-        <div className="flex flex-col sm:flex-row justify-between items-end mb-12 gap-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-12 gap-6">
           <div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-sm font-medium text-orange-600 dark:bg-orange-900/20 dark:text-orange-400">
               <Megaphone className="h-4 w-4" /> 해줘!

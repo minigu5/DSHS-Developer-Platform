@@ -302,6 +302,7 @@
 - `fixed bottom-0 inset-x-0 z-50 flex sm:hidden` — 뷰포트 바닥에 고정.
 - **아이콘 전용** (`h-5 w-5`). 활성 항목은 `h-9 w-9 rounded-full` **원형 컬러 배경 + 흰색 아이콘**, 비활성은 배경 없이 zinc 아이콘.
 - 모바일 헤더: 로고(아이콘 + "DSHS Developer Platform" `text-base`) + 다크모드 토글 + 프로필만 표시. 로고 텍스트는 `text-base sm:text-lg`로 모바일에서 살짝 작게 유지.
+- **로고 정렬**: 아이콘은 `<Image width={32} height={32} className="block ...">` (fill 미사용 — inline baseline 문제 방지). 텍스트는 `<span>` (h1 기본 마진 제거) + `translate-y-[2px]` (광학적 수직 정렬 보정).
 - `(nav)/layout.tsx`에서 콘텐츠를 `<div className="pb-16 sm:pb-0">` 로 감싸 탭바(56px)에 가려지지 않도록 여백 확보.
 
 ### 적용 방법
@@ -320,6 +321,9 @@
 - **큰 제목**: 모바일에서 한 단계 작게. 홈 히어로 `text-4xl sm:text-5xl md:text-7xl`, 각 페이지 h1 `text-3xl sm:text-4xl`.
 - **카드/섹션 패딩**: `p-6 sm:p-8` (모바일 24px, 데스크탑 32px).
 - **세로 스택 전환**: 좁은 폭에서 잘리는 행은 `flex-col sm:flex-row`로 전환 (예: 프로젝트 리뷰의 "이미 작성하셨습니다" 행).
+- **섹션 헤더 정렬**: `flex-col sm:flex-row justify-between` 컨테이너에서 `items-start sm:items-end` 패턴 사용 — 모바일(`flex-col`)에서 `items-end`를 쓰면 콘텐츠가 오른쪽으로 붙어버림.
+- **홈 CTA 버튼**: 모바일에서 `max-w-[280px] sm:max-w-none` 제한 — `w-full`만 두면 전체 너비로 늘어나 이상해 보임.
+- **홈 섹션별 카드 수**: 모바일에서 최대 3개만 표시. 프로젝트 fetch는 6개(데스크탑 3열 채움)이나 index ≥ 3 항목에 `hidden sm:block` 적용. 팁·아이디어는 fetch 자체가 3개라 별도 처리 불필요.
 - 신규 페이지/컴포넌트 작성 시에도 위 패턴을 따를 것.
 
 ## 🚫 Claude 컨텍스트 제외 목록 (`.claudeignore`)

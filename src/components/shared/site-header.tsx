@@ -39,12 +39,16 @@ export function SiteHeader({
       <div className={containerClass}>
         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80 shrink-0">
-            <div className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0 shadow-sm border border-zinc-200/50 dark:border-zinc-800/50">
-              <Image src="/logo.svg" alt="Logo" fill className="object-cover" />
-            </div>
-            <h1 className="font-bold text-base sm:text-lg text-zinc-900 dark:text-white">
+            <Image
+              src="/logo.svg"
+              alt="Logo"
+              width={32}
+              height={32}
+              className="block rounded-lg shadow-sm border border-zinc-200/50 dark:border-zinc-800/50 shrink-0"
+            />
+            <span className="font-bold text-base sm:text-lg text-zinc-900 dark:text-white translate-y-[2px]">
               DSHS Developer Platform
-            </h1>
+            </span>
           </Link>
           {showNav && (
             <>
