@@ -7,12 +7,12 @@ import { Search, Code2, Sparkles, Lightbulb, Megaphone, Bell } from "lucide-reac
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { href: "/explore", label: "모든 프로젝트", icon: Search, pillClass: "bg-blue-600 shadow-blue-600/30", mobileActiveClass: "text-blue-600 dark:text-blue-400" },
-  { href: "/projects/new", label: "프로젝트 등록", icon: Code2, pillClass: "bg-emerald-600 shadow-emerald-600/30", mobileActiveClass: "text-emerald-600 dark:text-emerald-400" },
-  { href: "/guide", label: "나도 개발해볼래!", icon: Sparkles, pillClass: "bg-purple-600 shadow-purple-600/30", mobileActiveClass: "text-purple-600 dark:text-purple-400" },
-  { href: "/tips", label: "개발 팁", icon: Lightbulb, pillClass: "bg-amber-500 shadow-amber-500/30", mobileActiveClass: "text-amber-500 dark:text-amber-400" },
-  { href: "/haejwo", label: "해줘!", icon: Megaphone, pillClass: "bg-orange-500 shadow-orange-500/30", mobileActiveClass: "text-orange-500 dark:text-orange-400" },
-  { href: "/announcements", label: "공지사항", icon: Bell, pillClass: "bg-sky-500 shadow-sky-500/30", mobileActiveClass: "text-sky-500 dark:text-sky-400" },
+  { href: "/explore", label: "모든 프로젝트", icon: Search, pillClass: "bg-blue-600 shadow-blue-600/30" },
+  { href: "/projects/new", label: "프로젝트 등록", icon: Code2, pillClass: "bg-emerald-600 shadow-emerald-600/30" },
+  { href: "/guide", label: "나도 개발해볼래!", icon: Sparkles, pillClass: "bg-purple-600 shadow-purple-600/30" },
+  { href: "/tips", label: "개발 팁", icon: Lightbulb, pillClass: "bg-amber-500 shadow-amber-500/30" },
+  { href: "/haejwo", label: "해줘!", icon: Megaphone, pillClass: "bg-orange-500 shadow-orange-500/30" },
+  { href: "/announcements", label: "공지사항", icon: Bell, pillClass: "bg-sky-500 shadow-sky-500/30" },
 ] as const;
 
 const STORAGE_KEY = "pagenav-pill";
@@ -132,19 +132,25 @@ export function MobileNav() {
 
   return (
     <nav className="fixed bottom-0 inset-x-0 z-50 flex sm:hidden border-t border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-black/90 backdrop-blur-md">
-      {NAV_ITEMS.map(({ href, icon: Icon, mobileActiveClass }) => {
+      {NAV_ITEMS.map(({ href, icon: Icon, pillClass }) => {
         const isActive = active === href;
         return (
           <Link
             key={href}
             href={href}
             prefetch={true}
-            className={cn(
-              "flex flex-1 items-center justify-center py-3 transition-colors",
-              isActive ? mobileActiveClass : "text-zinc-500 dark:text-zinc-400",
-            )}
+            className="flex flex-1 items-center justify-center py-2.5"
           >
-            <Icon className="h-5 w-5 shrink-0" />
+            <span
+              className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200",
+                isActive
+                  ? cn(pillClass, "text-white shadow-md")
+                  : "text-zinc-500 dark:text-zinc-400",
+              )}
+            >
+              <Icon className="h-5 w-5 shrink-0" />
+            </span>
           </Link>
         );
       })}
