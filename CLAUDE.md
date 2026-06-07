@@ -62,15 +62,14 @@
 | **라이선스 권한** | `license_features` | 상업적 이용, 수정, 배포, 개인적 이용, 법적 책임, 보증 (다중 선택) |
 | **공개 여부** | `visibility` | `public` / `private` |
 | **작성자 형태** | `author_role` | `individual` / `team` |
-| **아이콘** | `icon_type` | `auto` (URL favicon) / `link` (이미지 링크 입력) |
+| **아이콘** | `icon_type` | `auto` (URL favicon 자동 추출) / `link` (이미지 업로드 또는 URL 직접 입력) |
 
 ### 프로젝트 등록 폼 UX (`src/components/projects/project-form.tsx`)
 - **프로그램 종류 선택**: `<Select>` 드롭다운 대신 다른 항목들과 동일한 **카드 그리드 UI** (단일 선택). 5개 항목, 2~3열 배치.
 - **플랫폼 자동 선택**: `type === 'website'` 선택 시 `useEffect`로 모든 플랫폼을 자동 선택하고 카드를 비활성화(`pointer-events-none`). "💡 모든 플랫폼은 web 사이트를 실행할 수 있습니다." 안내 표시. 다른 종류로 바꾸면 잠금 해제.
 - 플랫폼 힌트 문구(웹사이트 제외)는 제거됨 — 사용자가 직접 선택.
+- **아이콘 link 모드**: `ImageUploadInput` 컴포넌트 사용 — 파일 드래그·선택 업로드 + URL 직접 입력 폴백. 업로드된 이미지는 Cloudinary에 자동 저장.
 - **키보드 접근성**: 카드 그리드 UI(`div` 기반)에 `tabIndex={0}` · `role="button"` · `onKeyDown`(Enter/Space) · `focus-visible:ring-2` 적용. Tab 키로 모든 카드 포커스 이동, Enter/Space로 선택 가능. 웹사이트 타입 선택 시 비활성화된 플랫폼 카드는 `tabIndex={-1}`로 Tab 순서에서 제외.
-
----
 
 ---
 
@@ -117,7 +116,7 @@
 - **작성** `/tips/new` · **수정** `/tips/[id]/edit`: `TipEditor`(`src/components/tips/tip-editor.tsx`) — 마크다운 작성/분할/미리보기 3탭, Tab 들여쓰기 지원. 둘 다 보호 라우트(미들웨어). 수정은 작성자만.
 - **상세** `/tips/[id]`(`revalidate=30`): `Markdown` 렌더, 좋아요(`TipLikeButton`, 낙관적), 댓글(`TipComments`, 작성/삭제). 작성자에게만 수정/삭제 노출(`TipOwnerActions`).
 - 서버 액션: **`src/lib/tips/actions.ts`**(`createTip`/`updateTip`/`deleteTip`). 라우트 그룹 밖에 위치 — `(nav)` 경로에 두면 Turbopack에서 client→server action 바인딩이 깨지는 문제 있음.
-- 팁 작성 필수 필드: 제목, **한 줄 요약(최대 30자)**, **대표 이미지 URL**, 본문.
+- 팁 작성 필수 필드: 제목, **한 줄 요약(최대 30자)**, **대표 이미지 (파일 업로드 또는 URL)**, 본문.
 - 삭제 확인창은 `window.confirm` 대신 shadcn `Dialog` 컴포넌트 사용(팁 삭제·댓글 삭제 모두).
 - Supabase join 시 `users` 테이블 관계가 모호하면 PGRST201 오류 발생 → `author:users!tips_author_id_fkey(...)` 처럼 **FK 이름을 명시**해야 함.
 - 마크다운 렌더 공용 컴포넌트: `src/components/shared/markdown.tsx`(팁·가이드 공유).
@@ -215,7 +214,7 @@
 
 ### 이미지 포맷 최적화 — `next.config.ts`
 - `images.formats: ['image/avif', 'image/webp']` 설정으로 브라우저 지원 시 AVIF(WebP 대비 ~50% 작음) → WebP 순으로 자동 변환 제공.
-- `images.remotePatterns`에 `i.ibb.co`, `ibb.co` 추가 → ibb.co 이미지도 Next.js 이미지 최적화 파이프라인 적용 가능.
+- `images.remotePatterns`에 `i.ibb.co`, `ibb.co`, `res.cloudinary.com` 추가 → 각 이미지 소스도 Next.js 이미지 최적화 파이프라인 적용 가능.
 
 ### 패키지 import 최적화 — `next.config.ts`
 - `experimental.optimizePackageImports: ['lucide-react', 'date-fns']` 설정.
@@ -289,6 +288,19 @@
 2. `npx tsc --noEmit` 실행하여 타입 에러 0 확인.
 3. `.env.local` 환경 변수 설정 확인.
 
+### 필수 환경변수 목록 (`.env.local` · Vercel 동일하게 설정)
+
+| 변수명 | 출처 |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 위 동일 |
+| `SUPABASE_SERVICE_ROLE_KEY` | 위 동일 |
+| `NEXT_PUBLIC_SITE_URL` | 로컬: `http://localhost:3000`, 프로덕션: 배포 URL |
+| `ALLOWED_EMAIL_DOMAIN` | `ts.hs.kr` |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary → Dashboard |
+| `CLOUDINARY_API_KEY` | 위 동일 |
+| `CLOUDINARY_API_SECRET` | 위 동일 |
+
 ## ⚠️ 보안 및 주의사항
 - **실명 파생**: `student_mappings` 테이블은 삭제됨. 이제 `users.full_name`은 로그인 시 이메일(입학연도)과 구글 계정명(숫자4자리+이름)에서 자동 파생 — `src/app/auth/callback/route.ts` 참고.
 - **Supabase Client**: 서버 사이드에서는 `createServerClient`, 클라이언트에서는 `createBrowserClient` 사용. 민감한 작업은 항상 `getUser()`로 검증.
@@ -299,11 +311,15 @@
 ```
 src/
 ├── app/                  # App Router 레이어 (auth, projects, developers, explore, guide, tips 등)
+│   ├── api/              # API 라우트
+│   │   ├── upload/       # POST /api/upload — Cloudinary 이미지 업로드
+│   │   ├── favicon/      # GET /api/favicon — 파비콘 추출
+│   │   └── resolve-image/ # GET /api/resolve-image — ibb.co URL 변환
 │   ├── guide/            # 바이브 코딩 가이드 (page=위저드, [...slug]=결과 페이지)
-│   ├── tips/             # 개발 팁 블로그 (page=목록, new, [id], [id]/edit, actions.ts)
+│   ├── tips/             # 개발 팁 블로그 (page=목록, new, [id], [id]/edit)
 │   └── haejwo/           # 해줘! 아이디어 요청 (page=목록, new, [id])
 ├── components/
-│   ├── shared/           # site-header, page-nav, auth-buttons, back-button, markdown 등
+│   ├── shared/           # site-header, page-nav, auth-buttons, back-button, markdown, image-upload-input 등
 │   ├── projects/         # project-card, project-form, project-icon, project-reviews 등
 │   ├── explore/          # explore-client
 │   ├── guide/            # guide-wizard, guide-viewer
@@ -311,7 +327,7 @@ src/
 │   ├── haejwo/           # haejwo-wizard, haejwo-owner-actions
 │   └── ui/               # shadcn 컴포넌트
 ├── content/guides/       # 가이드 마크다운 콘텐츠 (.md, 직접 작성)
-├── lib/                  # 유틸리티 및 설정 (supabase, constants, types, utils, guide, guide-content, haejwo)
+├── lib/                  # 유틸리티 및 설정 (supabase, constants, types, utils, guide, guide-content, haejwo, cloudinary)
 └── middleware.ts         # 세션 관리 및 도메인 검증
 ```
 
