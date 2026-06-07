@@ -7,6 +7,7 @@ import { cn, isExternalImage } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProjectIcon } from "@/components/projects/project-icon";
+import { PLATFORMS } from "@/lib/constants";
 
 // projects 테이블에서 카드 표시에 필요한 최소 컬럼들.
 // users join 결과는 supabase 가 객체 또는 배열로 줄 수 있어 둘 다 허용.
@@ -52,9 +53,12 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
   const authorName = resolveAuthorName(project, authorFallback);
   const authorAvatar = resolveAuthorAvatar(project);
   const tags = (project.features ?? []).slice(0, 2);
-  const platformsLabel = project.platforms && project.platforms.length > 0
-    ? project.platforms.join(", ")
-    : '전체';
+
+  const isWebsite = project.type === 'website';
+  const hasAllPlatforms = (project.platforms?.length ?? 0) >= PLATFORMS.length;
+  const displayPlatforms = (isWebsite && hasAllPlatforms)
+    ? ['Web']
+    : (project.platforms ?? []).map(v => PLATFORMS.find(p => p.value === v)?.label ?? v);
 
   const cardClasses = cn(
     "group h-full rounded-3xl overflow-hidden border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm",
@@ -66,12 +70,12 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
 
   const inner = (
     <>
-      <CardHeader className="pt-8 pb-4">
+      <CardHeader className="pt-5 pb-3">
         <div className="flex items-start gap-4">
-          <ProjectIcon 
-            src={project.icon_url} 
-            title={project.title} 
-            className="w-12 h-12 shrink-0 shadow-sm border border-zinc-100 dark:border-zinc-800 group-hover:scale-105 transition-transform duration-300" 
+          <ProjectIcon
+            src={project.icon_url}
+            title={project.title}
+            className="w-12 h-12 shrink-0 shadow-sm border border-zinc-100 dark:border-zinc-800 group-hover:scale-105 transition-transform duration-300 mt-[5px]"
           />
           <div className="flex-1 min-w-0">
             <div className="flex gap-2 mb-2 flex-wrap h-5 overflow-hidden">
@@ -99,12 +103,14 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
         </div>
       </CardHeader>
 
-      <CardContent className="pb-6">
-        <div className="flex items-center gap-4 text-xs font-medium text-zinc-500 dark:text-zinc-500">
-          <span className="flex items-center">
-            <Globe className="w-3.5 h-3.5 mr-1" />
-            {platformsLabel}
-          </span>
+      <CardContent className="pb-0">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Globe className="w-3 h-3 text-zinc-400 dark:text-zinc-500 shrink-0" />
+          {displayPlatforms.map((p) => (
+            <span key={p} className="rounded-full bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
+              {p}
+            </span>
+          ))}
         </div>
       </CardContent>
     </>
@@ -153,7 +159,7 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
       </div>
 
       <CardFooter className={cn(
-        "border-t border-zinc-100 dark:border-zinc-800/50 pt-4 pb-5 flex justify-between items-center relative z-0",
+        "border-t border-zinc-100 dark:border-zinc-800/50 pt-2 pb-4 flex justify-between items-center relative z-0",
         mode === 'manage' && "bg-zinc-50/50 dark:bg-zinc-900/20"
       )}>
         <div className="relative z-20">

@@ -49,9 +49,9 @@ export function TipCard({ tip }: { tip: TipCardData }) {
         </div>
       )}
 
-      <div className="flex flex-1 flex-col p-6">
+      <div className="flex flex-1 flex-col px-5 py-4">
         {tip.tags.length > 0 && (
-          <div className="mb-3 flex flex-wrap gap-1.5">
+          <div className="mb-2 flex flex-wrap gap-1.5">
             {tip.tags.slice(0, 3).map((tag) => (
               <Badge
                 key={tag}
@@ -73,7 +73,7 @@ export function TipCard({ tip }: { tip: TipCardData }) {
           </p>
         )}
 
-        <div className="mt-5 flex items-center justify-between border-t border-zinc-100 pt-4 dark:border-zinc-800/50">
+        <div className="mt-3 flex items-center justify-between border-t border-zinc-100 pt-3 dark:border-zinc-800/50">
           <div className="flex items-center gap-2">
             <div className="relative h-6 w-6 overflow-hidden rounded-full border border-zinc-200 bg-gradient-to-tr from-blue-100 to-purple-100 dark:border-zinc-800 dark:from-blue-900/40 dark:to-purple-900/40">
               {tip.author?.avatar_url ? (
