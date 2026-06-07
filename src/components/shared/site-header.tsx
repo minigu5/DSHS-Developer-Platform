@@ -42,8 +42,9 @@ export function SiteHeader({
             <div className="relative w-8 h-8 rounded-lg overflow-hidden shrink-0 shadow-sm border border-zinc-200/50 dark:border-zinc-800/50">
               <Image src="/logo.svg" alt="Logo" fill className="object-cover" />
             </div>
-            <h1 className="font-bold text-lg hidden sm:block text-zinc-900 dark:text-white">
-              DSHS Developer Platform
+            <h1 className="font-bold text-lg text-zinc-900 dark:text-white">
+              <span className="hidden sm:inline">DSHS Developer Platform</span>
+              <span className="sm:hidden">대곽 개발자 플랫폼</span>
             </h1>
           </Link>
           {showNav && (
