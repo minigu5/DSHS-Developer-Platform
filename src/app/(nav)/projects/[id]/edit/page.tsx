@@ -30,10 +30,13 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
     notFound();
   }
 
-  // Check ownership — 개발자 계정은 모든 프로젝트 수정 가능
-  if (!userIsDeveloper && project.author_id !== session.user.id) {
+  // Check ownership — 개발자 계정·팀원도 수정 가능
+  const isTeamMember = project.team_members?.includes(session.user.email ?? "") ?? false;
+  if (!userIsDeveloper && project.author_id !== session.user.id && !isTeamMember) {
     redirect(`/projects/${id}`);
   }
+
+  const isAuthor = project.author_id === session.user.id || userIsDeveloper;
 
   return (
     <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-black font-sans relative overflow-hidden">
@@ -48,7 +51,7 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
             <p className="text-zinc-500 dark:text-zinc-400">프로젝트의 최신 정보를 반영해주세요.</p>
           </div>
 
-          <ProjectForm initialData={project} isEdit={true} />
+          <ProjectForm initialData={project} isEdit={true} canDelete={isAuthor} />
         </div>
       </main>
     </div>

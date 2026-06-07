@@ -160,7 +160,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   <Code2 className="w-4 h-4 mr-2" /> GitHub 저장소
                 </a>
               )}
-              <EditButton projectId={project.id} authorId={project.author_id} />
+              <EditButton projectId={project.id} authorId={project.author_id} teamMembers={project.team_members} />
             </div>
           </div>
         </div>

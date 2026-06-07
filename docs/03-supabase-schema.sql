@@ -104,7 +104,10 @@ CREATE POLICY "projects_insert_own"
 
 CREATE POLICY "projects_update_own"
   ON public.projects FOR UPDATE
-  USING (auth.uid() = author_id);
+  USING (
+    auth.uid() = author_id OR
+    (SELECT email FROM public.users WHERE id = auth.uid()) = ANY(team_members)
+  );
 
 CREATE POLICY "projects_delete_own"
   ON public.projects FOR DELETE

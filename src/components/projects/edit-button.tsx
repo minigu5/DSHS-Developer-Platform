@@ -9,16 +9,26 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { isDeveloper } from "@/lib/constants";
 
-export function EditButton({ projectId, authorId }: { projectId: string; authorId: string }) {
+export function EditButton({
+  projectId,
+  authorId,
+  teamMembers,
+}: {
+  projectId: string;
+  authorId: string;
+  teamMembers?: string[] | null;
+}) {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
     createClient()
       .auth.getUser()
-      .then(({ data: { user } }) =>
-        setShow(user?.id === authorId || isDeveloper(user?.email))
-      );
-  }, [authorId]);
+      .then(({ data: { user } }) => {
+        const isAuthor = user?.id === authorId;
+        const isTeamMember = !!user?.email && (teamMembers?.includes(user.email) ?? false);
+        setShow(isAuthor || isTeamMember || isDeveloper(user?.email));
+      });
+  }, [authorId, teamMembers]);
 
   if (!show) return null;
 

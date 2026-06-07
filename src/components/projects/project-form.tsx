@@ -40,9 +40,10 @@ type TeamMemberProfile = {
 interface ProjectFormProps {
   initialData?: ProjectRow;
   isEdit?: boolean;
+  canDelete?: boolean;
 }
 
-export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
+export function ProjectForm({ initialData, isEdit = false, canDelete = true }: ProjectFormProps) {
   const router = useRouter();
   const supabase = createClient();
   const [isLoading, setIsLoading] = useState(false);
@@ -962,7 +963,7 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
       </div>
     </form>
 
-    {isEdit && initialData?.id && (
+    {isEdit && canDelete && initialData?.id && (
       <>
         <Card className="border-red-200 dark:border-red-900/50 bg-red-50/30 dark:bg-red-950/20 rounded-3xl overflow-hidden shadow-lg">
           <CardHeader className="bg-red-50/50 dark:bg-red-950/30 backdrop-blur-md border-b border-red-200/50 dark:border-red-900/30">
