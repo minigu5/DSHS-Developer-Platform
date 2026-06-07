@@ -124,6 +124,17 @@ export type GuideAiTool = (typeof GUIDE_AI_TOOLS)[number]['value'];
 export type GuideOs = (typeof GUIDE_OS)[number]['value'];
 export type GuideAndroidGeminiTool = (typeof GUIDE_ANDROID_GEMINI_TOOL)[number]['value'];
 
+// ── 공지사항 카테고리 ──
+export const ANNOUNCEMENT_CATEGORIES = [
+  { value: 'promotion', label: '홍보', desc: '프로젝트 홍보 및 소개' },
+  { value: 'beta',      label: '베타테스트', desc: '베타 테스터 모집 및 피드백 요청' },
+  { value: 'feedback',  label: '의견 수렴', desc: '기능/디자인 등 의견 요청' },
+  { value: 'update',    label: '업데이트', desc: '프로젝트 업데이트 공지' },
+  { value: 'general',   label: '일반', desc: '기타 일반 공지' },
+] as const;
+
+export type AnnouncementCategory = (typeof ANNOUNCEMENT_CATEGORIES)[number]['value'];
+
 // 허용 이메일 도메인 — middleware/RLS 와 같은 값을 사용해야 함.
 export const ALLOWED_EMAIL_DOMAIN =
   process.env.ALLOWED_EMAIL_DOMAIN ?? 'ts.hs.kr';

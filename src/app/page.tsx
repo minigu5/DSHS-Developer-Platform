@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ProjectCard, type ProjectCardData } from "@/components/projects/project-card";
 import { TipCard, type TipCardData } from "@/components/tips/tip-card";
 import { PROJECT_TYPES, FEATURES } from "@/lib/constants";
+import { AnnouncementTicker, type TickerItem } from "@/components/shared/announcement-ticker";
 
 type TipRowJoined = {
   id: string;
@@ -49,6 +50,7 @@ export default async function HomePage() {
     { data: featuredProjects },
     { data: tipsRaw },
     { data: ideasRaw },
+    { data: announcementsRaw },
   ] = await Promise.all([
     supabase
       .from("projects")
@@ -88,6 +90,13 @@ export default async function HomePage() {
       .order("created_at", { ascending: false })
       .limit(3)
       .returns<IdeaRow[]>(),
+    supabase
+      .from("announcements")
+      .select("id, title, category, is_pinned")
+      .order("is_pinned", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(10)
+      .returns<TickerItem[]>(),
   ]);
 
   const recentTips: TipCardData[] = (tipsRaw ?? []).map((t) => ({
@@ -103,14 +112,26 @@ export default async function HomePage() {
   }));
 
   const recentIdeas: IdeaRow[] = ideasRaw ?? [];
+  const tickerItems: TickerItem[] = announcementsRaw ?? [];
+  const hasTicker = tickerItems.length > 0;
 
   return (
     <div className="flex flex-col min-h-screen bg-zinc-50/50 dark:bg-[#09090b] overflow-hidden font-sans">
 
       <SiteHeader variant="transparent" maxWidth="md" />
 
+      {/* 공지사항 ticker — 헤더 아래 normal flow, 스크롤하면 사라짐 */}
+      {hasTicker && (
+        <div className="mt-16">
+          <AnnouncementTicker items={tickerItems} />
+        </div>
+      )}
+
       {/* HERO SECTION */}
-      <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-4 sm:px-6 flex items-center justify-center flex-col text-center">
+      <section className={cn(
+        "relative pb-20 md:pb-32 px-4 sm:px-6 flex items-center justify-center flex-col text-center",
+        hasTicker ? "pt-16 md:pt-32" : "pt-32 md:pt-48",
+      )}>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/20 dark:bg-blue-600/20 blur-[120px] rounded-full pointer-events-none" />
         <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-purple-500/20 dark:bg-purple-600/20 blur-[100px] rounded-full pointer-events-none" />
 

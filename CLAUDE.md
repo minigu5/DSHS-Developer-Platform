@@ -173,6 +173,33 @@
 
 ---
 
+## 📢 공지사항 (`/announcements`)
+- **목적**: 개발자가 프로젝트 홍보, 베타 테스트 모집, 의견 수렴, 업데이트 공지 등을 올리는 게시판.
+- **목록** `/announcements`(`revalidate=30`): 카드 그리드. 고정 공지(`is_pinned=true`)가 상단에 먼저 표시.
+- **작성** `/announcements/new` (보호 라우트): 카테고리 카드 선택 → 제목 → 마크다운 에디터(작성/분할/미리보기 탭).
+- **상세** `/announcements/[id]`(`revalidate=30`): 마크다운 렌더. 작성자·관리자에게만 수정/삭제 버튼 노출. 관리자에게만 "고정/고정해제" 버튼 노출.
+- **수정** `/announcements/[id]/edit` (보호 라우트): 작성자 또는 관리자만 접근 가능.
+- 댓글 없음. 이미지 없음.
+- **카테고리**: `ANNOUNCEMENT_CATEGORIES` — `promotion`(홍보)·`beta`(베타테스트)·`feedback`(의견수렴)·`update`(업데이트)·`general`(일반). `src/lib/constants.ts` 정의.
+- **관리자 고정**: `isDeveloper()` (email=`ts250024@ts.hs.kr`) 체크로 `is_pinned` 토글. 서버 액션 레벨에서도 검증.
+- 서버 액션: `src/lib/announcements/actions.ts`(`createAnnouncement`/`updateAnnouncement`/`deleteAnnouncement`/`togglePinAnnouncement`) — `(nav)` 밖에 위치(Turbopack 바인딩 문제 회피).
+- 컴포넌트: `src/components/announcements/announcement-card.tsx`, `announcement-editor.tsx`, `announcement-owner-actions.tsx`, `announcement-pin-button.tsx`.
+- DB 스키마: `docs/12-supabase-announcements.sql` — `announcements` 테이블 (`id`, `author_id`, `title`, `category`, `content`, `is_pinned`, `created_at`, `updated_at`). `is_admin()` SQL 함수 포함.
+- RLS: 조회 누구나, 작성 로그인, 수정/삭제 작성자 또는 관리자.
+- 색상 포인트: **스카이블루** (`sky-500`) — PageNav pill.
+- ⚠️ 새 환경에서는 `docs/12-supabase-announcements.sql`을 Supabase에서 실행해야 함.
+
+### 홈 공지사항 티커 (`AnnouncementTicker`)
+- 컴포넌트: `src/components/shared/announcement-ticker.tsx` (`"use client"`)
+- 홈 페이지(`src/app/page.tsx`) 최상단에 normal flow로 배치 — **스크롤하면 자연히 사라짐** (fixed 아님).
+- 위치: `<SiteHeader variant="transparent" />` 다음, `mt-16`(헤더 높이)으로 헤더 아래에 자리잡음.
+- 최근 공지사항 최대 10개 fetch (고정 우선, 최신 순). 공지가 0개면 티커 미노출, hero padding도 원래대로 유지.
+- CSS-only 무한 스크롤: 아이템을 짝수 세트로 복제 후 `translateX(0) → translateX(-50%)` 루프 (`@keyframes announcement-ticker` in `globals.css`).
+- 아이템 수에 따라 duration 자동 조정 (세트당 아이템 수 × 4.5초).
+- 디자인: `h-7` 얇은 띠, 반투명 배경(`bg-white/80`), 왼쪽 Bell 아이콘(zinc, 눈에 안 띄게) + 세로 구분선, 좌우 fade-out 그라디언트. 배경색·색상 강조 없이 subtle하게.
+
+---
+
 ## 🌏 인프라 및 배포 설정
 
 | 항목 | 설정값 |
@@ -239,7 +266,7 @@
 
 - 컴포넌트: `src/components/shared/page-nav.tsx` (`"use client"`, `usePathname()` + `useRef` + `useEffect` 사용)
 - **표시 위치**: `SiteHeader` 로고·프로필과 **동일한 h-16 행** 안, 로고 우측에 얇은 구분선(`w-px h-5`)으로 분리하여 인라인 배치.
-- **5개 버튼**: 모든 프로젝트(→ `/explore`), 프로젝트 등록(→ `/projects/new`), 나도 개발해볼래!(→ `/guide`), 개발 팁(→ `/tips`), 해줘!(→ `/haejwo`)
+- **6개 버튼**: 모든 프로젝트(→ `/explore`), 프로젝트 등록(→ `/projects/new`), 나도 개발해볼래!(→ `/guide`), 개발 팁(→ `/tips`), 해줘!(→ `/haejwo`), 공지사항(→ `/announcements`)
 - **모든 Link에 `prefetch={true}`** — `force-dynamic` 페이지 포함 전체 콘텐츠를 뷰포트 진입 시 미리 패치.
 - **활성 버튼 판정**:
   - `/explore`, `/projects/*`(등록·수정 제외), `/developers/*` → "모든 프로젝트"
@@ -247,9 +274,10 @@
   - `/guide/*` → "나도 개발해볼래!"
   - `/tips/*` → "개발 팁"
   - `/haejwo/*` → "해줘!"
+  - `/announcements/*` → "공지사항"
 - **슬라이딩 pill 애니메이션**: `absolute` pill 하나가 활성 버튼 위치로 부드럽게 이동·확장(`transition-all duration-300 ease-out`). `useRef` 배열 + `useEffect`로 활성 항목의 `offsetLeft`/`offsetWidth`를 읽어 `translateX` + `width` 적용.
 - **라벨 펼침**: 활성 버튼만 라벨 텍스트 노출(`max-w-[160px] opacity-100`), 비활성은 **아이콘만**(`max-w-0 opacity-0`). 전환 시 부드럽게 slide-in/out.
-- **버튼별 고유 색**: 모든 프로젝트=blue, 프로젝트 등록=emerald, 나도 개발해볼래!=purple, 개발 팁=amber, 해줘!=orange.
+- **버튼별 고유 색**: 모든 프로젝트=blue, 프로젝트 등록=emerald, 나도 개발해볼래!=purple, 개발 팁=amber, 해줘!=orange, 공지사항=sky.
 - **너비 통일**: 모든 버튼 `min-w-9 justify-center` → 비활성 아이콘 크기 균일.
 - **적용 방법**: `SiteHeader`에 `showNav` prop → `<SiteHeader showNav />`. 홈(`/`)·로그인(`/login`) 페이지는 미적용.
 
@@ -317,17 +345,19 @@ src/
 │   │   └── resolve-image/ # GET /api/resolve-image — ibb.co URL 변환
 │   ├── guide/            # 바이브 코딩 가이드 (page=위저드, [...slug]=결과 페이지)
 │   ├── tips/             # 개발 팁 블로그 (page=목록, new, [id], [id]/edit)
-│   └── haejwo/           # 해줘! 아이디어 요청 (page=목록, new, [id])
+│   ├── haejwo/           # 해줘! 아이디어 요청 (page=목록, new, [id])
+│   └── announcements/    # 공지사항 (page=목록, new, [id], [id]/edit)
 ├── components/
-│   ├── shared/           # site-header, page-nav, auth-buttons, back-button, markdown, image-upload-input 등
+│   ├── shared/           # site-header, page-nav, auth-buttons, back-button, markdown, image-upload-input, announcement-ticker 등
 │   ├── projects/         # project-card, project-form, project-icon, project-reviews 등
 │   ├── explore/          # explore-client
 │   ├── guide/            # guide-wizard, guide-viewer
 │   ├── tips/             # tip-card, tip-editor, tip-like-button, tip-comments 등
 │   ├── haejwo/           # haejwo-wizard, haejwo-owner-actions
+│   ├── announcements/    # announcement-card, announcement-editor, announcement-owner-actions, announcement-pin-button
 │   └── ui/               # shadcn 컴포넌트
 ├── content/guides/       # 가이드 마크다운 콘텐츠 (.md, 직접 작성)
-├── lib/                  # 유틸리티 및 설정 (supabase, constants, types, utils, guide, guide-content, haejwo, cloudinary)
+├── lib/                  # 유틸리티 및 설정 (supabase, constants, types, utils, guide, guide-content, haejwo, announcements, cloudinary)
 └── middleware.ts         # 세션 관리 및 도메인 검증
 ```
 

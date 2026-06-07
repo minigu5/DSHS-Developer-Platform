@@ -296,6 +296,46 @@ export type Database = {
           },
         ];
       };
+      announcements: {
+        Row: {
+          id: string;
+          author_id: string;
+          title: string;
+          category: string;
+          content: string;
+          is_pinned: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          author_id: string;
+          title: string;
+          category: string;
+          content: string;
+          is_pinned?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          author_id?: string;
+          title?: string;
+          category?: string;
+          content?: string;
+          is_pinned?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'announcements_author_id_fkey';
+            columns: ['author_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       ideas: {
         Row: {
           id: string;
@@ -366,6 +406,9 @@ export type TipRow = Database['public']['Tables']['tips']['Row'];
 export type TipInsert = Database['public']['Tables']['tips']['Insert'];
 export type TipUpdate = Database['public']['Tables']['tips']['Update'];
 export type TipCommentRow = Database['public']['Tables']['tip_comments']['Row'];
+export type AnnouncementRow = Database['public']['Tables']['announcements']['Row'];
+export type AnnouncementInsert = Database['public']['Tables']['announcements']['Insert'];
+export type AnnouncementUpdate = Database['public']['Tables']['announcements']['Update'];
 export type IdeaRow = Database['public']['Tables']['ideas']['Row'];
 export type IdeaInsert = Database['public']['Tables']['ideas']['Insert'];
 export type IdeaUpdate = Database['public']['Tables']['ideas']['Update'];
