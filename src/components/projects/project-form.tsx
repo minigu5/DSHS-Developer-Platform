@@ -30,6 +30,13 @@ type SourceType = 'open' | 'closed';
 type AuthorRole = 'individual' | 'team';
 type IconType = 'auto' | 'link';
 
+type TeamMemberProfile = {
+  id: string;
+  nickname: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+};
+
 interface ProjectFormProps {
   initialData?: ProjectRow;
   isEdit?: boolean;
@@ -62,8 +69,11 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
   );
   const [teamName, setTeamName] = useState<string>(initialData?.team_name ?? "");
   const [teamMembers, setTeamMembers] = useState<string[]>(initialData?.team_members ?? []);
+  const [teamMemberProfiles, setTeamMemberProfiles] = useState<Record<string, TeamMemberProfile>>({});
   const [currentMember, setCurrentMember] = useState("");
   const [memberError, setMemberError] = useState("");
+  const [memberLoading, setMemberLoading] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 
   // 허용 사용자 (비공개)
   const [allowedUsers, setAllowedUsers] = useState<string[]>(initialData?.allowed_users ?? []);
@@ -94,22 +104,42 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
   const [hasCustomLicense, setHasCustomLicense] = useState(!!initialData?.license_custom);
   const [licenseCustom, setLicenseCustom] = useState<string>(initialData?.license_custom ?? "");
 
-  const addTeamMember = () => {
+  const addTeamMember = async () => {
     const email = currentMember.trim();
     if (!email) return;
     if (!isAllowedEmail(email)) {
       setMemberError("@ts.hs.kr 이메일 주소만 입력 가능합니다.");
       return;
     }
-    if (!teamMembers.includes(email)) {
-      setTeamMembers([...teamMembers, email]);
-      setCurrentMember("");
-      setMemberError("");
+    if (teamMembers.includes(email)) {
+      setMemberError("이미 추가된 팀원입니다.");
+      return;
     }
+    setMemberLoading(true);
+    const { data: profile } = await supabase
+      .from('users')
+      .select('id, nickname, full_name, avatar_url')
+      .eq('email', email)
+      .maybeSingle();
+    setMemberLoading(false);
+    if (!profile) {
+      setMemberError("가입되지 않은 사용자입니다.");
+      return;
+    }
+    setTeamMembers(prev => [...prev, email]);
+    setTeamMemberProfiles(prev => ({ ...prev, [email]: profile }));
+    setCurrentMember("");
+    setMemberError("");
   };
 
   const removeTeamMember = (member: string) => {
-    setTeamMembers(teamMembers.filter(m => m !== member));
+    if (member === currentUserEmail) return;
+    setTeamMembers(prev => prev.filter(m => m !== member));
+    setTeamMemberProfiles(prev => {
+      const next = { ...prev };
+      delete next[member];
+      return next;
+    });
   };
 
   const addAllowedUser = () => {
@@ -167,6 +197,45 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
       setSelectedPlatforms(PLATFORMS.map(p => p.value));
     }
   }, [type]);
+
+  // 편집 모드: 기존 팀원 프로필 로드
+  useEffect(() => {
+    const emails = initialData?.team_members;
+    if (!emails?.length) return;
+    supabase
+      .from('users')
+      .select('id, email, nickname, full_name, avatar_url')
+      .in('email', emails)
+      .then(({ data }) => {
+        if (!data) return;
+        const profiles: Record<string, TeamMemberProfile> = {};
+        (data as Array<{ email: string } & TeamMemberProfile>).forEach(u => {
+          profiles[u.email] = { id: u.id, nickname: u.nickname, full_name: u.full_name, avatar_url: u.avatar_url };
+        });
+        setTeamMemberProfiles(profiles);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 팀 모드 전환 시 현재 로그인 사용자 자동 추가
+  useEffect(() => {
+    if (authorRole !== 'team') return;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user?.email) return;
+      const email = user.email;
+      setCurrentUserEmail(email);
+      setTeamMembers(prev => prev.includes(email) ? prev : [...prev, email]);
+      supabase
+        .from('users')
+        .select('id, nickname, full_name, avatar_url')
+        .eq('id', user.id)
+        .maybeSingle()
+        .then(({ data: profile }) => {
+          if (profile) setTeamMemberProfiles(prev => ({ ...prev, [email]: profile }));
+        });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authorRole]);
 
   const handleIconTypeChange = (newType: IconType) => {
     setIconType(newType);
@@ -416,34 +485,52 @@ export function ProjectForm({ initialData, isEdit = false }: ProjectFormProps) {
                 <Input id="team_name" value={teamName} onChange={e => setTeamName(e.target.value)} placeholder="팀 이름을 입력하세요" className="h-11 rounded-xl" />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium">팀원 이메일 (@ts.hs.kr)</Label>
+                <Label className="text-sm font-medium">팀원 추가 (@ts.hs.kr)</Label>
                 <div className="flex gap-2">
-                  <Input 
+                  <Input
                     value={currentMember}
                     onChange={(e) => { setCurrentMember(e.target.value); setMemberError(""); }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTeamMember(); } }}
-                    placeholder="팀원 학교 이메일 입력 후 추가 버튼 또는 엔터" 
-                    className={cn("h-11 rounded-xl flex-1", memberError && "border-red-500 focus-visible:ring-red-500")} 
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void addTeamMember(); } }}
+                    placeholder="팀원 학교 이메일 입력 후 추가 버튼 또는 엔터"
+                    className={cn("h-11 rounded-xl flex-1", memberError && "border-red-500 focus-visible:ring-red-500")}
                   />
-                  <button 
-                    type="button" 
-                    onClick={addTeamMember}
+                  <button
+                    type="button"
+                    onClick={() => void addTeamMember()}
+                    disabled={memberLoading}
                     className={cn(buttonVariants({ variant: "outline" }), "h-11 rounded-xl px-4")}
                   >
-                    <Plus className="w-4 h-4" />
+                    {memberLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                   </button>
                 </div>
                 {memberError && <p className="text-xs text-red-500 mt-1">{memberError}</p>}
                 {teamMembers.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {teamMembers.map(member => (
-                      <div key={member} className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 rounded-full text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                        {member}
-                        <button type="button" onClick={() => removeTeamMember(member)} className="text-zinc-400 hover:text-red-500 rounded-full p-0.5">
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
+                  <div className="space-y-2 mt-3">
+                    {teamMembers.map(email => {
+                      const profile = teamMemberProfiles[email];
+                      const name = profile?.nickname || profile?.full_name || email;
+                      const isMe = email === currentUserEmail;
+                      return (
+                        <div key={email} className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50">
+                          <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-tr from-blue-100 to-purple-100 dark:from-blue-900/40 dark:to-purple-900/40 text-blue-700 dark:text-blue-300 text-xs font-bold shrink-0">
+                            {profile?.avatar_url ? (
+                              <img src={profile.avatar_url} alt={name} className="w-full h-full object-cover" />
+                            ) : (
+                              name.charAt(0)
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-zinc-900 dark:text-white truncate">{name}</div>
+                            <div className="text-xs text-zinc-500 truncate">{email}{isMe && " · 나"}</div>
+                          </div>
+                          {!isMe && (
+                            <button type="button" onClick={() => removeTeamMember(email)} className="text-zinc-400 hover:text-red-500 rounded-full p-0.5 shrink-0">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

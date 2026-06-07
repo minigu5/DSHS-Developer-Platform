@@ -59,7 +59,7 @@ export default async function HaejwoPage() {
               <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">
                 아이디어, 개발자에게 맡겨봐요
               </h1>
-              <p className="mt-3 max-w-xl text-lg text-zinc-500 dark:text-zinc-400">
+              <p className="mt-3 text-lg text-zinc-500 dark:text-zinc-400">
                 만들고 싶은 프로그램이 있지만 직접 만들기 어렵다면? 아이디어를 올리고 개발자를 찾아보세요.
               </p>
             </div>

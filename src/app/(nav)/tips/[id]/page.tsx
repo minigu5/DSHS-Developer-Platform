@@ -1,12 +1,15 @@
 export const revalidate = 30;
 
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+import { ArrowLeft } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { cn, isExternalImage } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Markdown } from "@/components/shared/markdown";
 import { TipLikeButton } from "@/components/tips/tip-like-button";
@@ -74,7 +77,17 @@ export default async function TipDetailPage({ params }: { params: Promise<{ id: 
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 sm:px-6 py-8">
         <div className="mb-2 mt-4 flex min-h-[32px] items-center justify-between gap-4">
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Link
+              href="/tips"
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "sm" }),
+                "rounded-full text-zinc-500 -ml-2",
+              )}
+            >
+              <ArrowLeft className="mr-1.5 h-4 w-4" />
+              목록으로
+            </Link>
             {tip.tags.map((tag) => (
               <Badge
                 key={tag}

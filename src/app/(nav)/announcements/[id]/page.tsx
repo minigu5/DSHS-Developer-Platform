@@ -1,13 +1,15 @@
 export const revalidate = 30;
 
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { Pin } from "lucide-react";
+import { ArrowLeft, Pin } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
-import { isExternalImage } from "@/lib/utils";
+import { cn, isExternalImage } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Markdown } from "@/components/shared/markdown";
 import { AnnouncementOwnerActions } from "@/components/announcements/announcement-owner-actions";
@@ -82,6 +84,18 @@ export default async function AnnouncementDetailPage({
       <div className="pointer-events-none absolute bottom-0 left-0 h-[500px] w-[500px] rounded-full bg-blue-500/10 blur-[120px] dark:bg-blue-600/10" />
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 sm:px-6 py-8">
+        <div className="mb-3 flex items-center gap-3">
+          <Link
+            href="/announcements"
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "sm" }),
+              "rounded-full text-zinc-500",
+            )}
+          >
+            <ArrowLeft className="mr-1.5 h-4 w-4" />
+            목록으로
+          </Link>
+        </div>
         <div className="mb-2 mt-4 flex min-h-[32px] items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
             {announcement.is_pinned && (

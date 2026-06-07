@@ -62,6 +62,22 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   const { data: reviewsData } = reviewsResult;
 
+  // 팀 프로젝트인 경우 팀원 프로필 조회
+  const teamMemberProfiles: Array<{
+    id: string;
+    email: string;
+    nickname: string | null;
+    full_name: string | null;
+    avatar_url: string | null;
+  }> = [];
+  if (project.author_role === 'team' && project.team_members?.length) {
+    const { data: members } = await queryClient
+      .from('users')
+      .select('id, email, nickname, full_name, avatar_url')
+      .in('email', project.team_members);
+    if (members) teamMemberProfiles.push(...members);
+  }
+
   const reviews: ReviewItem[] = (reviewsData ?? []).map((r) => ({
     id: r.id,
     rating: r.rating,
@@ -169,18 +185,48 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             <div className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm rounded-3xl p-6">
               <h4 className="text-sm font-semibold text-zinc-900 dark:text-white mb-4 uppercase tracking-wider">개발자 정보</h4>
               {project.author_role === 'team' ? (
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-100 to-purple-100 dark:from-blue-900/40 dark:to-purple-900/40 flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold">
-                    {authorName.substring(0, 1)}
-                  </div>
-                  <div>
-                    <div className="font-medium text-zinc-900 dark:text-white">
-                      {authorName}
+                <div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-100 to-purple-100 dark:from-blue-900/40 dark:to-purple-900/40 flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold shrink-0">
+                      {authorName.substring(0, 1)}
                     </div>
-                    <div className="text-xs text-zinc-500">
-                      팀 프로젝트
+                    <div>
+                      <div className="font-medium text-zinc-900 dark:text-white">{authorName}</div>
+                      <div className="text-xs text-zinc-500">팀 프로젝트</div>
                     </div>
                   </div>
+                  {teamMemberProfiles.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-3">
+                      <div className="text-xs font-medium text-zinc-500 uppercase tracking-wide">팀원</div>
+                      {teamMemberProfiles.map(member => {
+                        const memberName = member.nickname || member.full_name || member.email;
+                        return (
+                          <Link
+                            key={member.id}
+                            href={`/developers/${member.id}`}
+                            className="flex items-center gap-3 group hover:opacity-80 transition-opacity"
+                          >
+                            <div className="relative w-9 h-9 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-tr from-blue-100 to-purple-100 dark:from-blue-900/40 dark:to-purple-900/40 text-blue-700 dark:text-blue-300 text-sm font-bold border border-zinc-200 dark:border-zinc-800 shrink-0">
+                              {member.avatar_url ? (
+                                <Image
+                                  src={member.avatar_url}
+                                  alt={memberName}
+                                  fill
+                                  className="object-cover"
+                                  unoptimized={isExternalImage(member.avatar_url)}
+                                />
+                              ) : (
+                                memberName.charAt(0)
+                              )}
+                            </div>
+                            <div className="font-medium text-sm text-zinc-900 dark:text-white group-hover:underline">
+                              {memberName}
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <Link href={`/developers/${project.author_id}`} className="flex items-center gap-3 mb-4 group block hover:opacity-80 transition-opacity">
@@ -206,19 +252,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                     </div>
                   </div>
                 </Link>
-              )}
-              
-              {project.author_role === 'team' && project.team_members && project.team_members.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                  <div className="text-xs font-medium text-zinc-500 mb-2">팀원</div>
-                  <div className="flex flex-wrap gap-2">
-                    {project.team_members.map((member: string) => (
-                      <span key={member} className="inline-flex items-center px-2.5 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                        {member}
-                      </span>
-                    ))}
-                  </div>
-                </div>
               )}
             </div>
 
