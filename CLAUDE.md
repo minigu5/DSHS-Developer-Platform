@@ -79,6 +79,12 @@
 ### 프로젝트 상세 팀 정보 (`src/app/(nav)/projects/[id]/page.tsx`)
 - `author_role === 'team'`이면 `team_members` 이메일 배열로 `users` 테이블을 `.in('email', ...)` 쿼리해 프로필 일괄 조회.
 - 팀원 표시: 이메일 chip → **아바타 + 닉네임 세로 목록**. 각 항목은 `/developers/[id]` 로 링크됨.
+- `EditButton`에 `teamMembers` prop 전달 — 팀원에게도 "수정하기" 버튼 노출.
+
+### 팀 프로젝트 수정 권한
+- **팀원도 프로젝트 수정 가능**: `team_members` 배열에 이메일이 있는 사용자는 수정 페이지 접근·저장 가능.
+- **삭제는 소유자(author)·개발자 계정만 가능**: `edit/page.tsx`에서 `isAuthor` 여부를 계산해 `ProjectForm`에 `canDelete` prop으로 전달. 팀원(`canDelete=false`)에게는 "위험 구역" 섹션 미노출.
+- RLS(`projects_update_own`)가 `author_id = uid OR email = ANY(team_members)` 조건으로 DB 레벨에서도 팀원 UPDATE를 허용.
 
 ---
 
@@ -152,7 +158,7 @@
 
 ### RLS 정책 요약
 - **`users`**: 누구나 조회 가능, 본인만 수정 가능.
-- **`projects`**: Public은 누구나, Private은 소유자 및 허용된 사용자만. 생성/수정/삭제는 소유자만.
+- **`projects`**: Public은 누구나, Private은 소유자 및 허용된 사용자만. 생성/삭제는 소유자만. **수정은 소유자 또는 `team_members`에 이메일이 포함된 팀원**도 가능(`docs/13-supabase-projects-team-edit.sql` 적용 후).
 - **`reviews`**: 프로젝트 접근 권한자만 조회 가능, 본인만 생성/수정/삭제 가능.
 
 ### 팁(블로그) 테이블 — `docs/08-supabase-tips.sql`
