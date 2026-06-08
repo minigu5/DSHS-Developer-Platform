@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Bell } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
+import { isDeveloper } from "@/lib/constants";
 import { AnnouncementEditor } from "@/components/announcements/announcement-editor";
 
 export const metadata = {
@@ -31,7 +32,7 @@ export default async function NewAnnouncementPage() {
         </div>
 
         <div className="rounded-3xl border border-zinc-200 bg-white/80 p-6 sm:p-8 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/60">
-          <AnnouncementEditor mode="create" />
+          <AnnouncementEditor mode="create" isAdmin={isDeveloper(user.email)} />
         </div>
       </main>
     </div>

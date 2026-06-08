@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Bell, Pin } from "lucide-react";
-import { ANNOUNCEMENT_CATEGORIES } from "@/lib/constants";
+import { ANNOUNCEMENT_CATEGORIES, ADMIN_ANNOUNCEMENT_CATEGORY } from "@/lib/constants";
 
 export type TickerItem = {
   id: string;
@@ -11,9 +11,19 @@ export type TickerItem = {
   is_pinned: boolean;
 };
 
-const CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
-  ANNOUNCEMENT_CATEGORIES.map((c) => [c.value, c.label]),
-);
+const CATEGORY_LABELS: Record<string, string> = {
+  ...Object.fromEntries(ANNOUNCEMENT_CATEGORIES.map((c) => [c.value, c.label])),
+  [ADMIN_ANNOUNCEMENT_CATEGORY.value]: ADMIN_ANNOUNCEMENT_CATEGORY.label,
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  promotion: "bg-blue-100/80 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
+  beta:      "bg-violet-100/80 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400",
+  feedback:  "bg-amber-100/80 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400",
+  update:    "bg-emerald-100/80 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400",
+  general:   "bg-zinc-100/80 text-zinc-500 dark:bg-zinc-800/60 dark:text-zinc-400",
+  admin:     "bg-rose-100/80 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400",
+};
 
 export function AnnouncementTicker({ items }: { items: TickerItem[] }) {
   if (items.length === 0) return null;
@@ -54,10 +64,9 @@ export function AnnouncementTicker({ items }: { items: TickerItem[] }) {
               {item.is_pinned && (
                 <Pin className="h-2.5 w-2.5 shrink-0 text-zinc-400 dark:text-zinc-500" />
               )}
-              <span className="text-zinc-500 dark:text-zinc-400">
+              <span className={`inline-block rounded-full px-1.5 py-px text-[10px] font-medium leading-none ${CATEGORY_COLORS[item.category] ?? CATEGORY_COLORS.general}`}>
                 {CATEGORY_LABELS[item.category] ?? item.category}
               </span>
-              <span className="text-zinc-300 dark:text-zinc-700">—</span>
               <span className="text-zinc-700 dark:text-zinc-300">{item.title}</span>
               <span className="text-zinc-200 dark:text-zinc-800">·</span>
             </span>

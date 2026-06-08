@@ -14,16 +14,19 @@ export type AnnouncementFormInput = {
 
 const AnnouncementSchema = z.object({
   title: z.string().trim().min(1, "제목을 입력해주세요.").max(120, "제목은 120자 이하여야 합니다."),
-  category: z.enum(["promotion", "beta", "feedback", "update", "general"], {
+  category: z.enum(["promotion", "beta", "feedback", "update", "general", "admin"], {
     message: "올바른 카테고리를 선택해주세요.",
   }),
   content: z.string().min(1, "내용을 입력해주세요.").max(50_000, "내용은 50,000자 이하여야 합니다."),
 });
 
-function parse(input: AnnouncementFormInput) {
+function parse(input: AnnouncementFormInput, userEmail: string | undefined) {
   const result = AnnouncementSchema.safeParse(input);
   if (!result.success) {
     return { ok: false as const, error: result.error.issues[0]?.message ?? "입력값이 올바르지 않습니다." };
+  }
+  if (result.data.category === "admin" && !isDeveloper(userEmail)) {
+    return { ok: false as const, error: "관리자만 '관리자' 카테고리를 사용할 수 있습니다." };
   }
   return { ok: true as const, data: result.data };
 }
@@ -35,7 +38,7 @@ export async function createAnnouncement(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "로그인이 필요합니다." };
 
-  const parsed = parse(input);
+  const parsed = parse(input, user.email ?? undefined);
   if (!parsed.ok) return { error: parsed.error };
 
   const { data, error } = await supabase
@@ -65,7 +68,7 @@ export async function updateAnnouncement(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "로그인이 필요합니다." };
 
-  const parsed = parse(input);
+  const parsed = parse(input, user.email ?? undefined);
   if (!parsed.ok) return { error: parsed.error };
 
   const { data: existing } = await supabase

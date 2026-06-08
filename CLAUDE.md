@@ -203,6 +203,7 @@
 - **수정** `/announcements/[id]/edit` (보호 라우트): 작성자 또는 관리자만 접근 가능.
 - 댓글 없음. 이미지 없음.
 - **카테고리**: `ANNOUNCEMENT_CATEGORIES` — `promotion`(홍보)·`beta`(베타테스트)·`feedback`(의견수렴)·`update`(업데이트)·`general`(일반). `src/lib/constants.ts` 정의.
+- **관리자 전용 카테고리**: `ADMIN_ANNOUNCEMENT_CATEGORY` — `admin`(관리자). `src/lib/constants.ts`에 별도 상수로 분리. 에디터(`AnnouncementEditor`)에 `isAdmin` prop이 `true`일 때만 카드가 노출됨. 서버 액션(`actions.ts`)에서도 관리자가 아니면 `admin` 카테고리 저장을 거부. DB `CHECK` 제약에도 `admin` 포함.
 - **관리자 고정**: `isDeveloper()` (email=`ts250024@ts.hs.kr`) 체크로 `is_pinned` 토글. 서버 액션 레벨에서도 검증.
 - 서버 액션: `src/lib/announcements/actions.ts`(`createAnnouncement`/`updateAnnouncement`/`deleteAnnouncement`/`togglePinAnnouncement`) — `(nav)` 밖에 위치(Turbopack 바인딩 문제 회피).
 - 컴포넌트: `src/components/announcements/announcement-card.tsx`, `announcement-editor.tsx`, `announcement-owner-actions.tsx`, `announcement-pin-button.tsx`.
@@ -218,7 +219,8 @@
 - 최근 공지사항 최대 10개 fetch (고정 우선, 최신 순). 공지가 0개면 티커 미노출, hero padding도 원래대로 유지.
 - CSS-only 무한 스크롤: 아이템을 짝수 세트로 복제 후 `translateX(0) → translateX(-50%)` 루프 (`@keyframes announcement-ticker` in `globals.css`).
 - 아이템 수에 따라 duration 자동 조정 (세트당 아이템 수 × 4.5초).
-- 디자인: `h-7` 얇은 띠, 반투명 배경(`bg-white/80`), 왼쪽 Bell 아이콘(zinc, 눈에 안 띄게) + 세로 구분선, 좌우 fade-out 그라디언트. 배경색·색상 강조 없이 subtle하게.
+- 디자인: `h-7` 얇은 띠, 반투명 배경(`bg-white/80`), 왼쪽 Bell 아이콘(zinc, 눈에 안 띄게) + 세로 구분선, 좌우 fade-out 그라디언트.
+- **카테고리 pill**: 각 공지 아이템 앞에 `rounded-full` 알약 형태로 카테고리 표시. 카테고리별 은은한 배경색 적용 — promotion=blue, beta=violet, feedback=amber, update=emerald, general=zinc, admin=rose. 배경 투명도 80%(라이트) / 30%(다크)로 subtle하게 유지.
 
 ---
 

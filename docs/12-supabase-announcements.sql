@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS announcements (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   author_id   uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   title       text NOT NULL CHECK (char_length(title) BETWEEN 1 AND 120),
-  category    text NOT NULL CHECK (category IN ('promotion','beta','feedback','update','general')),
+  category    text NOT NULL CHECK (category IN ('promotion','beta','feedback','update','general','admin')),
   content     text NOT NULL CHECK (char_length(content) BETWEEN 1 AND 50000),
   is_pinned   boolean NOT NULL DEFAULT false,
   created_at  timestamptz NOT NULL DEFAULT now(),

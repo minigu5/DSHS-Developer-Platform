@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { Markdown } from "@/components/shared/markdown";
-import { ANNOUNCEMENT_CATEGORIES } from "@/lib/constants";
+import { ANNOUNCEMENT_CATEGORIES, ADMIN_ANNOUNCEMENT_CATEGORY } from "@/lib/constants";
 import {
   createAnnouncement,
   updateAnnouncement,
@@ -27,13 +27,14 @@ export interface AnnouncementEditorDefaults {
 interface AnnouncementEditorProps {
   mode: "create" | "edit";
   defaults?: AnnouncementEditorDefaults;
+  isAdmin?: boolean;
 }
 
 const EMPTY: AnnouncementEditorDefaults = { title: "", category: "", content: "" };
 
 type Tab = "write" | "preview" | "split";
 
-export function AnnouncementEditor({ mode, defaults = EMPTY }: AnnouncementEditorProps) {
+export function AnnouncementEditor({ mode, defaults = EMPTY, isAdmin = false }: AnnouncementEditorProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<Tab>("write");
@@ -129,6 +130,28 @@ export function AnnouncementEditor({ mode, defaults = EMPTY }: AnnouncementEdito
               <span className="mt-0.5 text-[11px] leading-snug text-zinc-400">{cat.desc}</span>
             </button>
           ))}
+          {isAdmin && (
+            <button
+              key={ADMIN_ANNOUNCEMENT_CATEGORY.value}
+              type="button"
+              onClick={() => setCategory(ADMIN_ANNOUNCEMENT_CATEGORY.value)}
+              className={cn(
+                "flex flex-col items-start rounded-2xl border p-3 text-left transition-all",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2",
+                category === ADMIN_ANNOUNCEMENT_CATEGORY.value
+                  ? "border-rose-500 bg-rose-50 dark:border-rose-500 dark:bg-rose-950/30"
+                  : "border-zinc-200 bg-white hover:border-rose-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-rose-700",
+              )}
+            >
+              <span className={cn(
+                "text-sm font-semibold",
+                category === ADMIN_ANNOUNCEMENT_CATEGORY.value ? "text-rose-700 dark:text-rose-300" : "text-zinc-700 dark:text-zinc-300",
+              )}>
+                {ADMIN_ANNOUNCEMENT_CATEGORY.label}
+              </span>
+              <span className="mt-0.5 text-[11px] leading-snug text-zinc-400">{ADMIN_ANNOUNCEMENT_CATEGORY.desc}</span>
+            </button>
+          )}
         </div>
       </div>
 

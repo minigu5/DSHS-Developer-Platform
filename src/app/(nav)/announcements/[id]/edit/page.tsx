@@ -54,6 +54,7 @@ export default async function EditAnnouncementPage({
               category: announcement.category,
               content: announcement.content,
             }}
+            isAdmin={isDeveloper(user.email)}
           />
         </div>
       </main>

@@ -133,6 +133,10 @@ export const ANNOUNCEMENT_CATEGORIES = [
   { value: 'general',   label: '일반', desc: '기타 일반 공지' },
 ] as const;
 
+export const ADMIN_ANNOUNCEMENT_CATEGORY = {
+  value: 'admin', label: '관리자', desc: '플랫폼 공식 안내',
+} as const;
+
 export type AnnouncementCategory = (typeof ANNOUNCEMENT_CATEGORIES)[number]['value'];
 
 // 허용 이메일 도메인 — middleware/RLS 와 같은 값을 사용해야 함.
