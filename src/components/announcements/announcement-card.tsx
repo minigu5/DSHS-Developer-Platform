@@ -55,11 +55,11 @@ export function AnnouncementCard({ announcement }: { announcement: AnnouncementC
           </Badge>
         </div>
 
-        <h2 className="line-clamp-2 text-lg font-bold text-zinc-900 transition-colors group-hover:text-sky-600 dark:text-white dark:group-hover:text-sky-400">
+        <h2 className="line-clamp-2 flex-1 text-lg font-bold text-zinc-900 transition-colors group-hover:text-sky-600 dark:text-white dark:group-hover:text-sky-400">
           {announcement.title}
         </h2>
 
-        <div className="mt-5 flex items-center justify-between border-t border-zinc-100 pt-4 dark:border-zinc-800/50">
+        <div className="mt-auto flex items-center justify-between border-t border-zinc-100 pt-4 dark:border-zinc-800/50">
           <div className="flex items-center gap-2">
             <div className="relative h-6 w-6 overflow-hidden rounded-full border border-zinc-200 bg-gradient-to-tr from-sky-100 to-blue-100 dark:border-zinc-800 dark:from-sky-900/40 dark:to-blue-900/40">
               {announcement.author?.avatar_url ? (

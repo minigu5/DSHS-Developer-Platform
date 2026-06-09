@@ -47,7 +47,7 @@ export function ProjectReviews({ projectId, reviews }: ProjectReviewsProps) {
     const { error } = await supabase.from("reviews").insert({
       project_id: projectId,
       user_id: currentUserId,
-      rating: values.rating,
+      rating: values.rating > 0 ? values.rating : null,
       comment: values.comment,
     });
     if (error) {
@@ -62,7 +62,7 @@ export function ProjectReviews({ projectId, reviews }: ProjectReviewsProps) {
     if (!editing) return;
     const { error } = await supabase
       .from("reviews")
-      .update({ rating: values.rating, comment: values.comment })
+      .update({ rating: values.rating > 0 ? values.rating : null, comment: values.comment })
       .eq("id", editing.id);
     if (error) {
       toast.error("리뷰 수정에 실패했습니다.", { description: error.message });
@@ -152,7 +152,7 @@ export function ProjectReviews({ projectId, reviews }: ProjectReviewsProps) {
           {editing && (
             <ReviewForm
               defaultValues={{
-                rating: editing.rating,
+                rating: editing.rating ?? 0,
                 comment: editing.comment,
               }}
               submitLabel="수정 저장"

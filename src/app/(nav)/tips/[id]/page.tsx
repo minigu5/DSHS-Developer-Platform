@@ -112,27 +112,32 @@ export default async function TipDetailPage({ params }: { params: Promise<{ id: 
           )}
 
           <div className="mt-6 flex items-center gap-3 border-b border-zinc-100 pb-6 dark:border-zinc-800/50">
-            <div className="relative h-9 w-9 overflow-hidden rounded-full border border-zinc-200 bg-gradient-to-tr from-blue-100 to-purple-100 dark:border-zinc-800 dark:from-blue-900/40 dark:to-purple-900/40">
-              {author?.avatar_url ? (
-                <Image
-                  src={author.avatar_url}
-                  alt={authorName}
-                  fill
-                  className="object-cover"
-                  unoptimized={isExternalImage(author.avatar_url)}
-                />
-              ) : (
-                <span className="flex h-full w-full items-center justify-center text-xs font-bold text-blue-700 dark:text-blue-300">
-                  {authorName.charAt(0)}
-                </span>
-              )}
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-zinc-900 dark:text-white">{authorName}</div>
-              <div className="text-xs text-zinc-400">
-                {format(new Date(tip.created_at), "yyyy년 M월 d일", { locale: ko })}
+            <Link
+              href={`/developers/${tip.author_id}`}
+              className="group/author flex items-center gap-3 hover:opacity-80 transition-opacity"
+            >
+              <div className="relative h-9 w-9 overflow-hidden rounded-full border border-zinc-200 bg-gradient-to-tr from-blue-100 to-purple-100 dark:border-zinc-800 dark:from-blue-900/40 dark:to-purple-900/40">
+                {author?.avatar_url ? (
+                  <Image
+                    src={author.avatar_url}
+                    alt={authorName}
+                    fill
+                    className="object-cover"
+                    unoptimized={isExternalImage(author.avatar_url)}
+                  />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center text-xs font-bold text-blue-700 dark:text-blue-300">
+                    {authorName.charAt(0)}
+                  </span>
+                )}
               </div>
-            </div>
+              <div>
+                <div className="text-sm font-semibold text-zinc-900 underline-offset-2 group-hover/author:underline dark:text-white">{authorName}</div>
+                <div className="text-xs text-zinc-400">
+                  {format(new Date(tip.created_at), "yyyy년 M월 d일", { locale: ko })}
+                </div>
+              </div>
+            </Link>
           </div>
 
           {tip.cover_url && (

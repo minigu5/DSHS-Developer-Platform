@@ -1,9 +1,10 @@
 "use client";
 import { INTERESTS } from "@/lib/constants";
+import type { UserContact } from "@/lib/types";
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Settings, Loader2, Check } from "lucide-react";
+import { Settings, Loader2, Check, Plus, X, GitBranch, Mail, Camera, MessageSquare, Globe } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -11,21 +12,31 @@ import { Button } from "@/components/ui/button";
 import { ImageUploadInput } from "@/components/shared/image-upload-input";
 import { updateProfile, checkNicknameDuplicate } from "../actions";
 
+const CONTACT_TYPES: { value: UserContact['type']; label: string; icon: React.ElementType; placeholder: string }[] = [
+  { value: 'github', label: 'GitHub', icon: GitBranch, placeholder: 'username' },
+  { value: 'email', label: '이메일', icon: Mail, placeholder: 'example@email.com' },
+  { value: 'instagram', label: '인스타그램', icon: Camera, placeholder: 'username' },
+  { value: 'discord', label: '디스코드', icon: MessageSquare, placeholder: 'username 또는 서버 링크' },
+  { value: 'website', label: '웹사이트', icon: Globe, placeholder: 'https://...' },
+];
+
 interface ProfileSettingsDialogProps {
   userId: string;
   initialNickname: string;
   initialBio: string;
   initialAvatar: string;
   initialInterests: string[];
+  initialContacts: UserContact[];
   fullName: string;
 }
 
-export function ProfileSettingsDialog({ userId, initialNickname, initialBio, initialAvatar, initialInterests, fullName }: ProfileSettingsDialogProps) {
+export function ProfileSettingsDialog({ userId, initialNickname, initialBio, initialAvatar, initialInterests, initialContacts, fullName }: ProfileSettingsDialogProps) {
   const [open, setOpen] = useState(false);
   const [nickname, setNickname] = useState(initialNickname);
   const [bio, setBio] = useState(initialBio);
   const [avatar, setAvatar] = useState(initialAvatar);
   const [interests, setInterests] = useState<string[]>(initialInterests);
+  const [contacts, setContacts] = useState<UserContact[]>(initialContacts);
   const [loading, setLoading] = useState(false);
   const [checkingNickname, setCheckingNickname] = useState(false);
   const [isNicknameChecked, setIsNicknameChecked] = useState(true);
@@ -81,7 +92,7 @@ export function ProfileSettingsDialog({ userId, initialNickname, initialBio, ini
     setLoading(true);
 
     try {
-      const res = await updateProfile({ nickname, bio, avatar_url: avatar, interests });
+      const res = await updateProfile({ nickname, bio, avatar_url: avatar, interests, contacts });
       if (res.error) {
         throw new Error(res.error);
       }
@@ -187,6 +198,61 @@ export function ProfileSettingsDialog({ userId, initialNickname, initialBio, ini
                   {item.label}
                 </button>
               ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">연락처</label>
+            <div className="space-y-2">
+              {contacts.map((contact, idx) => {
+                const meta = CONTACT_TYPES.find((t) => t.value === contact.type);
+                const Icon = meta?.icon ?? Globe;
+                return (
+                  <div key={idx} className="flex items-center gap-2">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
+                      <Icon className="h-4 w-4 text-zinc-500" />
+                    </div>
+                    <select
+                      value={contact.type}
+                      onChange={(e) => {
+                        const next = [...contacts];
+                        next[idx] = { ...next[idx], type: e.target.value as UserContact['type'] };
+                        setContacts(next);
+                      }}
+                      className="h-9 rounded-md border border-zinc-200 bg-white px-2 text-sm dark:border-zinc-800 dark:bg-zinc-950"
+                    >
+                      {CONTACT_TYPES.map((t) => (
+                        <option key={t.value} value={t.value}>{t.label}</option>
+                      ))}
+                    </select>
+                    <input
+                      value={contact.value}
+                      onChange={(e) => {
+                        const next = [...contacts];
+                        next[idx] = { ...next[idx], value: e.target.value };
+                        setContacts(next);
+                      }}
+                      placeholder={meta?.placeholder ?? ""}
+                      className="flex h-9 flex-1 rounded-md border border-zinc-200 bg-white px-3 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-800 dark:bg-zinc-950"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setContacts(contacts.filter((_, i) => i !== idx))}
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                );
+              })}
+              {contacts.length < 8 && (
+                <button
+                  type="button"
+                  onClick={() => setContacts([...contacts, { type: 'github', value: '' }])}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-zinc-300 py-2 text-xs text-zinc-400 hover:border-blue-300 hover:text-blue-500 dark:border-zinc-700 dark:hover:border-blue-700 dark:hover:text-blue-400"
+                >
+                  <Plus className="h-3.5 w-3.5" /> 연락처 추가
+                </button>
+              )}
             </div>
           </div>
           <div className="pt-4 flex justify-end gap-2">

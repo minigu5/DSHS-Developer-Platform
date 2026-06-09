@@ -65,7 +65,8 @@ export default async function HomePage() {
         icon_url,
         features,
         author_id,
-        users (*)
+        users (*),
+        reviews(rating)
       `)
       .eq("visibility", "public")
       .order("created_at", { ascending: false })
@@ -151,16 +152,13 @@ export default async function HomePage() {
           대구과학고 학생들이 개발한 소프트웨어 프로젝트를 전시하고, 유용한 피드백을 주고받으며, 새로운 아이디어를 함께 발전시키는 중앙 허브입니다.
         </p>
 
-        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-stretch gap-3 sm:gap-4 w-full max-w-[280px] sm:max-w-none sm:w-auto z-10">
-          {/* prefetch={true}: 홈에는 PageNav가 없으므로 force-dynamic 페이지를 명시적으로 프리패치 (기법 10) */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full max-w-[280px] sm:max-w-none sm:w-auto z-10">
+          {/* prefetch={true}: 홈에는 PageNav가 없으므로 force-dynamic 페이지를 명시적으로 프리패치 */}
           <Link href="/explore" prefetch={true} className={cn(buttonVariants({ size: "lg" }), "rounded-full h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 transition-all hover:scale-105")}>
             <Search className="mr-2 h-5 w-5" /> 프로젝트 둘러보기
           </Link>
           <Link href="/projects/new" prefetch={true} className={cn(buttonVariants({ size: "lg", variant: "outline" }), "rounded-full h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base border-zinc-200 dark:border-zinc-800 bg-white/50 dark:bg-white/5 backdrop-blur-md hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all hover:scale-105")}>
             <Code2 className="mr-2 h-5 w-5" /> 내 프로젝트 등록하기
-          </Link>
-          <Link href="/guide" prefetch={true} className={cn(buttonVariants({ size: "lg", variant: "ghost" }), "rounded-full h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all hover:scale-105")}>
-            <Sparkles className="mr-2 h-5 w-5" /> 바이브 코딩 가이드
           </Link>
         </div>
       </section>
@@ -208,30 +206,32 @@ export default async function HomePage() {
       </section>
 
       {/* FEATURED PROJECTS PREVIEW */}
-      <section className="py-24 px-4 sm:px-6 max-w-5xl mx-auto w-full">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-12 gap-6">
-          <div>
-            <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-4 leading-snug tracking-normal">최근 등록된 프로젝트</h2>
-            <p className="text-lg text-zinc-500 dark:text-zinc-400 leading-relaxed">친구들이 최근에 개발한 놀라운 프로젝트들을 확인해보세요.</p>
+      <section className="py-24 px-4 sm:px-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-12 gap-6">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-4 leading-snug tracking-normal">최근 등록된 프로젝트</h2>
+              <p className="text-lg text-zinc-500 dark:text-zinc-400 leading-relaxed">친구들이 최근에 개발한 놀라운 프로젝트들을 확인해보세요.</p>
+            </div>
+            <Link href="/explore" className={cn(buttonVariants({ variant: "ghost" }), "group rounded-full text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20")}>
+              전체 보기 <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
+            </Link>
           </div>
-          <Link href="/explore" className={cn(buttonVariants({ variant: "ghost" }), "group rounded-full text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20")}>
-            전체 보기 <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
-          </Link>
-        </div>
 
-        {featuredProjects && featuredProjects.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredProjects.map((project, index) => (
-              <div key={project.id} className={index >= 3 ? "hidden sm:block" : ""}>
-                <ProjectCard project={project} mode="showcase" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-20 bg-zinc-50 dark:bg-zinc-900/50 rounded-3xl border border-zinc-200 dark:border-zinc-800">
-            <p className="text-zinc-500 dark:text-zinc-400">아직 등록된 프로젝트가 없습니다.</p>
-          </div>
-        )}
+          {featuredProjects && featuredProjects.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuredProjects.map((project, index) => (
+                <div key={project.id} className={index >= 3 ? "hidden sm:block" : ""}>
+                  <ProjectCard project={project} mode="showcase" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20 bg-zinc-50 dark:bg-zinc-900/50 rounded-3xl border border-zinc-200 dark:border-zinc-800">
+              <p className="text-zinc-500 dark:text-zinc-400">아직 등록된 프로젝트가 없습니다.</p>
+            </div>
+          )}
+        </div>
       </section>
 
       {/* RECENT TIPS */}
@@ -265,65 +265,67 @@ export default async function HomePage() {
       </section>
 
       {/* RECENT HAEJWO IDEAS */}
-      <section className="py-24 px-4 sm:px-6 max-w-5xl mx-auto w-full">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-12 gap-6">
-          <div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-sm font-medium text-orange-600 dark:bg-orange-900/20 dark:text-orange-400">
-              <Megaphone className="h-4 w-4" /> 해줘!
+      <section className="py-24 px-4 sm:px-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-12 gap-6">
+            <div>
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-sm font-medium text-orange-600 dark:bg-orange-900/20 dark:text-orange-400">
+                <Megaphone className="h-4 w-4" /> 해줘!
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2 leading-snug tracking-normal">최근 해줘! 아이디어</h2>
+              <p className="text-lg text-zinc-500 dark:text-zinc-400 leading-relaxed">개발자를 기다리는 아이디어들을 구경해보세요.</p>
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-2 leading-snug tracking-normal">최근 해줘! 아이디어</h2>
-            <p className="text-lg text-zinc-500 dark:text-zinc-400 leading-relaxed">개발자를 기다리는 아이디어들을 구경해보세요.</p>
+            <Link href="/haejwo" className={cn(buttonVariants({ variant: "ghost" }), "group rounded-full text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 shrink-0")}>
+              전체 보기 <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
+            </Link>
           </div>
-          <Link href="/haejwo" className={cn(buttonVariants({ variant: "ghost" }), "group rounded-full text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 shrink-0")}>
-            전체 보기 <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
-          </Link>
+
+          {recentIdeas.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {recentIdeas.map((idea) => {
+                const typeName = PROJECT_TYPES.find((t) => t.value === idea.type)?.label ?? idea.type;
+                const categoryName = FEATURES.find((f) => f.value === idea.category)?.label ?? idea.category;
+                const status = STATUS_LABELS[idea.status] ?? STATUS_LABELS.open;
+                const authorName = Array.isArray(idea.author)
+                  ? (idea.author[0]?.nickname ?? idea.author[0]?.full_name ?? "익명")
+                  : (idea.author?.nickname ?? idea.author?.full_name ?? "익명");
+                const timeAgo = formatDistanceToNow(new Date(idea.created_at), { addSuffix: true, locale: ko });
+
+                return (
+                  <Link
+                    key={idea.id}
+                    href={`/haejwo/${idea.id}`}
+                    className="group flex flex-col gap-3 rounded-3xl border border-zinc-200 bg-white/70 p-6 shadow-sm backdrop-blur-xl transition-all duration-200 hover:border-orange-300 hover:-translate-y-1 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-orange-700"
+                  >
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="inline-flex items-center rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-medium text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                        {typeName}
+                      </span>
+                      <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                        {categoryName}
+                      </span>
+                      <span className={cn("ml-auto inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium", status.cls)}>
+                        {status.label}
+                      </span>
+                    </div>
+                    <p className="line-clamp-2 font-semibold leading-snug text-zinc-900 group-hover:text-orange-700 dark:text-white dark:group-hover:text-orange-400">
+                      {idea.title}
+                    </p>
+                    <div className="mt-auto flex items-center gap-2 text-xs text-zinc-400">
+                      <span>{authorName}</span>
+                      <span>·</span>
+                      <span>{timeAgo}</span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-20 bg-zinc-50 dark:bg-zinc-900/50 rounded-3xl border border-zinc-200 dark:border-zinc-800">
+              <p className="text-zinc-500 dark:text-zinc-400">아직 등록된 아이디어가 없습니다.</p>
+            </div>
+          )}
         </div>
-
-        {recentIdeas.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {recentIdeas.map((idea) => {
-              const typeName = PROJECT_TYPES.find((t) => t.value === idea.type)?.label ?? idea.type;
-              const categoryName = FEATURES.find((f) => f.value === idea.category)?.label ?? idea.category;
-              const status = STATUS_LABELS[idea.status] ?? STATUS_LABELS.open;
-              const authorName = Array.isArray(idea.author)
-                ? (idea.author[0]?.nickname ?? idea.author[0]?.full_name ?? "익명")
-                : (idea.author?.nickname ?? idea.author?.full_name ?? "익명");
-              const timeAgo = formatDistanceToNow(new Date(idea.created_at), { addSuffix: true, locale: ko });
-
-              return (
-                <Link
-                  key={idea.id}
-                  href={`/haejwo/${idea.id}`}
-                  className="group flex flex-col gap-3 rounded-3xl border border-zinc-200 bg-white/70 p-6 shadow-sm backdrop-blur-xl transition-all duration-200 hover:border-orange-300 hover:-translate-y-1 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-orange-700"
-                >
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="inline-flex items-center rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-medium text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
-                      {typeName}
-                    </span>
-                    <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-                      {categoryName}
-                    </span>
-                    <span className={cn("ml-auto inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium", status.cls)}>
-                      {status.label}
-                    </span>
-                  </div>
-                  <p className="line-clamp-2 font-semibold leading-snug text-zinc-900 group-hover:text-orange-700 dark:text-white dark:group-hover:text-orange-400">
-                    {idea.title}
-                  </p>
-                  <div className="mt-auto flex items-center gap-2 text-xs text-zinc-400">
-                    <span>{authorName}</span>
-                    <span>·</span>
-                    <span>{timeAgo}</span>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-20 bg-zinc-50 dark:bg-zinc-900/50 rounded-3xl border border-zinc-200 dark:border-zinc-800">
-            <p className="text-zinc-500 dark:text-zinc-400">아직 등록된 아이디어가 없습니다.</p>
-          </div>
-        )}
       </section>
 
       {/* FOOTER */}

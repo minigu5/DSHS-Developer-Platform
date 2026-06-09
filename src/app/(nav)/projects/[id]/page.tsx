@@ -89,9 +89,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   }));
 
   const reviewCount = reviews.length;
+  const ratedReviews = reviews.filter((r) => r.rating != null);
   const avgRating =
-    reviewCount > 0
-      ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount
+    ratedReviews.length > 0
+      ? ratedReviews.reduce((sum, r) => sum + r.rating!, 0) / ratedReviews.length
       : 0;
 
   const authorName =

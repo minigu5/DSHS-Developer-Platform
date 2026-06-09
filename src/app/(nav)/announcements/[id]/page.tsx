@@ -133,28 +133,33 @@ export default async function AnnouncementDetailPage({
           </h1>
 
           <div className="mt-6 flex items-center gap-3 border-b border-zinc-100 pb-6 dark:border-zinc-800/50">
-            <div className="relative h-9 w-9 overflow-hidden rounded-full border border-zinc-200 bg-gradient-to-tr from-sky-100 to-blue-100 dark:border-zinc-800 dark:from-sky-900/40 dark:to-blue-900/40">
-              {author?.avatar_url ? (
-                <Image
-                  src={author.avatar_url}
-                  alt={authorName}
-                  fill
-                  className="object-cover"
-                  unoptimized={isExternalImage(author.avatar_url)}
-                />
-              ) : (
-                <span className="flex h-full w-full items-center justify-center text-xs font-bold text-sky-700 dark:text-sky-300">
-                  {authorName.charAt(0)}
-                </span>
-              )}
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-zinc-900 dark:text-white">{authorName}</div>
-              <div className="text-xs text-zinc-400">
-                {format(new Date(announcement.created_at), "yyyy년 M월 d일", { locale: ko })}
-                {isEdited && " (수정됨)"}
+            <Link
+              href={`/developers/${announcement.author_id}`}
+              className="group/author flex items-center gap-3 hover:opacity-80 transition-opacity"
+            >
+              <div className="relative h-9 w-9 overflow-hidden rounded-full border border-zinc-200 bg-gradient-to-tr from-sky-100 to-blue-100 dark:border-zinc-800 dark:from-sky-900/40 dark:to-blue-900/40">
+                {author?.avatar_url ? (
+                  <Image
+                    src={author.avatar_url}
+                    alt={authorName}
+                    fill
+                    className="object-cover"
+                    unoptimized={isExternalImage(author.avatar_url)}
+                  />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center text-xs font-bold text-sky-700 dark:text-sky-300">
+                    {authorName.charAt(0)}
+                  </span>
+                )}
               </div>
-            </div>
+              <div>
+                <div className="text-sm font-semibold text-zinc-900 underline-offset-2 group-hover/author:underline dark:text-white">{authorName}</div>
+                <div className="text-xs text-zinc-400">
+                  {format(new Date(announcement.created_at), "yyyy년 M월 d일", { locale: ko })}
+                  {isEdited && " (수정됨)"}
+                </div>
+              </div>
+            </Link>
           </div>
 
           <div className="mt-8">

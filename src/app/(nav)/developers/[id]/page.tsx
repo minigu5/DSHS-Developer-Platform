@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { CalendarDays, Mail } from "lucide-react";
+import Link from "next/link";
+import { CalendarDays, Mail, GitBranch, Camera, MessageSquare, Globe } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { INTERESTS } from "@/lib/constants";
@@ -8,6 +9,31 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ProjectCard, type ProjectCardData } from "@/components/projects/project-card";
 import { ProfileSettingsDialog } from "./profile-settings-dialog";
 import { isExternalImage } from "@/lib/utils";
+import type { UserContact } from "@/lib/types";
+
+const CONTACT_ICONS: Record<UserContact['type'], React.ElementType> = {
+  github: GitBranch,
+  email: Mail,
+  instagram: Camera,
+  discord: MessageSquare,
+  website: Globe,
+};
+
+const CONTACT_LABELS: Record<UserContact['type'], string> = {
+  github: 'GitHub',
+  email: '이메일',
+  instagram: '인스타그램',
+  discord: '디스코드',
+  website: '웹사이트',
+};
+
+function contactHref(contact: UserContact): string {
+  if (contact.type === 'email') return `mailto:${contact.value}`;
+  if (contact.type === 'github') return `https://github.com/${contact.value}`;
+  if (contact.type === 'instagram') return `https://instagram.com/${contact.value}`;
+  if (contact.value.startsWith('http')) return contact.value;
+  return contact.value;
+}
 
 export default async function DeveloperProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -42,7 +68,8 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
       features,
       author_id,
       visibility,
-      users (*)
+      users (*),
+      reviews(rating)
     `)
     .eq('author_id', id)
     .order('created_at', { ascending: false })
@@ -60,6 +87,7 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
     day: 'numeric'
   });
   const interests = (developer.interests as string[]) || [];
+  const contacts = (developer.contacts as UserContact[]) || [];
 
   return (
     <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-black font-sans relative overflow-hidden">
@@ -129,27 +157,48 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
                   </div>
                 )}
                 
-                <div className="w-full space-y-4 text-sm text-left mt-2">
-                  {isOwner && (
-                    <div className="flex items-center text-zinc-600 dark:text-zinc-300">
-                      <Mail className="w-4 h-4 mr-3 text-zinc-400" />
-                      {developer.email}
-                    </div>
-                  )}
+                <div className="w-full space-y-3 text-sm text-left mt-2">
                   <div className="flex items-center text-zinc-600 dark:text-zinc-300">
-                    <CalendarDays className="w-4 h-4 mr-3 text-zinc-400" />
+                    <Mail className="w-4 h-4 mr-3 shrink-0 text-zinc-400" />
+                    <span className="truncate">{developer.email}</span>
+                  </div>
+                  {contacts.filter((c) => c.value.trim() !== "").map((contact, idx) => {
+                    const Icon = CONTACT_ICONS[contact.type] ?? Globe;
+                    const href = contactHref(contact);
+                    const isExternal = href.startsWith('http') || href.startsWith('mailto');
+                    return (
+                      <div key={idx} className="flex items-center gap-3 text-zinc-600 dark:text-zinc-300">
+                        <Icon className="w-4 h-4 shrink-0 text-zinc-400" />
+                        {isExternal ? (
+                          <Link
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="truncate hover:text-blue-600 hover:underline dark:hover:text-blue-400"
+                          >
+                            {contact.value}
+                          </Link>
+                        ) : (
+                          <span className="truncate">{contact.value}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                  <div className="flex items-center text-zinc-600 dark:text-zinc-300">
+                    <CalendarDays className="w-4 h-4 mr-3 shrink-0 text-zinc-400" />
                     가입일: {joinedDate}
                   </div>
                 </div>
 
                 {isOwner && (
                   <div className="w-full mt-8 pt-6 border-t border-zinc-100 dark:border-zinc-800/50">
-                    <ProfileSettingsDialog 
+                    <ProfileSettingsDialog
                       userId={developer.id}
-                      initialNickname={nickname} 
-                      initialBio={bio} 
-                      initialAvatar={avatarUrl} 
+                      initialNickname={nickname}
+                      initialBio={bio}
+                      initialAvatar={avatarUrl}
                       initialInterests={interests}
+                      initialContacts={contacts}
                       fullName={actualFullName}
                     />
                   </div>

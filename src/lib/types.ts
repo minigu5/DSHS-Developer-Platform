@@ -4,6 +4,11 @@
 // 추후 Supabase CLI 로 자동 생성한 결과로 교체 가능:
 //   npx supabase gen types typescript --project-id <id> --schema public > src/lib/types.ts
 
+export type UserContact = {
+  type: 'github' | 'email' | 'instagram' | 'discord' | 'website';
+  value: string;
+};
+
 export type Json =
   | string
   | number
@@ -24,6 +29,7 @@ export type Database = {
           bio: string | null;
           avatar_url: string | null;
           interests: string[];
+          contacts: UserContact[];
           created_at: string;
         };
         Insert: {
@@ -34,6 +40,7 @@ export type Database = {
           bio?: string | null;
           avatar_url?: string | null;
           interests?: string[];
+          contacts?: UserContact[];
           created_at?: string;
         };
         Update: {
@@ -44,6 +51,7 @@ export type Database = {
           bio?: string | null;
           avatar_url?: string | null;
           interests?: string[];
+          contacts?: UserContact[];
           created_at?: string;
         };
         Relationships: [
@@ -150,7 +158,7 @@ export type Database = {
           id: string;
           project_id: string;
           user_id: string;
-          rating: number;
+          rating: number | null;
           comment: string;
           created_at: string;
         };
@@ -158,7 +166,7 @@ export type Database = {
           id?: string;
           project_id: string;
           user_id: string;
-          rating: number;
+          rating?: number | null;
           comment: string;
           created_at?: string;
         };
@@ -166,7 +174,7 @@ export type Database = {
           id?: string;
           project_id?: string;
           user_id?: string;
-          rating?: number;
+          rating?: number | null;
           comment?: string;
           created_at?: string;
         };

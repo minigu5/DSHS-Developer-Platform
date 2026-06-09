@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { INTERESTS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
+import type { UserContact } from "@/lib/types";
 
 const INTEREST_VALUES = INTERESTS.map((i) => i.value) as [string, ...string[]];
 
@@ -13,6 +14,11 @@ const NicknameSchema = z
   .trim()
   .min(2, "닉네임은 2자 이상이어야 합니다.")
   .max(20, "닉네임은 20자 이하여야 합니다.");
+
+const ContactSchema = z.object({
+  type: z.enum(['github', 'email', 'instagram', 'discord', 'website']),
+  value: z.string().trim().max(300, "연락처 값이 너무 깁니다."),
+});
 
 const ProfileSchema = z.object({
   nickname: z.union([NicknameSchema, z.null()]),
@@ -23,6 +29,7 @@ const ProfileSchema = z.object({
     .max(500, "아바타 URL이 너무 깁니다.")
     .refine((v) => v === "" || /^https?:\/\//i.test(v), "아바타는 http(s) URL 이어야 합니다."),
   interests: z.array(z.enum(INTEREST_VALUES)).max(INTERESTS.length).optional(),
+  contacts: z.array(ContactSchema).max(8, "연락처는 최대 8개입니다.").optional(),
 });
 
 export async function checkNicknameDuplicate(nickname: string, userId: string) {
@@ -46,6 +53,7 @@ export async function updateProfile(data: {
   bio: string | null;
   avatar_url: string;
   interests?: string[];
+  contacts?: UserContact[];
 }) {
   try {
     const supabase = await createClient();
@@ -61,7 +69,7 @@ export async function updateProfile(data: {
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "입력값이 올바르지 않습니다." };
     }
-    const { nickname, bio, avatar_url, interests } = parsed.data;
+    const { nickname, bio, avatar_url, interests, contacts } = parsed.data;
 
     // Nickname duplicate check again on server side for safety
     if (nickname) {
@@ -80,6 +88,7 @@ export async function updateProfile(data: {
         bio,
         avatar_url,
         interests: interests || [],
+        contacts: (contacts || []).filter((c) => c.value.trim() !== ""),
       }, {
         onConflict: 'id'
       });

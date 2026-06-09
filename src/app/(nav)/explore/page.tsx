@@ -17,7 +17,8 @@ const PROJECT_SELECT = `
   features,
   author_id,
   visibility,
-  users (*)
+  users (*),
+  reviews(rating)
 `;
 
 export default async function ExplorePage() {

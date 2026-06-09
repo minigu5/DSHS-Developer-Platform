@@ -87,6 +87,7 @@
 - **플랫폼 표시**: 작은 둥근 칩 형태(`rounded-full bg-zinc-100`). `PLATFORMS` 상수에서 value → label 변환 후 전체 표시.
 - **웹사이트 + 전체 플랫폼**: `type === 'website'` 이고 모든 플랫폼이 선택된 경우 카드에서는 "Web" 하나만 표시 (DB 실제 값은 유지).
 - **아이콘**: `mt-[5px]`로 텍스트 영역보다 5px 아래에 위치.
+- **별점/리뷰 수**: 쿼리에 `reviews(rating)` 포함 시 플랫폼 칩 옆에 평균 별점(`Star` 아이콘 + 소수 1자리)과 리뷰 수(`MessageSquare` 아이콘)를 작게 표시. rating=null 리뷰는 별점 평균 계산에서 제외.
 
 ### 팀 프로젝트 수정 권한
 - **팀원도 프로젝트 수정 가능**: `team_members` 배열에 이메일이 있는 사용자는 수정 페이지 접근·저장 가능.
@@ -104,6 +105,7 @@
 - 단계는 이전 선택에 따라 **동적으로 노출/비활성화**됨 (예: 앱 플랫폼으로 iOS·iPadOS·macOS 선택 시 운영체제 단계에서 macOS 외 항목 잠금 + 이유 표시).
 - 진행바 없음(단계 수 가변). 상단 고정 영역에 "이전" 버튼(첫 단계에서는 숨김)과 우측 "N단계" 표시.
 - 모든 단계 응답 시 `/guide/<선택값들 '/' 연결>` 로 이동. 노출된 단계만 슬러그에 포함(앱 5세그먼트 / 그 외 4세그먼트).
+- **선택지 아이콘**: 각 옵션 버튼 왼쪽에 step key + option value 기반으로 Lucide 아이콘(`STEP_OPTION_ICONS` 매핑)을 파란 둥근 배경(`rounded-xl bg-blue-50`) 안에 표시. 비활성 옵션은 zinc 배경.
 
 ### 단계 정의 (`src/lib/guide.ts`) — 위저드·결과 페이지 공유
 - `GUIDE_STEPS`: 단계별 제목/옵션/`visible()`/`disabledReason()` 정의. 단계 추가·수정은 이 파일만 고치면 됨.
@@ -142,6 +144,7 @@
 - 삭제 확인창은 `window.confirm` 대신 shadcn `Dialog` 컴포넌트 사용(팁 삭제·댓글 삭제 모두).
 - Supabase join 시 `users` 테이블 관계가 모호하면 PGRST201 오류 발생 → `author:users!tips_author_id_fkey(...)` 처럼 **FK 이름을 명시**해야 함.
 - 마크다운 렌더 공용 컴포넌트: `src/components/shared/markdown.tsx`(팁·가이드 공유). `table`/`thead`/`tbody`/`tr`/`th`/`td` 커스텀 컴포넌트로 표 테두리·구분선·헤더 배경 스타일 적용(다크모드 포함). 바깥 테두리는 `rounded-xl` 컨테이너로 감싸 오버플로우 처리.
+- **상세 페이지 작성자 링크**: `/tips/[id]`에서 작성자 아바타+이름 영역을 `<Link href="/developers/[author_id]">` 로 감쌈 — 클릭 시 프로필 페이지 이동.
 
 ---
 
@@ -159,14 +162,24 @@
 > TypeScript 타입: `src/lib/types.ts` (수동 작성)
 
 ### 주요 테이블 구조
-- **`users`**: `id`, `email`, `full_name`, `nickname`, `bio`, `interests`, `avatar_url`
+- **`users`**: `id`, `email`, `full_name`, `nickname`, `bio`, `interests`, `avatar_url`, `contacts`(JSONB, `docs/14-supabase-users-contacts.sql` 적용 필요)
 - **`projects`**: `id`, `author_id`, `title`, `description`, `type`, `platforms`, `source_type`, `repo_url`, `url`, `license_features`, `visibility`, `allowed_users`, `icon_url`
-- **`reviews`**: `id`, `project_id`, `user_id`, `rating`, `comment`
+- **`reviews`**: `id`, `project_id`, `user_id`, `rating`(nullable, `docs/15-supabase-reviews-optional-rating.sql` 적용 필요), `comment`
 
 ### RLS 정책 요약
 - **`users`**: 누구나 조회 가능, 본인만 수정 가능.
 - **`projects`**: Public은 누구나, Private은 소유자 및 허용된 사용자만. 생성/삭제는 소유자만. **수정은 소유자 또는 `team_members`에 이메일이 포함된 팀원**도 가능(`docs/13-supabase-projects-team-edit.sql` 적용 후).
 - **`reviews`**: 프로젝트 접근 권한자만 조회 가능, 본인만 생성/수정/삭제 가능.
+
+### 개발자 프로필 페이지 (`src/app/(nav)/developers/[id]/page.tsx`)
+- **이메일 항상 표시**: `isOwner` 조건 없이 모든 방문자에게 학교 이메일 표시.
+- **연락처**: `users.contacts` JSONB 배열 — `{ type: 'github'|'email'|'instagram'|'discord'|'website', value: string }[]`. 프로필 설정 다이얼로그에서 추가/제거(최대 8개). GitHub·인스타그램은 username만 입력하면 URL 자동 변환. `docs/14-supabase-users-contacts.sql` 실행 필요.
+- **프로필 설정 다이얼로그** (`profile-settings-dialog.tsx`): 닉네임·자기소개·아바타·관심분야·연락처 편집. `updateProfile` 서버 액션으로 저장.
+
+### 리뷰 기능 (`src/components/projects/`)
+- **별점 선택 선택사항화**: `review-form.tsx`의 rating은 0(선택 안 함) 허용. 라벨 "별점 (선택)" 표시. 같은 별을 다시 클릭하면 해제. rating=0이면 DB에 null로 저장.
+- **rating=null 리뷰**: `review-list.tsx`에서 별점 없이 댓글만 표시. `ReviewItem.rating`은 `number | null`.
+- **DB**: `reviews.rating` 컬럼 NOT NULL 제거 + CHECK(rating IS NULL OR BETWEEN 1 AND 5) — `docs/15-supabase-reviews-optional-rating.sql` 실행 필요.
 
 ### 팁(블로그) 테이블 — `docs/08-supabase-tips.sql`
 - **`tips`**: `id`, `author_id`, `title`, `summary`, `content`(마크다운), `cover_url`, `tags[]`, `created_at`, `updated_at`(트리거 자동 갱신).
@@ -211,6 +224,8 @@
 - RLS: 조회 누구나, 작성 로그인, 수정/삭제 작성자 또는 관리자.
 - 색상 포인트: **스카이블루** (`sky-500`) — PageNav pill.
 - ⚠️ 새 환경에서는 `docs/12-supabase-announcements.sql`을 Supabase에서 실행해야 함.
+- **공지사항 카드 하단 고정**: `announcement-card.tsx`에서 작성자/시간 영역에 `mt-auto` 적용 — 제목 줄 수에 무관하게 카드 하단에 고정됨.
+- **상세 페이지 작성자 링크**: `/announcements/[id]`에서 작성자 아바타+이름 영역을 `<Link href="/developers/[author_id]">` 로 감쌈 — 클릭 시 프로필 페이지 이동.
 
 ### 홈 공지사항 티커 (`AnnouncementTicker`)
 - 컴포넌트: `src/components/shared/announcement-ticker.tsx` (`"use client"`)
@@ -282,7 +297,8 @@
 
 ### 홈 페이지 CTA 프리패치 — `src/app/page.tsx`
 - 홈 페이지는 PageNav가 없어 `/explore`(force-dynamic) 등 동적 페이지가 자동 프리패치되지 않음.
-- 3개 CTA 링크(`/explore`, `/projects/new`, `/guide`)에 `prefetch={true}` 추가 — 사용자가 히어로 섹션을 읽는 동안 백그라운드에서 미리 로드.
+- **CTA 버튼 2개**: "프로젝트 둘러보기"(`/explore`) + "내 프로젝트 등록하기"(`/projects/new`) — 바이브 코딩 가이드 버튼은 제거됨. 두 링크 모두 `prefetch={true}`.
+- **홈 섹션 너비 통일**: 배경색 없는 섹션(featured projects, 해줘!)도 bg 섹션(feature highlights, 개발 팁)과 동일한 구조 — `<section class="px-4 sm:px-6">` + `<div class="max-w-5xl mx-auto">` 내부 wrapper. `max-w-5xl mx-auto`를 section에 직접 쓰면 padding이 max-width 안에서 소비돼 실제 콘텐츠 너비가 달라지는 문제 방지.
 
 ---
 

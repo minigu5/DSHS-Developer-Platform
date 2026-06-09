@@ -2,10 +2,51 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Check, Lock } from "lucide-react";
+import {
+  ChevronLeft, Check, Lock,
+  Globe, Smartphone, Puzzle, Terminal, Package,
+  Tablet, Laptop, Monitor,
+  MousePointer2, Bot, Zap, Sparkles,
+  Server, Cloud, Code2,
+} from "lucide-react";
 
 import { visibleSteps, buildSlug, type GuideAnswers } from "@/lib/guide";
 import { cn } from "@/lib/utils";
+
+const STEP_OPTION_ICONS: Record<string, Record<string, React.ElementType>> = {
+  type: {
+    website: Globe,
+    app: Smartphone,
+    extension: Puzzle,
+    cli: Terminal,
+    library: Package,
+  },
+  appPlatform: {
+    android: Smartphone,
+    ios: Smartphone,
+    ipados: Tablet,
+    macos: Laptop,
+    windows: Monitor,
+  },
+  terminal: {
+    terminal: Terminal,
+    gui: MousePointer2,
+  },
+  ai: {
+    'chatgpt-codex': Bot,
+    'claude-code': Zap,
+    gemini: Sparkles,
+  },
+  androidGeminiTool: {
+    aistudio: Cloud,
+    antigravity: Code2,
+  },
+  os: {
+    windows: Monitor,
+    mac: Laptop,
+    linux: Server,
+  },
+};
 
 export function GuideWizard() {
   const router = useRouter();
@@ -77,6 +118,7 @@ export function GuideWizard() {
         {current.options.map((opt) => {
           const reason = current.disabledReason?.(answers, opt.value) ?? null;
           const disabled = Boolean(reason);
+          const Icon = STEP_OPTION_ICONS[current.key]?.[opt.value];
           return (
             <button
               key={opt.value}
@@ -91,22 +133,34 @@ export function GuideWizard() {
                   : "border-zinc-200 bg-white/70 hover:scale-[1.01] hover:border-blue-300 hover:shadow-lg active:scale-[0.99] dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-blue-700",
               )}
             >
-              <div className="min-w-0">
-                <p
-                  className={cn(
-                    "font-semibold",
+              <div className="flex items-center gap-3 min-w-0">
+                {Icon && (
+                  <span className={cn(
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
                     disabled
-                      ? "text-zinc-400 dark:text-zinc-500"
-                      : "text-zinc-900 dark:text-white",
-                  )}
-                >
-                  {opt.label}
-                </p>
-                {reason ? (
-                  <p className="mt-1 text-sm text-amber-600 dark:text-amber-400">{reason}</p>
-                ) : opt.desc ? (
-                  <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">{opt.desc}</p>
-                ) : null}
+                      ? "bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600"
+                      : "bg-blue-50 text-blue-600 group-hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:group-hover:bg-blue-900/50",
+                  )}>
+                    <Icon className="h-[18px] w-[18px]" />
+                  </span>
+                )}
+                <div className="min-w-0">
+                  <p
+                    className={cn(
+                      "font-semibold",
+                      disabled
+                        ? "text-zinc-400 dark:text-zinc-500"
+                        : "text-zinc-900 dark:text-white",
+                    )}
+                  >
+                    {opt.label}
+                  </p>
+                  {reason ? (
+                    <p className="mt-1 text-sm text-amber-600 dark:text-amber-400">{reason}</p>
+                  ) : opt.desc ? (
+                    <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">{opt.desc}</p>
+                  ) : null}
+                </div>
               </div>
               <span
                 className={cn(

@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 const schema = z.object({
-  rating: z.number().int().min(1, "별점을 선택해주세요").max(5),
+  rating: z.number().int().min(0).max(5),
   comment: z
     .string()
     .min(1, "댓글을 입력해주세요")
@@ -62,7 +62,7 @@ export function ReviewForm({
 
       <div>
         <Label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2 block">
-          별점
+          별점 <span className="font-normal text-zinc-400">(선택)</span>
         </Label>
         <div className="flex items-center gap-1">
           {[1, 2, 3, 4, 5].map((n) => {
@@ -71,7 +71,9 @@ export function ReviewForm({
               <button
                 key={n}
                 type="button"
-                onClick={() => setValue("rating", n, { shouldValidate: true })}
+                onClick={() =>
+                  setValue("rating", rating === n ? 0 : n, { shouldValidate: true })
+                }
                 onMouseEnter={() => setHover(n)}
                 onMouseLeave={() => setHover(0)}
                 className="p-1 -m-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
@@ -88,17 +90,16 @@ export function ReviewForm({
               </button>
             );
           })}
-          {rating > 0 && (
+          {rating > 0 ? (
             <span className="ml-2 text-sm text-zinc-600 dark:text-zinc-400">
               {rating}점
             </span>
+          ) : (
+            <span className="ml-2 text-sm text-zinc-400 dark:text-zinc-500">
+              선택 안 함
+            </span>
           )}
         </div>
-        {errors.rating && (
-          <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-            {errors.rating.message}
-          </p>
-        )}
       </div>
 
       <div>

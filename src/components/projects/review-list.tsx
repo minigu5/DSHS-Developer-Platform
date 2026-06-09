@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 export interface ReviewItem {
   id: string;
-  rating: number;
+  rating: number | null;
   comment: string;
   created_at: string;
   user_id: string;
@@ -35,7 +35,8 @@ interface ReviewListProps {
   onDelete: (review: ReviewItem) => void;
 }
 
-function StarDisplay({ rating }: { rating: number }) {
+function StarDisplay({ rating }: { rating: number | null }) {
+  if (!rating) return null;
   return (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map((n) => (

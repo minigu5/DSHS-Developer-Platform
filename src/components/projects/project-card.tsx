@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Globe, Lock, Pencil, Terminal } from "lucide-react";
+import { Globe, Lock, Pencil, Star, MessageSquare } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn, isExternalImage } from "@/lib/utils";
@@ -24,6 +24,7 @@ export type ProjectCardData = {
   author_id: string;
   visibility?: 'public' | 'private' | null;
   users: { full_name: string | null; nickname: string | null; avatar_url: string | null } | { full_name: string | null; nickname: string | null; avatar_url: string | null }[] | null;
+  reviews?: { rating: number }[] | null;
 };
 
 function resolveAuthorName(p: ProjectCardData, fallback = '알 수 없음'): string {
@@ -49,10 +50,19 @@ interface ProjectCardProps {
   authorFallback?: string;
 }
 
+function resolveReviewStats(project: ProjectCardData): { avg: number | null; count: number } {
+  const reviews = project.reviews ?? [];
+  const count = reviews.length;
+  const rated = reviews.filter((r) => r.rating != null);
+  const avg = rated.length > 0 ? rated.reduce((s, r) => s + r.rating!, 0) / rated.length : null;
+  return { avg, count };
+}
+
 export function ProjectCard({ project, mode = 'showcase', authorFallback }: ProjectCardProps) {
   const authorName = resolveAuthorName(project, authorFallback);
   const authorAvatar = resolveAuthorAvatar(project);
   const tags = (project.features ?? []).slice(0, 2);
+  const { avg: avgRating, count: reviewCount } = resolveReviewStats(project);
 
   const isWebsite = project.type === 'website';
   const hasAllPlatforms = (project.platforms?.length ?? 0) >= PLATFORMS.length;
@@ -104,13 +114,31 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
       </CardHeader>
 
       <CardContent className="pb-0">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <Globe className="w-3 h-3 text-zinc-400 dark:text-zinc-500 shrink-0" />
-          {displayPlatforms.map((p) => (
-            <span key={p} className="rounded-full bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
-              {p}
-            </span>
-          ))}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Globe className="w-3 h-3 text-zinc-400 dark:text-zinc-500 shrink-0" />
+            {displayPlatforms.map((p) => (
+              <span key={p} className="rounded-full bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
+                {p}
+              </span>
+            ))}
+          </div>
+          {(avgRating !== null || reviewCount > 0) && (
+            <div className="flex items-center gap-2 shrink-0 text-[10px] text-zinc-400 dark:text-zinc-500">
+              {avgRating !== null && (
+                <span className="flex items-center gap-0.5">
+                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                  {avgRating.toFixed(1)}
+                </span>
+              )}
+              {reviewCount > 0 && (
+                <span className="flex items-center gap-0.5">
+                  <MessageSquare className="w-3 h-3" />
+                  {reviewCount}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </CardContent>
     </>
