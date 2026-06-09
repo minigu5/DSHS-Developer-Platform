@@ -151,8 +151,12 @@
 ## 🔎 탐색/검색 (`/explore`)
 - `src/components/explore/explore-client.tsx`: 클라이언트 측 필터링.
 - 검색 대상: 프로젝트 제목·설명·태그(`features`) + **작성자 닉네임·실명·팀 이름**.
-- 사이드바 필터: **프로그램 종류 → 플랫폼** 순 (다중 선택).
+- **사이드바 필터** (데스크탑): **프로그램 종류 → 플랫폼** 순 (다중 선택). 체크박스 없이 아이콘+라벨 토글 버튼으로 구성. 선택 시 파란 배경+파란 텍스트로 강조.
+  - `aside` 자체에 `sticky top-24 self-start` 적용 — `self-start`가 없으면 flex 컨테이너 높이를 따라 늘어나 필터 적용 시 프로젝트 수가 줄어들 때 사이드바 위치가 흔들리는 버그 발생.
+  - 아이콘 매핑: 웹사이트→Globe, 앱→Smartphone, 확장프로그램→Puzzle, CLI→Terminal, 라이브러리→Package / Web→Globe, iOS→Apple, Android→Bot, Windows→Monitor, macOS→Laptop, Linux→Server.
+- **모바일 필터**: 토글 버튼 클릭 시 `absolute top-full` 드롭다운으로 열림 — 아래 콘텐츠가 밀리지 않도록 레이아웃 흐름 밖에 배치. pill 스타일(아이콘+라벨, 선택 시 파란 테두리+배경).
 - 헤더 우측 버튼은 제거됨 — 전역 `PageNav`로 이동.
+- 로그인 페이지(`/login`) 뒤로가기 링크는 `/`가 아닌 `/explore`로 이동.
 
 ---
 
