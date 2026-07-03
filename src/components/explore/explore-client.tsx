@@ -21,7 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { ProjectCard, type ProjectCardData } from "@/components/projects/project-card";
-import { PROJECT_TYPES, PLATFORMS } from "@/lib/constants";
+import { PROJECT_TYPES, PLATFORMS, FEATURES } from "@/lib/constants";
 
 const TYPE_ICONS: Record<string, LucideIcon> = {
   website: Globe,
@@ -48,6 +48,7 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const handlePlatformChange = (platform: string, checked: boolean) => {
@@ -59,6 +60,12 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
   const handleTypeChange = (type: string, checked: boolean) => {
     setSelectedTypes(prev =>
       checked ? [...prev, type] : prev.filter(t => t !== type)
+    );
+  };
+
+  const handleCategoryChange = (category: string, checked: boolean) => {
+    setSelectedCategories(prev =>
+      checked ? [...prev, category] : prev.filter(c => c !== category)
     );
   };
 
@@ -91,17 +98,23 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
         selectedTypes.length === 0 ||
         selectedTypes.includes(type);
 
-      return matchesSearch && matchesPlatform && matchesType;
-    });
-  }, [searchQuery, selectedPlatforms, selectedTypes, initialProjects]);
+      const matchesCategory =
+        selectedCategories.length === 0 ||
+        selectedCategories.some(cat => tags.includes(cat));
 
-  const activeFilterCount = selectedTypes.length + selectedPlatforms.length;
+      return matchesSearch && matchesPlatform && matchesType && matchesCategory;
+    });
+  }, [searchQuery, selectedPlatforms, selectedTypes, selectedCategories, initialProjects]);
+
+  const activeFilterCount = selectedTypes.length + selectedCategories.length + selectedPlatforms.length;
 
   return (
-    <div className="flex flex-col min-h-screen bg-zinc-50/50 dark:bg-[#09090b] font-sans relative overflow-hidden">
-      {/* Ambient Background */}
-      <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-500/10 dark:bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-500/10 dark:bg-purple-600/10 blur-[120px] rounded-full pointer-events-none" />
+    <div className="flex flex-col min-h-screen bg-zinc-50/50 dark:bg-[#09090b] font-sans relative">
+      {/* Ambient Background — overflow-hidden은 블롭 레이어에만 적용해야 sticky aside가 정상 동작 */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-500/10 dark:bg-blue-600/10 blur-[120px] rounded-full" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-500/10 dark:bg-purple-600/10 blur-[120px] rounded-full" />
+      </div>
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-8">
         <div className="flex flex-col md:flex-row gap-3">
@@ -143,6 +156,30 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                   </div>
 
                   <div>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-2">카테고리</h4>
+                    <div className="space-y-0.5">
+                      {FEATURES.map(({ value, label }) => {
+                        const active = selectedCategories.includes(value);
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => handleCategoryChange(value, !active)}
+                            className={cn(
+                              "w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all text-left",
+                              active
+                                ? "bg-blue-500/12 text-blue-600 dark:text-blue-400"
+                                : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-800 dark:hover:text-zinc-200"
+                            )}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-2">플랫폼</h4>
                     <div className="space-y-0.5">
                       {PLATFORMS.map(({ value, label }) => {
@@ -175,6 +212,7 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                       type="button"
                       onClick={() => {
                         setSelectedTypes([]);
+                        setSelectedCategories([]);
                         setSelectedPlatforms([]);
                       }}
                       className="text-xs font-medium text-zinc-400 transition-colors hover:text-zinc-900 dark:hover:text-white px-3"
@@ -188,7 +226,7 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
           </aside>
 
           {/* MAIN CONTENT / SEARCH & GRID */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 min-h-[calc(100vh-12rem)]">
             {/* 모바일 전용 필터 토글 — absolute 드롭다운으로 레이아웃 고정 */}
             <div className="md:hidden mb-6 relative z-20">
               <button
@@ -236,6 +274,30 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                   </div>
 
                   <div>
+                    <h4 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">카테고리</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {FEATURES.map(({ value, label }) => {
+                        const active = selectedCategories.includes(value);
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => handleCategoryChange(value, !active)}
+                            className={cn(
+                              "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+                              active
+                                ? "border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                                : "border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400",
+                            )}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
                     <h4 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">플랫폼</h4>
                     <div className="flex flex-wrap gap-2">
                       {PLATFORMS.map(({ value, label }) => {
@@ -266,6 +328,7 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                       type="button"
                       onClick={() => {
                         setSelectedTypes([]);
+                        setSelectedCategories([]);
                         setSelectedPlatforms([]);
                       }}
                       className="text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-900 dark:hover:text-white"
@@ -278,7 +341,7 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
             </div>
 
             <div className="mb-8 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-400 w-5 h-5 z-10 pointer-events-none" />
               <Input
                 placeholder="프로젝트, 태그, 개발자·팀 이름으로 검색해보세요..."
                 value={searchQuery}

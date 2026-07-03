@@ -55,7 +55,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
   const [title, setTitle] = useState<string>(initialData?.title ?? "");
   const [type, setType] = useState<string>(initialData?.type ?? "");
   const [sourceType, setSourceType] = useState<SourceType>(
-    (initialData?.source_type as SourceType) ?? "closed",
+    (initialData?.source_type as SourceType) ?? "open",
   );
   const [visibility, setVisibility] = useState<Visibility>(
     initialData?.visibility ?? "public",
@@ -247,6 +247,22 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Closed Source 전환 시 라이선스 초기화
+  useEffect(() => {
+    if (sourceType === 'closed') {
+      setLicenseFeatures([]);
+      setHasCustomLicense(false);
+      setLicenseCustom("");
+    }
+  }, [sourceType]);
+
+  // 비공개 팀 프로젝트: 팀원을 allowedUsers에 자동 동기화
+  useEffect(() => {
+    if (visibility === 'private' && authorRole === 'team') {
+      setAllowedUsers(prev => [...new Set([...prev, ...teamMembers])]);
+    }
+  }, [visibility, authorRole, teamMembers]);
+
   // 팀 모드 전환 시 현재 로그인 사용자 자동 추가
   useEffect(() => {
     if (authorRole !== 'team') return;
@@ -417,12 +433,14 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
         platforms: platformsToSave,
         source_type: sourceType,
         repo_url: sourceType === 'open' ? repoUrl : null,
-        license_features: licenseFeatures,
-        license_custom: hasCustomLicense ? licenseCustom : null,
+        license_features: sourceType === 'open' ? licenseFeatures : [],
+        license_custom: sourceType === 'open' && hasCustomLicense ? licenseCustom : null,
         features: selectedFeatures,
         feature_custom: selectedFeatures.includes('other') ? featureCustom : null,
         visibility,
-        allowed_users: visibility === 'private' ? allowedUsers : [],
+        allowed_users: visibility === 'private'
+          ? [...new Set([...allowedUsers, ...(authorRole === 'team' ? teamMembers : [])])]
+          : [],
         author_role: authorRole,
         team_name: authorRole === 'team' ? teamName : null,
         team_members: authorRole === 'team' ? teamMembers : [],
@@ -884,10 +902,14 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
             )}
           </div>
 
-          <div className="space-y-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+          <div className={cn("space-y-4 pt-4 border-t border-zinc-100 dark:border-zinc-800", sourceType === 'closed' && "opacity-40 pointer-events-none select-none")}>
             <Label className="text-sm font-medium">라이선스 (허용 및 보장 항목)</Label>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">이 프로그램 및 소스코드에 대한 사용 권한을 직관적으로 선택해주세요. 다중 선택이 가능합니다.</p>
-            
+            {sourceType === 'closed' ? (
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">소스코드를 비공개로 유지하는 경우 라이선스 항목을 선택할 수 없습니다.</p>
+            ) : (
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">이 프로그램 및 소스코드에 대한 사용 권한을 직관적으로 선택해주세요. 다중 선택이 가능합니다.</p>
+            )}
+
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {LICENSE_FEATURES.map(lf => (
                 <div
@@ -998,14 +1020,21 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
                 {userError && <p className="text-xs text-red-500 mt-1">{userError}</p>}
                 {allowedUsers.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-3">
-                    {allowedUsers.map(user => (
-                      <div key={user} className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 rounded-full text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                        {user}
-                        <button type="button" onClick={() => removeAllowedUser(user)} className="text-zinc-400 hover:text-red-500 rounded-full p-0.5">
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
+                    {allowedUsers.map(user => {
+                      const isTeamMember = authorRole === 'team' && teamMembers.includes(user);
+                      return (
+                        <div key={user} className={cn("flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium", isTeamMember ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300")}>
+                          {user}
+                          {isTeamMember ? (
+                            <span className="text-xs text-blue-500 dark:text-blue-400 ml-0.5">팀원</span>
+                          ) : (
+                            <button type="button" onClick={() => removeAllowedUser(user)} className="text-zinc-400 hover:text-red-500 rounded-full p-0.5">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
