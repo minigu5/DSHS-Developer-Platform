@@ -25,6 +25,7 @@ export type ProjectCardData = {
   visibility?: 'public' | 'private' | null;
   users: { full_name: string | null; nickname: string | null; avatar_url: string | null } | { full_name: string | null; nickname: string | null; avatar_url: string | null }[] | null;
   reviews?: { rating: number }[] | null;
+  click_count?: number | null;  // ← 추가
 };
 
 function resolveAuthorName(p: ProjectCardData, fallback = '알 수 없음'): string {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Search,
   Filter,
@@ -15,6 +15,17 @@ import {
   Server,
   Bot,
   Apple,
+  FileText,
+  Sparkles,
+  BookOpen,
+  Wrench,
+  Gamepad2,
+  Users,
+  Film,
+  Zap,
+  Code2,
+  MoreHorizontal,
+  ArrowUpDown,
   type LucideIcon,
 } from "lucide-react";
 
@@ -40,6 +51,19 @@ const PLATFORM_ICONS: Record<string, LucideIcon> = {
   linux: Server,
 };
 
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  document: FileText,
+  ai: Sparkles,
+  study: BookOpen,
+  utility: Wrench,
+  game: Gamepad2,
+  social: Users,
+  media: Film,
+  productivity: Zap,
+  "dev-tool": Code2,
+  other: MoreHorizontal,
+};
+
 interface ExploreClientProps {
   initialProjects: ProjectCardData[];
 }
@@ -50,6 +74,11 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [typeOpen, setTypeOpen] = useState(false);
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [platformOpen, setPlatformOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<'newest' | 'clicks' | 'rating'>('newest');
+  const [sortOpen, setSortOpen] = useState(false);
 
   const handlePlatformChange = (platform: string, checked: boolean) => {
     setSelectedPlatforms(prev =>
@@ -71,7 +100,7 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
 
   const filteredProjects = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    return initialProjects.filter(project => {
+    const filtered = initialProjects.filter(project => {
       const title = project.title ?? "";
       const shortDesc = project.short_description ?? "";
       const tags = project.features ?? [];
@@ -104,7 +133,29 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
 
       return matchesSearch && matchesPlatform && matchesType && matchesCategory;
     });
-  }, [searchQuery, selectedPlatforms, selectedTypes, selectedCategories, initialProjects]);
+
+    if (sortBy === 'clicks') {
+      return [...filtered].sort((a, b) => (b.click_count ?? 0) - (a.click_count ?? 0));
+    }
+    if (sortBy === 'rating') {
+      return [...filtered].sort((a, b) => {
+        const getAvg = (p: typeof a) => {
+          const rated = (p.reviews ?? []).filter(r => r.rating != null);
+          return rated.length > 0 ? rated.reduce((s, r) => s + r.rating!, 0) / rated.length : 0;
+        };
+        return getAvg(b) - getAvg(a);
+      });
+    }
+    // newest: 서버에서 created_at DESC로 정렬되어 옴
+    return filtered;
+  }, [searchQuery, selectedPlatforms, selectedTypes, selectedCategories, initialProjects, sortBy]);
+
+  useEffect(() => {
+    if (!sortOpen) return;
+    const handler = () => setSortOpen(false);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [sortOpen]);
 
   const activeFilterCount = selectedTypes.length + selectedCategories.length + selectedPlatforms.length;
 
@@ -126,84 +177,145 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                   <Filter className="w-4 h-4 mr-2" /> 필터
                 </h3>
 
-                <div className="space-y-6">
+                <div className="space-y-1">
+                  {/* 프로그램 종류 */}
                   <div>
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-2">프로그램 종류</h4>
-                    <div className="space-y-0.5">
-                      {PROJECT_TYPES.map(({ value, label }) => {
-                        const Icon = TYPE_ICONS[value];
-                        const active = selectedTypes.includes(value);
-                        return (
-                          <button
-                            key={value}
-                            type="button"
-                            onClick={() => handleTypeChange(value, !active)}
-                            className={cn(
-                              "w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all text-left",
-                              active
-                                ? "bg-blue-500/12 text-blue-600 dark:text-blue-400"
-                                : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-800 dark:hover:text-zinc-200"
-                            )}
-                          >
-                            {Icon && (
-                              <Icon className={cn("w-4 h-4 shrink-0 transition-colors", active ? "text-blue-500 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500")} />
-                            )}
-                            {label}
-                          </button>
-                        );
-                      })}
+                    <button
+                      type="button"
+                      onClick={() => setTypeOpen(o => !o)}
+                      className="w-full flex items-center justify-between px-1 py-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        프로그램 종류
+                        {selectedTypes.length > 0 && (
+                          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-semibold text-white">
+                            {selectedTypes.length}
+                          </span>
+                        )}
+                      </span>
+                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", typeOpen && "rotate-180")} />
+                    </button>
+                    <div className={cn("grid transition-[grid-template-rows] duration-200 ease-out", typeOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                      <div className="overflow-hidden">
+                        <div className="mt-0.5 space-y-0.5 pb-1">
+                          {PROJECT_TYPES.map(({ value, label }) => {
+                            const Icon = TYPE_ICONS[value];
+                            const active = selectedTypes.includes(value);
+                            return (
+                              <button
+                                key={value}
+                                type="button"
+                                onClick={() => handleTypeChange(value, !active)}
+                                className={cn(
+                                  "w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all text-left",
+                                  active
+                                    ? "bg-blue-500/12 text-blue-600 dark:text-blue-400"
+                                    : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-800 dark:hover:text-zinc-200"
+                                )}
+                              >
+                                {Icon && (
+                                  <Icon className={cn("w-4 h-4 shrink-0 transition-colors", active ? "text-blue-500 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500")} />
+                                )}
+                                {label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
+                  {/* 카테고리 */}
                   <div>
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-2">카테고리</h4>
-                    <div className="space-y-0.5">
-                      {FEATURES.map(({ value, label }) => {
-                        const active = selectedCategories.includes(value);
-                        return (
-                          <button
-                            key={value}
-                            type="button"
-                            onClick={() => handleCategoryChange(value, !active)}
-                            className={cn(
-                              "w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all text-left",
-                              active
-                                ? "bg-blue-500/12 text-blue-600 dark:text-blue-400"
-                                : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-800 dark:hover:text-zinc-200"
-                            )}
-                          >
-                            {label}
-                          </button>
-                        );
-                      })}
+                    <button
+                      type="button"
+                      onClick={() => setCategoryOpen(o => !o)}
+                      className="w-full flex items-center justify-between px-1 py-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        카테고리
+                        {selectedCategories.length > 0 && (
+                          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-semibold text-white">
+                            {selectedCategories.length}
+                          </span>
+                        )}
+                      </span>
+                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", categoryOpen && "rotate-180")} />
+                    </button>
+                    <div className={cn("grid transition-[grid-template-rows] duration-200 ease-out", categoryOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                      <div className="overflow-hidden">
+                        <div className="mt-0.5 space-y-0.5 pb-1">
+                          {FEATURES.map(({ value, label }) => {
+                            const Icon = CATEGORY_ICONS[value];
+                            const active = selectedCategories.includes(value);
+                            return (
+                              <button
+                                key={value}
+                                type="button"
+                                onClick={() => handleCategoryChange(value, !active)}
+                                className={cn(
+                                  "w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all text-left",
+                                  active
+                                    ? "bg-blue-500/12 text-blue-600 dark:text-blue-400"
+                                    : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-800 dark:hover:text-zinc-200"
+                                )}
+                              >
+                                {Icon && (
+                                  <Icon className={cn("w-4 h-4 shrink-0 transition-colors", active ? "text-blue-500 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500")} />
+                                )}
+                                {label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
+                  {/* 플랫폼 */}
                   <div>
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-2">플랫폼</h4>
-                    <div className="space-y-0.5">
-                      {PLATFORMS.map(({ value, label }) => {
-                        const Icon = PLATFORM_ICONS[value];
-                        const active = selectedPlatforms.includes(value);
-                        return (
-                          <button
-                            key={value}
-                            type="button"
-                            onClick={() => handlePlatformChange(value, !active)}
-                            className={cn(
-                              "w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all text-left",
-                              active
-                                ? "bg-blue-500/12 text-blue-600 dark:text-blue-400"
-                                : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-800 dark:hover:text-zinc-200"
-                            )}
-                          >
-                            {Icon && (
-                              <Icon className={cn("w-4 h-4 shrink-0 transition-colors", active ? "text-blue-500 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500")} />
-                            )}
-                            {label}
-                          </button>
-                        );
-                      })}
+                    <button
+                      type="button"
+                      onClick={() => setPlatformOpen(o => !o)}
+                      className="w-full flex items-center justify-between px-1 py-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        플랫폼
+                        {selectedPlatforms.length > 0 && (
+                          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-semibold text-white">
+                            {selectedPlatforms.length}
+                          </span>
+                        )}
+                      </span>
+                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", platformOpen && "rotate-180")} />
+                    </button>
+                    <div className={cn("grid transition-[grid-template-rows] duration-200 ease-out", platformOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                      <div className="overflow-hidden">
+                        <div className="mt-0.5 space-y-0.5 pb-1">
+                          {PLATFORMS.map(({ value, label }) => {
+                            const Icon = PLATFORM_ICONS[value];
+                            const active = selectedPlatforms.includes(value);
+                            return (
+                              <button
+                                key={value}
+                                type="button"
+                                onClick={() => handlePlatformChange(value, !active)}
+                                className={cn(
+                                  "w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all text-left",
+                                  active
+                                    ? "bg-blue-500/12 text-blue-600 dark:text-blue-400"
+                                    : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-800 dark:hover:text-zinc-200"
+                                )}
+                              >
+                                {Icon && (
+                                  <Icon className={cn("w-4 h-4 shrink-0 transition-colors", active ? "text-blue-500 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500")} />
+                                )}
+                                {label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -215,7 +327,7 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                         setSelectedCategories([]);
                         setSelectedPlatforms([]);
                       }}
-                      className="text-xs font-medium text-zinc-400 transition-colors hover:text-zinc-900 dark:hover:text-white px-3"
+                      className="text-xs font-medium text-zinc-400 transition-colors hover:text-zinc-900 dark:hover:text-white px-1 pt-2"
                     >
                       필터 초기화
                     </button>
@@ -277,6 +389,7 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                     <h4 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">카테고리</h4>
                     <div className="flex flex-wrap gap-2">
                       {FEATURES.map(({ value, label }) => {
+                        const Icon = CATEGORY_ICONS[value];
                         const active = selectedCategories.includes(value);
                         return (
                           <button
@@ -290,6 +403,7 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                                 : "border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400",
                             )}
                           >
+                            {Icon && <Icon className="w-3.5 h-3.5 shrink-0" />}
                             {label}
                           </button>
                         );
@@ -350,10 +464,47 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
               />
             </div>
 
-            <div className="mb-6 flex justify-between items-center">
+            <div className="mb-6 flex justify-between items-center gap-2">
               <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
                 모든 프로젝트 <span className="text-zinc-400 text-base font-normal ml-2">({filteredProjects.length})</span>
               </h2>
+
+              {/* 정렬 드롭다운 */}
+              <div className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setSortOpen(o => !o)}
+                  className="flex items-center gap-1.5 rounded-xl border border-zinc-200/50 dark:border-zinc-800/50 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl px-3 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 shadow-sm hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition-colors"
+                >
+                  <ArrowUpDown className="h-3.5 w-3.5 text-zinc-400" />
+                  <span className="hidden sm:inline">
+                    {sortBy === 'newest' ? '최신순' : sortBy === 'clicks' ? '인기순' : '별점순'}
+                  </span>
+                </button>
+                {sortOpen && (
+                  <div className="absolute right-0 top-full mt-1 z-30 min-w-[112px] rounded-2xl border border-zinc-200/50 dark:border-zinc-800/50 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-2">
+                    {([
+                      { value: 'newest', label: '최신순' },
+                      { value: 'clicks', label: '인기순' },
+                      { value: 'rating', label: '별점순' },
+                    ] as const).map(opt => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => { setSortBy(opt.value); setSortOpen(false); }}
+                        className={cn(
+                          "w-full px-4 py-2.5 text-sm text-left font-medium transition-colors",
+                          sortBy === opt.value
+                            ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                            : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {filteredProjects.length === 0 ? (
