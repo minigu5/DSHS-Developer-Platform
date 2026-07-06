@@ -8,7 +8,9 @@ CREATE TABLE IF NOT EXISTS project_clicks (
   user_id UUID REFERENCES users(id) ON DELETE SET NULL,
   ip_hash TEXT,
   clicked_date DATE NOT NULL DEFAULT CURRENT_DATE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  -- user_id 또는 ip_hash 중 하나는 반드시 있어야 함
+  CONSTRAINT user_or_ip_required CHECK (user_id IS NOT NULL OR ip_hash IS NOT NULL)
 );
 
 -- 3. 중복 방지 인덱스 (로그인 유저: 하루 1회)
@@ -47,6 +49,12 @@ AS $$
 DECLARE
   v_inserted_count INT;
 BEGIN
+  -- p_user_id 스푸핑 방지: 로그인 유저는 자신의 JWT sub와 일치해야 함
+  IF p_user_id IS NOT NULL AND auth.uid() IS DISTINCT FROM p_user_id THEN
+    RAISE EXCEPTION 'unauthorized: user_id mismatch';
+  END IF;
+
+  -- ON CONFLICT: project_clicks_user_daily 또는 project_clicks_ip_daily 중복 인덱스와 충돌 시 무시
   INSERT INTO project_clicks (project_id, user_id, ip_hash, clicked_date)
   VALUES (p_project_id, p_user_id, p_ip_hash, CURRENT_DATE)
   ON CONFLICT DO NOTHING;

@@ -36,6 +36,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/explore", request.url));
   }
 
+  // http/https 스킴만 허용 (javascript: / data: 등 차단)
+  try {
+    const parsed = new URL(targetUrl);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return NextResponse.redirect(new URL("/explore", request.url));
+    }
+  } catch {
+    return NextResponse.redirect(new URL("/explore", request.url));
+  }
+
   // 로그인 유저 또는 IP 해시로 중복 방지
   const {
     data: { user },
