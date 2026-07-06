@@ -474,6 +474,7 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                 <button
                   type="button"
                   onClick={() => setSortOpen(o => !o)}
+                  aria-label={sortBy === 'newest' ? '최신순' : sortBy === 'clicks' ? '인기순' : '별점순'}
                   className="flex items-center gap-1.5 rounded-xl border border-zinc-200/50 dark:border-zinc-800/50 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl px-3 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 shadow-sm hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition-colors"
                 >
                   <ArrowUpDown className="h-3.5 w-3.5 text-zinc-400" />
