@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Globe, Code2, Lock, Star, ExternalLink, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Globe, Code2, Lock, Star, ExternalLink, ShieldCheck, ShieldAlert, MousePointerClick } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn, isExternalImage } from "@/lib/utils";
@@ -128,32 +128,45 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               {project.short_description}
             </p>
             
-            <div className="flex items-center gap-2 mb-8 text-sm">
-              <div className="flex items-center">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <Star
-                    key={n}
-                    className={cn(
-                      "w-4 h-4",
-                      n <= Math.round(avgRating)
-                        ? "fill-yellow-400 text-yellow-400"
-                        : "text-zinc-300 dark:text-zinc-600",
-                    )}
-                  />
-                ))}
+            <div className="flex flex-wrap items-center gap-4 mb-8 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <Star
+                      key={n}
+                      className={cn(
+                        "w-4 h-4",
+                        n <= Math.round(avgRating)
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "text-zinc-300 dark:text-zinc-600",
+                      )}
+                    />
+                  ))}
+                </div>
+                {reviewCount > 0 ? (
+                  <span className="text-zinc-600 dark:text-zinc-400">
+                    {avgRating.toFixed(1)} · 리뷰 {reviewCount}개
+                  </span>
+                ) : (
+                  <span className="text-zinc-500">아직 리뷰가 없습니다</span>
+                )}
               </div>
-              {reviewCount > 0 ? (
-                <span className="text-zinc-600 dark:text-zinc-400">
-                  {avgRating.toFixed(1)} · 리뷰 {reviewCount}개
-                </span>
-              ) : (
-                <span className="text-zinc-500">아직 리뷰가 없습니다</span>
+              {project.url && (
+                <div className="flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400">
+                  <MousePointerClick className="w-4 h-4" />
+                  <span>{project.click_count ?? 0}회 방문</span>
+                </div>
               )}
             </div>
             
             <div className="flex flex-wrap items-center gap-4">
               {project.url && (
-                <a href={project.url} target="_blank" rel="noreferrer" className={cn(buttonVariants({ size: "lg" }), "rounded-full bg-blue-600 hover:bg-blue-700 text-white font-medium")}>
+                <a
+                  href={`/api/track?project=${project.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={cn(buttonVariants({ size: "lg" }), "rounded-full bg-blue-600 hover:bg-blue-700 text-white font-medium")}
+                >
                   <ExternalLink className="w-4 h-4 mr-2" /> 웹사이트 방문
                 </a>
               )}
