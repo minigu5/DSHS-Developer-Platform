@@ -427,7 +427,16 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      track_project_click: {
+        Args: {
+          p_project_id: string;
+          p_user_id: string | null;
+          p_ip_hash: string | null;
+        };
+        Returns: boolean;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
