@@ -91,6 +91,7 @@ export type Database = {
           // 05 alter
           allowed_users: string[];
           feature_custom: string | null;
+          click_count: number;
         };
         Insert: {
           id?: string;
@@ -143,6 +144,7 @@ export type Database = {
           license_custom?: string | null;
           allowed_users?: string[];
           feature_custom?: string | null;
+          click_count?: number;
         };
         Relationships: [
           {
@@ -391,6 +393,33 @@ export type Database = {
           {
             foreignKeyName: 'ideas_linked_project_id_fkey';
             columns: ['linked_project_id'];
+            referencedRelation: 'projects';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      project_clicks: {
+        Row: {
+          id: string;
+          project_id: string;
+          user_id: string | null;
+          ip_hash: string | null;
+          clicked_date: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          user_id?: string | null;
+          ip_hash?: string | null;
+          clicked_date?: string;
+          created_at?: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [
+          {
+            foreignKeyName: 'project_clicks_project_id_fkey';
+            columns: ['project_id'];
             referencedRelation: 'projects';
             referencedColumns: ['id'];
           },
