@@ -1,8 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Globe, Lock, Pencil, Star, MessageSquare } from "lucide-react";
+import { Globe, Lock, Star, MessageSquare } from "lucide-react";
 
-import { buttonVariants } from "@/components/ui/button";
 import { cn, isExternalImage } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -81,7 +80,7 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
 
   const inner = (
     <>
-      <CardHeader className="pt-5 pb-3">
+      <CardHeader className="pt-4 pb-3">
         <div className="flex items-start gap-4">
           <ProjectIcon
             src={project.icon_url}
@@ -114,7 +113,7 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
         </div>
       </CardHeader>
 
-      <CardContent className="pb-0">
+      <CardContent className="pb-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 flex-wrap">
             <Globe className="w-3 h-3 text-zinc-400 dark:text-zinc-500 shrink-0" />
@@ -188,7 +187,7 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
       </div>
 
       <CardFooter className={cn(
-        "border-t border-zinc-100 dark:border-zinc-800/50 pt-2 pb-4 flex justify-between items-center relative z-0",
+        "border-t border-zinc-100 dark:border-zinc-800/50 pt-3 pb-4 flex justify-between items-center relative z-0",
         mode === 'manage' && "bg-zinc-50/50 dark:bg-zinc-900/20"
       )}>
         <div className="relative z-20">
@@ -207,15 +206,6 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
                 : <><Globe className="w-3 h-3" /> 공개</>
               }
             </span>
-            <Link
-              href={`/projects/${project.id}/edit`}
-              className={cn(
-                buttonVariants({ variant: "outline", size: "sm" }),
-                "rounded-full text-xs hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-800"
-              )}
-            >
-              <Pencil className="w-3.5 h-3.5 mr-1.5" /> 수정하기
-            </Link>
           </div>
         )}
       </CardFooter>

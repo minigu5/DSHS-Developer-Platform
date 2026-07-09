@@ -87,28 +87,27 @@ export function GuideWizard() {
 
   return (
     <div className="w-full max-w-2xl">
-      {/* 상단 고정 영역: 이전 버튼(첫 단계에서는 숨김) + 단계 표시 */}
-      <div className="mb-8 flex h-10 items-center justify-between">
-        {order.length > 0 ? (
-          <button
-            type="button"
-            onClick={goBack}
-            className="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-white"
-          >
-            <ChevronLeft className="mr-1 h-4 w-4" />
-            이전
-          </button>
-        ) : (
-          <span />
-        )}
-        <span className="text-sm font-medium text-zinc-400">{stepNumber}단계</span>
-      </div>
-
       <div className="mb-8">
-        <h2 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
+        <div className="mb-4 flex items-center justify-between">
+          {order.length > 0 ? (
+            <button
+              type="button"
+              onClick={goBack}
+              className="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-white"
+            >
+              <ChevronLeft className="mr-1 h-4 w-4" />
+              이전
+            </button>
+          ) : (
+            <span />
+          )}
+          <span className="text-sm font-medium text-zinc-400">{stepNumber}단계</span>
+        </div>
+
+        <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-zinc-900 dark:text-white">
           {current.title}
         </h2>
-        <p className="mt-2 text-zinc-500 dark:text-zinc-400">{current.description}</p>
+        <p className="mt-1.5 text-sm text-zinc-500 dark:text-zinc-400">{current.description}</p>
       </div>
 
       <div

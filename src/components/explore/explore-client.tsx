@@ -26,6 +26,7 @@ import {
   Code2,
   MoreHorizontal,
   ArrowUpDown,
+  X,
   type LucideIcon,
 } from "lucide-react";
 
@@ -460,8 +461,18 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                 placeholder="프로젝트, 태그, 개발자·팀 이름으로 검색해보세요..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-12 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border-zinc-200/50 dark:border-zinc-800/50 rounded-2xl shadow-sm text-base focus-visible:ring-blue-500"
+                className="pl-10 pr-11 h-12 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border-zinc-200/50 dark:border-zinc-800/50 rounded-2xl shadow-sm text-base focus-visible:ring-blue-500"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-[0.96] transition-[transform,background-color,color]"
+                  aria-label="검색어 지우기"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
 
             <div className="mb-6 flex justify-between items-center gap-2">

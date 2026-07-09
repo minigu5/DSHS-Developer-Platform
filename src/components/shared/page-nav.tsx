@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Search, Code2, Sparkles, Lightbulb, Megaphone, Bell } from "lucide-react";
+import { Search, Rocket, BookOpen, Newspaper, Megaphone, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/explore", label: "모든 프로젝트", icon: Search, pillClass: "bg-blue-600 shadow-blue-600/30" },
-  { href: "/projects/new", label: "프로젝트 등록", icon: Code2, pillClass: "bg-emerald-600 shadow-emerald-600/30" },
-  { href: "/guide", label: "나도 개발해볼래!", icon: Sparkles, pillClass: "bg-purple-600 shadow-purple-600/30" },
-  { href: "/tips", label: "개발 팁", icon: Lightbulb, pillClass: "bg-amber-500 shadow-amber-500/30" },
+  { href: "/projects/new", label: "프로젝트 등록", icon: Rocket, pillClass: "bg-emerald-600 shadow-emerald-600/30" },
+  { href: "/guide", label: "나도 개발해볼래!", icon: BookOpen, pillClass: "bg-purple-600 shadow-purple-600/30" },
+  { href: "/tips", label: "개발 팁", icon: Newspaper, pillClass: "bg-amber-500 shadow-amber-500/30" },
   { href: "/haejwo", label: "해줘!", icon: Megaphone, pillClass: "bg-orange-500 shadow-orange-500/30" },
   { href: "/announcements", label: "공지사항", icon: Bell, pillClass: "bg-sky-500 shadow-sky-500/30" },
 ] as const;

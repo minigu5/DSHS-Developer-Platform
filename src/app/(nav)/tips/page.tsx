@@ -1,7 +1,7 @@
 export const revalidate = 30;
 
 import Link from "next/link";
-import { Lightbulb, PenLine, Megaphone } from "lucide-react";
+import { Newspaper, PenLine, Megaphone } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { buttonVariants } from "@/components/ui/button";
@@ -57,7 +57,7 @@ export default async function TipsPage() {
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 sm:px-6 py-12">
         <div className="mb-8">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
-            <Lightbulb className="h-4 w-4" /> 개발 팁
+            <Newspaper className="h-4 w-4" /> 개발 팁
           </div>
           <div className="flex items-end justify-between gap-4">
             <div>
