@@ -208,7 +208,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
     if (autoFaviconTimer.current) clearTimeout(autoFaviconTimer.current);
     autoFaviconTimer.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/favicon?url=${encodeURIComponent(targetUrl)}`);
+        const res = await fetch(`/api/favicon?url=${encodeURIComponent(targetUrl)}&v=2`, { cache: 'no-store' });
         const data = await res.json();
         setAutoIconPreview(data.faviconUrl ?? null);
       } catch {
@@ -415,7 +415,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
         finalIconUrl = iconUrl || null;
       } else if (url) {
         try {
-          const res = await fetch(`/api/favicon?url=${encodeURIComponent(url)}`);
+          const res = await fetch(`/api/favicon?url=${encodeURIComponent(url)}&v=2`, { cache: 'no-store' });
           const data = await res.json();
           finalIconUrl = data.faviconUrl ?? null;
         } catch {
