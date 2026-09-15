@@ -155,8 +155,10 @@ export async function resolveFavicon(rawUrl: string): Promise<string | null> {
 
   // 최후 폴백: 대상 서버가 서버측 요청을 403/차단(WAF·anti-bot)하는 경우
   // (Vercel 서버리스 IP가 데이터센터 대역이라 일부 Cloudflare 보호 사이트에서 막힘 — 2026-09-15 확인)
-  // 구글의 공개 favicon 서비스로 한 번 더 시도.
+  // 구글/덕덕고 공개 favicon 서비스로 한 번 더 시도 — 둘의 색인 커버리지가 서로 달라
+  // 한쪽만으론 부족함(2026-09-15: omm.run 루트=구글만 보유, 서브도메인=덕덕고만 보유 확인).
   candidates.push(`https://www.google.com/s2/favicons?sz=128&domain=${encodeURIComponent(pageUrl.hostname)}`);
+  candidates.push(`https://icons.duckduckgo.com/ip3/${encodeURIComponent(pageUrl.hostname)}.ico`);
 
   const seen = new Set<string>();
   const unique = candidates.filter(c => (seen.has(c) ? false : (seen.add(c), true)));
