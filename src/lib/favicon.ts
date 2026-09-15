@@ -6,9 +6,12 @@ import { assertSafePublicUrl } from '@/lib/ssrf-guard';
 const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
-async function isImageOk(u: string): Promise<boolean> {
+async function isImageOk(u: string, debugTag?: string): Promise<boolean> {
   const safe = await assertSafePublicUrl(u);
-  if (!safe.ok) return false;
+  if (!safe.ok) {
+    if (debugTag) console.log(debugTag, 'isImageOk ssrf blocked', u, safe.reason);
+    return false;
+  }
   try {
     const res = await fetch(safe.url.href, {
       method: 'GET',
@@ -16,13 +19,15 @@ async function isImageOk(u: string): Promise<boolean> {
       redirect: 'follow',
       signal: AbortSignal.timeout(3500),
     });
-    if (!res.ok) return false;
     const ct = (res.headers.get('content-type') || '').toLowerCase();
+    if (debugTag) console.log(debugTag, 'isImageOk candidate', u, '->', res.status, ct);
+    if (!res.ok) return false;
     if (!ct) return true;
     if (ct.startsWith('image/')) return true;
     if (ct.startsWith('application/octet-stream')) return true;
     return false;
-  } catch {
+  } catch (e) {
+    if (debugTag) console.log(debugTag, 'isImageOk threw', u, e instanceof Error ? e.message : String(e));
     return false;
   }
 }
@@ -87,8 +92,12 @@ function findMetaImage(html: string): string | null {
 }
 
 export async function resolveFavicon(rawUrl: string): Promise<string | null> {
+  const DEBUG = '[favicon-debug]';
   const safeInput = await assertSafePublicUrl(rawUrl);
-  if (!safeInput.ok) return null;
+  if (!safeInput.ok) {
+    console.log(DEBUG, 'safeInput fail', rawUrl, safeInput.reason);
+    return null;
+  }
   const pageUrl = safeInput.url;
 
   const candidates: string[] = [];
@@ -107,8 +116,12 @@ export async function resolveFavicon(rawUrl: string): Promise<string | null> {
 
     // 리다이렉트 follow 결과가 사설 IP/내부망으로 빠지지 않았는지 재검증
     const finalUrlStr = res.url || pageUrl.href;
+    console.log(DEBUG, 'page fetch status', res.status, 'finalUrl', finalUrlStr);
     const safeFinal = await assertSafePublicUrl(finalUrlStr);
-    if (!safeFinal.ok) return null;
+    if (!safeFinal.ok) {
+      console.log(DEBUG, 'safeFinal fail', finalUrlStr, safeFinal.reason);
+      return null;
+    }
 
     if (res.ok) {
       try {
@@ -119,6 +132,7 @@ export async function resolveFavicon(rawUrl: string): Promise<string | null> {
 
       const html = await res.text();
       const icons = collectLinkIcons(html);
+      console.log(DEBUG, 'icons found', JSON.stringify(icons));
       for (const c of icons) {
         try {
           candidates.push(new URL(c.href, resolveBase).href);
@@ -132,8 +146,8 @@ export async function resolveFavicon(rawUrl: string): Promise<string | null> {
         try { candidates.push(new URL(meta, resolveBase).href); } catch {}
       }
     }
-  } catch {
-    // 페이지 fetch 실패 시 폴백으로 진행
+  } catch (e) {
+    console.log(DEBUG, 'page fetch threw', pageUrl.href, e instanceof Error ? e.message : String(e));
   }
 
   try { candidates.push(new URL('favicon.ico', resolveBase).href); } catch {}
@@ -141,10 +155,13 @@ export async function resolveFavicon(rawUrl: string): Promise<string | null> {
 
   const seen = new Set<string>();
   const unique = candidates.filter(c => (seen.has(c) ? false : (seen.add(c), true)));
+  console.log(DEBUG, 'unique candidates', JSON.stringify(unique));
 
   for (const c of unique.slice(0, 6)) {
-    if (await isImageOk(c)) return c;
+    const ok = await isImageOk(c, DEBUG);
+    if (ok) return c;
   }
 
+  console.log(DEBUG, 'no candidate passed');
   return null;
 }
