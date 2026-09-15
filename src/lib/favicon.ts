@@ -153,6 +153,11 @@ export async function resolveFavicon(rawUrl: string): Promise<string | null> {
   try { candidates.push(new URL('favicon.ico', resolveBase).href); } catch {}
   candidates.push(`${pageUrl.origin}/favicon.ico`);
 
+  // 최후 폴백: 대상 서버가 서버측 요청을 403/차단(WAF·anti-bot)하는 경우
+  // (Vercel 서버리스 IP가 데이터센터 대역이라 일부 Cloudflare 보호 사이트에서 막힘 — 2026-09-15 확인)
+  // 구글의 공개 favicon 서비스로 한 번 더 시도.
+  candidates.push(`https://www.google.com/s2/favicons?sz=128&domain=${encodeURIComponent(pageUrl.hostname)}`);
+
   const seen = new Set<string>();
   const unique = candidates.filter(c => (seen.has(c) ? false : (seen.add(c), true)));
   console.log(DEBUG, 'unique candidates', JSON.stringify(unique));
