@@ -8,6 +8,7 @@ import { SiteHeader } from "@/components/shared/site-header";
 import { createClient } from "@/lib/supabase/server";
 import { AnnouncementTicker, type TickerItem } from "@/components/shared/announcement-ticker";
 import { ProjectCard, type ProjectCardData } from "@/components/projects/project-card";
+import { AppShelf, type ShelfApp } from "@/components/home/app-shelf";
 
 // 프로젝트 외 메뉴 — 아이콘 색은 PageNav 의 섹션 색과 동일하게 맞춤
 const SECTION_LINKS = [
@@ -43,7 +44,7 @@ const SECTION_LINKS = [
 
 export default async function HomePage() {
   const supabase = await createClient();
-  const [{ data: announcementsRaw }, { data: projectsRaw }] = await Promise.all([
+  const [{ data: announcementsRaw }, { data: projectsRaw }, { data: shelfRaw }, { count: projectCount }] = await Promise.all([
     supabase
       .from("announcements")
       .select("id, title, category, is_pinned")
@@ -71,61 +72,85 @@ export default async function HomePage() {
       .order("created_at", { ascending: false })
       .limit(6)
       .returns<ProjectCardData[]>(),
+    // 진열대: 방문 많은 순 11개 + "내 앱 올리기" 칸 = 4열 × 3줄
+    supabase
+      .from("projects")
+      .select("id, title, icon_url")
+      .eq("visibility", "public")
+      .order("click_count", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .limit(11)
+      .returns<ShelfApp[]>(),
+    supabase
+      .from("projects")
+      .select("id", { count: "exact", head: true })
+      .eq("visibility", "public"),
   ]);
 
   const tickerItems: TickerItem[] = announcementsRaw ?? [];
   const hasTicker = tickerItems.length > 0;
   const recentProjects: ProjectCardData[] = projectsRaw ?? [];
+  const shelfApps: ShelfApp[] = shelfRaw ?? [];
+  const totalProjects = projectCount ?? 0;
 
   return (
     <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <SiteHeader variant="transparent" maxWidth="md" />
 
       {hasTicker && (
-        <div className="mt-16">
+        <aside aria-label="최근 공지사항" className="mt-16">
           <AnnouncementTicker items={tickerItems} />
-        </div>
+        </aside>
       )}
 
       <main id="main-content" tabIndex={-1} className="flex-1 focus:outline-none">
-        {/* HERO */}
+        {/* HERO — 왼쪽 소개, 오른쪽 실제 프로젝트 아이콘 진열대 */}
         <section
           className={cn(
             "px-4 sm:px-6 pb-16 sm:pb-20",
             hasTicker ? "pt-12 sm:pt-20" : "pt-28 sm:pt-36"
           )}
         >
-          <div className="max-w-5xl mx-auto">
-            <h1 className="max-w-3xl text-4xl sm:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white leading-[1.25] break-keep text-balance">
-              대구과학고 학생들이 만든 프로그램을 한곳에서
-            </h1>
-            <p className="mt-5 max-w-2xl text-base sm:text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed break-keep text-pretty">
-              친구가 만든 웹사이트와 앱을 써 보고 리뷰를 남겨 보세요. 직접 만든 프로그램이 있다면 올려서
-              피드백을 받을 수 있어요.
-            </p>
-            <div className="mt-8 flex flex-col sm:flex-row gap-3 w-full max-w-[280px] sm:max-w-none">
-              <Link
-                href="/explore"
-                prefetch={true}
-                className={cn(
-                  buttonVariants({ size: "lg" }),
-                  "h-11 px-5 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white"
-                )}
-              >
-                <Search className="mr-2 h-4 w-4" aria-hidden />
-                프로젝트 둘러보기
-              </Link>
-              <Link
-                href="/projects/new"
-                prefetch={true}
-                className={cn(
-                  buttonVariants({ size: "lg", variant: "outline" }),
-                  "h-11 px-5 text-sm sm:text-base border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                )}
-              >
-                <Rocket className="mr-2 h-4 w-4" aria-hidden />
-                내 프로젝트 등록하기
-              </Link>
+          <div className="max-w-5xl mx-auto lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:items-center lg:gap-14">
+            <div>
+              <h1 className="max-w-xl text-4xl sm:text-5xl font-bold text-zinc-900 dark:text-white leading-[1.2] break-keep">
+                {totalProjects > 0
+                  ? `대구과학고 학생들이 만든 프로그램 ${totalProjects}개`
+                  : "대구과학고 학생들이 만든 프로그램을 모으고 있어요"}
+              </h1>
+              <p className="mt-5 max-w-lg text-base sm:text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed break-keep">
+                친구가 만든 웹사이트와 앱을 써 보고 리뷰를 남겨 보세요. 직접 만든 프로그램이 있다면 올려서
+                피드백을 받을 수 있어요.
+              </p>
+              <div className="mt-8 flex flex-col sm:flex-row gap-3 w-full max-w-[280px] sm:max-w-none">
+                <Link
+                  href="/explore"
+                  prefetch={true}
+                  className={cn(
+                    buttonVariants({ size: "lg" }),
+                    "h-11 px-5 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white active:scale-[0.96] transition-[background-color,scale]"
+                  )}
+                >
+                  <Search className="mr-2 h-4 w-4" aria-hidden />
+                  프로젝트 둘러보기
+                </Link>
+                <Link
+                  href="/projects/new"
+                  prefetch={true}
+                  className={cn(
+                    buttonVariants({ size: "lg", variant: "outline" }),
+                    "h-11 px-5 text-sm sm:text-base border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-[0.96] transition-[background-color,scale]"
+                  )}
+                >
+                  <Rocket className="mr-2 h-4 w-4" aria-hidden />
+                  내 프로젝트 등록하기
+                </Link>
+              </div>
+            </div>
+
+            <div className="mt-12 lg:mt-0 max-w-[400px]">
+              <h2 className="sr-only">많이 찾는 프로젝트</h2>
+              <AppShelf apps={shelfApps} />
             </div>
           </div>
         </section>

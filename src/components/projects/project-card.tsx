@@ -82,7 +82,8 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
           <ProjectIcon
             src={project.icon_url}
             title={project.title}
-            className="w-12 h-12 shrink-0 border border-zinc-100 dark:border-zinc-800 mt-[26px]"
+            className="w-12 h-12 shrink-0 rounded-[22%] mt-[26px]"
+            decorative
           />
           <div className="flex-1 min-w-0">
             <div className="flex gap-2 mb-2 flex-wrap h-5 overflow-hidden">

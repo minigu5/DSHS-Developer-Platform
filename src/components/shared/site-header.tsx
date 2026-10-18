@@ -52,7 +52,7 @@ export function SiteHeader({
               height={32}
               className="block rounded-lg border border-zinc-200 dark:border-zinc-800 shrink-0"
             />
-            <span className="font-bold text-base sm:text-lg text-zinc-900 dark:text-white translate-y-[2px]">
+            <span className="font-heading font-bold text-base sm:text-lg tracking-tight text-zinc-900 dark:text-white translate-y-[1px]">
               DSHS Developer Platform
             </span>
           </Link>

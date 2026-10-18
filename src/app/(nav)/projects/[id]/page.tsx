@@ -109,7 +109,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <ProjectIcon 
             src={project.icon_url} 
             title={project.title} 
-            className="w-16 h-16 md:w-20 md:h-20 shrink-0 border border-zinc-200 dark:border-zinc-800" 
+            className="w-16 h-16 md:w-20 md:h-20 shrink-0 rounded-[22%]"
+            decorative
           />
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-3">

@@ -302,7 +302,8 @@
 
 ### 홈 페이지 CTA 프리패치 — `src/app/page.tsx`
 - 홈 페이지는 PageNav가 없어 `/explore`(force-dynamic) 등 동적 페이지가 자동 프리패치되지 않음.
-- **홈 구성**: 왼쪽 정렬 히어로(h1 + 설명 + CTA 2개) → "최근 올라온 프로젝트"(공개 프로젝트 6개, `ProjectCard`) → "프로젝트 말고도"(가이드·팁·해줘·공지 링크 목록, 2열 구분선 리스트) → 푸터. 마케팅 기능 카드·가치 카드·스크롤 리빌(`ScrollReveal`, 삭제됨)은 AI 템플릿 느낌이라 제거.
+- **홈 구성**: 히어로(왼쪽 h1 "대구과학고 학생들이 만든 프로그램 N개" + 설명 + CTA 2개 / 오른쪽 **앱 진열대**) → "최근 올라온 프로젝트"(공개 프로젝트 6개, `ProjectCard`) → "프로젝트 말고도"(가이드·팁·해줘·공지 링크 목록, 2열 구분선 리스트) → 푸터. 마케팅 기능 카드·가치 카드·스크롤 리빌(`ScrollReveal`, 삭제됨)은 AI 템플릿 느낌이라 제거.
+- **앱 진열대** (`src/components/home/app-shelf.tsx`): 사이트의 개성을 담당하는 유일한 장식 요소. 공개 프로젝트를 `click_count` 내림차순으로 11개 + "내 앱 올리기" 칸을 폰 홈 화면처럼 4열 격자로 배치. 아이콘 64px·`rounded-[22%]`, 패널 `rounded-[38px]`(동심 radius). 페이지 로드 시 `.app-pop` 키프레임으로 40ms 간격 등장(한 번만, 동작 줄이기면 즉시). 프로젝트 수는 `count: "exact", head: true`로 조회.
 - **CTA 버튼 2개**: "프로젝트 둘러보기"(`/explore`) + "내 프로젝트 등록하기"(`/projects/new`). 두 링크 모두 `prefetch={true}`. hover 확대 효과 없음.
 - **홈 섹션 너비 통일**: 모든 섹션이 동일한 구조 — `<section class="px-4 sm:px-6">` + `<div class="max-w-5xl mx-auto">` 내부 wrapper. `max-w-5xl mx-auto`를 section에 직접 쓰면 padding이 max-width 안에서 소비돼 실제 콘텐츠 너비가 달라지는 문제 방지.
 
@@ -455,7 +456,7 @@ className={cn("... focus-visible:outline-none focus-visible:ring-2 focus-visible
 ## 📝 협업 및 코드 스타일 규칙
 - **TS Strict**: `any` 사용 금지, 인터페이스 명확히 정의.
 - **Server First**: 상호작용이 필요한 경우에만 `"use client"` 사용.
-- **Design System**: Zinc/Blue 포인트, `rounded-3xl` 카드, 불투명 표면. 아래 "AI 템플릿 느낌" 요소는 쓰지 않는다 (2026-10 전면 제거):
+- **Design System**: Zinc/Blue 포인트, `rounded-3xl` 카드, 불투명 표면. **제목(h1·h2)과 로고는 IBM Plex Sans KR**(600/700, `next/font`의 `--font-plex-kr`, `font-heading` 유틸리티), 본문은 Geist + 한글 시스템 폰트. 프로젝트 아이콘은 `rounded-[22%]`(앱 아이콘 모양)로 통일, 아이콘 없는 프로젝트는 제목 첫 글자 + 제목 해시로 고른 색 타일(`ProjectIcon` 폴백). 개성은 홈 앱 진열대 한 곳에 집중하고 나머지는 차분하게 유지. 아래 "AI 템플릿 느낌" 요소는 쓰지 않는다 (2026-10 전면 제거):
   - 배경 블러 블롭(`blur-[120px]` 원), 그라디언트 텍스트, 파랑→보라 그라디언트 아바타, 글래스모피즘(`bg-white/70 backdrop-blur`)
   - hover 시 확대(`hover:scale-*`)·떠오름(`hover:-translate-y-*`)·컬러 글로우 그림자(`shadow-blue-500/20`), 섹션별 fade-up 스크롤 리빌
   - 제목 위 아이콘+섹션명 알약(eyebrow), `uppercase tracking-wider` 라벨, ✨ 환영 배지, 이모지 안내문, 마케팅 문구("새로움을 창조하세요")
