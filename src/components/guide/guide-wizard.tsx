@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronLeft, Check, Lock,
@@ -58,6 +58,17 @@ export function GuideWizard() {
   const current = steps.find((s) => !(s.key in answers)) ?? null;
   const stepNumber = order.length + 1;
 
+  // 단계가 바뀌면 새 질문 제목으로 포커스를 옮겨 스크린리더·키보드 사용자가 흐름을 놓치지 않게 함
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    headingRef.current?.focus();
+  }, [current?.key]);
+
   const select = (value: string) => {
     if (!current) return;
     if (current.disabledReason?.(answers, value)) return;
@@ -93,18 +104,22 @@ export function GuideWizard() {
             <button
               type="button"
               onClick={goBack}
-              className="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-white"
+              className="inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-white"
             >
-              <ChevronLeft className="mr-1 h-4 w-4" />
+              <ChevronLeft className="mr-1 h-4 w-4" aria-hidden />
               이전
             </button>
           ) : (
             <span />
           )}
-          <span className="text-sm font-medium text-zinc-400">{stepNumber}단계</span>
+          <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{stepNumber}단계</span>
         </div>
 
-        <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-zinc-900 dark:text-white">
+        <h2
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-xl sm:text-2xl font-semibold tracking-tight text-zinc-900 dark:text-white focus:outline-none"
+        >
           {current.title}
         </h2>
         <p className="mt-1.5 text-sm text-zinc-500 dark:text-zinc-400">{current.description}</p>
@@ -112,7 +127,7 @@ export function GuideWizard() {
 
       <div
         key={current.key}
-        className="space-y-3 duration-300 animate-in fade-in slide-in-from-bottom-4"
+        className="space-y-3 duration-200 animate-in fade-in"
       >
         {current.options.map((opt) => {
           const reason = current.disabledReason?.(answers, opt.value) ?? null;
@@ -126,10 +141,10 @@ export function GuideWizard() {
               disabled={disabled}
               aria-disabled={disabled}
               className={cn(
-                "group flex w-full items-center justify-between gap-4 rounded-2xl border p-4 text-left transition-all duration-200",
+                "group flex w-full items-center justify-between gap-4 rounded-2xl border p-4 text-left transition-[color,background-color,border-color,scale] duration-150",
                 disabled
-                  ? "cursor-not-allowed border-zinc-200/60 bg-zinc-100/50 opacity-70 dark:border-zinc-800/60 dark:bg-zinc-900/30"
-                  : "border-zinc-200 bg-white/70 hover:scale-[1.01] hover:border-blue-300 hover:shadow-lg active:scale-[0.99] dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-blue-700",
+                  ? "cursor-not-allowed border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/40"
+                  : "border-zinc-200 bg-white hover:border-blue-300 active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-blue-700",
               )}
             >
               <div className="flex items-center gap-3 min-w-0">
@@ -140,7 +155,7 @@ export function GuideWizard() {
                       ? "bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600"
                       : "bg-blue-50 text-blue-600 group-hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:group-hover:bg-blue-900/50",
                   )}>
-                    <Icon className="h-[18px] w-[18px]" />
+                    <Icon className="h-[18px] w-[18px]" aria-hidden />
                   </span>
                 )}
                 <div className="min-w-0">
@@ -148,20 +163,21 @@ export function GuideWizard() {
                     className={cn(
                       "font-semibold",
                       disabled
-                        ? "text-zinc-400 dark:text-zinc-500"
+                        ? "text-zinc-500 dark:text-zinc-500"
                         : "text-zinc-900 dark:text-white",
                     )}
                   >
                     {opt.label}
                   </p>
                   {reason ? (
-                    <p className="mt-1 text-sm text-amber-600 dark:text-amber-400">{reason}</p>
+                    <p className="mt-1 text-sm text-amber-800 dark:text-amber-400">{reason}</p>
                   ) : opt.desc ? (
                     <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">{opt.desc}</p>
                   ) : null}
                 </div>
               </div>
               <span
+                aria-hidden
                 className={cn(
                   "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors",
                   disabled

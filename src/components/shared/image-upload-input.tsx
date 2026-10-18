@@ -110,7 +110,7 @@ export function ImageUploadInput({
             onDrop={handleDrop}
             onClick={() => !uploading && fileRef.current?.click()}
             className={cn(
-              "relative flex items-center justify-center gap-2 h-10 rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200",
+              "relative flex items-center justify-center gap-2 h-10 rounded-xl border-2 border-dashed cursor-pointer transition-colors duration-200",
               "text-xs font-medium",
               dragOver
                 ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 text-blue-600"
@@ -119,7 +119,7 @@ export function ImageUploadInput({
             )}
           >
             {uploading ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> 업로드 중...</>
+              <><Loader2 className="w-4 h-4 animate-spin" /> 업로드 중…</>
             ) : (
               <><Upload className="w-3.5 h-3.5" /> {placeholder}</>
             )}

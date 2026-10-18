@@ -151,7 +151,7 @@ export function ProfileSettingsDialog({ userId, initialNickname, initialBio, ini
                 onClick={handleCheckDuplicate}
                 disabled={checkingNickname || isNicknameChecked}
               >
-                {checkingNickname ? <Loader2 className="w-4 h-4 animate-spin" /> : "중복 확인"}
+                {checkingNickname ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden /><span className="sr-only">확인 중…</span></> : "중복 확인"}
               </Button>
             </div>
           </div>
@@ -189,10 +189,10 @@ export function ProfileSettingsDialog({ userId, initialNickname, initialBio, ini
                       setInterests([...interests, item.value]);
                     }
                   }}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ease-out select-none will-change-transform hover:scale-105 hover:brightness-110 active:scale-95 active:duration-75 ${
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out select-none active:scale-95 active:duration-75 ${
                     interests.includes(item.value)
-                      ? "bg-blue-600 text-white shadow-md shadow-blue-500/25"
-                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:shadow-lg"
+                      ? "bg-blue-600 text-white"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
                   }`}
                 >
                   {item.label}

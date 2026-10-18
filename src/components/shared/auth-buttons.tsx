@@ -65,7 +65,7 @@ export function AuthButtons() {
   };
 
   if (loading) {
-    return <div className="w-9 h-9 rounded-full bg-zinc-200 dark:bg-zinc-800 animate-pulse" />;
+    return <div className="w-9 h-9 rounded-full bg-zinc-200 dark:bg-zinc-800" aria-hidden />;
   }
 
   if (user) {
@@ -79,10 +79,10 @@ export function AuthButtons() {
 
     return (
       <DropdownMenu>
-        <DropdownMenuTrigger className="relative h-9 w-9 rounded-full focus:outline-none ring-2 ring-transparent hover:ring-blue-500/50 transition-all cursor-pointer">
+        <DropdownMenuTrigger aria-label={`${displayName} 계정 메뉴`} className="relative h-9 w-9 rounded-full outline-none ring-2 ring-transparent hover:ring-zinc-300 dark:hover:ring-zinc-700 focus-visible:ring-blue-600 transition-[box-shadow] cursor-pointer">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={avatarUrl} alt={displayName} />
-            <AvatarFallback className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 font-bold text-xs">{initials}</AvatarFallback>
+            <AvatarImage src={avatarUrl} alt="" />
+            <AvatarFallback className="bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200 font-bold text-xs">{initials}</AvatarFallback>
           </Avatar>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="end">
@@ -96,12 +96,12 @@ export function AuthButtons() {
           </div>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => router.push('/me')} className="cursor-pointer">
-            <UserIcon className="mr-2 h-4 w-4" />
-            <span>내 페이지 (마이페이지)</span>
+            <UserIcon className="mr-2 h-4 w-4" aria-hidden />
+            <span>내 페이지</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400">
-            <LogOut className="mr-2 h-4 w-4" />
+            <LogOut className="mr-2 h-4 w-4" aria-hidden />
             <span>로그아웃</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -110,7 +110,7 @@ export function AuthButtons() {
   }
 
   return (
-    <Link href="/login" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "rounded-full font-medium bg-white/50 dark:bg-black/50 backdrop-blur-md border-zinc-200 dark:border-zinc-800")}>
+    <Link href="/login" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "rounded-full font-medium bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700")}>
       로그인
     </Link>
   );

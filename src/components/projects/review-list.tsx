@@ -100,7 +100,7 @@ export function ReviewList({
                       {mounted ? formatDistanceToNow(new Date(review.created_at), {
                         addSuffix: true,
                         locale: ko,
-                      }) : "잠시만 기다려주세요..."}
+                      }) : "잠시만 기다려주세요…"}
                     </span>
                   </div>
 

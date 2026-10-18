@@ -84,8 +84,7 @@ export default async function HaejwoDetailPage({
     : idea.linked_project;
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-zinc-50/50 font-sans dark:bg-[#09090b]">
-      <div className="pointer-events-none absolute right-0 top-0 h-[600px] w-[600px] rounded-full bg-orange-500/8 blur-[120px] dark:bg-orange-600/8" />
+    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 sm:px-6 py-12">
         <div className="mb-3 flex items-center gap-3">
@@ -101,7 +100,7 @@ export default async function HaejwoDetailPage({
           </Link>
         </div>
 
-        <article className="rounded-3xl border border-zinc-200 bg-white/70 p-6 sm:p-8 shadow-sm backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/60">
+        <article className="rounded-3xl border border-zinc-200 bg-white p-6 sm:p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <div className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-600 dark:bg-orange-900/20 dark:text-orange-400">
               <Megaphone className="h-3 w-3" />

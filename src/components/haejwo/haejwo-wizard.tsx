@@ -146,7 +146,7 @@ export function HaejwoWizard({ mode = "create", defaults }: HaejwoWizardProps) {
                   setType(opt.value);
                   setStep("category");
                 }}
-                className="group flex w-full items-center justify-between gap-4 rounded-2xl border border-zinc-200 bg-white/70 p-4 text-left transition-all duration-200 hover:scale-[1.01] hover:border-orange-300 hover:shadow-lg active:scale-[0.99] dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-orange-700"
+                className="group flex w-full items-center justify-between gap-4 rounded-2xl border border-zinc-200 bg-white p-4 text-left transition-[color,background-color,border-color,box-shadow,scale] duration-200 hover:border-orange-300 active:scale-[0.99] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-orange-700"
               >
                 <p className="font-semibold text-zinc-900 dark:text-white">{opt.label}</p>
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-zinc-300 text-transparent transition-colors group-hover:border-orange-400 dark:border-zinc-700">
@@ -177,7 +177,7 @@ export function HaejwoWizard({ mode = "create", defaults }: HaejwoWizardProps) {
                   setCategory(opt.value);
                   setStep("write");
                 }}
-                className="group flex w-full items-center justify-between gap-4 rounded-2xl border border-zinc-200 bg-white/70 p-4 text-left transition-all duration-200 hover:scale-[1.01] hover:border-orange-300 hover:shadow-lg active:scale-[0.99] dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-orange-700"
+                className="group flex w-full items-center justify-between gap-4 rounded-2xl border border-zinc-200 bg-white p-4 text-left transition-[color,background-color,border-color,box-shadow,scale] duration-200 hover:border-orange-300 active:scale-[0.99] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-orange-700"
               >
                 <p className="font-semibold text-zinc-900 dark:text-white">{opt.label}</p>
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-zinc-300 text-transparent transition-colors group-hover:border-orange-400 dark:border-zinc-700">
@@ -249,12 +249,12 @@ export function HaejwoWizard({ mode = "create", defaults }: HaejwoWizardProps) {
                   placeholder={
                     "## 이런 프로그램이 있으면 좋겠어요\n\n원하는 기능을 구체적으로 설명해주세요.\n\n### 주요 기능\n- 기능 1\n- 기능 2\n\n### 참고\n비슷한 서비스: ..."
                   }
-                  className="min-h-[360px] w-full resize-y rounded-2xl border border-zinc-200 bg-white/70 p-4 font-mono text-sm leading-relaxed text-zinc-900 outline-none focus:ring-2 focus:ring-orange-500/30 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-100"
+                  className="min-h-[360px] w-full resize-y rounded-2xl border border-zinc-200 bg-white p-4 font-mono text-sm leading-relaxed text-zinc-900 outline-none focus:ring-2 focus:ring-orange-500/30 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
                 />
               )}
 
               {editorTab === "preview" && (
-                <div className="min-h-[360px] overflow-auto rounded-2xl border border-zinc-200 bg-white/70 p-6 dark:border-zinc-800 dark:bg-zinc-900/60">
+                <div className="min-h-[360px] overflow-auto rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
                   {content.trim() ? (
                     <Markdown>{content}</Markdown>
                   ) : (
@@ -287,10 +287,10 @@ export function HaejwoWizard({ mode = "create", defaults }: HaejwoWizardProps) {
                 type="button"
                 onClick={handleSubmit}
                 disabled={loading}
-                className="rounded-full bg-orange-500 px-6 text-white hover:bg-orange-600"
+                className="rounded-full bg-orange-700 px-6 text-white hover:bg-orange-800"
               >
                 {loading
-                  ? mode === "edit" ? "저장 중..." : "등록 중..."
+                  ? mode === "edit" ? "저장 중…" : "등록 중…"
                   : mode === "edit" ? "수정 저장" : "해줘! 등록"}
               </Button>
             </div>
@@ -319,7 +319,7 @@ function TabButton({
       className={cn(
         "inline-flex items-center rounded-full px-3 py-1 text-sm font-medium transition-colors",
         active
-          ? "bg-orange-500 text-white"
+          ? "bg-orange-700 text-white"
           : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white",
       )}
     >

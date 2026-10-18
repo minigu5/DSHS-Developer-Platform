@@ -38,7 +38,7 @@ export function AnnouncementCard({ announcement }: { announcement: AnnouncementC
   return (
     <Link
       href={`/announcements/${announcement.id}`}
-      className="group flex flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-sky-500/50 hover:shadow-xl hover:shadow-sky-500/5 dark:border-zinc-800 dark:bg-zinc-900"
+      className="group flex flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm transition-colors duration-300 hover:border-sky-500/50 dark:border-zinc-800 dark:bg-zinc-900"
     >
       <div className="flex flex-1 flex-col p-6">
         <div className="mb-3 flex items-center gap-2">
@@ -60,9 +60,9 @@ export function AnnouncementCard({ announcement }: { announcement: AnnouncementC
         </h2>
 
         <div className="flex-1 min-h-4" />
-        <div className="flex items-center justify-between border-t border-zinc-100 pt-4 dark:border-zinc-800/50">
+        <div className="flex items-center justify-between border-t border-zinc-100 pt-4 dark:border-zinc-800">
           <div className="flex items-center gap-2">
-            <div className="relative h-6 w-6 overflow-hidden rounded-full border border-zinc-200 bg-gradient-to-tr from-sky-100 to-blue-100 dark:border-zinc-800 dark:from-sky-900/40 dark:to-blue-900/40">
+            <div className="relative h-6 w-6 overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800">
               {announcement.author?.avatar_url ? (
                 <Image
                   src={announcement.author.avatar_url}

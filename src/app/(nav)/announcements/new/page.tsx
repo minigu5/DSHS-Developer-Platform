@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { Bell } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { isDeveloper } from "@/lib/constants";
@@ -15,23 +14,19 @@ export default async function NewAnnouncementPage() {
   if (!user) redirect("/login?next=/announcements/new");
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-zinc-50/50 font-sans dark:bg-[#09090b]">
-      <div className="pointer-events-none absolute right-0 top-0 h-[600px] w-[600px] rounded-full bg-sky-500/10 blur-[120px] dark:bg-sky-600/10" />
+    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 sm:px-6 py-12">
         <div className="mb-8">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-sm font-medium text-sky-600 dark:bg-sky-900/20 dark:text-sky-400">
-            <Bell className="h-4 w-4" /> 공지사항
-          </div>
           <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
             공지사항 작성
           </h1>
           <p className="mt-2 text-zinc-500 dark:text-zinc-400">
-            카테고리를 선택하고 마크다운으로 자유롭게 작성하세요.
+            카테고리를 고르고 마크다운으로 작성해 주세요.
           </p>
         </div>
 
-        <div className="rounded-3xl border border-zinc-200 bg-white/80 p-6 sm:p-8 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/60">
+        <div className="rounded-3xl border border-zinc-200 bg-white p-6 sm:p-8 dark:border-zinc-800 dark:bg-zinc-900">
           <AnnouncementEditor mode="create" isAdmin={isDeveloper(user.email)} />
         </div>
       </main>

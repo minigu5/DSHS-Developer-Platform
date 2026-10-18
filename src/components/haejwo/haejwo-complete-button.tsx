@@ -79,7 +79,7 @@ export function HaejwoCompleteButton({ ideaId }: { ideaId: string }) {
         onClick={handleOpen}
         className={cn(
           buttonVariants({ size: "default" }),
-          "w-full rounded-2xl bg-emerald-600 text-white hover:bg-emerald-700",
+          "w-full rounded-2xl bg-emerald-700 text-white hover:bg-emerald-800",
         )}
       >
         <CheckCircle2 className="mr-2 h-4 w-4" />
@@ -113,7 +113,7 @@ export function HaejwoCompleteButton({ ideaId }: { ideaId: string }) {
                 onClick={() => setOpen(false)}
                 className={cn(
                   buttonVariants({ size: "sm" }),
-                  "rounded-full bg-emerald-600 text-white hover:bg-emerald-700",
+                  "rounded-full bg-emerald-700 text-white hover:bg-emerald-800",
                 )}
               >
                 <Plus className="mr-1.5 h-4 w-4" />
@@ -133,10 +133,10 @@ export function HaejwoCompleteButton({ ideaId }: { ideaId: string }) {
                       type="button"
                       onClick={() => setSelected(p.id)}
                       className={cn(
-                        "w-full rounded-xl border p-3 text-left transition-all duration-150",
+                        "w-full rounded-xl border p-3 text-left transition-colors duration-150",
                         isSelected
                           ? "border-emerald-400 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-950/40"
-                          : "border-zinc-200 bg-white/70 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:border-zinc-700",
+                          : "border-zinc-200 bg-white hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900/50 dark:hover:border-zinc-700",
                       )}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -181,10 +181,10 @@ export function HaejwoCompleteButton({ ideaId }: { ideaId: string }) {
                   type="button"
                   onClick={handleSubmit}
                   disabled={!selected || submitting}
-                  className="rounded-full bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+                  className="rounded-full bg-emerald-700 text-white hover:bg-emerald-800 disabled:opacity-50"
                 >
                   {submitting ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />처리 중...</>
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />처리 중…</>
                   ) : (
                     "완료 처리"
                   )}

@@ -66,7 +66,7 @@
 
 ### 프로젝트 등록 폼 UX (`src/components/projects/project-form.tsx`)
 - **프로그램 종류 선택**: `<Select>` 드롭다운 대신 다른 항목들과 동일한 **카드 그리드 UI** (단일 선택). 5개 항목, 2~3열 배치.
-- **플랫폼 자동 선택**: `type === 'website'` 선택 시 `useEffect`로 모든 플랫폼을 자동 선택하고 카드를 비활성화(`pointer-events-none`). "💡 모든 플랫폼은 web 사이트를 실행할 수 있습니다." 안내 표시. 다른 종류로 바꾸면 잠금 해제.
+- **플랫폼 자동 선택**: `type === 'website'` 선택 시 `useEffect`로 모든 플랫폼을 자동 선택하고 카드를 비활성화(`pointer-events-none`). "웹사이트는 모든 플랫폼의 브라우저에서 열 수 있어서 전체 플랫폼이 자동으로 선택돼요." 안내 표시. 다른 종류로 바꾸면 잠금 해제.
 - 플랫폼 힌트 문구(웹사이트 제외)는 제거됨 — 사용자가 직접 선택.
 - **아이콘 link 모드**: `ImageUploadInput` 컴포넌트 사용 — 파일 드래그·선택 업로드 + URL 직접 입력 폴백. 업로드된 이미지는 Cloudinary에 자동 저장.
 - **키보드 접근성**: 카드 그리드 UI(`div` 기반)에 `tabIndex={0}` · `role="button"` · `onKeyDown`(Enter/Space) · `focus-visible:ring-2` 적용. Tab 키로 모든 카드 포커스 이동, Enter/Space로 선택 가능. 웹사이트 타입 선택 시 비활성화된 플랫폼 카드는 `tabIndex={-1}`로 Tab 순서에서 제외.
@@ -238,7 +238,8 @@
 - 최근 공지사항 최대 10개 fetch (고정 우선, 최신 순). 공지가 0개면 티커 미노출, hero padding도 원래대로 유지.
 - CSS-only 무한 스크롤: 아이템을 짝수 세트로 복제 후 `translateX(0) → translateX(-50%)` 루프 (`@keyframes announcement-ticker` in `globals.css`).
 - 아이템 수에 따라 duration 자동 조정 (세트당 아이템 수 × 4.5초).
-- 디자인: `h-7` 얇은 띠, 반투명 배경(`bg-white/80`), 왼쪽 Bell 아이콘(zinc, 눈에 안 띄게) + 세로 구분선, 좌우 fade-out 그라디언트.
+- 디자인: `h-7` 얇은 띠, 불투명 배경(`bg-white`/`dark:bg-zinc-950`), 왼쪽 Bell 아이콘 + 세로 구분선, 좌우 fade-out 그라디언트.
+- **접근성**: 우측 일시정지/재생 버튼(`aria-pressed`, 링크 밖에 분리). hover·키보드 포커스 시 자동 정지. `prefers-reduced-motion: reduce`면 애니메이션 없음(정지 버튼도 숨김). 애니메이션은 `.announcement-ticker-track` 클래스(`globals.css`) + `--ticker-duration` 변수.
 - **카테고리 pill**: 각 공지 아이템 앞에 `rounded-full` 알약 형태로 카테고리 표시. 카테고리별 은은한 배경색 적용 — promotion=blue, beta=violet, feedback=amber, update=emerald, general=zinc, admin=rose. 배경 투명도 80%(라이트) / 30%(다크)로 subtle하게 유지.
 
 ---
@@ -301,8 +302,9 @@
 
 ### 홈 페이지 CTA 프리패치 — `src/app/page.tsx`
 - 홈 페이지는 PageNav가 없어 `/explore`(force-dynamic) 등 동적 페이지가 자동 프리패치되지 않음.
-- **CTA 버튼 2개**: "프로젝트 둘러보기"(`/explore`) + "내 프로젝트 등록하기"(`/projects/new`) — 바이브 코딩 가이드 버튼은 제거됨. 두 링크 모두 `prefetch={true}`.
-- **홈 섹션 너비 통일**: 배경색 없는 섹션(featured projects, 해줘!)도 bg 섹션(feature highlights, 개발 팁)과 동일한 구조 — `<section class="px-4 sm:px-6">` + `<div class="max-w-5xl mx-auto">` 내부 wrapper. `max-w-5xl mx-auto`를 section에 직접 쓰면 padding이 max-width 안에서 소비돼 실제 콘텐츠 너비가 달라지는 문제 방지.
+- **홈 구성**: 왼쪽 정렬 히어로(h1 + 설명 + CTA 2개) → "최근 올라온 프로젝트"(공개 프로젝트 6개, `ProjectCard`) → "프로젝트 말고도"(가이드·팁·해줘·공지 링크 목록, 2열 구분선 리스트) → 푸터. 마케팅 기능 카드·가치 카드·스크롤 리빌(`ScrollReveal`, 삭제됨)은 AI 템플릿 느낌이라 제거.
+- **CTA 버튼 2개**: "프로젝트 둘러보기"(`/explore`) + "내 프로젝트 등록하기"(`/projects/new`). 두 링크 모두 `prefetch={true}`. hover 확대 효과 없음.
+- **홈 섹션 너비 통일**: 모든 섹션이 동일한 구조 — `<section class="px-4 sm:px-6">` + `<div class="max-w-5xl mx-auto">` 내부 wrapper. `max-w-5xl mx-auto`를 section에 직접 쓰면 padding이 max-width 안에서 소비돼 실제 콘텐츠 너비가 달라지는 문제 방지.
 
 ---
 
@@ -347,12 +349,12 @@
 - **좌우 여백**: 페이지 `<main>`/섹션은 `px-4 sm:px-6` (모바일 16px, 데스크탑 24px). 헤더(`SiteHeader`) 컨테이너도 동일.
 - **헤더 우측 버튼**: 좁은 폰에서 오버플로우 방지를 위해 라벨을 반응형 처리. 예) tips의 "팁 작성"은 모바일 "작성"/데스크탑 "팁 작성"(`<span className="hidden sm:inline">`). 모바일 헤더는 로고·다크모드·프로필만 표시 (`PageNav`는 하단 탭바로 분리).
 - **모바일 하단 탭바**: `MobileNav`(`sm:hidden`)가 뷰포트 바닥에 고정. 아이콘 전용, 활성 항목은 원형 컬러 배경+흰색 아이콘으로 강조. 콘텐츠가 가려지지 않도록 `(nav)/layout.tsx`에서 `pb-16 sm:pb-0` 여백 처리.
-- **큰 제목**: 모바일에서 한 단계 작게. 홈 히어로 `text-4xl sm:text-5xl md:text-7xl`, 각 페이지 h1 `text-3xl sm:text-4xl`.
+- **큰 제목**: 모바일에서 한 단계 작게. 홈 히어로 `text-4xl sm:text-5xl`, 각 페이지 h1 `text-3xl sm:text-4xl`.
 - **카드/섹션 패딩**: `p-6 sm:p-8` (모바일 24px, 데스크탑 32px).
 - **세로 스택 전환**: 좁은 폭에서 잘리는 행은 `flex-col sm:flex-row`로 전환 (예: 프로젝트 리뷰의 "이미 작성하셨습니다" 행).
 - **섹션 헤더 정렬**: `flex-col sm:flex-row justify-between` 컨테이너에서 `items-start sm:items-end` 패턴 사용 — 모바일(`flex-col`)에서 `items-end`를 쓰면 콘텐츠가 오른쪽으로 붙어버림.
 - **홈 CTA 버튼**: 모바일에서 `max-w-[280px] sm:max-w-none` 제한 — `w-full`만 두면 전체 너비로 늘어나 이상해 보임.
-- **홈 섹션별 카드 수**: 모바일에서 최대 3개만 표시. 프로젝트 fetch는 6개(데스크탑 3열 채움)이나 index ≥ 3 항목에 `hidden sm:block` 적용. 팁·아이디어는 fetch 자체가 3개라 별도 처리 불필요.
+- **홈 섹션별 카드 수**: 모바일에서 최대 3개만 표시. 프로젝트 fetch는 6개(데스크탑 3열 채움)이나 index ≥ 3 항목에 `hidden sm:block` 적용.
 - 신규 페이지/컴포넌트 작성 시에도 위 패턴을 따를 것.
 
 ## 🚫 Claude 컨텍스트 제외 목록 (`.claudeignore`)
@@ -424,6 +426,17 @@ src/
 
 ## ♿ 키보드 접근성 규칙
 
+### 전역 접근성 장치
+- **본문 건너뛰기 링크**: `SiteHeader` 첫 요소(`sr-only focus:not-sr-only`) → `#main-content`. `(nav)/layout.tsx` 콘텐츠 래퍼와 홈 `<main>`에 `id="main-content" tabIndex={-1}`.
+- **포커스 표시 기본값**: `globals.css`에서 `:where(a, button, [role="button"], summary, [tabindex]):focus-visible`에 파란 outline. 개별 컴포넌트의 `focus-visible:ring-*`이 있으면 그쪽이 우선.
+- **동작 줄이기**: `prefers-reduced-motion: reduce`면 전역 애니메이션·트랜지션 사실상 0. 장식 애니메이션 추가 시 `motion-reduce:` 변형도 고려.
+- **색 대비**: 흰 글자 배경색은 WCAG AA(4.5:1) 충족 색만 사용 — blue-600, purple-600, emerald-700, amber-700, orange-700, sky-700 이상. `*-500` 배경 + 흰 글자 금지. 회색 본문은 `text-zinc-500` 이상(밝은 배경), `text-zinc-400`은 장식 아이콘에만.
+- **내비게이션**: `PageNav`/`MobileNav` 각 링크에 `aria-label`(아이콘 전용 대비) + 현재 페이지 `aria-current="page"`, `<nav aria-label="주요 메뉴">`.
+- **아이콘**: 장식 아이콘은 `aria-hidden`, 아이콘 전용 버튼은 한국어 `aria-label`. 이름 옆 아바타 이미지는 `alt=""`.
+- **토글/펼침 버튼**: 선택형 칩은 `aria-pressed`, 접이식·드롭다운 트리거는 `aria-expanded`. 접힌 영역은 `invisible`로 Tab 순서에서 제외.
+- **위저드 단계 전환**: `GuideWizard`는 단계가 바뀌면 새 질문 제목(h2, `tabIndex={-1}`)으로 포커스 이동.
+- **폰트**: `globals.css` `@theme inline`의 `--font-sans`는 `var(--font-geist-sans)` + 한글 시스템 폰트 스택. `var(--font-sans)` 자기참조로 두면 순환 참조로 무효화돼 Times(세리프)로 렌더링됨(실제 발생했던 버그).
+
 카드 그리드 UI처럼 `<div onClick>` 기반의 클릭 가능한 요소에는 반드시 아래 속성을 추가해야 Tab 키 내비게이션이 동작한다.
 
 ```tsx
@@ -442,6 +455,11 @@ className={cn("... focus-visible:outline-none focus-visible:ring-2 focus-visible
 ## 📝 협업 및 코드 스타일 규칙
 - **TS Strict**: `any` 사용 금지, 인터페이스 명확히 정의.
 - **Server First**: 상호작용이 필요한 경우에만 `"use client"` 사용.
-- **Design System**: 글래스모피즘, Zinc/Blue 포인트, `rounded-3xl` 스타일 유지.
+- **Design System**: Zinc/Blue 포인트, `rounded-3xl` 카드, 불투명 표면. 아래 "AI 템플릿 느낌" 요소는 쓰지 않는다 (2026-10 전면 제거):
+  - 배경 블러 블롭(`blur-[120px]` 원), 그라디언트 텍스트, 파랑→보라 그라디언트 아바타, 글래스모피즘(`bg-white/70 backdrop-blur`)
+  - hover 시 확대(`hover:scale-*`)·떠오름(`hover:-translate-y-*`)·컬러 글로우 그림자(`shadow-blue-500/20`), 섹션별 fade-up 스크롤 리빌
+  - 제목 위 아이콘+섹션명 알약(eyebrow), `uppercase tracking-wider` 라벨, ✨ 환영 배지, 이모지 안내문, 마케팅 문구("새로움을 창조하세요")
+  - `transition-all` 금지 — 바뀌는 속성만 지정(`transition-colors`, `transition-[color,background-color,border-color,scale]`)
+- **카피**: 기능을 쉬운 말로 설명하는 해요체. 빈 상태엔 다음 행동 링크 제공. 로딩 문구는 `…`(말줄임표 문자).
 - **반응형**: 모든 페이지는 모바일에서도 최적화돼야 함. 데스크탑(`sm:`+)은 유지하고 모바일만 보강 (자세한 규칙은 「📱 반응형 / 모바일 최적화」 참고).
 - **Documentation**: `CLAUDE.md` 및 `AGENTS.md`를 항상 최신 상태로 유지. — 외부 서비스 정보, 진행 상황, 결정 사항이 바뀌면 즉시 반영

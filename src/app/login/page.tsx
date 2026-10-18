@@ -47,28 +47,24 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   if (user) redirect(next ?? '/');
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-4 sm:p-6 bg-zinc-50 dark:bg-black relative overflow-hidden font-sans">
-      
-      {/* Background ambient glow matching the main aesthetic */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/20 dark:bg-blue-600/20 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-purple-500/20 dark:bg-purple-600/20 blur-[100px] rounded-full pointer-events-none" />
+    <main className="flex min-h-screen items-center justify-center p-4 sm:p-6 bg-zinc-50 dark:bg-zinc-950">
 
-      <div className="w-full max-w-md relative z-10">
+      <div className="w-full max-w-md">
         <Link
           href="/explore"
-          className="inline-flex items-center text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors mb-4 ml-2 group"
+          className="inline-flex items-center text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors mb-4 ml-2 rounded-sm"
         >
-          <ChevronLeft className="w-4 h-4 mr-1 transition-transform group-hover:-translate-x-1" />
+          <ChevronLeft className="w-4 h-4 mr-1" aria-hidden />
           모든 프로젝트로 돌아가기
         </Link>
 
-        <Card className="rounded-3xl border-zinc-200/50 dark:border-zinc-800/50 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl shadow-2xl overflow-hidden">
+        <Card className="rounded-3xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
           <CardHeader className="text-center pt-8 pb-4">
-            <CardTitle className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
-              환영합니다
+            <CardTitle className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
+              <h1>로그인</h1>
             </CardTitle>
             <CardDescription className="text-base mt-2">
-              대구과학고 학생 개발자들의 프로젝트 허브
+              학교 구글 계정으로 로그인해 주세요.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 px-8 pb-10">
@@ -85,10 +81,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               <GoogleLoginButton next={next} />
             </div>
 
-            <div className="flex items-start justify-center gap-2 p-4 rounded-2xl bg-zinc-100/50 dark:bg-zinc-950/50 text-xs text-zinc-600 dark:text-zinc-400 text-left border border-zinc-200/50 dark:border-zinc-800/50">
-              <ShieldCheck className="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
+            <div className="flex items-start justify-center gap-2 p-4 rounded-2xl bg-zinc-100 dark:bg-zinc-950 text-sm text-zinc-700 dark:text-zinc-300 text-left border border-zinc-200 dark:border-zinc-800">
+              <ShieldCheck className="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" aria-hidden />
               <p>
-                보안을 위해 <strong>@{ALLOWED_EMAIL_DOMAIN}</strong> 구글 계정으로만 인증할 수 있습니다. 
+                <strong>@{ALLOWED_EMAIL_DOMAIN}</strong> 계정만 로그인할 수 있어요. 개인 구글 계정은 막혀 있어요.
               </p>
             </div>
           </CardContent>

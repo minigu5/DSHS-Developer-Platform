@@ -487,8 +487,8 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
       )}
 
       {/* 작성자 정보 */}
-      <Card className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-lg rounded-3xl overflow-hidden">
-        <CardHeader className="bg-white/40 dark:bg-zinc-800/40 backdrop-blur-md border-b border-zinc-200/50 dark:border-zinc-800/50">
+      <Card className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden">
+        <CardHeader className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800">
           <CardTitle className="text-xl">개발자 정보</CardTitle>
           <CardDescription>개인 프로젝트인지 팀 프로젝트인지 선택해주세요.</CardDescription>
         </CardHeader>
@@ -500,10 +500,10 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
               role="button"
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setAuthorRole("individual"); } }}
               className={cn(
-                "flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+                "flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
                 authorRole === "individual"
-                  ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10"
-                  : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-lg hover:shadow-black/5"
+                  ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20"
+                  : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-black/5"
               )}
             >
               <UserIcon className={cn("w-6 h-6 mb-2 transition-colors", authorRole === "individual" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />
@@ -515,10 +515,10 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
               role="button"
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setAuthorRole("team"); } }}
               className={cn(
-                "flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+                "flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
                 authorRole === "team"
-                  ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10"
-                  : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-lg hover:shadow-black/5"
+                  ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20"
+                  : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-black/5"
               )}
             >
               <Users className={cn("w-6 h-6 mb-2 transition-colors", authorRole === "team" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />
@@ -560,7 +560,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
                       const isMe = email === currentUserEmail;
                       return (
                         <div key={email} className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50">
-                          <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-tr from-blue-100 to-purple-100 dark:from-blue-900/40 dark:to-purple-900/40 text-blue-700 dark:text-blue-300 text-xs font-bold shrink-0">
+                          <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-bold shrink-0">
                             {profile?.avatar_url ? (
                               <img src={profile.avatar_url} alt={name} className="w-full h-full object-cover" />
                             ) : (
@@ -588,8 +588,8 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
       </Card>
 
       {/* 기본 정보 */}
-      <Card className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-lg rounded-3xl overflow-hidden">
-        <CardHeader className="bg-white/40 dark:bg-zinc-800/40 backdrop-blur-md border-b border-zinc-200/50 dark:border-zinc-800/50">
+      <Card className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden">
+        <CardHeader className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800">
           <CardTitle className="text-xl">기본 정보</CardTitle>
           <CardDescription>프로젝트를 잘 나타낼 수 있는 이름과 설명을 작성해주세요.</CardDescription>
         </CardHeader>
@@ -604,9 +604,9 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
                 role="button"
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleIconTypeChange("auto"); } }}
                 className={cn(
-                  "flex items-center p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+                  "flex items-center p-3 rounded-xl border-2 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
                   iconType === "auto"
-                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10"
+                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20"
                     : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800"
                 )}
               >
@@ -628,9 +628,9 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
                 role="button"
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleIconTypeChange("link"); } }}
                 className={cn(
-                  "flex items-center p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+                  "flex items-center p-3 rounded-xl border-2 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
                   iconType === "link"
-                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10"
+                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20"
                     : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800"
                 )}
               >
@@ -707,11 +707,11 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
                 onKeyDown={handleDescKeyDown}
                 spellCheck={false}
                 placeholder={"# 프로젝트 이름\n\n프로젝트의 자세한 기능, 개발 배경, 사용 기술 등을 자유롭게 작성해주세요.\n\n## 주요 기능\n- 기능 1\n- 기능 2"}
-                className="min-h-[240px] w-full resize-y rounded-xl border border-zinc-200 bg-white/70 p-4 font-mono text-sm leading-relaxed text-zinc-900 outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-100"
+                className="min-h-[240px] w-full resize-y rounded-xl border border-zinc-200 bg-white p-4 font-mono text-sm leading-relaxed text-zinc-900 outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
               />
             )}
             {descTab === "preview" && (
-              <div className="min-h-[240px] overflow-auto rounded-xl border border-zinc-200 bg-white/70 p-6 dark:border-zinc-800 dark:bg-zinc-900/60">
+              <div className="min-h-[240px] overflow-auto rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
                 {description.trim() ? (
                   <Markdown>{description}</Markdown>
                 ) : (
@@ -728,9 +728,9 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
                   onKeyDown={handleDescKeyDown}
                   spellCheck={false}
                   placeholder={"# 프로젝트 이름\n\n마크다운으로 자유롭게 작성하세요."}
-                  className="min-h-[240px] w-full resize-y rounded-xl border border-zinc-200 bg-white/70 p-4 font-mono text-sm leading-relaxed text-zinc-900 outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-100"
+                  className="min-h-[240px] w-full resize-y rounded-xl border border-zinc-200 bg-white p-4 font-mono text-sm leading-relaxed text-zinc-900 outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
                 />
-                <div className="min-h-[240px] overflow-auto rounded-xl border border-zinc-200 bg-white/70 p-6 dark:border-zinc-800 dark:bg-zinc-900/60">
+                <div className="min-h-[240px] overflow-auto rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
                   {description.trim() ? (
                     <Markdown>{description}</Markdown>
                   ) : (
@@ -747,8 +747,8 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
       </Card>
 
       {/* 분류 및 기능 */}
-      <Card className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-lg rounded-3xl overflow-hidden">
-        <CardHeader className="bg-white/40 dark:bg-zinc-800/40 backdrop-blur-md border-b border-zinc-200/50 dark:border-zinc-800/50">
+      <Card className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden">
+        <CardHeader className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800">
           <CardTitle className="text-xl">분류 및 기능</CardTitle>
           <CardDescription>어떤 종류의 프로젝트이며, 어떤 기능들을 제공하나요?</CardDescription>
         </CardHeader>
@@ -765,9 +765,9 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
                   role="button"
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setType(pt.value); } }}
                   className={cn(
-                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-all duration-200 ease-out cursor-pointer select-none will-change-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out cursor-pointer select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
                     type === pt.value
-                      ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400 shadow-md shadow-blue-500/10"
+                      ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400"
                       : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-blue-200 dark:hover:border-blue-800"
                   )}
                 >
@@ -790,9 +790,9 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
                   role="button"
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleFeatureChange(feature.value, !selectedFeatures.includes(feature.value)); } }}
                   className={cn(
-                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-all duration-200 ease-out cursor-pointer select-none will-change-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out cursor-pointer select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
                     selectedFeatures.includes(feature.value)
-                      ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400 shadow-md shadow-blue-500/10"
+                      ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400"
                       : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-blue-200 dark:hover:border-blue-800"
                   )}
                 >
@@ -824,8 +824,8 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
       </Card>
 
       {/* 플랫폼 및 라이선스 */}
-      <Card className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-lg rounded-3xl overflow-hidden">
-        <CardHeader className="bg-white/40 dark:bg-zinc-800/40 backdrop-blur-md border-b border-zinc-200/50 dark:border-zinc-800/50">
+      <Card className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden">
+        <CardHeader className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800">
           <CardTitle className="text-xl">환경 및 소스코드</CardTitle>
           <CardDescription>어디서 실행되며 소스코드는 어떻게 관리되나요?</CardDescription>
         </CardHeader>
@@ -841,10 +841,10 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
                   aria-disabled={type === 'website'}
                   onKeyDown={(e) => { if (type !== 'website' && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); handlePlatformChange(platform.value, !selectedPlatforms.includes(platform.value)); } }}
                   className={cn(
-                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-all duration-200 ease-out select-none",
-                    type !== 'website' && "cursor-pointer will-change-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-colors duration-200 ease-out select-none",
+                    type !== 'website' && "cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
                     selectedPlatforms.includes(platform.value)
-                      ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400 shadow-md shadow-blue-500/10"
+                      ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400"
                       : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-blue-200 dark:hover:border-blue-800"
                   )}
                 >
@@ -860,7 +860,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
             </div>
             {type === 'website' && (
               <p className="text-[11px] text-zinc-500 bg-zinc-800/5 py-1.5 px-3 rounded-lg border border-zinc-800/10 inline-block">
-                💡 모든 플랫폼은 web 사이트를 실행할 수 있습니다.
+                웹사이트는 모든 플랫폼의 브라우저에서 열 수 있어서 전체 플랫폼이 자동으로 선택돼요.
               </p>
             )}
 
@@ -875,9 +875,9 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
                   role="button"
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSourceType(stype.value as SourceType); } }}
                   className={cn(
-                    "flex flex-col items-start p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+                    "flex flex-col items-start p-4 rounded-xl border-2 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
                     sourceType === stype.value
-                      ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10"
+                      ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20"
                       : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800"
                   )}
                 >
@@ -919,9 +919,9 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
                   role="button"
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleLicenseFeatureChange(lf.value, !licenseFeatures.includes(lf.value)); } }}
                   className={cn(
-                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-all duration-200 ease-out cursor-pointer select-none will-change-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out cursor-pointer select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
                     licenseFeatures.includes(lf.value)
-                      ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400 shadow-md shadow-blue-500/10"
+                      ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400"
                       : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-blue-200 dark:hover:border-blue-800"
                   )}
                 >
@@ -940,9 +940,9 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
                 role="button"
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setHasCustomLicense(!hasCustomLicense); } }}
                 className={cn(
-                  "flex items-center space-x-2 p-3 rounded-xl border-2 transition-all duration-200 ease-out cursor-pointer select-none will-change-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+                  "flex items-center space-x-2 p-3 rounded-xl border-2 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out cursor-pointer select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
                   hasCustomLicense
-                    ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400 shadow-md shadow-blue-500/10"
+                    ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400"
                     : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-blue-200 dark:hover:border-blue-800"
                 )}
               >
@@ -964,8 +964,8 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
       </Card>
 
       {/* 접근 및 권한 */}
-      <Card className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-lg rounded-3xl overflow-hidden">
-        <CardHeader className="bg-white/40 dark:bg-zinc-800/40 backdrop-blur-md border-b border-zinc-200/50 dark:border-zinc-800/50">
+      <Card className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden">
+        <CardHeader className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800">
           <CardTitle className="text-xl">접근 권한 설정</CardTitle>
           <CardDescription>누가 이 프로젝트를 열람할 수 있는지 설정합니다.</CardDescription>
         </CardHeader>
@@ -980,9 +980,9 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
                 role="button"
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setVisibility(v.value as Visibility); } }}
                 className={cn(
-                  "flex flex-col items-start p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ease-out select-none will-change-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+                  "flex flex-col items-start p-4 rounded-xl border-2 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
                   visibility === v.value
-                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-md shadow-blue-500/10"
+                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20"
                     : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800"
                 )}
               >
@@ -1012,6 +1012,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
                   <button 
                     type="button" 
                     onClick={addAllowedUser}
+                    aria-label="접근 허용 사용자 추가"
                     className={cn(buttonVariants({ variant: "outline" }), "h-11 rounded-xl px-4")}
                   >
                     <Plus className="w-4 h-4" />
@@ -1050,7 +1051,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
           onClick={() => router.back()}
           className={cn(
             buttonVariants({ variant: "outline", size: "lg" }),
-            "rounded-full px-8 text-base h-12 transition-all duration-200 ease-out will-change-transform hover:scale-[1.05] active:scale-[0.95]"
+            "rounded-full px-8 text-base h-12 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out active:scale-[0.96]"
           )}
         >
           취소
@@ -1060,7 +1061,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
           disabled={isLoading || shortDesc.length > 100}
           className={cn(
             buttonVariants({ size: "lg" }),
-            "rounded-full px-8 text-base bg-blue-600 hover:bg-blue-700 text-white h-12 flex items-center shadow-lg shadow-blue-500/20 transition-all duration-200 ease-out will-change-transform hover:scale-[1.05] active:scale-[0.95]",
+            "rounded-full px-8 text-base bg-blue-600 hover:bg-blue-700 text-white h-12 flex items-center transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out active:scale-[0.96]",
             (isLoading || shortDesc.length > 100) && "opacity-50 cursor-not-allowed"
           )}
         >
@@ -1072,8 +1073,8 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
 
     {isEdit && canDelete && initialData?.id && (
       <>
-        <Card className="border-red-200 dark:border-red-900/50 bg-red-50/30 dark:bg-red-950/20 rounded-3xl overflow-hidden shadow-lg">
-          <CardHeader className="bg-red-50/50 dark:bg-red-950/30 backdrop-blur-md border-b border-red-200/50 dark:border-red-900/30">
+        <Card className="border-red-200 dark:border-red-900/50 bg-red-50/30 dark:bg-red-950/20 rounded-3xl overflow-hidden">
+          <CardHeader className="bg-red-50/50 dark:bg-red-950/30 border-b border-red-200/50 dark:border-red-900/30">
             <CardTitle className="text-xl text-red-700 dark:text-red-400">위험 구역</CardTitle>
             <CardDescription className="text-red-600/70 dark:text-red-500/70">아래 작업은 되돌릴 수 없습니다.</CardDescription>
           </CardHeader>
@@ -1088,7 +1089,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
                 onClick={() => setShowDeleteDialog(true)}
                 className={cn(
                   buttonVariants({ variant: "outline", size: "lg" }),
-                  "rounded-full px-6 text-base h-12 border-red-300 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/50 shrink-0 transition-all duration-200 ease-out will-change-transform hover:scale-[1.05] active:scale-[0.95]"
+                  "rounded-full px-6 text-base h-12 border-red-300 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/50 shrink-0 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out active:scale-[0.96]"
                 )}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
@@ -1123,7 +1124,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
                 disabled={isDeleting}
                 className={cn(
                   buttonVariants(),
-                  "rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/20 flex items-center",
+                  "rounded-xl bg-red-600 hover:bg-red-700 text-white flex items-center",
                   isDeleting && "opacity-50 cursor-not-allowed"
                 )}
               >

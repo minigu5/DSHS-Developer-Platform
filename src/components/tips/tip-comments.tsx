@@ -79,7 +79,7 @@ export function TipComments({ tipId, comments }: TipCommentsProps) {
 
   return (
     <>
-    <section className="mt-8 rounded-3xl border border-zinc-200 bg-white/70 p-6 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/60 sm:p-8">
+    <section className="mt-8 rounded-3xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 sm:p-8">
       <div className="mb-6 flex items-center gap-2">
         <MessageSquare className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
         <h3 className="text-xl font-bold text-zinc-900 dark:text-white">댓글</h3>
@@ -103,7 +103,7 @@ export function TipComments({ tipId, comments }: TipCommentsProps) {
               disabled={pending || !text.trim()}
               className="rounded-full bg-blue-600 text-white hover:bg-blue-700"
             >
-              {pending ? "작성 중..." : "댓글 작성"}
+              {pending ? "작성 중…" : "댓글 작성"}
             </Button>
           </div>
         </div>
@@ -129,7 +129,7 @@ export function TipComments({ tipId, comments }: TipCommentsProps) {
             const name = c.user?.nickname || c.user?.full_name || "알 수 없음";
             return (
               <li key={c.id} className="flex gap-3">
-                <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-zinc-200 bg-gradient-to-tr from-blue-100 to-purple-100 dark:border-zinc-800 dark:from-blue-900/40 dark:to-purple-900/40">
+                <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800">
                   {c.user?.avatar_url ? (
                     <Image
                       src={c.user.avatar_url}
@@ -139,7 +139,7 @@ export function TipComments({ tipId, comments }: TipCommentsProps) {
                       unoptimized={isExternalImage(c.user.avatar_url)}
                     />
                   ) : (
-                    <span className="flex h-full w-full items-center justify-center text-xs font-bold text-blue-700 dark:text-blue-300">
+                    <span className="flex h-full w-full items-center justify-center text-xs font-bold text-zinc-700 dark:text-zinc-200">
                       {name.charAt(0)}
                     </span>
                   )}
@@ -195,7 +195,7 @@ export function TipComments({ tipId, comments }: TipCommentsProps) {
               disabled={deleteLoading}
               className={cn(
                 buttonVariants(),
-                "rounded-xl bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-500/20 flex items-center",
+                "rounded-xl bg-red-600 text-white hover:bg-red-700 flex items-center",
                 deleteLoading && "opacity-50 cursor-not-allowed",
               )}
             >

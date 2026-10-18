@@ -91,7 +91,7 @@ export function TipOwnerActions({ tipId, authorId }: { tipId: string; authorId: 
               disabled={pending}
               className={cn(
                 buttonVariants(),
-                "rounded-xl bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-500/20 flex items-center",
+                "rounded-xl bg-red-600 text-white hover:bg-red-700 flex items-center",
                 pending && "opacity-50 cursor-not-allowed",
               )}
             >

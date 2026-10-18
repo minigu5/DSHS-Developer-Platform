@@ -1,7 +1,7 @@
 export const revalidate = 30;
 
 import Link from "next/link";
-import { Megaphone, PenLine } from "lucide-react";
+import { PenLine } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 
@@ -45,29 +45,24 @@ export default async function HaejwoPage() {
   const ideas = data ?? [];
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-zinc-50/50 font-sans dark:bg-[#09090b]">
-      <div className="pointer-events-none absolute right-0 top-0 h-[700px] w-[700px] rounded-full bg-orange-500/10 blur-[120px] dark:bg-orange-600/10" />
-      <div className="pointer-events-none absolute bottom-0 left-0 h-[500px] w-[500px] rounded-full bg-amber-500/10 blur-[120px] dark:bg-amber-600/10" />
+    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 sm:px-6 py-12">
         <div className="mb-8">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-sm font-medium text-orange-600 dark:bg-orange-900/20 dark:text-orange-400">
-            <Megaphone className="h-4 w-4" /> 해줘!
-          </div>
           <div className="flex items-end justify-between gap-4">
             <div>
               <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                아이디어, 개발자에게 맡겨봐요
+                해줘!
               </h1>
-              <p className="mt-3 text-lg text-zinc-500 dark:text-zinc-400">
-                만들고 싶은 프로그램이 있지만 직접 만들기 어렵다면? 아이디어를 올리고 개발자를 찾아보세요.
+              <p className="mt-3 max-w-xl text-base sm:text-lg text-zinc-600 dark:text-zinc-400 break-keep">
+                있으면 좋겠는 프로그램을 적어 두면, 만들 수 있는 사람이 보고 가져가요.
               </p>
             </div>
             <Link
               href="/haejwo/new"
               className={cn(
                 buttonVariants({ size: "sm" }),
-                "shrink-0 rounded-full bg-orange-500 text-white hover:bg-orange-600",
+                "shrink-0 rounded-full bg-orange-700 text-white hover:bg-orange-800",
               )}
             >
               <PenLine className="mr-1.5 h-4 w-4" />
@@ -78,11 +73,11 @@ export default async function HaejwoPage() {
         </div>
 
         {ideas.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-zinc-300 bg-white/50 py-20 text-center backdrop-blur-xl dark:border-zinc-700 dark:bg-zinc-900/40">
-            <p className="text-zinc-500 dark:text-zinc-400">아직 등록된 아이디어가 없습니다.</p>
+          <div className="rounded-3xl border border-dashed border-zinc-300 bg-white py-20 text-center dark:border-zinc-700 dark:bg-zinc-900/40">
+            <p className="text-zinc-600 dark:text-zinc-400">아직 올라온 아이디어가 없어요.</p>
             <Link
               href="/haejwo/new"
-              className={cn(buttonVariants({ size: "sm" }), "mt-4 rounded-full bg-orange-500 text-white hover:bg-orange-600")}
+              className={cn(buttonVariants({ size: "sm" }), "mt-4 rounded-full bg-orange-700 text-white hover:bg-orange-800")}
             >
               <PenLine className="mr-1.5 h-4 w-4" /> 첫 아이디어 올리기
             </Link>
@@ -106,7 +101,7 @@ export default async function HaejwoPage() {
                 <Link
                   key={idea.id}
                   href={`/haejwo/${idea.id}`}
-                  className="group flex flex-col gap-3 rounded-3xl border border-zinc-200 bg-white/70 p-6 shadow-sm backdrop-blur-xl transition-all duration-200 hover:border-orange-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-orange-700"
+                  className="group flex flex-col gap-3 rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm transition-colors duration-200 hover:border-orange-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-orange-700"
                 >
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className="inline-flex items-center rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-medium text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">

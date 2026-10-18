@@ -72,10 +72,7 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
 
   const cardClasses = cn(
     "group h-full rounded-3xl overflow-hidden border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm",
-    "hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-all duration-300 relative cursor-pointer",
-    mode === 'showcase'
-      ? "hover:shadow-2xl hover:shadow-blue-500/10 hover:duration-500"
-      : "hover:shadow-xl hover:shadow-blue-500/5",
+    "hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors duration-150 relative cursor-pointer",
   );
 
   const inner = (
@@ -85,25 +82,25 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
           <ProjectIcon
             src={project.icon_url}
             title={project.title}
-            className="w-12 h-12 shrink-0 shadow-sm border border-zinc-100 dark:border-zinc-800 group-hover:scale-105 transition-transform duration-300 mt-[26px]"
+            className="w-12 h-12 shrink-0 border border-zinc-100 dark:border-zinc-800 mt-[26px]"
           />
           <div className="flex-1 min-w-0">
             <div className="flex gap-2 mb-2 flex-wrap h-5 overflow-hidden">
-              <Badge variant="secondary" className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] h-5 px-1.5 font-semibold shrink-0">
+              <Badge variant="secondary" className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[11px] h-5 px-1.5 font-semibold shrink-0">
                 {project.type}
               </Badge>
               {project.visibility === 'private' && (
-                <Badge variant="outline" className="text-[10px] text-zinc-500 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 rounded-full h-5 px-1.5 gap-0.5 shrink-0">
-                  <Lock className="w-2.5 h-2.5" /> 비공개
+                <Badge variant="outline" className="text-[11px] text-zinc-600 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 rounded-full h-5 px-1.5 gap-0.5 shrink-0">
+                  <Lock className="w-2.5 h-2.5" aria-hidden /> 비공개
                 </Badge>
               )}
               {tags.map((tag) => (
-                <Badge key={tag} variant="outline" className="text-[10px] text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 rounded-full h-5 px-2 shrink-0">
+                <Badge key={tag} variant="outline" className="text-[11px] text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 rounded-full h-5 px-2 shrink-0">
                   {tag}
                 </Badge>
               ))}
             </div>
-            <CardTitle className="text-lg font-bold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
+            <CardTitle className="text-lg font-bold line-clamp-1">
               {project.title}
             </CardTitle>
             <CardDescription className="line-clamp-2 text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed mt-1 min-h-[2.5rem]">
@@ -116,24 +113,27 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
       <CardContent className="pb-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <Globe className="w-3 h-3 text-zinc-400 dark:text-zinc-500 shrink-0" />
+            <Globe className="w-3 h-3 text-zinc-400 dark:text-zinc-500 shrink-0" aria-hidden />
+            <span className="sr-only">지원 플랫폼:</span>
             {displayPlatforms.map((p) => (
-              <span key={p} className="rounded-full bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
+              <span key={p} className="rounded-full bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-[11px] font-medium text-zinc-600 dark:text-zinc-400">
                 {p}
               </span>
             ))}
           </div>
           {(avgRating !== null || reviewCount > 0) && (
-            <div className="flex items-center gap-2 shrink-0 text-[10px] text-zinc-400 dark:text-zinc-500">
+            <div className="flex items-center gap-2 shrink-0 text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
               {avgRating !== null && (
                 <span className="flex items-center gap-0.5">
-                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" aria-hidden />
+                  <span className="sr-only">평균 별점</span>
                   {avgRating.toFixed(1)}
                 </span>
               )}
               {reviewCount > 0 && (
                 <span className="flex items-center gap-0.5">
-                  <MessageSquare className="w-3 h-3" />
+                  <MessageSquare className="w-3 h-3" aria-hidden />
+                  <span className="sr-only">리뷰</span>
                   {reviewCount}
                 </span>
               )}
@@ -145,12 +145,12 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
   );
 
   let author = (
-    <div className="flex items-center gap-2 group-hover/author:opacity-80 transition-opacity">
+    <div className="flex items-center gap-2 transition-opacity">
       {authorAvatar ? (
         <div className="relative w-7 h-7 rounded-full overflow-hidden shrink-0 border border-zinc-200 dark:border-zinc-800">
           <Image 
             src={authorAvatar} 
-            alt={authorName} 
+            alt="" 
             fill 
             className="object-cover" 
             unoptimized={isExternalImage(authorAvatar)}
@@ -159,10 +159,8 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
       ) : (
         <div className={cn(
           "w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0",
-          mode === 'showcase'
-            ? "bg-gradient-to-tr from-blue-500 to-purple-500 text-white"
-            : "bg-gradient-to-tr from-zinc-200 to-zinc-300 dark:from-zinc-700 dark:to-zinc-800 text-zinc-600 dark:text-zinc-300",
-        )}>
+          "bg-zinc-200 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200",
+        )} aria-hidden>
           {authorName.charAt(0)}
         </div>
       )}
@@ -202,8 +200,8 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
                 : "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
             )}>
               {project.visibility === 'private'
-                ? <><Lock className="w-3 h-3" /> 비공개</>
-                : <><Globe className="w-3 h-3" /> 공개</>
+                ? <><Lock className="w-3 h-3" aria-hidden /> 비공개</>
+                : <><Globe className="w-3 h-3" aria-hidden /> 공개</>
               }
             </span>
           </div>
@@ -216,7 +214,7 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
       */}
       <Link 
         href={`/projects/${project.id}`} 
-        className="absolute inset-0 z-10" 
+        className="absolute inset-0 z-10 rounded-3xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-600" 
         aria-label={`${project.title} 상세보기`}
       />
     </Card>

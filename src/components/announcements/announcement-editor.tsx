@@ -98,9 +98,9 @@ export function AnnouncementEditor({ mode, defaults = EMPTY, isAdmin = false }: 
   }
 
   const textareaClass =
-    "min-h-[400px] w-full resize-y rounded-2xl border border-zinc-200 bg-white/70 p-4 font-mono text-sm leading-relaxed text-zinc-900 outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-100";
+    "min-h-[400px] w-full resize-y rounded-2xl border border-zinc-200 bg-white p-4 font-mono text-sm leading-relaxed text-zinc-900 outline-none focus:ring-2 focus:ring-sky-500/30 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100";
   const previewClass =
-    "min-h-[400px] overflow-auto rounded-2xl border border-zinc-200 bg-white/70 p-6 dark:border-zinc-800 dark:bg-zinc-900/60";
+    "min-h-[400px] overflow-auto rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900";
 
   return (
     <div className="space-y-6">
@@ -114,7 +114,7 @@ export function AnnouncementEditor({ mode, defaults = EMPTY, isAdmin = false }: 
               type="button"
               onClick={() => setCategory(cat.value)}
               className={cn(
-                "flex flex-col items-start rounded-2xl border p-3 text-left transition-all",
+                "flex flex-col items-start rounded-2xl border p-3 text-left transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2",
                 category === cat.value
                   ? "border-sky-500 bg-sky-50 dark:border-sky-500 dark:bg-sky-950/30"
@@ -136,7 +136,7 @@ export function AnnouncementEditor({ mode, defaults = EMPTY, isAdmin = false }: 
               type="button"
               onClick={() => setCategory(ADMIN_ANNOUNCEMENT_CATEGORY.value)}
               className={cn(
-                "flex flex-col items-start rounded-2xl border p-3 text-left transition-all",
+                "flex flex-col items-start rounded-2xl border p-3 text-left transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2",
                 category === ADMIN_ANNOUNCEMENT_CATEGORY.value
                   ? "border-rose-500 bg-rose-50 dark:border-rose-500 dark:bg-rose-950/30"
@@ -230,9 +230,9 @@ export function AnnouncementEditor({ mode, defaults = EMPTY, isAdmin = false }: 
           type="button"
           onClick={handleSubmit}
           disabled={loading}
-          className="rounded-full bg-sky-600 px-6 text-white hover:bg-sky-700"
+          className="rounded-full bg-sky-700 px-6 text-white hover:bg-sky-800"
         >
-          {loading ? "저장 중..." : mode === "create" ? "공지사항 등록" : "수정 저장"}
+          {loading ? "저장 중…" : mode === "create" ? "공지사항 등록" : "수정 저장"}
         </Button>
       </div>
     </div>
@@ -258,7 +258,7 @@ function TabButton({
       onClick={onClick}
       className={cn(
         "inline-flex items-center rounded-full px-3 py-1 text-sm font-medium transition-colors",
-        active ? "bg-sky-600 text-white" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white",
+        active ? "bg-sky-700 text-white" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white",
         hideOnMobile && "hidden sm:inline-flex",
       )}
     >

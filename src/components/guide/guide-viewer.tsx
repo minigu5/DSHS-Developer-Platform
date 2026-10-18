@@ -59,7 +59,7 @@ export function GuideViewer({ steps, nextTitle, nextSteps }: GuideViewerProps) {
       {/* 단계 본문 */}
       <div
         key={index}
-        className="min-h-[280px] rounded-3xl border border-zinc-200 bg-white/70 p-6 sm:p-8 shadow-sm backdrop-blur-xl duration-300 animate-in fade-in slide-in-from-bottom-4 dark:border-zinc-800 dark:bg-zinc-900/60"
+        className="min-h-[280px] rounded-3xl border border-zinc-200 bg-white p-6 sm:p-8 shadow-sm duration-300 animate-in fade-in slide-in-from-bottom-4 dark:border-zinc-800 dark:bg-zinc-900"
       >
         <Markdown>{steps[index]}</Markdown>
       </div>
@@ -117,7 +117,7 @@ export function GuideViewer({ steps, nextTitle, nextSteps }: GuideViewerProps) {
             {nextSteps.map((ns, i) => (
               <div
                 key={i}
-                className="flex flex-col justify-between rounded-3xl border border-zinc-200 bg-white/70 p-6 shadow-sm backdrop-blur-xl transition-all hover:border-blue-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-blue-700"
+                className="flex flex-col justify-between rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm transition-colors hover:border-blue-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-blue-700"
               >
                 {ns.description && (
                   <p className="mb-5 leading-relaxed text-zinc-700 dark:text-zinc-300">

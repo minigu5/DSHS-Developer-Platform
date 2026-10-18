@@ -25,7 +25,7 @@ export function TipCard({ tip }: { tip: TipCardData }) {
   return (
     <Link
       href={`/tips/${tip.id}`}
-      className="group flex flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 dark:border-zinc-800 dark:bg-zinc-900"
+      className="group flex flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm transition-colors duration-300 hover:border-blue-500/50 dark:border-zinc-800 dark:bg-zinc-900"
     >
       {tip.cover_url && (
         <div className="relative h-40 w-full overflow-hidden">
@@ -42,7 +42,7 @@ export function TipCard({ tip }: { tip: TipCardData }) {
             src={tip.cover_url}
             alt={tip.title}
             fill
-            className="object-contain transition-transform duration-300 group-hover:scale-105"
+            className="object-contain transition-transform duration-300"
             unoptimized={isExternalImage(tip.cover_url)}
             quality={90}
           />
@@ -74,9 +74,9 @@ export function TipCard({ tip }: { tip: TipCardData }) {
         )}
 
         <div className="flex-1 min-h-4" />
-        <div className="pt-3 flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800/50">
+        <div className="pt-3 flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800">
           <div className="flex items-center gap-2">
-            <div className="relative h-6 w-6 overflow-hidden rounded-full border border-zinc-200 bg-gradient-to-tr from-blue-100 to-purple-100 dark:border-zinc-800 dark:from-blue-900/40 dark:to-purple-900/40">
+            <div className="relative h-6 w-6 overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800">
               {tip.author?.avatar_url ? (
                 <Image
                   src={tip.author.avatar_url}
@@ -86,7 +86,7 @@ export function TipCard({ tip }: { tip: TipCardData }) {
                   unoptimized={isExternalImage(tip.author.avatar_url)}
                 />
               ) : (
-                <span className="flex h-full w-full items-center justify-center text-[10px] font-bold text-blue-700 dark:text-blue-300">
+                <span className="flex h-full w-full items-center justify-center text-[10px] font-bold text-zinc-700 dark:text-zinc-200">
                   {authorName.charAt(0)}
                 </span>
               )}

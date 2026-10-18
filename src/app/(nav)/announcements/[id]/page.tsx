@@ -79,9 +79,7 @@ export default async function AnnouncementDetailPage({
   const isAdmin = isDeveloper(currentUser?.email);
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-zinc-50/50 font-sans dark:bg-[#09090b]">
-      <div className="pointer-events-none absolute right-0 top-0 h-[600px] w-[600px] rounded-full bg-sky-500/10 blur-[120px] dark:bg-sky-600/10" />
-      <div className="pointer-events-none absolute bottom-0 left-0 h-[500px] w-[500px] rounded-full bg-blue-500/10 blur-[120px] dark:bg-blue-600/10" />
+    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 sm:px-6 py-8">
         <div className="mb-3 flex items-center gap-3">
@@ -137,7 +135,7 @@ export default async function AnnouncementDetailPage({
               href={`/developers/${announcement.author_id}`}
               className="group/author flex items-center gap-3 hover:opacity-80 transition-opacity"
             >
-              <div className="relative h-9 w-9 overflow-hidden rounded-full border border-zinc-200 bg-gradient-to-tr from-sky-100 to-blue-100 dark:border-zinc-800 dark:from-sky-900/40 dark:to-blue-900/40">
+              <div className="relative h-9 w-9 overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800">
                 {author?.avatar_url ? (
                   <Image
                     src={author.avatar_url}

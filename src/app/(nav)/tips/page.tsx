@@ -1,7 +1,7 @@
 export const revalidate = 30;
 
 import Link from "next/link";
-import { Newspaper, PenLine, Megaphone } from "lucide-react";
+import { PenLine, Megaphone } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { buttonVariants } from "@/components/ui/button";
@@ -50,22 +50,17 @@ export default async function TipsPage() {
   }));
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-zinc-50/50 font-sans dark:bg-[#09090b]">
-      <div className="pointer-events-none absolute right-0 top-0 h-[700px] w-[700px] rounded-full bg-blue-500/10 blur-[120px] dark:bg-blue-600/10" />
-      <div className="pointer-events-none absolute bottom-0 left-0 h-[500px] w-[500px] rounded-full bg-purple-500/10 blur-[120px] dark:bg-purple-600/10" />
+    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 sm:px-6 py-12">
         <div className="mb-8">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
-            <Newspaper className="h-4 w-4" /> 개발 팁
-          </div>
           <div className="flex items-end justify-between gap-4">
             <div>
               <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                친구들의 개발 노하우
+                개발 팁
               </h1>
-              <p className="mt-3 max-w-xl text-lg text-zinc-500 dark:text-zinc-400">
-                막힐 때 도움이 된 팁, 직접 터득한 노하우를 자유롭게 나눠보세요.
+              <p className="mt-3 max-w-xl text-base sm:text-lg text-zinc-600 dark:text-zinc-400 break-keep">
+                막혔다가 해결한 방법, 써 보니 좋았던 도구를 글로 남기는 곳이에요.
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -73,12 +68,11 @@ export default async function TipsPage() {
                 href="/haejwo"
                 className={cn(
                   buttonVariants({ size: "sm", variant: "outline" }),
-                  "rounded-full border-orange-200 text-orange-600 hover:bg-orange-50 dark:border-orange-900/50 dark:text-orange-400 dark:hover:bg-orange-950/30",
+                  "rounded-full border-orange-200 text-orange-700 hover:bg-orange-50 dark:border-orange-900/50 dark:text-orange-400 dark:hover:bg-orange-950/30",
                 )}
               >
-                <Megaphone className="mr-1.5 h-4 w-4" />
-                <span className="hidden sm:inline">해줘!</span>
-                <span className="sm:hidden">해줘!</span>
+                <Megaphone className="mr-1.5 h-4 w-4" aria-hidden />
+                해줘!
               </Link>
               <Link
                 href="/tips/new"
@@ -87,7 +81,7 @@ export default async function TipsPage() {
                   "rounded-full bg-blue-600 text-white hover:bg-blue-700",
                 )}
               >
-                <PenLine className="mr-1.5 h-4 w-4" />
+                <PenLine className="mr-1.5 h-4 w-4" aria-hidden />
                 <span className="hidden sm:inline">팁 작성</span>
                 <span className="sm:hidden">작성</span>
               </Link>
@@ -96,13 +90,13 @@ export default async function TipsPage() {
         </div>
 
         {tips.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-zinc-300 bg-white/50 py-20 text-center backdrop-blur-xl dark:border-zinc-700 dark:bg-zinc-900/40">
-            <p className="text-zinc-500 dark:text-zinc-400">아직 작성된 팁이 없습니다.</p>
+          <div className="rounded-3xl border border-dashed border-zinc-300 bg-white py-20 text-center dark:border-zinc-700 dark:bg-zinc-900/40">
+            <p className="text-zinc-600 dark:text-zinc-400">아직 작성된 팁이 없어요.</p>
             <Link
               href="/tips/new"
               className={cn(buttonVariants({ size: "sm" }), "mt-4 rounded-full")}
             >
-              <PenLine className="mr-1.5 h-4 w-4" /> 첫 팁 작성하기
+              <PenLine className="mr-1.5 h-4 w-4" aria-hidden /> 첫 팁 작성하기
             </Link>
           </div>
         ) : (

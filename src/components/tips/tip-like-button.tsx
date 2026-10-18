@@ -70,15 +70,16 @@ export function TipLikeButton({ tipId, initialCount }: TipLikeButtonProps) {
       type="button"
       onClick={toggle}
       aria-pressed={liked}
+      aria-label={`좋아요 ${count}개`}
       className={cn(
-        "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-all",
+        "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors",
         liked
           ? "border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-400"
-          : "border-zinc-200 bg-white/70 text-zinc-600 hover:border-rose-200 hover:text-rose-600 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-300 dark:hover:border-rose-900/50",
+          : "border-zinc-200 bg-white text-zinc-600 hover:border-rose-200 hover:text-rose-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-rose-900/50",
       )}
     >
-      <Heart className={cn("h-4 w-4", liked && "fill-rose-500 text-rose-500")} />
-      {count}
+      <Heart className={cn("h-4 w-4", liked && "fill-rose-500 text-rose-500")} aria-hidden />
+      <span className="tabular-nums">{count}</span>
     </button>
   );
 }

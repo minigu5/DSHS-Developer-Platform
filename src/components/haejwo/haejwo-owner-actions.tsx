@@ -81,7 +81,7 @@ export function HaejwoOwnerActions({ ideaId }: { ideaId: string }) {
               disabled={pending}
               className={cn(
                 buttonVariants(),
-                "flex items-center rounded-xl bg-red-600 text-white shadow-lg shadow-red-500/20 hover:bg-red-700",
+                "flex items-center rounded-xl bg-red-600 text-white hover:bg-red-700",
                 pending && "cursor-not-allowed opacity-50",
               )}
             >

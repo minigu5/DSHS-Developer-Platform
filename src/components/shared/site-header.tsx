@@ -32,19 +32,25 @@ export function SiteHeader({
     <header
       className={cn(
         variant === "sticky"
-          ? "sticky top-0 z-50 w-full border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-black/80 backdrop-blur-md"
+          ? "sticky top-0 z-50 w-full border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950"
           : "absolute top-0 z-50 w-full",
       )}
     >
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-3 focus:z-[60] focus:rounded-lg focus:bg-blue-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+      >
+        본문으로 건너뛰기
+      </a>
       <div className={containerClass}>
         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-          <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80 shrink-0">
+          <Link href="/" className="flex items-center gap-3 rounded-lg transition-opacity hover:opacity-80 shrink-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">
             <Image
               src="/logo.svg"
-              alt="Logo"
+              alt=""
               width={32}
               height={32}
-              className="block rounded-lg shadow-sm border border-zinc-200/50 dark:border-zinc-800/50 shrink-0"
+              className="block rounded-lg border border-zinc-200 dark:border-zinc-800 shrink-0"
             />
             <span className="font-bold text-base sm:text-lg text-zinc-900 dark:text-white translate-y-[2px]">
               DSHS Developer Platform
@@ -52,7 +58,7 @@ export function SiteHeader({
           </Link>
           {showNav && (
             <>
-              <div className="hidden sm:block w-px h-5 bg-zinc-200 dark:bg-zinc-800 shrink-0" />
+              <div className="hidden sm:block w-px h-5 bg-zinc-200 dark:bg-zinc-800 shrink-0" aria-hidden />
               <div className="hidden sm:block">
                 <PageNav />
               </div>

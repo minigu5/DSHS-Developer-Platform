@@ -113,9 +113,9 @@ export function TipEditor({ mode, defaults = EMPTY }: TipEditorProps) {
   const tagCount = tagsText.split(",").map((t) => t.trim()).filter(Boolean).length;
 
   const textareaClass =
-    "min-h-[400px] w-full resize-y rounded-2xl border border-zinc-200 bg-white/70 p-4 font-mono text-sm leading-relaxed text-zinc-900 outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-100";
+    "min-h-[400px] w-full resize-y rounded-2xl border border-zinc-200 bg-white p-4 font-mono text-sm leading-relaxed text-zinc-900 outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100";
   const previewClass =
-    "min-h-[400px] overflow-auto rounded-2xl border border-zinc-200 bg-white/70 p-6 dark:border-zinc-800 dark:bg-zinc-900/60";
+    "min-h-[400px] overflow-auto rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900";
 
   return (
     <div className="space-y-6">
@@ -251,7 +251,7 @@ export function TipEditor({ mode, defaults = EMPTY }: TipEditorProps) {
           disabled={loading}
           className="rounded-full bg-blue-600 px-6 text-white hover:bg-blue-700"
         >
-          {loading ? "저장 중..." : mode === "create" ? "팁 등록" : "수정 저장"}
+          {loading ? "저장 중…" : mode === "create" ? "팁 등록" : "수정 저장"}
         </Button>
       </div>
     </div>

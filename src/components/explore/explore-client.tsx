@@ -161,22 +161,16 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
   const activeFilterCount = selectedTypes.length + selectedCategories.length + selectedPlatforms.length;
 
   return (
-    <div className="flex flex-col min-h-screen bg-zinc-50/50 dark:bg-[#09090b] font-sans relative">
-      {/* Ambient Background — overflow-hidden은 블롭 레이어에만 적용해야 sticky aside가 정상 동작 */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-500/10 dark:bg-blue-600/10 blur-[120px] rounded-full" />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-500/10 dark:bg-purple-600/10 blur-[120px] rounded-full" />
-      </div>
-
+    <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-8">
         <div className="flex flex-col md:flex-row gap-3">
           {/* SIDEBAR / FILTERS (데스크탑 전용) */}
           <aside className="hidden md:block w-56 shrink-0 sticky top-24 self-start">
             <div className="space-y-8">
               <div>
-                <h3 className="font-semibold text-lg mb-4 flex items-center">
-                  <Filter className="w-4 h-4 mr-2" /> 필터
-                </h3>
+                <h2 className="font-semibold text-lg mb-4 flex items-center">
+                  <Filter className="w-4 h-4 mr-2" aria-hidden /> 필터
+                </h2>
 
                 <div className="space-y-1">
                   {/* 프로그램 종류 */}
@@ -184,19 +178,20 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                     <button
                       type="button"
                       onClick={() => setTypeOpen(o => !o)}
-                      className="w-full flex items-center justify-between px-1 py-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                      aria-expanded={typeOpen}
+                      className="w-full flex items-center justify-between rounded-lg px-1 py-1.5 text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white transition-colors"
                     >
                       <span className="flex items-center gap-1.5">
                         프로그램 종류
                         {selectedTypes.length > 0 && (
-                          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-semibold text-white">
+                          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[11px] font-semibold tabular-nums text-white">
                             {selectedTypes.length}
                           </span>
                         )}
                       </span>
-                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", typeOpen && "rotate-180")} />
+                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", typeOpen && "rotate-180")} aria-hidden />
                     </button>
-                    <div className={cn("grid transition-[grid-template-rows] duration-200 ease-out", typeOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                    <div className={cn("grid transition-[grid-template-rows,visibility] duration-200 ease-out", typeOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr] invisible")}>
                       <div className="overflow-hidden">
                         <div className="mt-0.5 space-y-0.5 pb-1">
                           {PROJECT_TYPES.map(({ value, label }) => {
@@ -207,15 +202,16 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                                 key={value}
                                 type="button"
                                 onClick={() => handleTypeChange(value, !active)}
+                                aria-pressed={active}
                                 className={cn(
-                                  "w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all text-left",
+                                  "w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors text-left",
                                   active
-                                    ? "bg-blue-500/12 text-blue-600 dark:text-blue-400"
-                                    : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-800 dark:hover:text-zinc-200"
+                                    ? "bg-blue-500/12 text-blue-700 dark:text-blue-300"
+                                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-800 dark:hover:text-zinc-200"
                                 )}
                               >
                                 {Icon && (
-                                  <Icon className={cn("w-4 h-4 shrink-0 transition-colors", active ? "text-blue-500 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500")} />
+                                  <Icon className={cn("w-4 h-4 shrink-0 transition-colors", active ? "text-blue-600 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500")} aria-hidden />
                                 )}
                                 {label}
                               </button>
@@ -231,19 +227,20 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                     <button
                       type="button"
                       onClick={() => setCategoryOpen(o => !o)}
-                      className="w-full flex items-center justify-between px-1 py-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                      aria-expanded={categoryOpen}
+                      className="w-full flex items-center justify-between rounded-lg px-1 py-1.5 text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white transition-colors"
                     >
                       <span className="flex items-center gap-1.5">
                         카테고리
                         {selectedCategories.length > 0 && (
-                          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-semibold text-white">
+                          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[11px] font-semibold tabular-nums text-white">
                             {selectedCategories.length}
                           </span>
                         )}
                       </span>
-                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", categoryOpen && "rotate-180")} />
+                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", categoryOpen && "rotate-180")} aria-hidden />
                     </button>
-                    <div className={cn("grid transition-[grid-template-rows] duration-200 ease-out", categoryOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                    <div className={cn("grid transition-[grid-template-rows,visibility] duration-200 ease-out", categoryOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr] invisible")}>
                       <div className="overflow-hidden">
                         <div className="mt-0.5 space-y-0.5 pb-1">
                           {FEATURES.map(({ value, label }) => {
@@ -254,15 +251,16 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                                 key={value}
                                 type="button"
                                 onClick={() => handleCategoryChange(value, !active)}
+                                aria-pressed={active}
                                 className={cn(
-                                  "w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all text-left",
+                                  "w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors text-left",
                                   active
-                                    ? "bg-blue-500/12 text-blue-600 dark:text-blue-400"
-                                    : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-800 dark:hover:text-zinc-200"
+                                    ? "bg-blue-500/12 text-blue-700 dark:text-blue-300"
+                                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-800 dark:hover:text-zinc-200"
                                 )}
                               >
                                 {Icon && (
-                                  <Icon className={cn("w-4 h-4 shrink-0 transition-colors", active ? "text-blue-500 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500")} />
+                                  <Icon className={cn("w-4 h-4 shrink-0 transition-colors", active ? "text-blue-600 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500")} aria-hidden />
                                 )}
                                 {label}
                               </button>
@@ -278,19 +276,20 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                     <button
                       type="button"
                       onClick={() => setPlatformOpen(o => !o)}
-                      className="w-full flex items-center justify-between px-1 py-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                      aria-expanded={platformOpen}
+                      className="w-full flex items-center justify-between rounded-lg px-1 py-1.5 text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white transition-colors"
                     >
                       <span className="flex items-center gap-1.5">
                         플랫폼
                         {selectedPlatforms.length > 0 && (
-                          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-semibold text-white">
+                          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[11px] font-semibold tabular-nums text-white">
                             {selectedPlatforms.length}
                           </span>
                         )}
                       </span>
-                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", platformOpen && "rotate-180")} />
+                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", platformOpen && "rotate-180")} aria-hidden />
                     </button>
-                    <div className={cn("grid transition-[grid-template-rows] duration-200 ease-out", platformOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                    <div className={cn("grid transition-[grid-template-rows,visibility] duration-200 ease-out", platformOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr] invisible")}>
                       <div className="overflow-hidden">
                         <div className="mt-0.5 space-y-0.5 pb-1">
                           {PLATFORMS.map(({ value, label }) => {
@@ -301,15 +300,16 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                                 key={value}
                                 type="button"
                                 onClick={() => handlePlatformChange(value, !active)}
+                                aria-pressed={active}
                                 className={cn(
-                                  "w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all text-left",
+                                  "w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors text-left",
                                   active
-                                    ? "bg-blue-500/12 text-blue-600 dark:text-blue-400"
-                                    : "text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-800 dark:hover:text-zinc-200"
+                                    ? "bg-blue-500/12 text-blue-700 dark:text-blue-300"
+                                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-800 dark:hover:text-zinc-200"
                                 )}
                               >
                                 {Icon && (
-                                  <Icon className={cn("w-4 h-4 shrink-0 transition-colors", active ? "text-blue-500 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500")} />
+                                  <Icon className={cn("w-4 h-4 shrink-0 transition-colors", active ? "text-blue-600 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500")} aria-hidden />
                                 )}
                                 {label}
                               </button>
@@ -328,7 +328,7 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                         setSelectedCategories([]);
                         setSelectedPlatforms([]);
                       }}
-                      className="text-xs font-medium text-zinc-400 transition-colors hover:text-zinc-900 dark:hover:text-white px-1 pt-2"
+                      className="rounded-sm text-sm font-medium text-zinc-600 dark:text-zinc-400 underline-offset-4 hover:underline hover:text-zinc-900 dark:hover:text-white px-1 pt-2"
                     >
                       필터 초기화
                     </button>
@@ -345,23 +345,24 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
               <button
                 type="button"
                 onClick={() => setFiltersOpen((o) => !o)}
-                className="flex w-full items-center justify-between rounded-2xl border border-zinc-200/50 dark:border-zinc-800/50 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl px-4 py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300 shadow-sm"
+                aria-expanded={filtersOpen}
+                className="flex w-full items-center justify-between rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300 shadow-sm"
               >
                 <span className="flex items-center gap-2">
-                  <Filter className="h-4 w-4" /> 필터
+                  <Filter className="h-4 w-4" aria-hidden /> 필터
                   {activeFilterCount > 0 && (
                     <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1.5 text-xs font-semibold text-white">
                       {activeFilterCount}
                     </span>
                   )}
                 </span>
-                <ChevronDown className={cn("h-4 w-4 transition-transform", filtersOpen && "rotate-180")} />
+                <ChevronDown className={cn("h-4 w-4 transition-transform", filtersOpen && "rotate-180")} aria-hidden />
               </button>
 
               {filtersOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1 space-y-5 rounded-2xl border border-zinc-200/50 dark:border-zinc-800/50 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl p-4 shadow-lg animate-in fade-in slide-in-from-top-2">
+                <div className="absolute top-full left-0 right-0 mt-1 space-y-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-lg animate-in fade-in slide-in-from-top-2">
                   <div>
-                    <h4 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">프로그램 종류</h4>
+                    <h4 className="mb-2.5 text-sm font-semibold text-zinc-700 dark:text-zinc-300">프로그램 종류</h4>
                     <div className="flex flex-wrap gap-2">
                       {PROJECT_TYPES.map(({ value, label }) => {
                         const Icon = TYPE_ICONS[value];
@@ -371,14 +372,15 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                             key={value}
                             type="button"
                             onClick={() => handleTypeChange(value, !active)}
+                            aria-pressed={active}
                             className={cn(
                               "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
                               active
-                                ? "border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                                ? "border-blue-500 bg-blue-500/10 text-blue-700 dark:text-blue-300"
                                 : "border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400",
                             )}
                           >
-                            {Icon && <Icon className="w-3.5 h-3.5 shrink-0" />}
+                            {Icon && <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden />}
                             {label}
                           </button>
                         );
@@ -387,7 +389,7 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                   </div>
 
                   <div>
-                    <h4 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">카테고리</h4>
+                    <h4 className="mb-2.5 text-sm font-semibold text-zinc-700 dark:text-zinc-300">카테고리</h4>
                     <div className="flex flex-wrap gap-2">
                       {FEATURES.map(({ value, label }) => {
                         const Icon = CATEGORY_ICONS[value];
@@ -397,14 +399,15 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                             key={value}
                             type="button"
                             onClick={() => handleCategoryChange(value, !active)}
+                            aria-pressed={active}
                             className={cn(
                               "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
                               active
-                                ? "border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                                ? "border-blue-500 bg-blue-500/10 text-blue-700 dark:text-blue-300"
                                 : "border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400",
                             )}
                           >
-                            {Icon && <Icon className="w-3.5 h-3.5 shrink-0" />}
+                            {Icon && <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden />}
                             {label}
                           </button>
                         );
@@ -413,7 +416,7 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                   </div>
 
                   <div>
-                    <h4 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">플랫폼</h4>
+                    <h4 className="mb-2.5 text-sm font-semibold text-zinc-700 dark:text-zinc-300">플랫폼</h4>
                     <div className="flex flex-wrap gap-2">
                       {PLATFORMS.map(({ value, label }) => {
                         const Icon = PLATFORM_ICONS[value];
@@ -423,14 +426,15 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                             key={value}
                             type="button"
                             onClick={() => handlePlatformChange(value, !active)}
+                            aria-pressed={active}
                             className={cn(
                               "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
                               active
-                                ? "border-blue-500 bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                                ? "border-blue-500 bg-blue-500/10 text-blue-700 dark:text-blue-300"
                                 : "border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400",
                             )}
                           >
-                            {Icon && <Icon className="w-3.5 h-3.5 shrink-0" />}
+                            {Icon && <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden />}
                             {label}
                           </button>
                         );
@@ -446,7 +450,7 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                         setSelectedCategories([]);
                         setSelectedPlatforms([]);
                       }}
-                      className="text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-900 dark:hover:text-white"
+                      className="text-sm font-medium text-zinc-600 dark:text-zinc-400 underline-offset-4 hover:underline hover:text-zinc-900 dark:hover:text-white"
                     >
                       필터 초기화
                     </button>
@@ -456,45 +460,52 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
             </div>
 
             <div className="mb-8 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-400 w-5 h-5 z-10 pointer-events-none" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-400 w-5 h-5 z-10 pointer-events-none" aria-hidden />
               <Input
-                placeholder="프로젝트, 태그, 개발자·팀 이름으로 검색해보세요..."
+                type="search"
+                aria-label="프로젝트 검색"
+                autoComplete="off"
+                placeholder="제목, 태그, 개발자나 팀 이름으로 검색"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-11 h-12 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border-zinc-200/50 dark:border-zinc-800/50 rounded-2xl shadow-sm text-base focus-visible:ring-blue-500"
+                className="pl-10 pr-11 h-12 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm text-base focus-visible:ring-blue-500"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-[0.96] transition-[transform,background-color,color]"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-full text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-[0.96] transition-[transform,background-color,color]"
                   aria-label="검색어 지우기"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-4 h-4" aria-hidden />
                 </button>
               )}
             </div>
 
             <div className="mb-6 flex justify-between items-center gap-2">
-              <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
-                모든 프로젝트 <span className="text-zinc-400 text-base font-normal ml-2">({filteredProjects.length})</span>
-              </h2>
+              <h1 className="text-xl font-bold text-zinc-900 dark:text-white">
+                모든 프로젝트{" "}
+                <span className="text-zinc-500 dark:text-zinc-400 text-base font-normal ml-1 tabular-nums" aria-live="polite">
+                  {filteredProjects.length}개
+                </span>
+              </h1>
 
               {/* 정렬 드롭다운 */}
               <div className="relative shrink-0">
                 <button
                   type="button"
                   onClick={() => setSortOpen(o => !o)}
-                  aria-label={sortBy === 'newest' ? '최신순' : sortBy === 'clicks' ? '인기순' : '별점순'}
-                  className="flex items-center gap-1.5 rounded-xl border border-zinc-200/50 dark:border-zinc-800/50 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl px-3 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 shadow-sm hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition-colors"
+                  aria-label={`정렬: ${sortBy === 'newest' ? '최신순' : sortBy === 'clicks' ? '인기순' : '별점순'}`}
+                  aria-expanded={sortOpen}
+                  className="flex items-center gap-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 shadow-sm hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition-colors"
                 >
-                  <ArrowUpDown className="h-3.5 w-3.5 text-zinc-400" />
+                  <ArrowUpDown className="h-3.5 w-3.5 text-zinc-500" aria-hidden />
                   <span className="hidden sm:inline">
                     {sortBy === 'newest' ? '최신순' : sortBy === 'clicks' ? '인기순' : '별점순'}
                   </span>
                 </button>
                 {sortOpen && (
-                  <div className="absolute right-0 top-full mt-1 z-30 min-w-[112px] rounded-2xl border border-zinc-200/50 dark:border-zinc-800/50 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-2">
+                  <div className="absolute right-0 top-full mt-1 z-30 min-w-[112px] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-2">
                     {([
                       { value: 'newest', label: '최신순' },
                       { value: 'clicks', label: '인기순' },
@@ -504,10 +515,11 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                         key={opt.value}
                         type="button"
                         onClick={() => { setSortBy(opt.value); setSortOpen(false); }}
+                        aria-current={sortBy === opt.value ? "true" : undefined}
                         className={cn(
                           "w-full px-4 py-2.5 text-sm text-left font-medium transition-colors",
                           sortBy === opt.value
-                            ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                            ? "bg-blue-500/10 text-blue-700 dark:text-blue-300"
                             : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
                         )}
                       >
@@ -520,8 +532,22 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
             </div>
 
             {filteredProjects.length === 0 ? (
-              <div className="text-center py-20 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl rounded-3xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm">
-                <p className="text-zinc-500 dark:text-zinc-400">조건에 맞는 프로젝트가 없습니다.</p>
+              <div className="text-center py-16 px-6 rounded-3xl border border-dashed border-zinc-300 dark:border-zinc-700">
+                <p className="text-zinc-600 dark:text-zinc-400">조건에 맞는 프로젝트가 없어요.</p>
+                {(activeFilterCount > 0 || searchQuery) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setSelectedTypes([]);
+                      setSelectedCategories([]);
+                      setSelectedPlatforms([]);
+                    }}
+                    className="mt-3 text-sm font-medium text-blue-700 dark:text-blue-400 underline underline-offset-4"
+                  >
+                    검색어와 필터 지우기
+                  </button>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
