@@ -18,15 +18,75 @@ html.dark {
   100% { transform: translateX(-50%); }
 }
 
-/* 홈 앱 진열대: 페이지 로드 때 한 번만 아이콘이 차례로 놓이는 연출 (동작 줄이기 설정 시 아래 전역 규칙으로 즉시 표시) */
-@keyframes app-pop {
-  from { opacity: 0; scale: 0.85; }
-  to   { opacity: 1; scale: 1; }
+/* 홈 히어로 로딩 시퀀스 — 페이지 로드 때 한 번만 (동작 줄이기 설정 시 아래 전역 규칙으로 즉시 표시)
+   1) 제목·설명·버튼이 아래서 올라옴(.rise, --rise-delay)
+   2) 주기율표 타일이 등록 순으로 튀어나오고(.tile-pop, --pop-delay) 아이콘이 140ms 뒤 위에서 떨어짐(.tile-icon)
+   3) 마지막 "내 앱 올리기" 칸이 파란색으로 3번 깜빡여 등록을 권함(.tile-invite) */
+@keyframes rise {
+  from { opacity: 0; translate: 0 14px; }
+  to   { opacity: 1; translate: 0 0; }
 }
 
-.app-pop {
-  animation: app-pop 420ms cubic-bezier(0.2, 0, 0, 1) both;
+.rise {
+  animation: rise 560ms cubic-bezier(0.2, 0, 0, 1) both;
+  animation-delay: var(--rise-delay, 0ms);
+}
+
+@keyframes tile-pop {
+  0%   { opacity: 0; scale: 0.6; }
+  70%  { scale: 1.06; }
+  100% { opacity: 1; scale: 1; }
+}
+
+.tile-pop {
+  animation: tile-pop 520ms cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
   animation-delay: var(--pop-delay, 0ms);
+}
+
+@keyframes icon-drop {
+  from { opacity: 0; translate: 0 -10px; scale: 0.7; }
+  to   { opacity: 1; translate: 0 0; scale: 1; }
+}
+
+.tile-pop .tile-icon {
+  animation: icon-drop 440ms cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+  animation-delay: calc(var(--pop-delay, 0ms) + 140ms);
+}
+
+@keyframes tile-invite {
+  0%, 100% { border-color: var(--color-zinc-300); background-color: var(--color-white); color: var(--color-zinc-600); }
+  50%      { border-color: var(--color-blue-600); background-color: var(--color-blue-50); color: var(--color-blue-700); }
+}
+
+@keyframes tile-invite-dark {
+  0%, 100% { border-color: var(--color-zinc-700); background-color: var(--color-zinc-950); color: var(--color-zinc-400); }
+  50%      { border-color: var(--color-blue-400); background-color: var(--color-blue-950); color: var(--color-blue-300); }
+}
+
+.tile-invite {
+  animation: tile-invite 1200ms ease-in-out 3;
+  animation-delay: calc(var(--pop-delay, 0ms) + 600ms);
+}
+
+.dark .tile-invite {
+  animation-name: tile-invite-dark;
+}
+
+/* 히어로 배경 모눈종이 — 라인 색은 zinc-100과 zinc-200 사이(라이트) / zinc-900 근처(다크) */
+.paper-grid {
+  background-color: #ffffff;
+  background-image:
+    linear-gradient(#ececef 1px, transparent 1px),
+    linear-gradient(90deg, #ececef 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: center top;
+}
+
+.dark .paper-grid {
+  background-color: #09090b;
+  background-image:
+    linear-gradient(#1c1c20 1px, transparent 1px),
+    linear-gradient(90deg, #1c1c20 1px, transparent 1px);
 }
 
 .announcement-ticker-track {
@@ -50,6 +110,7 @@ html.dark {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important; /* 지연이 남아 있으면 fill:both 요소가 그동안 안 보임 */
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;

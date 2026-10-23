@@ -52,8 +52,14 @@ export function SiteHeader({
               height={32}
               className="block rounded-lg border border-zinc-200 dark:border-zinc-800 shrink-0"
             />
-            <span className="font-heading font-bold text-base sm:text-lg tracking-tight text-zinc-900 dark:text-white translate-y-[1px]">
-              DSHS Developer Platform
+            {/* 공식 이름은 영문(도메인과 일치), 읽는 이름 "대곽 개발자 플랫폼"을 아래 작은 글씨로 병기 */}
+            <span className="flex flex-col gap-px">
+              <span className="font-heading font-bold text-base sm:text-[17px] leading-[1.1] tracking-tight text-zinc-900 dark:text-white">
+                DSHS Developer Platform
+              </span>
+              <span className="text-[11px] leading-[1.1] font-medium text-zinc-600 dark:text-zinc-400">
+                대곽 개발자 플랫폼
+              </span>
             </span>
           </Link>
           {showNav && (
