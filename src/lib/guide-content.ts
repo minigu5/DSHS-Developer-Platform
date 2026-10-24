@@ -17,6 +17,7 @@ import {
   type GuidePlan,
 } from "@/lib/guide";
 import { splitFragmentSteps } from "@/lib/guide-markup";
+import { getDocMeta, getLatestDoc } from "@/lib/guide-wiki/read";
 
 const GUIDES_DIR = path.join(process.cwd(), "src", "content", "guides");
 const KEY_RE = /^[a-z0-9][a-z0-9-]{0,99}$/;
@@ -60,7 +61,28 @@ export async function listUsages(key: string): Promise<{ label: string; href: st
     .map((a) => ({ label: answersLabel(a), href: `/guide/${buildSlug(a)}` }));
 }
 
-export type LoadedChapter = GuideChapterPlan & { steps: GuideFragmentStep[] };
+/** 장 이름 줄 오른쪽 "마지막으로 ○○님이 고침" — DB 기록이 없으면 null */
+export type ChapterMeta = {
+  latestRev: number;
+  lastAuthor: { id: string | null; nickname: string } | null;
+  lastAt: string | null;
+  contributors: number;
+};
+
+export type LoadedChapter = GuideChapterPlan & { steps: GuideFragmentStep[]; meta: ChapterMeta | null };
+
+// 위키 편집본(DB 최신 ?? 저장소 원본)과 그 메타를 읽는다. 가이드는 읽기 전용 화면이라
+// DB가 잠시 안 되면 저장소 원본으로 보여 준다(편집기는 반대로 오류를 내 덮어쓰기를 막는다).
+async function loadChapterDoc(key: string): Promise<{ steps: GuideFragmentStep[]; meta: ChapterMeta | null } | null> {
+  try {
+    const [latest, meta] = await Promise.all([getLatestDoc(key), getDocMeta(key)]);
+    return latest ? { steps: latest.doc.steps, meta } : null;
+  } catch (e) {
+    console.error("[guide] 위키 편집본을 읽지 못해 저장소 원본을 씀", key, e);
+    const fragment = await getFragment(key);
+    return fragment ? { steps: fragment.steps, meta: null } : null;
+  }
+}
 
 export async function loadGuide(
   answers: GuideAnswers,
@@ -68,9 +90,8 @@ export async function loadGuide(
   const plan = planGuide(answers);
   const chapters = await Promise.all(
     plan.chapters.map(async (c) => {
-      // 위키 편집 기능(guide-wiki)이 들어오면 getFragment 대신 getLatestDoc(DB 최신 ?? 원본)을 쓴다.
-      const fragment = await getFragment(c.key);
-      return fragment && fragment.steps.length ? { ...c, steps: fragment.steps } : null;
+      const loaded = await loadChapterDoc(c.key);
+      return loaded && loaded.steps.length ? { ...c, ...loaded } : null;
     }),
   );
   return { plan, chapters: chapters.filter((c): c is LoadedChapter => c !== null) };

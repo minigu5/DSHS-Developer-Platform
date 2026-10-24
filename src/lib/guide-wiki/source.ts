@@ -2,31 +2,28 @@ import 'server-only'
 
 import { createHash } from 'node:crypto'
 
+import { getFragment, listUsages as listGuideUsages } from '@/lib/guide-content'
 import { DEV_SAMPLE } from '@/lib/guide-wiki/dev-sample'
 import type { WikiDoc } from '@/lib/guide-wiki/types'
 
+const isDevSample = (key: string) =>
+  key === DEV_SAMPLE.key && process.env.NODE_ENV !== 'production'
+
 /**
- * 저장소 원본 어댑터. 실제 가이드 마크다운 연결 시 이 파일만 고친다.
- * 지금은 비운영 환경의 `dev-sample` 하나만 돌려준다.
+ * 저장소 원본 어댑터 — 가이드 조각(`src/content/guides/<key>.md`)과 닿는 유일한 파일.
+ * 비운영 환경에서는 시험용 `dev-sample`도 돌려준다.
  */
 export async function loadSourceDoc(key: string): Promise<WikiDoc | null> {
-  if (key === DEV_SAMPLE.key && process.env.NODE_ENV !== 'production') {
-    return DEV_SAMPLE
-  }
-  return null
+  if (isDevSample(key)) return DEV_SAMPLE
+  return getFragment(key)
 }
 
-/** 이 문서가 쓰이는 가이드 경로(문서 화면의 "이 문서가 쓰이는 곳"). */
+/** 이 조각을 쓰는 가이드 경로 ("이 내용은 가이드 N곳에 함께 쓰여요"). */
 export async function listUsages(
   key: string,
 ): Promise<{ label: string; href: string }[]> {
-  if (key === DEV_SAMPLE.key && process.env.NODE_ENV !== 'production') {
-    return [
-      { label: '웹사이트 · Claude 데스크톱 · Mac', href: '/guide/website/desktop/mac' },
-      { label: '웹사이트 · Claude 데스크톱 · Windows', href: '/guide/website/desktop/windows' },
-    ]
-  }
-  return []
+  if (isDevSample(key)) return []
+  return listGuideUsages(key)
 }
 
 /** 원본 내용 지문. 위키 저장본이 원본과 어긋났는지 비교하는 데 쓴다. */

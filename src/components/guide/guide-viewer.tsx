@@ -156,7 +156,7 @@ export function GuideViewer({ storageKey, chapters, answers, aiLabel, recommende
             — {step.inChapter + 1} / {chapterLen}
           </span>
         </p>
-        <GuideChapterTools fragmentKey={chapter.key} from={pathname} />
+        <GuideChapterTools fragmentKey={chapter.key} from={pathname} meta={chapter.meta} />
       </div>
 
       {/* 장이 바뀌었을 때 한 줄 */}
