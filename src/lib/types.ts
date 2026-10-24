@@ -94,6 +94,10 @@ export type Database = {
           allowed_users: string[];
           feature_custom: string | null;
           click_count: number;
+          // 20 readme sync
+          readme_sync: boolean;
+          readme_etag: string | null;
+          readme_synced_at: string | null;
         };
         Insert: {
           id?: string;
@@ -120,6 +124,9 @@ export type Database = {
           license_custom?: string | null;
           allowed_users?: string[];
           feature_custom?: string | null;
+          readme_sync?: boolean;
+          readme_etag?: string | null;
+          readme_synced_at?: string | null;
         };
         Update: {
           id?: string;
@@ -147,6 +154,9 @@ export type Database = {
           allowed_users?: string[];
           feature_custom?: string | null;
           click_count?: number;
+          readme_sync?: boolean;
+          readme_etag?: string | null;
+          readme_synced_at?: string | null;
         };
         Relationships: [
           {

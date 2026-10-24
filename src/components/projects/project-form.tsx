@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, Globe, Code2, Users, User as UserIcon, Plus, X, Link as LinkIcon, Loader2, Image as ImageIcon, Trash2, Rocket, Download } from "lucide-react";
+import { Lock, Globe, Code2, Users, User as UserIcon, Plus, X, Link as LinkIcon, Loader2, Image as ImageIcon, Trash2, Rocket, Download, RefreshCw } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -77,12 +77,14 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
   const [descTab, setDescTab] = useState<EditorTab>("write");
   const descTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // GitHub README 가져오기
-  const [readmeUrl, setReadmeUrl] = useState<string>(initialData?.repo_url ?? "");
+  // GitHub README 가져오기 · 자동 동기화 (저장소 링크는 아래 repoUrl 하나를 같이 쓴다)
   const [readmeLoading, setReadmeLoading] = useState(false);
   const [readmeError, setReadmeError] = useState("");
   const [readmeNote, setReadmeNote] = useState("");
   const [showReadmeDialog, setShowReadmeDialog] = useState(false);
+  const [readmeSync, setReadmeSync] = useState<boolean>(initialData?.readme_sync ?? false);
+  // 동기화 켜기 = 첫 가져오기 성공 후에만 켜진다. 취소·실패하면 꺼 둔 채로 둔다.
+  const syncAfterImport = useRef(false);
 
   // 작성자 정보
   const [authorRole, setAuthorRole] = useState<AuthorRole>(
@@ -126,6 +128,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
   const [licenseCustom, setLicenseCustom] = useState<string>(initialData?.license_custom ?? "");
 
   const handleDescKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (readmeSync && sourceType === "open") return;
     if (e.key === "Tab") {
       e.preventDefault();
       const el = e.currentTarget;
@@ -157,22 +160,25 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
     setReadmeError("");
     setReadmeNote("");
     try {
-      const res = await fetch(`/api/github-readme?url=${encodeURIComponent(readmeUrl.trim())}`);
+      const res = await fetch(`/api/github-readme?url=${encodeURIComponent(repoUrl.trim())}`);
       const data = (await res.json()) as { markdown?: string; truncated?: boolean; error?: string };
       if (!res.ok || !data.markdown) {
         setReadmeError(data.error ?? "README를 가져오지 못했어요.");
         return;
       }
       setDescription(data.markdown);
-      if (sourceType === 'open' && !repoUrl.trim()) setRepoUrl(readmeUrl.trim());
+      if (syncAfterImport.current) setReadmeSync(true);
       setReadmeNote(
         data.truncated
           ? "README가 너무 길어 앞부분만 가져왔어요. 필요한 부분을 고쳐 주세요."
-          : "README를 가져왔어요. 아래 칸에서 자유롭게 고칠 수 있어요.",
+          : readmeSync || syncAfterImport.current
+            ? "README를 가져왔어요. 저장하면 매일 밤 README로 다시 채워져요."
+            : "README를 가져왔어요. 아래 칸에서 자유롭게 고칠 수 있어요.",
       );
     } catch {
       setReadmeError("README를 가져오지 못했어요. 네트워크를 확인하고 다시 시도해 주세요.");
     } finally {
+      syncAfterImport.current = false;
       setReadmeLoading(false);
     }
   };
@@ -182,15 +188,30 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
     if (readmeLoading) return;
     setReadmeError("");
     setReadmeNote("");
-    if (!parseGithubRepo(readmeUrl)) {
+    if (!parseGithubRepo(repoUrl)) {
+      syncAfterImport.current = false;
       setReadmeError("GitHub 저장소 링크를 입력해 주세요. 예: https://github.com/username/repo");
       return;
     }
-    if (description.trim()) {
+    if (description.trim() && !readmeSync) {
       setShowReadmeDialog(true);
       return;
     }
     void importReadme();
+  };
+
+  const cancelReadmeDialog = () => {
+    syncAfterImport.current = false;
+    setShowReadmeDialog(false);
+  };
+
+  const toggleReadmeSync = () => {
+    if (readmeSync) {
+      setReadmeSync(false);
+      return;
+    }
+    syncAfterImport.current = true;
+    requestReadme();
   };
 
   const addTeamMember = async () => {
@@ -461,7 +482,13 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
       scrollToField("repo_url_section");
       return;
     }
-    
+
+    if (readmeSync && sourceType === 'open' && !parseGithubRepo(repoUrl)) {
+      setErrorMsg("README 자동 동기화는 GitHub 저장소 링크(https://github.com/username/repo)가 필요해요.");
+      scrollToField("repo_url_section");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -497,6 +524,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
         platforms: platformsToSave,
         source_type: sourceType,
         repo_url: sourceType === 'open' ? repoUrl : null,
+        readme_sync: sourceType === 'open' && readmeSync,
         license_features: sourceType === 'open' ? licenseFeatures : [],
         license_custom: sourceType === 'open' && hasCustomLicense ? licenseCustom : null,
         features: selectedFeatures,
@@ -567,6 +595,9 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
   const req = <span className="ml-0.5 text-rose-600" aria-hidden>*</span>;
   const descTextareaClass =
     "min-h-[260px] w-full resize-y rounded-2xl border border-zinc-200 bg-white p-4 font-mono text-sm leading-relaxed text-zinc-900 outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-100";
+  const descLockedClass = "cursor-default bg-zinc-50 text-zinc-600 dark:bg-zinc-900/40 dark:text-zinc-400";
+  // 동기화 중에는 사이트에서 설명을 고칠 수 없다 (다음 동기화가 덮어쓰므로). 오픈소스일 때만 유효.
+  const descLocked = readmeSync && sourceType === "open";
   const descPreviewClass =
     "min-h-[260px] overflow-auto rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950/40";
   const showDanger = isEdit && canDelete && Boolean(initialData?.id);
@@ -648,8 +679,8 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
                   <Code2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" aria-hidden />
                   <Input
                     id="readme_url"
-                    value={readmeUrl}
-                    onChange={e => setReadmeUrl(e.target.value)}
+                    value={repoUrl}
+                    onChange={e => setRepoUrl(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); requestReadme(); } }}
                     placeholder="https://github.com/username/repo"
                     className="h-11 rounded-xl pl-9"
@@ -670,10 +701,26 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
               ) : (
                 <p className={hintClass} aria-live="polite">{readmeNote || "저장소 링크를 넣고 누르면 README가 상세 설명으로 채워져요."}</p>
               )}
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <ToggleChip
+                  pressed={descLocked}
+                  onToggle={toggleReadmeSync}
+                  label="README와 자동 동기화"
+                  icon={RefreshCw}
+                  disabled={sourceType !== "open" || readmeLoading}
+                />
+                <span className={hintClass}>
+                  {sourceType !== "open"
+                    ? "소스코드 공개를 ‘오픈소스’로 고르면 쓸 수 있어요."
+                    : descLocked
+                      ? "매일 밤 GitHub README로 상세 설명을 다시 채워요. 이 사이트에서는 설명을 고칠 수 없어요."
+                      : "켜 두면 README를 고칠 때마다 다음 날 밤 상세 설명도 따라 바뀌어요."}
+                </span>
+              </div>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <EditorTabs value={descTab} onChange={setDescTab} />
-              <span className={hintClass}>Tab으로 두 칸 들여쓰기, Shift+Tab으로 해제</span>
+              <span className={hintClass}>{descLocked ? "README와 동기화 중이라 읽기 전용이에요" : "Tab으로 두 칸 들여쓰기, Shift+Tab으로 해제"}</span>
             </div>
             {descTab === "write" && (
               <textarea
@@ -681,9 +728,10 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 onKeyDown={handleDescKeyDown}
+                readOnly={descLocked}
                 spellCheck={false}
                 placeholder={"# 프로젝트 이름\n\n프로젝트의 자세한 기능, 개발 배경, 사용 기술 등을 자유롭게 적어 주세요.\n\n## 주요 기능\n- 기능 1\n- 기능 2"}
-                className={descTextareaClass}
+                className={cn(descTextareaClass, descLocked && descLockedClass)}
               />
             )}
             {descTab === "preview" && (
@@ -698,9 +746,10 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   onKeyDown={handleDescKeyDown}
+                  readOnly={descLocked}
                   spellCheck={false}
                   placeholder={"# 프로젝트 이름\n\n마크다운으로 자유롭게 작성하세요."}
-                  className={descTextareaClass}
+                  className={cn(descTextareaClass, descLocked && descLockedClass)}
                 />
                 <div className={descPreviewClass}>
                   {description.trim() ? <Markdown>{description}</Markdown> : <p className="text-sm text-zinc-500">작성한 내용이 여기에 미리보기로 표시돼요.</p>}
@@ -999,7 +1048,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
 
       <FormRail sections={railSections} requiredDone={requiredDone} requiredTotal={requiredFlags.length} className="sticky top-24 hidden w-[200px] shrink-0 lg:grid" />
 
-      <Dialog open={showReadmeDialog} onOpenChange={setShowReadmeDialog}>
+      <Dialog open={showReadmeDialog} onOpenChange={(open) => { if (!open) cancelReadmeDialog(); }}>
         <DialogContent showCloseButton={false} className="rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-lg">쓰던 설명을 README로 바꿀까요?</DialogTitle>
@@ -1008,7 +1057,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <button type="button" onClick={() => setShowReadmeDialog(false)} className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}>
+            <button type="button" onClick={cancelReadmeDialog} className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}>
               취소
             </button>
             <button type="button" onClick={() => void importReadme()} className={cn(buttonVariants(), "rounded-xl")}>

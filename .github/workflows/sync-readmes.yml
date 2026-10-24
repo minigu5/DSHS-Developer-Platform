@@ -1,0 +1,44 @@
+name: Sync GitHub READMEs
+
+# "README와 자동 동기화"를 켠 프로젝트의 상세 설명을 매일 밤 GitHub README로 다시 채운다.
+# 스크립트: scripts/sync-readmes.mts / 설정: docs/20-supabase-projects-readme-sync.sql
+
+on:
+  schedule:
+    # 매일 03:00 KST (UTC 18:00). GitHub 부하에 따라 몇 분~수십 분 늦을 수 있다.
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'DB를 바꾸지 않고 바뀔 내용만 로그로 확인'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-readmes
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # 스크립트는 @supabase/supabase-js 만 필요해서 postinstall(가이드 조각 묶기)은 건너뛴다
+      - run: npm ci --ignore-scripts
+
+      - name: Sync READMEs
+        run: node scripts/sync-readmes.mts ${{ inputs.dry_run && '--dry-run' || '' }}
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
