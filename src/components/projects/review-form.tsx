@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { SECTION_COLORS } from "@/lib/section-colors";
 
 const schema = z.object({
   rating: z.number().int().min(0).max(5),
@@ -60,9 +61,9 @@ export function ReviewForm({
     >
       <input type="hidden" {...register("rating", { valueAsNumber: true })} />
 
-      <div>
-        <Label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2 block">
-          별점 <span className="font-normal text-zinc-400">(선택)</span>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Label className="text-[13px] font-semibold text-zinc-900 dark:text-white">
+          별점 <span className="font-medium text-zinc-500 dark:text-zinc-400">(선택)</span>
         </Label>
         <div className="flex items-center gap-1">
           {[1, 2, 3, 4, 5].map((n) => {
@@ -83,7 +84,7 @@ export function ReviewForm({
                   className={cn(
                     "w-6 h-6 transition-colors",
                     filled
-                      ? "fill-yellow-400 text-yellow-400"
+                      ? "fill-amber-400 text-amber-400"
                       : "text-zinc-300 dark:text-zinc-600",
                   )}
                 />
@@ -103,18 +104,15 @@ export function ReviewForm({
       </div>
 
       <div>
-        <Label
-          htmlFor="review-comment"
-          className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2 block"
-        >
-          댓글
+        <Label htmlFor="review-comment" className="sr-only">
+          리뷰 내용
         </Label>
         <Textarea
           id="review-comment"
           {...register("comment")}
-          rows={4}
-          placeholder="이 프로젝트에 대한 의견을 남겨주세요"
-          className="resize-none"
+          rows={3}
+          placeholder="써 본 느낌을 남겨 주세요. 좋았던 점, 불편했던 점 모두 환영이에요."
+          className="min-h-[84px] resize-none rounded-2xl"
         />
         {errors.comment && (
           <p className="text-xs text-red-600 dark:text-red-400 mt-1">
@@ -125,11 +123,11 @@ export function ReviewForm({
 
       <div className="flex items-center justify-end gap-2">
         {onCancel && (
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button type="button" variant="outline" className="h-9 rounded-full" onClick={onCancel}>
             취소
           </Button>
         )}
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting} className={cn("h-9 rounded-full px-4", SECTION_COLORS.explore.button)}>
           {isSubmitting && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
           {submitLabel}
         </Button>

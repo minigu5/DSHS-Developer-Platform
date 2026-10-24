@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { MessageSquare, Star } from "lucide-react";
+import { Star } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { SECTION_COLORS } from "@/lib/section-colors";
 
 import { ReviewForm, type ReviewFormValues } from "./review-form";
 import { ReviewList, type ReviewItem } from "./review-list";
@@ -88,48 +89,36 @@ export function ProjectReviews({ projectId, reviews }: ProjectReviewsProps) {
   }
 
   return (
-    <section className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 mt-8">
-      <div className="flex items-center gap-2 mb-6">
-        <MessageSquare className="w-5 h-5 text-zinc-700 dark:text-zinc-300" />
-        <h3 className="text-xl font-bold text-zinc-900 dark:text-white">
-          리뷰
-        </h3>
-        <span className="text-sm text-zinc-500">({reviews.length})</span>
-      </div>
+    <section className="mt-10">
+      <h2 className="mb-4 font-heading text-[22px] font-bold text-zinc-900 dark:text-white">
+        리뷰
+        <span className="ml-1.5 text-base font-semibold text-zinc-500 tabular-nums dark:text-zinc-400">{reviews.length}</span>
+      </h2>
 
-      {/* 작성 영역 */}
-      <div className="mb-8">
+      {/* 작성 영역 — 카드 한 장 */}
+      <div className="mb-3.5 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         {!currentUserId ? (
-          <div className="rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 p-6 text-center">
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
-              리뷰를 작성하려면 로그인이 필요합니다.
-            </p>
+          <div className="flex flex-col items-center gap-3 py-2 text-center sm:flex-row sm:justify-between sm:text-left">
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">리뷰를 남기려면 로그인이 필요해요.</p>
             <Link
               href={`/login?next=/projects/${projectId}`}
-              className={cn(buttonVariants({ size: "default" }))}
+              className={cn(buttonVariants({ size: "sm" }), "h-9 rounded-full px-4", SECTION_COLORS.explore.button)}
             >
               로그인
             </Link>
           </div>
         ) : myReview ? (
-          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-              이미 이 프로젝트에 리뷰를 작성하셨습니다.
+              <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden />
+              이미 이 프로젝트에 리뷰를 남겼어요.
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setEditing(myReview)}
-            >
+            <Button variant="outline" size="sm" className="h-9 rounded-full" onClick={() => setEditing(myReview)}>
               내 리뷰 수정
             </Button>
           </div>
         ) : (
-          <ReviewForm
-            onSubmit={handleCreate}
-            submitLabel="리뷰 작성"
-          />
+          <ReviewForm onSubmit={handleCreate} submitLabel="리뷰 남기기" />
         )}
       </div>
 
@@ -144,7 +133,7 @@ export function ProjectReviews({ projectId, reviews }: ProjectReviewsProps) {
         open={editing !== null}
         onOpenChange={(open) => !open && setEditing(null)}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="rounded-3xl sm:max-w-md">
           <DialogHeader>
             <DialogTitle>리뷰 수정</DialogTitle>
             <DialogDescription>별점과 댓글을 수정합니다.</DialogDescription>
