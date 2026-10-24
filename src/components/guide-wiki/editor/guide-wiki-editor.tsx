@@ -163,7 +163,7 @@ export function GuideWikiEditor({ doc, baseRev: initialBaseRev, usages, stale, f
     if ("revNo" in result) {
       // 버튼은 잠근 채로 둔다(이동하기 전에 한 번 더 저장되지 않게).
       leavingRef.current = true;
-      toast.success("버전 " + result.revNo + "으로 저장했어요");
+      toast.success(`저장했어요 (버전 ${result.revNo})`);
       router.push(exitHref);
       return;
     }
@@ -191,7 +191,7 @@ export function GuideWikiEditor({ doc, baseRev: initialBaseRev, usages, stale, f
       result = { error: SAVE_FAILED };
     }
     if ("revNo" in result) {
-      toast.success(`저장소 원본을 가져왔어요 · 버전 ${result.revNo}`);
+      toast.success(`저장소 원본을 가져왔어요 (버전 ${result.revNo})`);
     } else if ("conflict" in result) {
       toast.error("그 사이 다른 사람이 저장했어요. 최신 내용으로 다시 불러올게요.");
     } else {

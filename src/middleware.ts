@@ -54,7 +54,8 @@ export async function middleware(request: NextRequest) {
   if (!user && isProtectedRoute(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
-    url.searchParams.set('next', pathname);
+    url.search = '';
+    url.searchParams.set('next', pathname + request.nextUrl.search);
     return redirectWithSession(url);
   }
 
