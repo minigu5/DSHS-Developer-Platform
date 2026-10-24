@@ -17,6 +17,8 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+export type GuideRevisionKind = 'seed' | 'edit' | 'revert' | 'sync';
+
 export type Database = {
   public: {
     Tables: {
@@ -425,9 +427,54 @@ export type Database = {
           },
         ];
       };
+      guide_revisions: {
+        Row: {
+          id: string;
+          doc_key: string;
+          rev_no: number;
+          kind: GuideRevisionKind;
+          title: string;
+          steps: Json;
+          extra: Json | null;
+          summary: string;
+          base_rev: number | null;
+          revert_of: number | null;
+          stats: Json;
+          author_id: string | null;
+          author_email: string;
+          created_at: string;
+        };
+        // 직접 쓰기는 RLS 로 막혀 있고 save_guide_revision() (service_role) 로만 저장한다.
+        Insert: Record<string, never>;
+        Update: Record<string, never>;
+        Relationships: [
+          {
+            foreignKeyName: 'guide_revisions_author_id_fkey';
+            columns: ['author_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
+      save_guide_revision: {
+        Args: {
+          p_author_id: string;
+          p_doc_key: string;
+          p_base_rev: number;
+          p_kind: Exclude<GuideRevisionKind, 'seed'>;
+          p_title: string;
+          p_steps: Json;
+          p_extra: Json | null;
+          p_summary: string;
+          p_revert_of: number | null;
+          p_stats: Json;
+          p_seed: Json | null;
+        };
+        Returns: number;
+      };
       track_project_click: {
         Args: {
           p_project_id: string;
@@ -458,3 +505,4 @@ export type AnnouncementUpdate = Database['public']['Tables']['announcements']['
 export type IdeaRow = Database['public']['Tables']['ideas']['Row'];
 export type IdeaInsert = Database['public']['Tables']['ideas']['Insert'];
 export type IdeaUpdate = Database['public']['Tables']['ideas']['Update'];
+export type GuideRevisionRow = Database['public']['Tables']['guide_revisions']['Row'];
