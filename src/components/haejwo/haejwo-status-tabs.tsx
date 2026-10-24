@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import type { CSSProperties } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -19,7 +18,7 @@ const TABS: Array<{ value: HaejwoStatusFilter; label: string; href: string }> = 
 ];
 
 /**
- * 해줘 목록 머리 아래 상태 세그먼트. `in_progress`는 설정하는 UI가 없어 항상 0이라 넣지 않는다(스펙 §5.6).
+ * 해줘 목록 도구줄 오른쪽(커뮤니티 탭 옆) 상태 세그먼트. `in_progress`는 설정하는 UI가 없어 항상 0이라 넣지 않는다(스펙 §5.6).
  * 활성 탭은 클라이언트에서 `?status=`를 읽어 정한다 — 서버 페이지는 searchParams를 읽지 않아 ISR(revalidate=30)이 유지된다.
  */
 export function HaejwoStatusTabs({ counts }: { counts: { all: number; open: number; done: number } }) {
@@ -27,8 +26,7 @@ export function HaejwoStatusTabs({ counts }: { counts: { all: number; open: numb
   return (
     <nav
       aria-label="상태 필터"
-      className="rise mt-6 inline-flex max-w-full gap-0.5 overflow-x-auto rounded-full bg-zinc-100 p-[3px] [scrollbar-width:none] dark:bg-zinc-800"
-      style={{ "--rise-delay": "240ms" } as CSSProperties}
+      className="inline-flex max-w-full gap-0.5 overflow-x-auto rounded-full bg-zinc-100 p-[3px] [scrollbar-width:none] dark:bg-zinc-800"
     >
       {TABS.map((tab) => {
         const active = tab.value === value;
