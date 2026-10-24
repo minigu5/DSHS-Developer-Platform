@@ -22,11 +22,11 @@ const components = {
   ol: (props: React.ComponentProps<"ol">) => (
     <ol className="mb-4 list-decimal space-y-1 pl-6 text-zinc-700 dark:text-zinc-300" {...props} />
   ),
+  // 사이트 안 주소(/로 시작)는 같은 탭, 바깥 주소는 새 탭
   a: (props: React.ComponentProps<"a">) => (
     <a
       className="font-medium text-blue-600 underline underline-offset-2 hover:text-blue-700 dark:text-blue-400"
-      target="_blank"
-      rel="noreferrer"
+      {...(props.href?.startsWith("/") ? {} : { target: "_blank", rel: "noreferrer" })}
       {...props}
     />
   ),

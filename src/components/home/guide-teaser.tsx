@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
-import { BookOpen, ChevronRight, Globe, Package, Puzzle, Smartphone, Terminal } from "lucide-react";
+import { BookOpen, ChevronRight, Globe, Puzzle, Smartphone, Terminal } from "lucide-react";
 
 import { GUIDE_STEPS } from "@/lib/guide";
 
@@ -8,8 +8,7 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
   website: Globe,
   app: Smartphone,
   extension: Puzzle,
-  cli: Terminal,
-  library: Package,
+  tool: Terminal,
 };
 
 const revealOrder = (n: number) => ({ "--reveal-delay": `${n * 90}ms` }) as CSSProperties;
@@ -26,7 +25,7 @@ export function GuideTeaser() {
         </span>
         <h3 className="font-heading mt-4 text-xl font-bold text-zinc-900 sm:text-2xl dark:text-white">직접 만들어 보고 싶다면</h3>
         <p className="mt-2 max-w-[40ch] text-sm leading-relaxed text-zinc-600 sm:text-[15px] dark:text-zinc-400 break-keep">
-          코딩을 해 본 적 없어도 괜찮아요. 만들고 싶은 것과 쓰는 컴퓨터를 고르면 설치부터 첫 실행까지 단계별로 알려줘요.
+          코딩을 해 본 적 없어도 괜찮아요. 만들고 싶은 것과 쓰는 컴퓨터를 고르면 AI한테 일 시키는 법부터 인터넷에 올리는 법까지 단계별로 알려줘요.
         </p>
         <Link
           href="/guide"
@@ -38,7 +37,7 @@ export function GuideTeaser() {
       </div>
 
       <div className="rounded-[18px] border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950">
-        <p className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">1단계</p>
+        <p className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">질문 1</p>
         <p className="mt-0.5 text-[15px] font-bold text-zinc-900 dark:text-white">{step.title}</p>
         <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
           {step.options.map((opt, i) => {

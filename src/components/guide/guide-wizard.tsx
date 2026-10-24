@@ -3,49 +3,20 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ChevronLeft, Check, Lock,
-  Globe, Smartphone, Puzzle, Terminal, Package,
-  Tablet, Laptop, Monitor,
-  MousePointer2, Bot, Zap, Sparkles,
-  Server, Cloud, Code2,
+  ChevronLeft, Check, Lock, Minus, HelpCircle,
+  Globe, Smartphone, Puzzle, Terminal,
+  Tablet, Laptop, Monitor, Sparkles,
 } from "lucide-react";
 
 import { GUIDE_STEPS, visibleSteps, buildSlug, type GuideAnswers } from "@/lib/guide";
 import { cn } from "@/lib/utils";
 
 const STEP_OPTION_ICONS: Record<string, Record<string, React.ElementType>> = {
-  type: {
-    website: Globe,
-    app: Smartphone,
-    extension: Puzzle,
-    cli: Terminal,
-    library: Package,
-  },
-  appPlatform: {
-    android: Smartphone,
-    ios: Smartphone,
-    ipados: Tablet,
-    macos: Laptop,
-    windows: Monitor,
-  },
-  terminal: {
-    terminal: Terminal,
-    gui: MousePointer2,
-  },
-  ai: {
-    'chatgpt-codex': Bot,
-    'claude-code': Zap,
-    gemini: Sparkles,
-  },
-  androidGeminiTool: {
-    aistudio: Cloud,
-    antigravity: Code2,
-  },
-  os: {
-    windows: Monitor,
-    mac: Laptop,
-    linux: Server,
-  },
+  type: { website: Globe, app: Smartphone, extension: Puzzle, tool: Terminal },
+  platform: { android: Smartphone, apple: Tablet, mac: Laptop, windows: Monitor },
+  data: { yes: Check, no: Minus, unsure: HelpCircle },
+  ai: { claude: Sparkles, chatgpt: Sparkles, gemini: Sparkles, none: HelpCircle },
+  os: { windows: Monitor, mac: Laptop },
 };
 
 type GuideWizardProps = {
@@ -64,6 +35,10 @@ export function GuideWizard({ initialType }: GuideWizardProps = {}) {
   const steps = visibleSteps(answers);
   const current = steps.find((s) => !(s.key in answers)) ?? null;
   const stepNumber = order.length + 1;
+  // 지금까지 고른 답 라벨 (질문 순서대로)
+  const picked = steps
+    .filter((s) => s.key in answers)
+    .map((s) => s.options.find((o) => o.value === answers[s.key])?.label ?? answers[s.key]);
 
   // 단계가 바뀌면 새 질문 제목으로 포커스를 옮겨 스크린리더·키보드 사용자가 흐름을 놓치지 않게 함
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -119,17 +94,32 @@ export function GuideWizard({ initialType }: GuideWizardProps = {}) {
           ) : (
             <span />
           )}
-          <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{stepNumber}단계</span>
+          <span className="inline-flex h-7 items-center rounded-full bg-purple-100 px-3 text-xs font-semibold tabular-nums text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+            질문 {stepNumber}
+          </span>
         </div>
+
+        {picked.length > 0 && (
+          <ul aria-label="고른 답" className="mb-4 flex flex-wrap gap-2">
+            {picked.map((label) => (
+              <li
+                key={label}
+                className="inline-flex h-7 items-center rounded-full bg-zinc-100 px-3 text-[13px] font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+              >
+                {label}
+              </li>
+            ))}
+          </ul>
+        )}
 
         <h2
           ref={headingRef}
           tabIndex={-1}
-          className="text-xl sm:text-2xl font-semibold tracking-tight text-zinc-900 dark:text-white focus:outline-none"
+          className="font-heading text-2xl sm:text-[28px] font-bold tracking-tight break-keep text-zinc-900 dark:text-white focus:outline-none"
         >
           {current.title}
         </h2>
-        <p className="mt-1.5 text-sm text-zinc-500 dark:text-zinc-400">{current.description}</p>
+        <p className="mt-1.5 text-sm sm:text-[15px] text-zinc-500 dark:text-zinc-400 break-keep">{current.description}</p>
       </div>
 
       <div
@@ -151,7 +141,7 @@ export function GuideWizard({ initialType }: GuideWizardProps = {}) {
                 "group flex w-full items-center justify-between gap-4 rounded-2xl border p-4 text-left transition-[color,background-color,border-color,scale] duration-150",
                 disabled
                   ? "cursor-not-allowed border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900/40"
-                  : "border-zinc-200 bg-white hover:border-blue-300 active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-blue-700",
+                  : "border-zinc-200 bg-white hover:border-purple-300 active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-purple-700",
               )}
             >
               <div className="flex items-center gap-3 min-w-0">
@@ -160,7 +150,7 @@ export function GuideWizard({ initialType }: GuideWizardProps = {}) {
                     "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
                     disabled
                       ? "bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600"
-                      : "bg-blue-50 text-blue-600 group-hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:group-hover:bg-blue-900/50",
+                      : "bg-purple-50 text-purple-600 group-hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-300 dark:group-hover:bg-purple-900/50",
                   )}>
                     <Icon className="h-[18px] w-[18px]" aria-hidden />
                   </span>
@@ -189,7 +179,7 @@ export function GuideWizard({ initialType }: GuideWizardProps = {}) {
                   "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors",
                   disabled
                     ? "border-zinc-300 text-zinc-400 dark:border-zinc-700 dark:text-zinc-600"
-                    : "border-zinc-300 text-transparent group-hover:border-blue-400 dark:border-zinc-700",
+                    : "border-zinc-300 text-transparent group-hover:border-purple-400 dark:border-zinc-700",
                 )}
               >
                 {disabled ? <Lock className="h-3 w-3" /> : <Check className="h-3.5 w-3.5" />}
