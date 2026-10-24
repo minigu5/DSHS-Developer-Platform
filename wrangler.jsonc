@@ -7,6 +7,9 @@
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-10-20",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // esbuild가 넣는 __name() 도우미가 next-themes의 인라인 스크립트(함수.toString())에 섞여
+  // 브라우저에서 "__name is not defined"로 다크모드 초기화가 깨지는 문제 방지
+  "keep_names": false,
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { Search, Rocket, BookOpen, Newspaper, Megaphone, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SECTION_COLORS } from "@/lib/section-colors";
@@ -34,10 +34,22 @@ function resolveActive(pathname: string): string {
   return "";
 }
 
+// 누른 메뉴를 주소가 바뀌기 전에 먼저 활성으로 보여 준다(서버 왕복이 길어 1초쯤 반응이 없던 문제, 2026-10-24).
+// 주소가 바뀌면(또는 그대로 머물면 다음 클릭 때) 실제 주소 기준으로 돌아간다.
+function useOptimisticActive() {
+  const pathname = usePathname();
+  const [pending, setPending] = useState<{ href: string; from: string } | null>(null);
+  const active = pending && pending.from === pathname ? pending.href : resolveActive(pathname);
+  const onNavigate = (href: string) => (e: MouseEvent<HTMLAnchorElement>) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; // 새 탭 열기 등
+    setPending({ href, from: pathname });
+  };
+  return { pathname, active, onNavigate };
+}
+
 // 데스크탑 전용 — SiteHeader 안에서 사용
 export function PageNav() {
-  const pathname = usePathname();
-  const active = resolveActive(pathname);
+  const { pathname, active, onNavigate } = useOptimisticActive();
   const activeIndex = NAV_ITEMS.findIndex((i) => i.href === active);
 
   const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
@@ -107,6 +119,7 @@ export function PageNav() {
             }}
             href={href}
             prefetch={true}
+            onClick={onNavigate(href)}
             aria-label={label}
             aria-current={isActive ? "page" : undefined}
             title={isActive ? undefined : label}
@@ -132,8 +145,7 @@ export function PageNav() {
 
 // 모바일 전용 — (nav)/layout.tsx 최하단에서 사용
 export function MobileNav() {
-  const pathname = usePathname();
-  const active = resolveActive(pathname);
+  const { active, onNavigate } = useOptimisticActive();
 
   return (
     <nav
@@ -147,6 +159,7 @@ export function MobileNav() {
             key={href}
             href={href}
             prefetch={true}
+            onClick={onNavigate(href)}
             aria-label={label}
             aria-current={isActive ? "page" : undefined}
             className="group flex flex-1 items-center justify-center py-2.5 focus-visible:outline-none"

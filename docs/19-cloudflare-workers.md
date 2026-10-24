@@ -6,7 +6,7 @@
 
 | 파일 | 역할 |
 |---|---|
-| `wrangler.jsonc` | Worker 이름 `dshs-developer-platform`, `nodejs_compat`, 정적 자산, Images 바인딩, Smart Placement, 런타임 변수 |
+| `wrangler.jsonc` | Worker 이름 `dshs-developer-platform`, `nodejs_compat`, 정적 자산, Images 바인딩, 배치 `aws:ap-northeast-2`, `keep_names: false`, 런타임 변수 |
 | `open-next.config.ts` | OpenNext 캐시 설정 — 정적 자산 캐시만 (아래 "캐시") |
 | `next.config.ts` 끝 | `initOpenNextCloudflareForDev()` — `next dev`에서 바인딩 사용 |
 | `public/_headers` | `/_next/static/*` 1년 캐시 |

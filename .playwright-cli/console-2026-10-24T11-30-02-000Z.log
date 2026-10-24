@@ -1,0 +1,5 @@
+[   72097ms] ReferenceError: __name is not defined
+    at https://dshs.dev/announcements:10:11
+    at https://dshs.dev/announcements:17:11
+[   82318ms] [ERROR] Failed to load resource: the server responded with a status of 503 () @ https://dshs-developer-platform.vercel.app/icon.svg?icon.3qkhewsxx_vfb.svg:0
+[  157589ms] [ERROR] Failed to load resource: the server responded with a status of 503 () @ https://dshs-developer-platform.vercel.app/icon.svg?icon.3qkhewsxx_vfb.svg:0
