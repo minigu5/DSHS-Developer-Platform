@@ -119,6 +119,9 @@ html.dark {
   mask-size: 75% 160%, 60% 130%, 100% 100%;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
+  /* 동작 줄이기로 애니메이션이 멈춰도 덩이가 첫 위치에 머물도록 기본값을 명시 */
+  -webkit-mask-position: -15% 45%, 115% 55%, 0 0;
+  mask-position: -15% 45%, 115% 55%, 0 0;
   animation:
     grid-drift 10s linear infinite,
     grid-wave 28s ease-in-out infinite alternate;

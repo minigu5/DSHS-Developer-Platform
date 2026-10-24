@@ -23,11 +23,8 @@ export default async function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-4">
-      
-      <div className="relative z-10 w-full max-w-md">
-        <OnboardingForm user={user} />
-      </div>
-    </div>
+    <AuthShell mark="logo">
+      <OnboardingForm user={user} />
+    </AuthShell>
   );
 }

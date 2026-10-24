@@ -114,8 +114,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const stats: StatStripItem[] = [
     {
       label: "별점",
+      // 별점 없는 리뷰만 있으면 평균을 보여줄 수 없으므로 "–" (리뷰 수는 그대로)
       value:
-        reviewCount > 0 ? (
+        ratedReviews.length > 0 ? (
           <>
             <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden />
             <span className="sr-only">5점 만점에 </span>

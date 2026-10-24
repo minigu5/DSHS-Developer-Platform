@@ -1,14 +1,16 @@
+"use client";
+
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import type { CSSProperties } from "react";
 
 import { cn } from "@/lib/utils";
 
 export type HaejwoStatusFilter = "all" | "open" | "done";
 
-type HaejwoStatusTabsProps = {
-  counts: { all: number; open: number; done: number };
-  value: HaejwoStatusFilter;
-};
+export function parseHaejwoStatus(value: string | null | undefined): HaejwoStatusFilter {
+  return value === "open" || value === "done" ? value : "all";
+}
 
 const TABS: Array<{ value: HaejwoStatusFilter; label: string; href: string }> = [
   { value: "all", label: "전체", href: "/haejwo" },
@@ -18,9 +20,10 @@ const TABS: Array<{ value: HaejwoStatusFilter; label: string; href: string }> = 
 
 /**
  * 해줘 목록 머리 아래 상태 세그먼트. `in_progress`는 설정하는 UI가 없어 항상 0이라 넣지 않는다(스펙 §5.6).
- * 링크 기반이라 서버에서 `?status=`로 거른 결과를 받는다.
+ * 활성 탭은 클라이언트에서 `?status=`를 읽어 정한다 — 서버 페이지는 searchParams를 읽지 않아 ISR(revalidate=30)이 유지된다.
  */
-export function HaejwoStatusTabs({ counts, value }: HaejwoStatusTabsProps) {
+export function HaejwoStatusTabs({ counts }: { counts: { all: number; open: number; done: number } }) {
+  const value = parseHaejwoStatus(useSearchParams().get("status"));
   return (
     <nav
       aria-label="상태 필터"
@@ -33,6 +36,7 @@ export function HaejwoStatusTabs({ counts, value }: HaejwoStatusTabsProps) {
           <Link
             key={tab.value}
             href={tab.href}
+            scroll={false}
             aria-current={active ? "page" : undefined}
             className={cn(
               "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600",

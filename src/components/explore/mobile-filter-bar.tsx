@@ -87,7 +87,7 @@ export function MobileFilterBar({
   return (
     <div
       ref={rootRef}
-      className="relative z-20 border-b border-zinc-200 bg-white md:hidden dark:border-zinc-800 dark:bg-zinc-950"
+      className="sticky top-16 z-20 border-b border-zinc-200 bg-white md:hidden dark:border-zinc-800 dark:bg-zinc-950"
     >
       <div className="flex h-14 items-center gap-2 overflow-x-auto px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {GROUPS.map((g) => {
