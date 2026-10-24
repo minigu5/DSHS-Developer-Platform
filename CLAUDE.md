@@ -160,7 +160,7 @@
 ---
 
 ## 📝 개발 팁 블로그 (`/tips`)
-- **목록** `/tips`(`revalidate=30`): 카드 그리드(커버·태그·작성자·좋아요/댓글 수·상대시간). 헤더 우측 "팁 작성".
+- **목록** `/tips`(`revalidate=30`): 카드 그리드(커버·태그·작성자·좋아요/댓글 수·상대시간). 머리 버튼은 "팁 작성" 하나, 머리 아래 도구줄에 커뮤니티 탭(개발 팁 | 해줘!) + 팁 개수.
 - **작성** `/tips/new` · **수정** `/tips/[id]/edit`: 페이지는 `PageHero variant="compact"`(타일 + 제목만). `TipEditor`(`src/components/tips/tip-editor.tsx`) — 카드 2장: ① 큰 밑줄 제목 입력(`TITLE_INPUT_CLASS`) + 2열(한 줄 요약/태그) + 대표 이미지, ② 본문(`EditorTabs` 작성/분할/미리보기, Tab 들여쓰기). 제출 버튼은 섹션 색(`SECTION_COLORS.tips.button`) "팁 발행"/"저장". 둘 다 보호 라우트(미들웨어). 수정은 작성자만. 공지 작성(`AnnouncementEditor`)도 같은 틀 — 카드 ① 맨 위에 카테고리 카드 선택(단일 선택이라 sky 유지).
 - **상세** `/tips/[id]`(`revalidate=30`): 글 레이아웃 — `ArticleHeader`("← 개발 팁" 줄 + 태그 + h1 + 요약 + 작성자 줄) → 커버 16:9 → `ReadingSurface`(마크다운, 하단에 `TipLikeButton` 알약 + "도움이 됐다면 눌러 주세요") → `TipComments`(카드 없이 "댓글 N" 제목 + 행 목록). 작성자에게만 수정/삭제 노출(`TipOwnerActions`). 팁·해줘·공지 상세가 같은 틀을 쓴다.
 - 서버 액션: **`src/lib/tips/actions.ts`**(`createTip`/`updateTip`/`deleteTip`). 라우트 그룹 밖에 위치 — `(nav)` 경로에 두면 Turbopack에서 client→server action 바인딩이 깨지는 문제 있음.
@@ -222,7 +222,7 @@
 
 ## 💡 해줘! 아이디어 요청 (`/haejwo`)
 - **목적**: 비개발자가 아이디어를 올리고 개발자에게 구현을 요청하는 기능. 기능 이름 "해줘".
-- **진입점**: `/tips` 페이지 헤더의 "해줘!" 버튼(오렌지 색상) → `/haejwo` 목록 페이지.
+- **진입점**: 내비 "커뮤니티" 칸 → 커뮤니티 탭(`CommunityTabs`)의 "해줘!" 탭 → `/haejwo` 목록 페이지. (개발 팁 머리의 "해줘! 둘러보기" 버튼은 2026-10-24 제거)
 - **목록** `/haejwo`(`revalidate=30`): 카드 그리드(종류·카테고리·상태·작성자·상대시간).
 - **위저드** `/haejwo/new` (보호 라우트): 단계별 아이디어 작성.
   - 1단계: 프로그램 종류 선택 (`PROJECT_TYPES` 기반 카드 리스트)
@@ -233,7 +233,7 @@
 - DB 스키마: `docs/10-supabase-haejwo.sql` — `ideas` 테이블 (`id`, `author_id`, `title`, `type`, `category`, `content`, `status`(`open`/`in_progress`/`done`), `linked_project_id`(nullable FK → projects), `created_at`, `updated_at`).
 - 컴포넌트: `src/components/haejwo/haejwo-wizard.tsx`, `src/components/haejwo/haejwo-owner-actions.tsx`, `src/components/haejwo/haejwo-complete-button.tsx`.
 - **구현완료 흐름**: 로그인된 사용자가 상세 페이지 하단 "구현완료" 버튼 클릭 → 다이얼로그에서 내 프로젝트 목록 표시 → 선택 시 `markIdeaDone(ideaId, projectId)` 서버 액션 호출 → `status='done'`, `linked_project_id` 업데이트 → 완료 후 연결된 프로젝트 카드 노출. 프로젝트 미등록 시 "프로젝트 등록하기" 버튼 제공.
-- 색상 포인트: **오렌지** (`orange-700`) — 개발 팁(`tip-*` 분홍)과 구별. 목록 머리 아래 **상태 세그먼트** `HaejwoStatusTabs`(전체·구현 요청 중·완료, `?status=` 링크; `in_progress`는 설정 UI가 없어 세그먼트에 없음). 카드는 `HaejwoCard`(상태 알약·종류 아이콘 칩·카테고리 칩, 완료는 점선 테두리 + 연결 프로젝트 한 줄). 상세는 글 레이아웃(`ArticleHeader` + `ReadingSurface`) + 미완료면 점선 "만들었어요?" 카드, 완료면 emerald 연결 프로젝트 카드.
+- 색상 포인트: **오렌지** (`orange-700`) — 개발 팁(`tip-*` 분홍)과 구별. 목록 도구줄 오른쪽(커뮤니티 탭 옆) **상태 세그먼트** `HaejwoStatusTabs`(전체·구현 요청 중·완료, `?status=` 링크; `in_progress`는 설정 UI가 없어 세그먼트에 없음). 카드는 `HaejwoCard`(상태 알약·종류 아이콘 칩·카테고리 칩, 완료는 점선 테두리 + 연결 프로젝트 한 줄). 상세는 글 레이아웃(`ArticleHeader` + `ReadingSurface`) + 미완료면 점선 "만들었어요?" 카드, 완료면 emerald 연결 프로젝트 카드.
 - ⚠️ 새 환경에서는 `docs/10-supabase-haejwo.sql` → `docs/11-supabase-haejwo-alter.sql` 순서로 Supabase에서 실행해야 함.
 
 ---
@@ -252,7 +252,7 @@
 - 컴포넌트: `src/components/announcements/announcement-card.tsx`, `announcement-editor.tsx`, `announcement-owner-actions.tsx`, `announcement-pin-button.tsx`.
 - DB 스키마: `docs/12-supabase-announcements.sql` — `announcements` 테이블 (`id`, `author_id`, `title`, `category`, `content`, `is_pinned`, `created_at`, `updated_at`). `is_admin()` SQL 함수 포함.
 - RLS: 조회 누구나, 작성 로그인, 수정/삭제 작성자 또는 관리자.
-- 색상 포인트: **스카이블루** (`sky-500`) — PageNav pill.
+- 색상 포인트: **스카이블루** (`sky-700`) — 공지 머리 타일·주 버튼·헤더 벨 활성 칩. 입구는 헤더 벨(내비 칸 아님)·홈 티커·푸터 링크.
 - ⚠️ 새 환경에서는 `docs/12-supabase-announcements.sql`을 Supabase에서 실행해야 함.
 - **공지사항 카드 하단 고정**: `announcement-card.tsx`에서 작성자/시간 영역에 `mt-auto` 적용 — 제목 줄 수에 무관하게 카드 하단에 고정됨.
 - **상세 페이지 작성자 링크**: `/announcements/[id]`에서 작성자 아바타+이름 영역을 `<Link href="/developers/[author_id]">` 로 감쌈 — 클릭 시 프로필 페이지 이동.
@@ -365,16 +365,16 @@
 ## 🧭 전역 페이지 내비게이션 (`PageNav` / `MobileNav`)
 
 - 파일: `src/components/shared/page-nav.tsx` (`"use client"`, 두 컴포넌트 모두 export)
-- **6개 항목**: 모든 프로젝트(→ `/explore`), 프로젝트 등록(→ `/projects/new`), 나도 개발해볼래!(→ `/guide`), 개발 팁(→ `/tips`), 해줘!(→ `/haejwo`), 공지사항(→ `/announcements`)
+- **4개 항목**(2026-10-24 6칸에서 병합 — 서브도메인 "주소 받기" 칸 자리 확보): 모든 프로젝트(→ `/explore`), 프로젝트 등록(→ `/projects/new`), 나도 개발해볼래!(→ `/guide`), **커뮤니티(→ `/tips`)**. 커뮤니티 = 개발 팁 + 해줘!(URL은 `/tips`·`/haejwo` 그대로, 두 목록 사이는 `CommunityTabs`로 오감). **공지사항은 내비 칸이 아니라 헤더 오른쪽 벨 아이콘**(`src/components/shared/announcements-link.tsx`, 프로필 옆, 글자·안 읽음 점 없음, 모바일 포함).
 - **모든 Link에 `prefetch={true}`** — `force-dynamic` 페이지 포함 전체 콘텐츠를 뷰포트 진입 시 미리 패치.
 - **활성 버튼 판정**:
   - `/explore`, `/projects/*`(등록·수정 제외), `/developers/*` → "모든 프로젝트"
   - `/projects/new`, `*/edit` → "프로젝트 등록"
   - `/guide/*` → "나도 개발해볼래!"
-  - `/tips/*` → "개발 팁"
-  - `/haejwo/*` → "해줘!"
-  - `/announcements/*` → "공지사항"
-- **버튼별 고유 색**: `src/lib/section-colors.ts`의 `SECTION_COLORS`에서 가져온다 — 모든 프로젝트=blue-600, 프로젝트 등록=emerald-700, 나도 개발해볼래!=purple-600, **개발 팁=tip-600(분홍 `#db2777`, `globals.css` `@theme`의 `--color-tip-*` 커스텀 토큰; 2026-10-24 amber에서 교체)**, 해줘!=orange-700, 공지사항=sky-700. 같은 맵이 페이지 머리 타일·주 버튼·활성 칩에도 쓰인다.
+  - `/tips/*`, `/haejwo/*` → "커뮤니티" (활성 키는 `href`인 `"/tips"` — `useOptimisticActive`가 href로 비교)
+  - `/announcements/*` → 내비 알약은 모두 꺼지고 헤더 벨이 활성(`SECTION_COLORS.announcements.chip` 연한 sky + `aria-current`)
+- **버튼별 고유 색**: `src/lib/section-colors.ts`의 `SECTION_COLORS`에서 가져온다 — 모든 프로젝트=blue-600, 프로젝트 등록=emerald-700, 나도 개발해볼래!=purple-600, **커뮤니티=화면 따라 바뀜: `/tips*`=tip-600(분홍 `#db2777`, `globals.css` `@theme`의 `--color-tip-*` 커스텀 토큰), `/haejwo*`=orange-700**(`pillFor()`, PC 알약은 `background-color`도 transition). 같은 맵이 페이지 머리 타일·주 버튼·활성 칩에도 쓰인다(`tips`·`haejwo`·`announcements` 키는 합치지 않음).
+- **커뮤니티 탭 도구줄** (`src/components/community/community-tabs.tsx`, 서버 컴포넌트, `current` prop): `/tips`·`/haejwo` 목록의 머리(`PageHero`) 아래 `main` 맨 위 한 줄 — 왼쪽 탭(개발 팁 | 해줘!, 활성은 섹션 색 칩), 오른쪽은 팁 개수 / 해줘! 상태 세그먼트. `flex-wrap`이라 모바일에선 오른쪽 요소가 아래 줄로. ISR 유지를 위해 탭은 `usePathname`을 안 쓴다. 로딩 뼈대는 `ListPageSkeleton community="count"|"segment"`.
 
 ### 데스크탑 (`PageNav`, `sm:` 이상)
 - `SiteHeader` 로고 우측에 얇은 구분선(`hidden sm:block w-px h-5`)으로 분리하여 인라인 배치. `<div className="hidden sm:block">` 래퍼로 모바일에서 완전히 숨김.
@@ -386,7 +386,7 @@
 - **`(nav)/layout.tsx` DOM 최하단**에 `<SiteHeader>` 및 콘텐츠와 분리된 독립 컴포넌트로 배치. 헤더 CSS stacking context 영향 없음.
 - `fixed bottom-0 inset-x-0 z-50 flex sm:hidden` — 뷰포트 바닥에 고정.
 - **아이콘 전용** (`h-5 w-5`). 활성 항목은 `h-9 w-9 rounded-full` **원형 컬러 배경 + 흰색 아이콘**, 비활성은 배경 없이 zinc 아이콘.
-- 모바일 헤더: 로고(아이콘 + 2줄 텍스트) + 다크모드 토글 + 프로필만 표시. 로고 텍스트는 1줄 "DSHS Developer Platform"(`text-base sm:text-[17px]`, `font-heading`) + 2줄 읽는 이름 "대곽 개발자 플랫폼"(`text-[11px]` zinc-600). 공식 이름은 영문(도메인 dshs.dev·옛 dshs-developer-platform.vercel.app과 일치)이고 한글은 부르는 이름일 뿐이라 탭 제목·푸터는 영문만 쓴다.
+- 모바일 헤더: 로고(아이콘 + 2줄 텍스트) + 공지 벨 + 프로필만 표시(간격 `gap-1`). 다크모드 토글은 폭이 모자라 모바일에선 숨기고 **프로필 드롭다운의 "다크/라이트 모드로 전환" 항목**으로 옮겼다(`auth-buttons.tsx`, matchMedia로 모바일일 때만 렌더 — `sm:hidden` 항목은 데스크탑 화살표 이동에 걸릴 수 있어서). 비로그인 모바일은 토글 없이 시스템 테마. 로고 텍스트는 1줄 "DSHS Developer Platform"(`text-base sm:text-[17px]`, `font-heading`) + 2줄 읽는 이름 "대곽 개발자 플랫폼"(`text-[11px]` zinc-600). 공식 이름은 영문(도메인 dshs.dev·옛 dshs-developer-platform.vercel.app과 일치)이고 한글은 부르는 이름일 뿐이라 탭 제목·푸터는 영문만 쓴다.
 - **로고 정렬**: 아이콘은 `<Image width={32} height={32} className="block ...">` (fill 미사용 — inline baseline 문제 방지). 텍스트는 `<span>` 2줄 세로 스택(`flex flex-col gap-px`, 각 줄 `leading-[1.1]`), Link의 `items-center`로 아이콘과 중앙 정렬.
 - `(nav)/layout.tsx`에서 콘텐츠를 `<div className="pb-16 sm:pb-0">` 로 감싸 탭바(56px)에 가려지지 않도록 여백 확보.
 
@@ -401,7 +401,8 @@
 > 원칙: **데스크탑(`sm:` 640px 이상) 디자인은 그대로 두고, 모바일(기본 브레이크포인트)에서만 보강**한다. 모든 반응형 클래스는 `기본값(모바일) + sm:기존값(데스크탑 동일)` 패턴으로 작성해 데스크탑 레이아웃이 픽셀 단위로 동일하게 유지되도록 한다.
 
 - **좌우 여백**: 페이지 `<main>`/섹션은 **모든 폭에서 `px-6`(24px)** — 2026-10-24 "모바일 16px은 너무 좁다" 피드백으로 `px-4 sm:px-6`을 폐기. 헤더(`SiteHeader`) 컨테이너도 동일. 카드 안 여백(20px)은 그대로.
-- **헤더 우측 버튼**: 좁은 폰에서 오버플로우 방지를 위해 라벨을 반응형 처리. 예) tips의 "팁 작성"은 모바일 "작성"/데스크탑 "팁 작성"(`<span className="hidden sm:inline">`). 모바일 헤더는 로고·다크모드·프로필만 표시 (`PageNav`는 하단 탭바로 분리).
+- **헤더 우측 버튼**: 좁은 폰에서 오버플로우 방지를 위해 라벨을 반응형 처리. 예) tips의 "팁 작성"은 모바일 "작성"/데스크탑 "팁 작성"(`<span className="hidden sm:inline">`). 모바일 헤더는 로고·공지 벨·프로필만 표시(다크모드는 프로필 메뉴 안, `PageNav`는 하단 탭바로 분리). 헤더 오른쪽 묶음은 모바일 `gap-1` / 데스크탑 `gap-2`.
+- **목록 도구줄**: 커뮤니티 탭 줄처럼 왼쪽·오른쪽 컨트롤을 한 줄에 두는 곳은 `flex flex-wrap justify-between gap-x-4 gap-y-3` — 모바일에선 오른쪽 요소가 아래로 내려가 가로 스크롤이 생기지 않는다.
 - **모바일 하단 탭바**: `MobileNav`(`sm:hidden`)가 뷰포트 바닥에 고정. 아이콘 전용, 활성 항목은 원형 컬러 배경+흰색 아이콘으로 강조. 콘텐츠가 가려지지 않도록 `(nav)/layout.tsx`에서 `pb-16 sm:pb-0` 여백 처리.
 - **큰 제목**: 모바일에서 한 단계 작게. 홈 히어로 `text-3xl sm:text-6xl`, 페이지 머리(`PageHero`) h1 `text-3xl sm:text-[40px]`(compact `text-2xl sm:text-[28px]`). 모바일 머리는 설명 문장을 숨긴다.
 - **카드/섹션 패딩**: `p-6 sm:p-8` (모바일 24px, 데스크탑 32px).
@@ -482,7 +483,8 @@ src/
 │   ├── haejwo/           # 해줘! 아이디어 요청 (page=목록, new, [id])
 │   └── announcements/    # 공지사항 (page=목록, new, [id], [id]/edit)
 ├── components/
-│   ├── shared/           # site-header, page-nav, page-hero, article-header, reading-surface, editor-tabs, markdown, image-upload-input, announcement-ticker 등
+│   ├── community/        # community-tabs(개발 팁 | 해줘! 탭 세그먼트)
+│   ├── shared/           # site-header, page-nav, announcements-link(헤더 공지 벨), page-hero, article-header, reading-surface, editor-tabs, markdown, image-upload-input, announcement-ticker 등
 │   ├── forms/            # select-card, toggle-chip, choice-row(선택 UI, tone="neutral"|섹션 키), form-section, form-rail(등록 폼 카드·목차)
 │   ├── auth/             # google-login-button, auth-shell(로그인·온보딩·접근 거부 공통 틀)
 │   ├── home/             # icon-shelf, reveal-observer, section-header, home-project-card, how-it-works, recent-posts, guide-teaser, closing-cta, site-footer
