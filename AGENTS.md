@@ -155,9 +155,10 @@ src/
 │   └── globals.css
 ├── components/
 │   ├── ui/                       # shadcn/ui
-│   ├── auth/
+│   ├── auth/                     # google-login-button, auth-shell(로그인·온보딩·접근 거부 공통 틀)
 │   ├── projects/
-│   └── shared/
+│   ├── forms/                    # select-card, toggle-chip, choice-row, form-section, form-rail (등록 폼·위저드 선택 UI)
+│   └── shared/                   # page-hero, article-header, reading-surface, editor-tabs 등 — 하위 페이지 공통 톤은 CLAUDE.md 「🧱」 참고
 ├── lib/
 │   ├── supabase/
 │   │   ├── client.ts             # 브라우저용
