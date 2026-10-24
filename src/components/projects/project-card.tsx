@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Globe, Lock, Star, MessageSquare } from "lucide-react";
+import { Globe, Lock, Star, MessageSquare, Pencil } from "lucide-react";
 
 import { cn, isExternalImage } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -205,6 +205,14 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
                 : <><Globe className="w-3 h-3" aria-hidden /> 공개</>
               }
             </span>
+            <Link
+              href={`/projects/${project.id}/edit`}
+              className="inline-flex h-7 items-center gap-1 rounded-full border border-zinc-300 bg-white px-2.5 text-xs font-medium text-zinc-900 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800"
+              aria-label={`${project.title} 수정`}
+            >
+              <Pencil className="h-3 w-3" aria-hidden />
+              수정
+            </Link>
           </div>
         )}
       </CardFooter>
