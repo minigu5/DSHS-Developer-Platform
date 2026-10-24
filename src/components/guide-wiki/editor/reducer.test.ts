@@ -41,7 +41,7 @@ test('insert at 0: 새 단계가 맨 앞, 펼쳐지고 본문은 새 단계 헤�
 
 test('insert: 가운데·끝에도 넣는다', () => {
   const mid = editorReducer(start(), { type: 'insert', at: 2 })
-  assert.deepEqual(ids(mid).filter((id) => id.startsWith('s')), ['s1', 's2', 's3'])
+  assert.deepEqual(ids(mid).filter((id) => id !== mid.openId), ['s1', 's2', 's3'])
   assert.equal(mid.steps[2].id, mid.openId)
   const end = editorReducer(start(), { type: 'insert', at: 3 })
   assert.equal(end.steps[3].id, end.openId)
