@@ -22,6 +22,7 @@ function isProtectedRoute(pathname: string): boolean {
   if (/^\/tips\/[^/]+\/edit$/.test(pathname)) return true;
   if (/^\/haejwo\/[^/]+\/edit$/.test(pathname)) return true;
   if (/^\/announcements\/[^/]+\/edit$/.test(pathname)) return true;
+  if (/^\/guide-wiki\/[^/]+\/edit\/?$/.test(pathname)) return true;
   return false;
 }
 
