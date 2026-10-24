@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, Globe, Code2, Users, User as UserIcon, Plus, X, Link as LinkIcon, Loader2, Image as ImageIcon, Trash2, Rocket } from "lucide-react";
+import { Lock, Globe, Code2, Users, User as UserIcon, Plus, X, Link as LinkIcon, Loader2, Image as ImageIcon, Trash2, Rocket, Download } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -31,6 +31,7 @@ import { FormRail, type FormRailSection } from "@/components/forms/form-rail";
 import { TYPE_ICONS, PLATFORM_ICONS, CATEGORY_ICONS } from "@/lib/type-icons";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { Markdown } from "@/components/shared/markdown";
+import { parseGithubRepo } from "@/lib/github-readme";
 import { createClient } from "@/lib/supabase/client";
 import type { ProjectRow } from "@/lib/types";
 
@@ -75,6 +76,13 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
   const [description, setDescription] = useState<string>(initialData?.description ?? "");
   const [descTab, setDescTab] = useState<EditorTab>("write");
   const descTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // GitHub README 가져오기
+  const [readmeUrl, setReadmeUrl] = useState<string>(initialData?.repo_url ?? "");
+  const [readmeLoading, setReadmeLoading] = useState(false);
+  const [readmeError, setReadmeError] = useState("");
+  const [readmeNote, setReadmeNote] = useState("");
+  const [showReadmeDialog, setShowReadmeDialog] = useState(false);
 
   // 작성자 정보
   const [authorRole, setAuthorRole] = useState<AuthorRole>(
@@ -141,6 +149,48 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
         requestAnimationFrame(() => { el.selectionStart = lineStart; el.selectionEnd = lineStart + transformed.length; });
       }
     }
+  };
+
+  const importReadme = async () => {
+    setShowReadmeDialog(false);
+    setReadmeLoading(true);
+    setReadmeError("");
+    setReadmeNote("");
+    try {
+      const res = await fetch(`/api/github-readme?url=${encodeURIComponent(readmeUrl.trim())}`);
+      const data = (await res.json()) as { markdown?: string; truncated?: boolean; error?: string };
+      if (!res.ok || !data.markdown) {
+        setReadmeError(data.error ?? "README를 가져오지 못했어요.");
+        return;
+      }
+      setDescription(data.markdown);
+      if (sourceType === 'open' && !repoUrl.trim()) setRepoUrl(readmeUrl.trim());
+      setReadmeNote(
+        data.truncated
+          ? "README가 너무 길어 앞부분만 가져왔어요. 필요한 부분을 고쳐 주세요."
+          : "README를 가져왔어요. 아래 칸에서 자유롭게 고칠 수 있어요.",
+      );
+    } catch {
+      setReadmeError("README를 가져오지 못했어요. 네트워크를 확인하고 다시 시도해 주세요.");
+    } finally {
+      setReadmeLoading(false);
+    }
+  };
+
+  // 이미 쓴 설명이 있으면 덮어쓰기 전에 한 번 물어본다
+  const requestReadme = () => {
+    if (readmeLoading) return;
+    setReadmeError("");
+    setReadmeNote("");
+    if (!parseGithubRepo(readmeUrl)) {
+      setReadmeError("GitHub 저장소 링크를 입력해 주세요. 예: https://github.com/username/repo");
+      return;
+    }
+    if (description.trim()) {
+      setShowReadmeDialog(true);
+      return;
+    }
+    void importReadme();
   };
 
   const addTeamMember = async () => {
@@ -591,6 +641,36 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
         {/* 2. 상세 설명 */}
         <FormSection id="section-description" title="상세 설명" hint="마크다운">
           <div className="grid gap-2.5" id="description_section">
+            <div className="grid gap-1.5" id="readme_import">
+              <Label htmlFor="readme_url" className={labelClass}>GitHub에서 가져오기</Label>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <div className="relative flex-1">
+                  <Code2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" aria-hidden />
+                  <Input
+                    id="readme_url"
+                    value={readmeUrl}
+                    onChange={e => setReadmeUrl(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); requestReadme(); } }}
+                    placeholder="https://github.com/username/repo"
+                    className="h-11 rounded-xl pl-9"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={requestReadme}
+                  disabled={readmeLoading}
+                  className={cn(buttonVariants({ variant: "outline" }), "h-11 rounded-full px-4 text-sm", readmeLoading && "cursor-not-allowed opacity-50")}
+                >
+                  {readmeLoading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden /> : <Download className="mr-1.5 h-4 w-4" aria-hidden />}
+                  README 가져오기
+                </button>
+              </div>
+              {readmeError ? (
+                <p role="alert" className="text-xs font-medium text-rose-600 dark:text-rose-400">{readmeError}</p>
+              ) : (
+                <p className={hintClass} aria-live="polite">{readmeNote || "저장소 링크를 넣고 누르면 README가 상세 설명으로 채워져요."}</p>
+              )}
+            </div>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <EditorTabs value={descTab} onChange={setDescTab} />
               <span className={hintClass}>Tab으로 두 칸 들여쓰기, Shift+Tab으로 해제</span>
@@ -918,6 +998,25 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
       </form>
 
       <FormRail sections={railSections} requiredDone={requiredDone} requiredTotal={requiredFlags.length} className="sticky top-24 hidden w-[200px] shrink-0 lg:grid" />
+
+      <Dialog open={showReadmeDialog} onOpenChange={setShowReadmeDialog}>
+        <DialogContent showCloseButton={false} className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg">쓰던 설명을 README로 바꿀까요?</DialogTitle>
+            <DialogDescription>
+              지금 상세 설명에 적은 내용이 GitHub README로 바뀌어요. 되돌릴 수 없어요.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button type="button" onClick={() => setShowReadmeDialog(false)} className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}>
+              취소
+            </button>
+            <button type="button" onClick={() => void importReadme()} className={cn(buttonVariants(), "rounded-xl")}>
+              바꾸기
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {showDanger && (
         <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
