@@ -1,7 +1,7 @@
 export const revalidate = 30;
 
 import Link from "next/link";
-import { PenLine, Megaphone, Newspaper } from "lucide-react";
+import { PenLine, Newspaper } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { buttonVariants } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { PageHero } from "@/components/shared/page-hero";
 import { TipCard, type TipCardData } from "@/components/tips/tip-card";
+import { CommunityTabs } from "@/components/community/community-tabs";
 
 type TipRowJoined = {
   id: string;
@@ -59,29 +60,26 @@ export default async function TipsPage() {
         title="개발 팁"
         description="막혔다가 해결한 방법, 써 보니 좋았던 도구를 글로 남기는 곳이에요."
         actions={
-          <>
-            <Link
-              href="/tips/new"
-              className={cn(buttonVariants({ size: "lg" }), "h-11 rounded-full px-5 text-sm", SECTION_COLORS.tips.button)}
-            >
-              <PenLine className="mr-1.5 h-4 w-4" aria-hidden />
-              팁 작성
-            </Link>
-            <Link
-              href="/haejwo"
-              className={cn(
-                buttonVariants({ size: "lg", variant: "outline" }),
-                "h-11 rounded-full px-5 text-sm border-orange-200 text-orange-700 hover:bg-orange-50 dark:border-orange-900/50 dark:text-orange-400 dark:hover:bg-orange-950/30",
-              )}
-            >
-              <Megaphone className="mr-1.5 h-4 w-4" aria-hidden />
-              해줘! 둘러보기
-            </Link>
-          </>
+          <Link
+            href="/tips/new"
+            className={cn(buttonVariants({ size: "lg" }), "h-11 rounded-full px-5 text-sm", SECTION_COLORS.tips.button)}
+          >
+            <PenLine className="mr-1.5 h-4 w-4" aria-hidden />
+            팁 작성
+          </Link>
         }
       />
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-9">
+        {/* 팁이 0개여도 탭은 보여야 해서 빈 상태 분기 밖에 둔다 */}
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <CommunityTabs current="tips" />
+          {tips.length > 0 && (
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              <b className="font-semibold text-zinc-900 tabular-nums dark:text-white">{tips.length}개</b>의 팁
+            </p>
+          )}
+        </div>
         {tips.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-zinc-300 py-20 text-center dark:border-zinc-700">
             <p className="text-zinc-600 dark:text-zinc-400">아직 작성된 팁이 없어요.</p>
@@ -93,16 +91,11 @@ export default async function TipsPage() {
             </Link>
           </div>
         ) : (
-          <>
-            <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">
-              <b className="font-semibold text-zinc-900 tabular-nums dark:text-white">{tips.length}개</b>의 팁
-            </p>
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {tips.map((tip) => (
-                <TipCard key={tip.id} tip={tip} />
-              ))}
-            </div>
-          </>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {tips.map((tip) => (
+              <TipCard key={tip.id} tip={tip} />
+            ))}
+          </div>
         )}
       </main>
     </div>

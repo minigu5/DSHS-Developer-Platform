@@ -104,18 +104,29 @@ export function CardGridSkeleton({ count = 6, cover = false }: { count?: number;
 export function ListPageSkeleton({
   actions = 1,
   cover = false,
-  tabs = false,
+  community,
 }: {
   actions?: number;
   cover?: boolean;
-  /** 머리 아래 세그먼트(해줘 상태 탭) 자리 */
-  tabs?: boolean;
+  /** 커뮤니티 도구줄(왼쪽 탭 + 오른쪽 개수/상태 세그먼트) 자리 — 개발 팁은 "count", 해줘!는 "segment" */
+  community?: "count" | "segment";
 }) {
   return (
     <SkeletonPage>
-      <HeroSkeleton actions={actions}>{tabs && <Bone className="mt-5 h-10 w-72 rounded-full" />}</HeroSkeleton>
+      <HeroSkeleton actions={actions} />
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-9">
-        <Bone className="mb-4 h-4 w-16" />
+        {community ? (
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+            <Bone className="h-[42px] w-48 rounded-full" />
+            {community === "count" ? (
+              <Bone className="h-4 w-16" />
+            ) : (
+              <Bone className="h-[38px] w-72 max-w-full rounded-full" />
+            )}
+          </div>
+        ) : (
+          <Bone className="mb-4 h-4 w-16" />
+        )}
         <CardGridSkeleton cover={cover} />
       </main>
     </SkeletonPage>
