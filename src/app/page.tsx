@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Search, Rocket } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { PROJECT_TYPES } from "@/lib/constants";
+import { projectTypeLabels } from "@/lib/constants";
 import { SiteHeader } from "@/components/shared/site-header";
 import { createClient } from "@/lib/supabase/server";
 import { AnnouncementTicker, type TickerItem } from "@/components/shared/announcement-ticker";
@@ -78,7 +78,7 @@ export default async function HomePage() {
         id,
         title,
         short_description,
-        type,
+        types,
         platforms,
         author_role,
         team_name,
@@ -156,7 +156,7 @@ export default async function HomePage() {
           title: latest.title,
           icon_url: latest.icon_url,
           authorName: latest.author_role === "team" && latest.team_name ? `${latest.team_name} 팀` : personName(latestUser),
-          typeLabel: PROJECT_TYPES.find((t) => t.value === latest.type)?.label ?? latest.type,
+          typeLabel: projectTypeLabels(latest.types, true).join(" · "),
         }
       : null,
     latestReview:

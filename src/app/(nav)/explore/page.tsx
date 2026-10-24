@@ -9,7 +9,7 @@ const PROJECT_SELECT = `
   id,
   title,
   short_description,
-  type,
+  types,
   platforms,
   author_role,
   team_name,

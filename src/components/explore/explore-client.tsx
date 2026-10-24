@@ -53,7 +53,7 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
       const shortDesc = project.short_description ?? "";
       const tags = project.features ?? [];
       const platforms = project.platforms ?? [];
-      const type = project.type;
+      const types = project.types ?? [];
 
       const author = Array.isArray(project.users) ? project.users[0] : project.users;
       const authorNames = [author?.nickname, author?.full_name, project.team_name].filter(
@@ -73,7 +73,7 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
 
       const matchesType =
         selectedTypes.length === 0 ||
-        selectedTypes.includes(type);
+        selectedTypes.some(t => types.includes(t));
 
       const matchesCategory =
         selectedCategories.length === 0 ||

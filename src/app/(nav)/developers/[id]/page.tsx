@@ -72,7 +72,7 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
     supabase
       .from("projects")
       .select(
-        `id, title, short_description, type, platforms, author_role, team_name, icon_url, features, author_id, visibility,
+        `id, title, short_description, types, platforms, author_role, team_name, icon_url, features, author_id, visibility,
          users (*), reviews(rating)`,
       )
       .eq("author_id", id)

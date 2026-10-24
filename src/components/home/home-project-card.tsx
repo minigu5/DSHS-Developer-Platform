@@ -3,7 +3,7 @@ import Image from "next/image";
 import { Globe } from "lucide-react";
 
 import { cn, isExternalImage } from "@/lib/utils";
-import { PLATFORMS } from "@/lib/constants";
+import { PLATFORMS, projectTypeLabels } from "@/lib/constants";
 import { ProjectIcon } from "@/components/projects/project-icon";
 import type { ProjectCardData } from "@/components/projects/project-card";
 
@@ -20,7 +20,7 @@ function authorOf(p: ProjectCardData): { name: string; avatar: string | null } {
 export function HomeProjectCard({ project, className }: { project: ProjectCardData; className?: string }) {
   const author = authorOf(project);
   const tags = (project.features ?? []).slice(0, 2);
-  const isWebsite = project.type === "website";
+  const isWebsite = project.types?.includes("website") ?? false;
   const hasAllPlatforms = (project.platforms?.length ?? 0) >= PLATFORMS.length;
   const platforms =
     isWebsite && hasAllPlatforms
@@ -46,9 +46,14 @@ export function HomeProjectCard({ project, className }: { project: ProjectCardDa
         />
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex h-5 flex-wrap gap-2 overflow-hidden">
-            <span className="inline-flex h-5 shrink-0 items-center rounded-md bg-blue-50 px-1.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-              {project.type}
-            </span>
+            {projectTypeLabels(project.types, true).map((label) => (
+              <span
+                key={label}
+                className="inline-flex h-5 shrink-0 items-center rounded-md bg-blue-50 px-1.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+              >
+                {label}
+              </span>
+            ))}
             {tags.map((tag) => (
               <span
                 key={tag}

@@ -23,7 +23,6 @@ type LinkedProject = {
   short_description: string | null;
   url: string | null;
   icon_url: string | null;
-  type: string;
 };
 
 type IdeaDetail = {
@@ -54,7 +53,7 @@ export default async function HaejwoDetailPage({
       .select(
         `id, author_id, title, type, category, content, status, linked_project_id, created_at,
          author:users!ideas_author_id_fkey(nickname, full_name, avatar_url),
-         linked_project:projects!ideas_linked_project_id_fkey(id, title, short_description, url, icon_url, type)`,
+         linked_project:projects!ideas_linked_project_id_fkey(id, title, short_description, url, icon_url)`,
       )
       .eq("id", id)
       .single()

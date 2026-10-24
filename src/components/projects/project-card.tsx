@@ -6,7 +6,7 @@ import { cn, isExternalImage } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProjectIcon } from "@/components/projects/project-icon";
-import { PLATFORMS } from "@/lib/constants";
+import { PLATFORMS, projectTypeLabels } from "@/lib/constants";
 
 // projects 테이블에서 카드 표시에 필요한 최소 컬럼들.
 // users join 결과는 supabase 가 객체 또는 배열로 줄 수 있어 둘 다 허용.
@@ -14,7 +14,7 @@ export type ProjectCardData = {
   id: string;
   title: string;
   short_description: string | null;
-  type: string;
+  types: string[] | null;
   platforms: string[] | null;
   author_role: 'individual' | 'team' | null;
   team_name: string | null;
@@ -64,7 +64,7 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
   const tags = (project.features ?? []).slice(0, 2);
   const { avg: avgRating, count: reviewCount } = resolveReviewStats(project);
 
-  const isWebsite = project.type === 'website';
+  const isWebsite = project.types?.includes('website') ?? false;
   const hasAllPlatforms = (project.platforms?.length ?? 0) >= PLATFORMS.length;
   const displayPlatforms = (isWebsite && hasAllPlatforms)
     ? ['Web']
@@ -87,9 +87,11 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
           />
           <div className="flex-1 min-w-0">
             <div className="flex gap-2 mb-2 flex-wrap h-5 overflow-hidden">
-              <Badge variant="secondary" className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[11px] h-5 px-1.5 font-semibold shrink-0">
-                {project.type}
-              </Badge>
+              {projectTypeLabels(project.types, true).map((label) => (
+                <Badge key={label} variant="secondary" className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[11px] h-5 px-1.5 font-semibold shrink-0">
+                  {label}
+                </Badge>
+              ))}
               {project.visibility === 'private' && (
                 <Badge variant="outline" className="text-[11px] text-zinc-600 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700 rounded-full h-5 px-1.5 gap-0.5 shrink-0">
                   <Lock className="w-2.5 h-2.5" aria-hidden /> 비공개

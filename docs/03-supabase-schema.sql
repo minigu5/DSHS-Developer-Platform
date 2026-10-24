@@ -52,7 +52,7 @@ CREATE TABLE public.projects (
   url                text,
 
   -- 분류
-  type               text NOT NULL,
+  types              text[] NOT NULL DEFAULT '{}' CHECK (cardinality(types) >= 1),  -- 17: 다중 선택
   platforms          text[] NOT NULL DEFAULT '{}',
   features           text[] NOT NULL DEFAULT '{}',
   feature_custom     text,

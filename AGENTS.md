@@ -49,7 +49,7 @@
 
 | 항목 | 키 | 값 |
 |---|---|---|
-| **프로그램 종류** | `type` | 웹사이트, 응용프로그램(App), 확장프로그램 등 |
+| **프로그램 종류** | `types` | 웹사이트, 응용프로그램(App), 확장프로그램 등 (다중 선택, 최소 1개) |
 | **지원 플랫폼** | `platforms` (`text[]`) | iOS, Android, Windows, macOS, Linux 등 — 다중 선택 |
 | **소스코드 공개 여부** | `source_type` | Open Source(`repo_url` 필수), Closed Source |
 | **라이선스** | `license` | MIT, GPL, Apache, Custom 등 |
@@ -80,7 +80,7 @@
 | `author_id` | `uuid` (FK → users.id) | |
 | `title` | `text` | |
 | `description` | `text` | |
-| `type` | `text` | 체크리스트 참조 |
+| `types` | `text[]` | 체크리스트 참조 (`docs/17-supabase-projects-multi-type.sql`) |
 | `platforms` | `text[]` | |
 | `source_type` | `text` | `open` / `closed` |
 | `repo_url` | `text` | source_type=open일 때 필수 |

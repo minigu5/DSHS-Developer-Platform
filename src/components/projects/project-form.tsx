@@ -61,7 +61,8 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const [title, setTitle] = useState<string>(initialData?.title ?? "");
-  const [type, setType] = useState<string>(initialData?.type ?? "");
+  const [types, setTypes] = useState<string[]>(initialData?.types ?? []);
+  const isWebsite = types.includes('website');
   const [sourceType, setSourceType] = useState<SourceType>(
     (initialData?.source_type as SourceType) ?? "open",
   );
@@ -231,10 +232,14 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
   }, []);
 
   useEffect(() => {
-    if (type === 'website') {
+    if (isWebsite) {
       setSelectedPlatforms(PLATFORMS.map(p => p.value));
     }
-  }, [type]);
+  }, [isWebsite]);
+
+  const toggleType = (value: string) => {
+    setTypes(prev => prev.includes(value) ? prev.filter(t => t !== value) : [...prev, value]);
+  };
 
   // 편집 모드: 기존 팀원 프로필 로드
   useEffect(() => {
@@ -389,13 +394,13 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
       return;
     }
 
-    if (!type) {
-      setErrorMsg("프로그램 종류를 선택해주세요.");
+    if (types.length === 0) {
+      setErrorMsg("프로그램 종류를 하나 이상 선택해주세요.");
       scrollToField("type_section");
       return;
     }
 
-    if (type === 'app' && selectedPlatforms.length === 0) {
+    if (types.includes('app') && selectedPlatforms.length === 0) {
       setErrorMsg("지원 플랫폼을 최소 하나 이상 선택해주세요.");
       scrollToField("platforms_section");
       return;
@@ -437,7 +442,8 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
         title,
         short_description: shortDesc,
         description,
-        type,
+        // 선택 순서와 관계없이 PROJECT_TYPES 순서로 저장
+        types: PROJECT_TYPES.map(t => t.value).filter(v => types.includes(v)),
         platforms: platformsToSave,
         source_type: sourceType,
         repo_url: sourceType === 'open' ? repoUrl : null,
@@ -493,14 +499,14 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
     Boolean(url.trim()),
     Boolean(shortDesc.trim()),
     Boolean(description.trim()),
-    Boolean(type),
+    types.length > 0,
     selectedPlatforms.length > 0,
   ];
   const requiredDone = requiredFlags.filter(Boolean).length;
   const railSections: FormRailSection[] = [
     { id: "section-basic", title: "기본 정보", done: iconReady && Boolean(title.trim()) && Boolean(url.trim()) && Boolean(shortDesc.trim()) },
     { id: "section-description", title: "상세 설명", done: Boolean(description.trim()) },
-    { id: "section-category", title: "분류", done: Boolean(type) && selectedPlatforms.length > 0 },
+    { id: "section-category", title: "분류", done: types.length > 0 && selectedPlatforms.length > 0 },
     { id: "section-source", title: "소스코드·라이선스", done: sourceType === "closed" || Boolean(repoUrl.trim()) },
     { id: "section-visibility", title: "공개 범위·만든 사람", done: authorRole === "individual" || Boolean(teamName.trim()) },
   ];
@@ -627,7 +633,9 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
         {/* 3. 분류 */}
         <FormSection id="section-category" title="분류">
           <div className="grid gap-2.5" id="type_section">
-            <Label className={labelClass}>프로그램 종류{req}</Label>
+            <Label className={labelClass}>
+              프로그램 종류{req} <span className="font-medium text-zinc-500 dark:text-zinc-400">(여러 개)</span>
+            </Label>
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
               {PROJECT_TYPES.map(pt => (
                 <SelectCard
@@ -635,8 +643,8 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
                   icon={TYPE_ICONS[pt.value]}
                   label={pt.label}
                   description={typeDesc(pt.value)}
-                  selected={type === pt.value}
-                  onSelect={() => setType(pt.value)}
+                  selected={types.includes(pt.value)}
+                  onSelect={() => toggleType(pt.value)}
                 />
               ))}
             </div>
@@ -649,14 +657,14 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
                 <ToggleChip
                   key={platform.value}
                   pressed={selectedPlatforms.includes(platform.value)}
-                  disabled={type === "website"}
+                  disabled={isWebsite}
                   onToggle={() => handlePlatformChange(platform.value, !selectedPlatforms.includes(platform.value))}
                   label={platform.label}
                   icon={PLATFORM_ICONS[platform.value]}
                 />
               ))}
             </div>
-            {type === "website" && (
+            {isWebsite && (
               <p className={hintClass}>웹사이트는 모든 플랫폼의 브라우저에서 열 수 있어서 전체 플랫폼이 자동으로 선택돼요.</p>
             )}
           </div>
