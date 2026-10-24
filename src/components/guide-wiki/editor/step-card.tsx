@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type KeyboardEvent } from "react";
+import { useRef, type KeyboardEvent, type MouseEvent } from "react";
 import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -48,6 +48,8 @@ interface StepCardProps {
   isLast: boolean;
   canRemove: boolean;
   onToggle: () => void;
+  /** 카드(머리·버튼 밖)나 미리보기를 누르면 펼치고 작성 칸으로 들어간다 */
+  onOpenEdit: () => void;
   onMove: (dir: -1 | 1) => void;
   onRemove: () => void;
   onEdit: (body: string) => void;
@@ -64,6 +66,7 @@ export function StepCard({
   isLast,
   canRemove,
   onToggle,
+  onOpenEdit,
   onMove,
   onRemove,
   onEdit,
@@ -97,23 +100,30 @@ export function StepCard({
     });
   }
 
+  // 버튼·링크를 누른 건 그 동작에 맡기고, 나머지 빈 곳을 누르면 편집으로.
+  function openFromPointer(e: MouseEvent<HTMLElement>) {
+    if ((e.target as HTMLElement).closest("button, a, textarea")) return;
+    onOpenEdit();
+  }
+
   const showEditor = mode !== "preview";
   const showPreview = mode !== "write";
 
   return (
     <div
+      onClick={expanded ? undefined : openFromPointer}
       className={cn(
         "rounded-[20px] border bg-white transition-colors dark:bg-zinc-900",
         expanded
           ? "border-zinc-900 dark:border-zinc-100"
-          : "border-zinc-200 dark:border-zinc-800",
+          : "cursor-pointer border-zinc-200 hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600",
       )}
     >
       <div className="flex items-center gap-1 py-1.5 pl-3 pr-1.5 sm:py-2 sm:pl-5 sm:pr-2">
         <button
           type="button"
           id={stepDomId(step.id, "head")}
-          onClick={onToggle}
+          onClick={expanded ? onToggle : onOpenEdit}
           aria-expanded={expanded}
           aria-controls={expanded ? panelId : undefined}
           className="flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-lg text-left"
@@ -219,7 +229,11 @@ export function StepCard({
               />
             )}
             {showPreview && (
-              <div className="min-h-[220px] min-w-0 overflow-auto rounded-2xl border border-zinc-200 bg-white px-5 py-4 dark:border-zinc-700 dark:bg-zinc-950">
+              <div
+                onClick={openFromPointer}
+                title="누르면 작성 칸으로 가요"
+                className="min-h-[220px] min-w-0 cursor-text overflow-auto rounded-2xl border border-zinc-200 bg-white px-5 py-4 transition-colors hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-950 dark:hover:border-zinc-500"
+              >
                 <StepBody body={step.body} />
               </div>
             )}

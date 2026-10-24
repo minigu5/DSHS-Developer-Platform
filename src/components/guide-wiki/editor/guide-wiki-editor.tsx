@@ -140,6 +140,20 @@ export function GuideWikiEditor({ doc, baseRev: initialBaseRev, usages, stale, f
     dispatch({ type: "remove", id: step.id });
   }
 
+  // 카드나 미리보기를 누르면: 펼치고, 미리보기만 보이면 나란히로 바꾸고, 작성 칸에 포커스.
+  function openForEdit(id: string) {
+    const bodyId = stepDomId(id, "body");
+    const needsOpen = state.openId !== id;
+    const needsEditor = state.mode === "preview";
+    if (!needsOpen && !needsEditor) {
+      document.getElementById(bodyId)?.focus();
+      return;
+    }
+    pendingFocus.current = { kind: "id", domId: bodyId };
+    if (needsOpen) dispatch({ type: "toggle", id });
+    if (needsEditor) dispatch({ type: "mode", mode: "split" });
+  }
+
   function restore(id: string) {
     pendingFocus.current = { kind: "id", domId: stepDomId(id, "head") };
     dispatch({ type: "restore", id });
@@ -291,6 +305,7 @@ export function GuideWikiEditor({ doc, baseRev: initialBaseRev, usages, stale, f
                       isLast={n === liveCount}
                       canRemove={liveCount > 1}
                       onToggle={() => dispatch({ type: "toggle", id: step.id })}
+                      onOpenEdit={() => openForEdit(step.id)}
                       onMove={(dir) => move(step.id, dir)}
                       onRemove={() => remove(step)}
                       onEdit={(body) => dispatch({ type: "edit", id: step.id, body })}
