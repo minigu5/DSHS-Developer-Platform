@@ -104,31 +104,31 @@
 
 ## 🧭 바이브 코딩 가이드 (`/guide`)
 
-만들고 싶은 프로그램에 맞춰 단계별 시작 가이드를 추천하는 기능. 회원가입 위저드와 유사한 UX.
+만들고 싶은 것에 맞춰 "AI한테 일 시키는 법 → 만들고 돌려 보기 → 인터넷에 올리기 → 이 사이트에 등록"을 한 단계씩 안내하는 기능. 2026-10-24 전면 재작성 — 설계 `docs/superpowers/specs/2026-10-24-guide-rewrite-design.md`.
+- **왜 이렇게 생겼나**(사용자): 학생들은 설치는 하지만 ① 채팅이 아니라 에이전트로 들어가기(예: Claude 앱의 Chat 탭에서 만지작거림 — Code 탭으로 가야 함) ② 인터넷에 올리기(GitHub·Vercel·Supabase)에서 막힌다. "이거부터 이렇게 하면 돼"라고 정해 주면 해낸다. 그래서 설치 매뉴얼식·조합별 복붙·선택지 나열 금지, 추천 경로 하나 + 됐다는 신호.
 
-### 선택 위저드 (`src/components/guide/guide-wizard.tsx`)
-- 질문 순서: **프로그램 종류 → (앱이면) 앱 플랫폼 → 터미널 사용 여부 → AI 도구 → 운영체제**
-- 단계는 이전 선택에 따라 **동적으로 노출/비활성화**됨 (예: 앱 플랫폼으로 iOS·iPadOS·macOS 선택 시 운영체제 단계에서 macOS 외 항목 잠금 + 이유 표시).
-- 진행바 없음(단계 수 가변). 상단 고정 영역에 "이전" 버튼(첫 단계에서는 숨김)과 우측 "N단계" 표시.
-- 모든 단계 응답 시 `/guide/<선택값들 '/' 연결>` 로 이동. 노출된 단계만 슬러그에 포함(앱 5세그먼트 / 그 외 4세그먼트).
-- **선택지 아이콘**: 각 옵션 버튼 왼쪽에 step key + option value 기반으로 Lucide 아이콘(`STEP_OPTION_ICONS` 매핑)을 파란 둥근 배경(`rounded-xl bg-blue-50`) 안에 표시. 비활성 옵션은 zinc 배경.
+### 위저드 (`src/components/guide/guide-wizard.tsx`, 질문 정의 `src/lib/guide.ts` `GUIDE_STEPS`)
+- 질문: **뭘 만들어요(website/app/extension/tool) → (앱이면) 플랫폼(android/apple/mac/windows) → (웹사이트면) 로그인·저장(yes/no/unsure) → AI(claude/chatgpt/gemini/none) → 컴퓨터(windows/mac)**. 터미널 질문·Linux 없음. 옵션 값은 `src/lib/constants.ts` `GUIDE_*`.
+- 잠금: apple·mac 앱 → Windows 잠금(Xcode), windows 앱 → Mac 잠금(.NET/WPF). 데스크톱 앱 기술은 Mac=SwiftUI, Windows=C#/.NET WPF.
+- `ai=none` → ChatGPT(Codex) 조각으로 추천. Gemini는 옵션에 "만 18세 이상" 표기(Antigravity 연령 제한) + 1장에서 ChatGPT로 바꾸는 링크.
+- 동작: 답 스택으로 "이전", "질문 N" 알약, 고른 답 칩, 질문 바뀌면 h2로 포커스. 다 답하면 `/guide/<보이는 답 '/' 연결>`. 홈 `GuideTeaser`의 `/guide?type=`은 `initialType`으로 1번 질문을 미리 답함.
+- 가이드 페이지 머리: 흰 바탕 + `.paper-grid` 가운데 스택(purple-600 `BookOpen` 타일 → Plex 제목 → 설명, 모바일은 설명 숨김). 하위 페이지 톤 계획서(Task 9 Step 7)에서 가이드는 빠지고 이 재작성이 직접 반영.
 
-### 단계 정의 (`src/lib/guide.ts`) — 위저드·결과 페이지 공유
-- `GUIDE_STEPS`: 단계별 제목/옵션/`visible()`/`disabledReason()` 정의. 단계 추가·수정은 이 파일만 고치면 됨.
-- `buildSlug()` / `resolveSlug()`: 답변 ↔ URL 슬러그 변환. 비활성 조합·세그먼트 수 불일치는 `null` → 결과 페이지에서 `notFound()`.
-- 옵션 값은 `src/lib/constants.ts` 의 `GUIDE_*` 상수에 정의.
+### 결과 스테퍼 (`src/app/(nav)/guide/[...slug]/page.tsx` + `src/components/guide/guide-viewer.tsx`)
+- **한 화면에 단계 하나**, 버튼으로 넘김(문서처럼 스크롤 금지 — 사용자 결정). 위 진행 막대 = 장 4칸(누르면 그 장 첫 단계), 장 이름 줄 "N장 · 이름 — i / n", 새 장 첫 단계에 "○○ 끝! 이제 ○○ 차례예요." 띠, 카드 머리 "N-i" 번호 + (3장) 경로 알약 줄, 주 버튼 문구는 단계의 `[!next]`(없으면 "다음"/"N장으로"). 마지막 단계에 "내 프로젝트 등록하기"·"해줘! 둘러보기" 고정 버튼(위키로 편집 안 되게 코드에 둠).
+- 진행은 `localStorage['guide-progress:<경로>']`(useSyncExternalStore로 복원, 범위 밖이면 0). 옛 슬러그·잘못된 주소는 `redirect('/guide')`.
+- 단계 바뀌면 새 h2로 포커스, 카드가 화면 위로 벗어나 있으면 카드 머리로 스크롤.
 
-### 가이드 콘텐츠 (마크다운, `src/content/guides/*.md`)
-- 가이드 본문은 마크다운 파일로 **직접 작성**. 작성법은 `src/content/guides/README.md` 참고(가이드로 노출 안 됨).
-- 파일명 = 매칭 조합. 선택값을 `--` 로 연결 (예: `website--claude-code--mac.md`, `claude-code--mac.md`, `website.md`, `default.md`).
-- **부분 매칭 + 폴백**: 구체적 파일 → 일반 파일 → `default.md` 순. 모든 조합을 만들 필요 없음. 매칭 로직: `src/lib/guide-content.ts` (`loadGuide`, server 전용 `fs`).
-- 파일 내 `---` 한 줄로 단계 구분. 결과 페이지 `GuideViewer`(`src/components/guide/guide-viewer.tsx`)가 이전/다음으로 한 단계씩 표시.
-- **마지막 "다음으로 해볼 것" 카드**: 파일 끝에 `===` 한 줄 뒤 섹션을 두면, 마지막 단계에서 "다시 선택하기" 대신 카드 묶음으로 노출되고 자동 부드러운 스크롤. 형식: 첫 헤딩=섹션 제목, 리스트 `- [버튼라벨](링크) — 설명`. 내부 링크(`/`로 시작)는 `Link`, 외부는 새 탭.
+### 콘텐츠 = 조각 (`src/content/guides/<key>.md`, 작성법 `src/content/guides/README.md`)
+- 장 4개 = 조각 18개: `agent-{claude,chatgpt,gemini}` · `build-{website,extension,tool,app-android,app-apple,app-mac,app-windows}` · `ship-{website,website-data,extension,app-android,app-apple,app-desktop,tool}` · `register`. 답 → 조각 매핑은 `planGuide()`, 표시 이름은 `FRAGMENT_TITLES`. 여러 조합이 같은 조각을 공유하고, OS·데이터 차이는 파일을 나누지 않고 `[!only]` 블록으로.
+- 형식: `---` 한 줄로 단계 구분, 모든 단계는 `## 제목`으로 시작, `#` 제목·frontmatter·HTML 없음.
+- 표기(`src/lib/guide-markup.ts`): `> [!say]`(AI에게 보낼 문장+복사), `> [!ok]`(됐다는 신호), `> [!warn]`, `> [!more] 요약`(접힘), `> [!only os=mac data=no,unsure]`(조건), `> [!next] 문구`, `> [!route] 칸`, 링크 `[글](guide:ai=chatgpt)`(답 하나만 바꾼 가이드, 막힌 조합이면 글자만).
+- 렌더러 `GuideStepBody({ body, answers?, aiLabel?, hideTitle? })`(`src/components/guide/guide-step-body.tsx`, 클라이언트 가능). `answers` 없으면(편집기 미리보기) `[!only]`를 "조건: …" 점선 상자로 다 보여 줌.
 - **설치 링크 규칙**: 앱/도구 설치 안내 시 "앱스토어에서 검색 후 설치" 식의 텍스트 대신 **반드시 직접 링크**를 제공한다. 주요 링크:
   - Xcode: `[Mac App Store](https://apps.apple.com/us/app/xcode/id497799835?l=ko&mt=12)`
   - Windows Terminal: `[Microsoft Store](https://aka.ms/terminal)`
   - Android Studio: `[developer.android.com/studio](https://developer.android.com/studio)`
-- **Claude Code(macOS) 설치 블록 표준**: Homebrew 미설치 환경을 고려해 `brew` 명령 사용 금지. 모든 macOS 가이드에서 아래 블록을 동일하게 사용한다.
+- **Claude Code(macOS) 설치 블록 표준**: Homebrew 미설치 환경을 고려해 `brew` 명령 사용 금지. 모든 macOS 가이드에서 아래 블록을 동일하게 사용한다(`[!more] 터미널이 편하면` 안).
   ```bash
   # Node.js가 없다면 먼저 설치
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
@@ -147,7 +147,7 @@
 - **원본과 버전 번호**: DB 기록이 없으면 저장소 원본을 버전 0으로 보여 주고, 첫 저장 때 원본을 버전 1(`kind='seed'`)로 남긴 뒤 수정본이 버전 2. 되돌리기는 옛 내용을 새 버전(`kind='revert'`)으로 저장, 원본 가져오기는 `kind='sync'`. 저장소 원본이 바뀌어도 DB 최신이 이기고, 안내 띠로 "원본 가져오기"를 제안.
 - **충돌**: 저장 시 `baseRev`가 최신과 다르면 `{ conflict }` — 편집 내용은 유지하고 바뀐 점 보기 / 내 내용으로 저장 선택.
 - **화면**: `edit`(보호, 카드 스택·작성/나란히/미리보기·전체 미리보기·하단 저장 바·요약 필수), `history`(작성자·요약·글자 수·"버전 K로 되돌림"/"버전 R에서 되돌려짐" 칩·되돌리기 Dialog), `diff?from&to`(단계 단위 + 줄 diff, `?source=1`은 최신 vs 저장소 원본), `rev/[n]`(옛 버전 보기). 모두 `force-dynamic`.
-- **가이드 연결점**: 재작성 중인 가이드 구조와는 `src/lib/guide-wiki/source.ts`(`loadSourceDoc`·`listUsages`) 한 파일로만 닿는다. 지금은 개발용 `dev-sample` 조각만(운영에서 404). 결과 화면은 장(=조각)마다 `getDocMeta(key)`로 "고치기"(`/guide-wiki/<key>/edit?from=<현재 경로>`)·"기록" 링크를 단다. 단계 본문 렌더는 `src/components/guide-wiki/step-body.tsx` 한 곳 — 재작성 세션의 `GuideStepBody`(`src/components/guide/guide-step-body.tsx`)가 main에 오면 교체.
+- **가이드 연결점**: 가이드 조각(`src/content/guides/<key>.md`)과는 `src/lib/guide-wiki/source.ts` 한 파일로만 닿는다 — `loadSourceDoc` = `getFragment`, `listUsages` = `guide-content.ts`의 역색인 (개발에서는 `dev-sample` 조각도 추가). `loadGuide`는 장마다 `getLatestDoc(key)`(DB 최신 ?? 원본)와 `getDocMeta(key)`를 읽고, 결과 화면의 `GuideChapterTools`가 장 이름 줄 오른쪽에 "고치기"(`/guide-wiki/<key>/edit?from=<현재 경로>`)·"기록" 링크와 "마지막 수정" 정보를 단다. 단계 본문 렌더는 `src/components/guide-wiki/step-body.tsx` → `GuideStepBody`(answers 없이 → `[!only]`는 조건 상자로 다 보임).
 - 순수 로직(`steps`·`diff`·`params`·`schema`·`format`·편집기 `reducer`)은 상대 `.ts` import만 쓰고 `npm test`(`node --test`)로 검증.
 
 ---
@@ -326,7 +326,7 @@
 - **홈 전용 프로젝트 카드** (`src/components/home/home-project-card.tsx`): 홈의 다른 섹션 카드와 같은 20px 모서리·테두리·그림자 없음·hover 테두리 진해짐. 카드 전체가 링크라 작성자는 링크 없이 표시. 탐색·프로필의 `ProjectCard`(24px, shadow-sm)와 별개 — 사용자가 홈만 통일하기로 함(2026-10-24).
 - **이렇게 써요** (`how-it-works.tsx`): 올리기 → 리뷰 → 해줘 3단계 카드. 각 칸 아래 실제 최근 예시 한 줄(가장 최근 공개 프로젝트 / 공개 프로젝트의 최근 리뷰 1개(`reviews` + `projects!inner`, `visibility=public`) / 최근 해줘 1개), 없으면 안내 문구. 한국어 조사(이/가·을/를) 붙이지 말고 `제목 · 작성자 · 종류`처럼 점 구분으로.
 - **요즘 올라온 글** (`recent-posts.tsx`): 개발 팁(최근 3, `tips_author_id_fkey`) · 해줘!(최근 3, `ideas_author_id_fkey`) · 공지(티커용 10개 중 앞 4개, 고정 우선) 세 칸. 비면 "첫 글 쓰기" 안내가 칸 하단 점선 위에. 공지 카테고리 색은 티커와 동일.
-- **직접 만들어 보고 싶다면** (`guide-teaser.tsx`): 가이드 위저드 1단계 질문(`GUIDE_STEPS[0]`)을 홈에 그대로 노출. 옵션 클릭 시 `/guide?type=<value>` — `GuideWizard`가 `initialType` prop으로 1단계를 미리 답한 상태(2단계부터)로 시작, `/guide/page.tsx`가 `searchParams.type`을 넘김.
+- **직접 만들어 보고 싶다면** (`guide-teaser.tsx`): 가이드 위저드 첫 질문(`GUIDE_STEPS[0]`, 옵션 4개: 웹사이트·앱·확장프로그램·그 밖의 도구)을 홈에 그대로 노출. 옵션 클릭 시 `/guide?type=<value>` — `GuideWizard`가 `initialType` prop으로 첫 질문을 미리 답한 상태로 시작, `/guide/page.tsx`가 `searchParams.type`을 넘김.
 - **마무리 CTA** (`closing-cta.tsx`): 어두운 단색 카드(라이트 zinc-900 / 다크는 반전 zinc-100) + 아이콘 나열 상위 3개 미니 타일 + "내 프로젝트 등록하기"(blue-600)·"만드는 법부터 보기".
 - **푸터** (`site-footer.tsx`): 소개 한 줄 + 메뉴 3열(둘러보기/만들기/이 사이트: GitHub 저장소·이슈·마이페이지) + 저작권·로그인 안내. 홈에서만 사용(`(nav)` 레이아웃엔 푸터 없음).
 - **아이콘 나열** (`src/components/home/icon-shelf.tsx`): 사이트의 개성을 담당하는 장식 요소. 공개 프로젝트를 **많이 찾는 순**(`click_count` desc, 동률이면 최신 등록) `SHELF_LIMIT`(11)개 + "내 앱 올리기" 칸을 72px(sm 80px) `rounded-[22%]` 아이콘 스티커로 가운데 flex-wrap. 흰 `ring-[3px]`(다크 zinc-950) + 중립 그림자. 이름은 안 보이고 `aria-label`·`title`로만. 모바일(72px, 간격 14px)에서 4칸씩 3줄.
@@ -463,14 +463,14 @@ src/
 │   ├── home/             # icon-shelf, reveal-observer, section-header, home-project-card, how-it-works, recent-posts, guide-teaser, closing-cta, site-footer
 │   ├── projects/         # project-card, project-form, project-icon, project-reviews, stat-strip 등
 │   ├── explore/          # explore-client, mobile-filter-bar
-│   ├── guide/            # guide-wizard, guide-viewer
+│   ├── guide/            # guide-wizard, guide-viewer(스테퍼), guide-step-body(단계 렌더러), guide-chapter-tools
 │   ├── guide-wiki/       # 가이드 위키 편집: editor/(카드 편집기·reducer), history-list, revert-dialog, step-diff-view, doc-render, stale-banner
 │   ├── tips/             # tip-card, tip-editor, tip-like-button, tip-comments 등
 │   ├── haejwo/           # haejwo-wizard, haejwo-card, haejwo-status-tabs, haejwo-owner-actions, haejwo-complete-button
 │   ├── announcements/    # announcement-card, announcement-editor, announcement-owner-actions, announcement-pin-button
 │   └── ui/               # shadcn 컴포넌트
-├── content/guides/       # 가이드 마크다운 콘텐츠 (.md, 직접 작성)
-├── lib/                  # 유틸리티 및 설정 (supabase, constants, types, utils, guide, guide-content, guide-wiki, haejwo, announcements, cloudinary, section-colors, type-icons, announcement-colors)
+├── content/guides/       # 가이드 조각 18개 (<key>.md, 작성법 README.md)
+├── lib/                  # 유틸리티 및 설정 (supabase, constants, types, utils, guide, guide-markup, guide-content, guide-wiki, haejwo, announcements, cloudinary, section-colors, type-icons, announcement-colors)
 └── middleware.ts         # 세션 관리 및 도메인 검증
 ```
 

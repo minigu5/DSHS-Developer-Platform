@@ -25,3 +25,8 @@ export function isExternalImage(url: string | null | undefined): boolean {
     return true;
   }
 }
+
+/** 사이트 안 주소인지 ('/'로 시작, '//host' 같은 바깥 주소는 제외) */
+export function isInternalHref(href: string | undefined): boolean {
+  return Boolean(href && /^\/(?!\/)/.test(href));
+}

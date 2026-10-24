@@ -18,7 +18,7 @@ export default async function GuidePage({
         section="guide"
         icon={BookOpen}
         title="나도 개발해볼래!"
-        description="만들고 싶은 프로그램과 쓰는 컴퓨터를 고르면 시작 방법을 단계별로 알려줘요."
+        description="질문 몇 개에 답하면, AI한테 일 시키는 법부터 인터넷에 올리는 법까지 내 상황에 맞는 순서로 알려 줘요."
       />
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-6 py-9">
         <GuideWizard initialType={type} />

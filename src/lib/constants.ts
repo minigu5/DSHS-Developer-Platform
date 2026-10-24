@@ -80,49 +80,51 @@ export type Interest = (typeof INTERESTS)[number]['value'];
 // value 는 URL-safe 한 영소문자/하이픈만 사용할 것.
 
 export const GUIDE_PROGRAM_TYPES = [
-  { value: 'website', label: '웹사이트', desc: '브라우저에서 동작하는 웹 서비스' },
-  { value: 'app', label: '응용프로그램 / 앱', desc: '데스크톱 또는 모바일 앱' },
-  { value: 'extension', label: '확장프로그램', desc: '브라우저·에디터 확장' },
-  { value: 'cli', label: 'CLI / 스크립트', desc: '터미널에서 실행하는 도구' },
-  { value: 'library', label: '라이브러리 / 패키지', desc: '다른 코드에서 가져다 쓰는 모듈' },
+  { value: 'website', label: '웹사이트', desc: '주소만 있으면 폰·컴퓨터 어디서나 열려요' },
+  { value: 'app', label: '앱', desc: '폰이나 컴퓨터에 설치해서 써요', chip: '' },
+  { value: 'extension', label: '확장프로그램', desc: '크롬 같은 브라우저에 기능을 붙여요' },
+  { value: 'tool', label: '그 밖의 도구', chip: '도구', desc: '터미널 명령어(CLI)나 다른 코드가 가져다 쓰는 라이브러리' },
 ] as const;
 
 export const GUIDE_APP_PLATFORMS = [
-  { value: 'android', label: 'Android', desc: '구글 안드로이드 앱' },
-  { value: 'ios', label: 'iOS', desc: '아이폰 앱' },
-  { value: 'ipados', label: 'iPadOS', desc: '아이패드 앱' },
-  { value: 'macos', label: 'macOS', desc: '맥 데스크톱 앱' },
-  { value: 'windows', label: 'Windows', desc: '윈도우 데스크톱 앱' },
+  { value: 'android', label: 'Android', desc: '갤럭시 같은 안드로이드 폰', chip: 'Android 앱' },
+  { value: 'apple', label: 'iPhone · iPad', desc: '아이폰, 아이패드', chip: 'iPhone·iPad 앱' },
+  { value: 'mac', label: 'Mac', desc: '맥에 설치하는 프로그램', chip: 'Mac 앱' },
+  { value: 'windows', label: 'Windows', desc: '윈도우에 설치하는 프로그램', chip: 'Windows 앱' },
 ] as const;
 
-export const GUIDE_TERMINAL = [
-  { value: 'terminal', label: '터미널을 사용해요', desc: 'CLI 명령어 입력이 익숙해요' },
-  { value: 'gui', label: '터미널은 어려워요', desc: 'GUI 위주로 작업하고 싶어요' },
+export const GUIDE_DATA = [
+  { value: 'yes', label: '있어요', desc: '회원가입, 글쓰기, 점수 저장 같은 기능', chip: '로그인·저장 있음' },
+  { value: 'no', label: '없어요', desc: '정해진 내용을 보여 주기만 해요', chip: '보여 주기만' },
+  { value: 'unsure', label: '잘 모르겠어요', chip: '로그인은 나중에', desc: '없는 걸로 시작하고, 필요해지면 붙이는 법도 알려 줘요' },
 ] as const;
 
 export const GUIDE_AI_TOOLS = [
-  { value: 'chatgpt-codex', label: 'ChatGPT / Codex', desc: 'OpenAI 기반 코딩 도구' },
-  { value: 'claude-code', label: 'Claude Code', desc: 'Anthropic 의 터미널 코딩 에이전트' },
-  { value: 'gemini', label: 'Gemini', desc: 'Google 의 AI 코딩 도구' },
+  { value: 'claude', label: 'Claude', desc: 'Claude 앱의 Code 탭 · Pro 요금제부터' },
+  { value: 'chatgpt', label: 'ChatGPT', desc: 'ChatGPT 앱의 Codex · 무료 요금제로도 시작할 수 있어요' },
+  { value: 'gemini', label: 'Gemini', desc: 'Google Antigravity · 무료, 만 18세 이상' },
+  { value: 'none', label: '아직 없어요', desc: '무료로 시작할 수 있는 걸로 골라 드려요', chip: 'AI 추천받기' },
 ] as const;
 
 export const GUIDE_OS = [
-  { value: 'windows', label: 'Windows', desc: '' },
-  { value: 'mac', label: 'macOS', desc: '' },
-  { value: 'linux', label: 'Linux', desc: '' },
-] as const;
-
-export const GUIDE_ANDROID_GEMINI_TOOL = [
-  { value: 'aistudio',    label: 'Google AI Studio',                   desc: '브라우저에서 바로 시작 — 단, 성인 인증된 Google 계정 필요' },
-  { value: 'antigravity', label: 'Google Antigravity + Android Studio', desc: '설치형 IDE, 더 강력한 개발 환경 (무료)' },
+  { value: 'windows', label: 'Windows', desc: '', chip: 'Windows 컴퓨터' },
+  { value: 'mac', label: 'Mac', desc: '', chip: 'Mac 컴퓨터' },
 ] as const;
 
 export type GuideProgramType = (typeof GUIDE_PROGRAM_TYPES)[number]['value'];
 export type GuideAppPlatform = (typeof GUIDE_APP_PLATFORMS)[number]['value'];
-export type GuideTerminal = (typeof GUIDE_TERMINAL)[number]['value'];
+export type GuideData = (typeof GUIDE_DATA)[number]['value'];
 export type GuideAiTool = (typeof GUIDE_AI_TOOLS)[number]['value'];
 export type GuideOs = (typeof GUIDE_OS)[number]['value'];
-export type GuideAndroidGeminiTool = (typeof GUIDE_ANDROID_GEMINI_TOOL)[number]['value'];
+
+/** 실제로 1장(에이전트) 조각이 있는 AI. 'none'은 이 중 하나로 추천된다. */
+export type GuideAgentAi = Exclude<GuideAiTool, 'none'>;
+
+export const GUIDE_AI_LABELS: Record<GuideAgentAi, string> = {
+  claude: 'Claude',
+  chatgpt: 'ChatGPT',
+  gemini: 'Gemini',
+};
 
 // ── 공지사항 카테고리 ──
 export const ANNOUNCEMENT_CATEGORIES = [
