@@ -9,8 +9,8 @@ import { SiteHeader } from "@/components/shared/site-header";
 import { createClient } from "@/lib/supabase/server";
 import { AnnouncementTicker, type TickerItem } from "@/components/shared/announcement-ticker";
 import { ProjectCard, type ProjectCardData } from "@/components/projects/project-card";
-import { PeriodicTable, TABLE_CAPACITY, type TableProject } from "@/components/home/periodic-table";
-import { FeaturedProject, type FeaturedProjectData } from "@/components/home/featured-project";
+import { IconShelf, SHELF_LIMIT, type ShelfProject } from "@/components/home/icon-shelf";
+import { RevealObserver } from "@/components/home/reveal-observer";
 
 // 프로젝트 외 메뉴 — 아이콘 타일 색은 PageNav 의 섹션 색과 동일하게 맞춤
 const SECTION_LINKS = [
@@ -46,75 +46,59 @@ const SECTION_LINKS = [
 
 const riseDelay = (ms: number) => ({ "--rise-delay": `${ms}ms` }) as CSSProperties;
 
+// 스크롤 리빌 차례 — 같은 줄의 n번째 카드는 n×90ms 늦게 재생
+const revealOrder = (n: number) => ({ "--reveal-delay": `${n * 90}ms` }) as CSSProperties;
+
 export default async function HomePage() {
   const supabase = await createClient();
-  const [{ data: announcementsRaw }, { data: projectsRaw }, { data: tableRaw }, { data: featuredRaw }] =
-    await Promise.all([
-      supabase
-        .from("announcements")
-        .select("id, title, category, is_pinned")
-        .order("is_pinned", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(10)
-        .returns<TickerItem[]>(),
-      supabase
-        .from("projects")
-        .select(`
-          id,
-          title,
-          short_description,
-          type,
-          platforms,
-          author_role,
-          team_name,
-          icon_url,
-          features,
-          author_id,
-          users (full_name, nickname, avatar_url),
-          reviews(rating)
-        `)
-        .eq("visibility", "public")
-        .order("created_at", { ascending: false })
-        .limit(6)
-        .returns<ProjectCardData[]>(),
-      // 주기율표: 등록 순. 마지막 칸은 "내 앱 올리기"라 TABLE_CAPACITY 개까지만
-      supabase
-        .from("projects")
-        .select("id, title, icon_url, type")
-        .eq("visibility", "public")
-        .order("created_at", { ascending: true })
-        .limit(TABLE_CAPACITY)
-        .returns<TableProject[]>(),
-      // 1등 카드: 방문 수 1위(동률이면 최신 등록 우선)
-      supabase
-        .from("projects")
-        .select(`
-          id,
-          title,
-          short_description,
-          icon_url,
-          click_count,
-          author_id,
-          author_role,
-          team_name,
-          users (full_name, nickname, avatar_url)
-        `)
-        .eq("visibility", "public")
-        .order("click_count", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .returns<FeaturedProjectData[]>(),
-    ]);
+  const [{ data: announcementsRaw }, { data: projectsRaw }, { data: shelfRaw }] = await Promise.all([
+    supabase
+      .from("announcements")
+      .select("id, title, category, is_pinned")
+      .order("is_pinned", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(10)
+      .returns<TickerItem[]>(),
+    supabase
+      .from("projects")
+      .select(`
+        id,
+        title,
+        short_description,
+        type,
+        platforms,
+        author_role,
+        team_name,
+        icon_url,
+        features,
+        author_id,
+        users (full_name, nickname, avatar_url),
+        reviews(rating)
+      `)
+      .eq("visibility", "public")
+      .order("created_at", { ascending: false })
+      .limit(6)
+      .returns<ProjectCardData[]>(),
+    // 아이콘 나열: 많이 찾는 순(동률이면 최신 등록 우선) 11개 + "내 앱 올리기" 칸
+    supabase
+      .from("projects")
+      .select("id, title, icon_url")
+      .eq("visibility", "public")
+      .order("click_count", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .limit(SHELF_LIMIT)
+      .returns<ShelfProject[]>(),
+  ]);
 
   const tickerItems: TickerItem[] = announcementsRaw ?? [];
   const hasTicker = tickerItems.length > 0;
   const recentProjects: ProjectCardData[] = projectsRaw ?? [];
-  const tableProjects: TableProject[] = tableRaw ?? [];
-  const featured: FeaturedProjectData | null = featuredRaw?.[0] ?? null;
+  const shelfProjects: ShelfProject[] = shelfRaw ?? [];
 
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-zinc-950">
       <SiteHeader variant="transparent" maxWidth="md" />
+      <RevealObserver />
 
       {hasTicker && (
         <aside aria-label="최근 공지사항" className="mt-16">
@@ -123,73 +107,63 @@ export default async function HomePage() {
       )}
 
       <main id="main-content" tabIndex={-1} className="flex-1 focus:outline-none">
-        {/* HERO — 왼쪽 소개, 오른쪽 프로젝트 주기율표. 모눈종이 배경 + 로드 시 한 번의 등장 시퀀스 */}
+        {/* HERO — 가운데 정렬 세로 스택(모바일에서도 같은 구조). 모눈종이 배경 + 로드 시 한 번의 등장 시퀀스 */}
         <section
           className={cn(
             "paper-grid border-b border-zinc-200 dark:border-zinc-800 px-4 sm:px-6 pb-16 sm:pb-20",
-            hasTicker ? "pt-12 sm:pt-16" : "pt-28 sm:pt-32"
+            hasTicker ? "pt-14 sm:pt-24" : "pt-28 sm:pt-40"
           )}
         >
-          <div className="max-w-5xl mx-auto lg:grid lg:grid-cols-[minmax(0,1fr)_520px] xl:grid-cols-[minmax(0,1fr)_616px] lg:items-center lg:gap-12">
-            <div>
-              <h1 className="rise max-w-md text-4xl sm:text-5xl font-bold text-zinc-900 dark:text-white leading-[1.15] break-keep">
-                대곽에서 만든 프로그램은 여기 다 모여요
-              </h1>
-              <p
-                className="rise mt-5 max-w-md text-base sm:text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed break-keep"
-                style={riseDelay(90)}
+          <div className="max-w-5xl mx-auto flex flex-col items-center text-center">
+            <h1 className="rise text-3xl sm:text-6xl font-bold text-zinc-900 dark:text-white leading-[1.2] break-keep">
+              <span className="block">발견하고, 공유하고,</span>
+              <span className="block text-blue-600 dark:text-blue-400">만들어요.</span>
+            </h1>
+            <p
+              className="rise mt-6 max-w-2xl text-base sm:text-xl text-zinc-600 dark:text-zinc-400 leading-relaxed break-keep"
+              style={riseDelay(90)}
+            >
+              친구가 만든 웹사이트와 앱을 써 보고 리뷰를 남겨요. 내가 만든 프로그램도 올려서 피드백을 받아요.
+            </p>
+            <div
+              className="rise mt-8 sm:mt-10 flex flex-col sm:flex-row gap-3 w-full max-w-[280px] sm:max-w-none sm:w-auto"
+              style={riseDelay(180)}
+            >
+              <Link
+                href="/explore"
+                prefetch={true}
+                className={cn(
+                  buttonVariants({ size: "lg" }),
+                  "h-12 px-7 rounded-full text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white active:scale-[0.96] transition-[background-color,scale]"
+                )}
               >
-                친구가 만든 웹사이트와 앱을 써 보고 리뷰를 남겨요. 내가 만든 프로그램도 올려서 피드백을 받아요.
-              </p>
-              <div
-                className="rise mt-8 flex flex-col sm:flex-row gap-3 w-full max-w-[280px] sm:max-w-none"
-                style={riseDelay(180)}
+                <Search className="mr-2 h-4 w-4" aria-hidden />
+                프로젝트 둘러보기
+              </Link>
+              <Link
+                href="/projects/new"
+                prefetch={true}
+                className={cn(
+                  buttonVariants({ size: "lg", variant: "outline" }),
+                  "h-12 px-7 rounded-full text-sm sm:text-base border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-[0.96] transition-[background-color,scale]"
+                )}
               >
-                <Link
-                  href="/explore"
-                  prefetch={true}
-                  className={cn(
-                    buttonVariants({ size: "lg" }),
-                    "h-11 px-5 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white active:scale-[0.96] transition-[background-color,scale]"
-                  )}
-                >
-                  <Search className="mr-2 h-4 w-4" aria-hidden />
-                  프로젝트 둘러보기
-                </Link>
-                <Link
-                  href="/projects/new"
-                  prefetch={true}
-                  className={cn(
-                    buttonVariants({ size: "lg", variant: "outline" }),
-                    "h-11 px-5 text-sm sm:text-base border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-[0.96] transition-[background-color,scale]"
-                  )}
-                >
-                  <Rocket className="mr-2 h-4 w-4" aria-hidden />
-                  내 프로젝트 등록하기
-                </Link>
-              </div>
+                <Rocket className="mr-2 h-4 w-4" aria-hidden />
+                내 프로젝트 등록하기
+              </Link>
             </div>
 
-            <div className="mt-12 lg:mt-0">
-              <h2 className="sr-only">등록된 프로젝트</h2>
-              <PeriodicTable projects={tableProjects} />
+            <div className="mt-14 sm:mt-16 w-full max-w-[616px]">
+              <h2 className="sr-only">많이 찾는 프로젝트</h2>
+              <IconShelf projects={shelfProjects} />
             </div>
           </div>
         </section>
 
-        {/* 가장 많이 열어본 프로젝트 */}
-        {featured && (featured.click_count ?? 0) >= 1 && (
-          <section aria-labelledby="featured-title" className="px-4 sm:px-6 pt-16 sm:pt-20 pb-16 sm:pb-20">
-            <div className="max-w-5xl mx-auto">
-              <FeaturedProject project={featured} />
-            </div>
-          </section>
-        )}
-
         {/* 최근 프로젝트 */}
-        <section aria-labelledby="recent-projects" className={cn("px-4 sm:px-6 pb-20", !featured && "pt-16 sm:pt-20")}>
+        <section aria-labelledby="recent-projects" className="px-4 sm:px-6 pt-16 sm:pt-20 pb-20">
           <div className="max-w-5xl mx-auto">
-            <div className="flex items-end justify-between gap-4 mb-6">
+            <div className="reveal flex items-end justify-between gap-4 mb-6">
               <h2 id="recent-projects" className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white">
                 최근 올라온 프로젝트
               </h2>
@@ -205,7 +179,11 @@ export default async function HomePage() {
             {recentProjects.length > 0 ? (
               <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
                 {recentProjects.map((project, index) => (
-                  <li key={project.id} className={cn(index >= 3 && "hidden sm:block")}>
+                  <li
+                    key={project.id}
+                    className={cn("reveal", index >= 3 && "hidden sm:block")}
+                    style={revealOrder(index % 3)}
+                  >
                     <ProjectCard project={project} mode="showcase" />
                   </li>
                 ))}
@@ -230,14 +208,14 @@ export default async function HomePage() {
           className="px-4 sm:px-6 py-16 bg-zinc-50 dark:bg-zinc-900/40 border-t border-zinc-200 dark:border-zinc-800"
         >
           <div className="max-w-5xl mx-auto">
-            <h2 id="more-sections" className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white mb-6">
+            <h2 id="more-sections" className="reveal text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white mb-6">
               프로젝트 말고도
             </h2>
             <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {SECTION_LINKS.map((item) => {
+              {SECTION_LINKS.map((item, index) => {
                 const Icon = item.icon;
                 return (
-                  <li key={item.href}>
+                  <li key={item.href} className="reveal" style={revealOrder(index)}>
                     <Link
                       href={item.href}
                       className="flex h-full flex-col gap-3.5 rounded-[20px] border border-zinc-200 bg-white p-5 transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"

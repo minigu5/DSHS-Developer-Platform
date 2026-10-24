@@ -20,7 +20,7 @@ html.dark {
 
 /* 홈 히어로 로딩 시퀀스 — 페이지 로드 때 한 번만 (동작 줄이기 설정 시 아래 전역 규칙으로 즉시 표시)
    1) 제목·설명·버튼이 아래서 올라옴(.rise, --rise-delay)
-   2) 주기율표 타일이 등록 순으로 튀어나오고(.tile-pop, --pop-delay) 아이콘이 140ms 뒤 위에서 떨어짐(.tile-icon)
+   2) 아이콘 나열이 방문 순으로 하나씩 튀어나옴(.tile-pop, --pop-delay)
    3) 마지막 "내 앱 올리기" 칸이 파란색으로 3번 깜빡여 등록을 권함(.tile-invite) */
 @keyframes rise {
   from { opacity: 0; translate: 0 14px; }
@@ -43,16 +43,6 @@ html.dark {
   animation-delay: var(--pop-delay, 0ms);
 }
 
-@keyframes icon-drop {
-  from { opacity: 0; translate: 0 -10px; scale: 0.7; }
-  to   { opacity: 1; translate: 0 0; scale: 1; }
-}
-
-.tile-pop .tile-icon {
-  animation: icon-drop 440ms cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
-  animation-delay: calc(var(--pop-delay, 0ms) + 140ms);
-}
-
 @keyframes tile-invite {
   0%, 100% { border-color: var(--color-zinc-300); background-color: var(--color-white); color: var(--color-zinc-600); }
   50%      { border-color: var(--color-blue-600); background-color: var(--color-blue-50); color: var(--color-blue-700); }
@@ -70,6 +60,23 @@ html.dark {
 
 .dark .tile-invite {
   animation-name: tile-invite-dark;
+}
+
+/* 스크롤 리빌 — 홈 중간·하단 섹션이 뷰포트에 들어올 때 한 번 올라오며 나타남 (2026-10-24 사용자 요청).
+   RevealObserver(IntersectionObserver)가 <html>에 .reveal-ready 를 붙인 뒤에만 숨김 상태가 되고,
+   요소가 보이면 .is-in 으로 재생. JS가 없으면 그냥 보인다. --reveal-delay 로 같은 줄 카드끼리 차례를 둔다. */
+.reveal-ready .reveal {
+  opacity: 0;
+  translate: 0 28px;
+  scale: 0.97;
+  transition: opacity 600ms cubic-bezier(0.2, 0, 0, 1), translate 600ms cubic-bezier(0.2, 0, 0, 1), scale 600ms cubic-bezier(0.2, 0, 0, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal-ready .reveal.is-in {
+  opacity: 1;
+  translate: 0 0;
+  scale: 1;
 }
 
 /* 히어로 배경 모눈종이 — 라인 색은 zinc-100과 zinc-200 사이(라이트) / zinc-900 근처(다크) */

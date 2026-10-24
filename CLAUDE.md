@@ -302,10 +302,10 @@
 
 ### 홈 페이지 CTA 프리패치 — `src/app/page.tsx`
 - 홈 페이지는 PageNav가 없어 `/explore`(force-dynamic) 등 동적 페이지가 자동 프리패치되지 않음.
-- **홈 구성** (2026-10-23 리뉴얼): 히어로(모눈종이 배경 `.paper-grid`, 왼쪽 h1 "대곽에서 만든 프로그램은 여기 다 모여요" + 설명 + CTA 2개 / 오른쪽 **프로젝트 주기율표**) → **"가장 많이 열어본 프로젝트"** 1등 카드 → "최근 올라온 프로젝트"(공개 프로젝트 6개, `ProjectCard`) → "프로젝트 말고도"(가이드·팁·해줘·공지 4열 카드, 섹션 색 아이콘 타일) → 푸터. 헤드라인에 프로젝트 개수는 넣지 않는다(수가 적을 때 빈약해 보임). 마케팅 기능 카드·가치 카드·스크롤 리빌(`ScrollReveal`, 삭제됨)은 AI 템플릿 느낌이라 제거.
-- **프로젝트 주기율표** (`src/components/home/periodic-table.tsx`): 사이트의 개성을 담당하는 장식 요소. 공개 프로젝트를 **등록 순**(`created_at` asc)으로 6열 주기율표 모양(`SLOTS` — 1·2주기처럼 양끝부터 채우고 3열은 비움)에 배치, 마지막 칸은 항상 "내 앱 올리기". 최대 `TABLE_CAPACITY`(17)개. 타일: 우상단 등록 번호(mono) + 중앙 큰 아이콘(`ProjectIcon`, 타일 너비의 58% — `[container-type:inline-size]` + `cqi` 단위) + 하단 이름(truncate). 종류별 색은 `ProjectIcon` 폴백과 같은 100 배경/800 글자(웹사이트 blue·앱 emerald·확장 purple·CLI amber·라이브러리 rose), 표 아래에 현재 있는 종류만 범례로 표시. 모바일(6열 유지)에서는 타일이 약 50px로 작아지고 이름이 잘림 — 허용된 상태.
-- **1등 카드** (`src/components/home/featured-project.tsx`): `click_count` 내림차순(동률이면 최신 등록 우선) 1위를 blue-700 단색 카드로 크게. "가장 많이 열어본 프로젝트" 라벨·제목·한 줄 설명·"열어보기"·작성자 링크·"방문 N회". 방문 기록이 0이면 섹션 자체를 숨김.
-- **로딩 시퀀스** (`globals.css`): 페이지 로드 때 한 번만. 제목·설명·버튼 `.rise`(`--rise-delay` 0/90/180ms) → 타일 `.tile-pop`(`--pop-delay` 260ms부터 65ms 간격, 아이콘 `.tile-icon`은 140ms 뒤 위에서 떨어짐) → "내 앱 올리기" 칸 `.tile-invite`가 파란 테두리·배경으로 3번 깜빡임(다크는 `tile-invite-dark`) → 범례 `.rise`. 동작 줄이기 설정이면 전역 규칙이 duration과 **delay**를 0으로 만들어 즉시 표시(delay를 안 지우면 `fill: both` 요소가 지연 동안 안 보이는 버그가 있었음).
+- **홈 구성** (2026-10-24 리뉴얼): 히어로(모눈종이 배경 `.paper-grid`, **가운데 정렬 세로 스택** — 큰 2줄 제목 "발견하고, 공유하고, / 만들어요."(2줄째만 단색 blue-600) → 설명 → 알약형 CTA 2개 → **아이콘 나열**) → "최근 올라온 프로젝트"(공개 프로젝트 6개, `ProjectCard`) → "프로젝트 말고도"(가이드·팁·해줘·공지 4열 카드, 섹션 색 아이콘 타일) → 푸터. 가운데 정렬 단일 컬럼이라 모바일에서도 구조가 같다 — 데스크탑 좌우 분할(텍스트 | 장식)은 모바일에서 장식이 쪼그라들어 사용자가 거부함(2026-10-23). 헤드라인에 프로젝트 개수는 넣지 않는다(수가 적을 때 빈약해 보임). 그라디언트 글자·블롭·환영 배지는 옛 히어로 구조를 되살릴 때도 쓰지 않는다.
+- **아이콘 나열** (`src/components/home/icon-shelf.tsx`): 사이트의 개성을 담당하는 장식 요소. 공개 프로젝트를 **많이 찾는 순**(`click_count` desc, 동률이면 최신 등록) `SHELF_LIMIT`(11)개 + "내 앱 올리기" 칸을 72px(sm 80px) `rounded-[22%]` 아이콘 스티커로 가운데 flex-wrap. 흰 `ring-[3px]`(다크 zinc-950) + 중립 그림자. 이름은 안 보이고 `aria-label`·`title`로만. 모바일(72px, 간격 14px)에서 4칸씩 3줄.
+- **로딩 시퀀스** (`globals.css`): 페이지 로드 때 한 번만. 제목·설명·버튼 `.rise`(`--rise-delay` 0/90/180ms) → 아이콘 `.tile-pop`(`--pop-delay` 260ms부터 65ms 간격) → "내 앱 올리기" 칸 `.tile-invite`가 파란 테두리·배경으로 3번 깜빡임(다크는 `tile-invite-dark`). 동작 줄이기 설정이면 전역 규칙이 duration과 **delay**를 0으로 만들어 즉시 표시(delay를 안 지우면 `fill: both` 요소가 지연 동안 안 보이는 버그가 있었음).
+- **스크롤 리빌** (`src/components/home/reveal-observer.tsx` + `globals.css` `.reveal`, 2026-10-24 사용자 요청): "최근 올라온 프로젝트"·"프로젝트 말고도"의 제목과 카드가 뷰포트에 15% 들어오면 한 번 올라오며 나타남(opacity 0→1, translate 28px, scale .97, 600ms). `RevealObserver`(클라이언트, UI 없음)가 마운트 시 `<html>`에 `reveal-ready`를 붙이고 IntersectionObserver로 `.is-in`을 추가 — `reveal-ready` 전에는 숨기지 않아 JS가 없어도 내용이 보임. 같은 줄 카드는 `revealOrder(n)`(`--reveal-delay` n×90ms)로 차례. 동작 줄이기면 관찰 없이 전부 `.is-in`. 처음엔 CSS `animation-timeline: view()`로 했으나 로드 때 이미 보이는 섹션은 안 움직이고 Safari/Firefox 지원이 갈려 교체함.
 - **CTA 버튼 2개**: "프로젝트 둘러보기"(`/explore`) + "내 프로젝트 등록하기"(`/projects/new`). 두 링크 모두 `prefetch={true}`. hover 확대 효과 없음.
 - **홈 섹션 너비 통일**: 모든 섹션이 동일한 구조 — `<section class="px-4 sm:px-6">` + `<div class="max-w-5xl mx-auto">` 내부 wrapper. `max-w-5xl mx-auto`를 section에 직접 쓰면 padding이 max-width 안에서 소비돼 실제 콘텐츠 너비가 달라지는 문제 방지.
 
@@ -415,7 +415,7 @@ src/
 │   └── announcements/    # 공지사항 (page=목록, new, [id], [id]/edit)
 ├── components/
 │   ├── shared/           # site-header, page-nav, auth-buttons, back-button, markdown, image-upload-input, announcement-ticker 등
-│   ├── home/             # periodic-table(프로젝트 주기율표), featured-project(1등 카드)
+│   ├── home/             # icon-shelf(히어로 아이콘 나열)
 │   ├── projects/         # project-card, project-form, project-icon, project-reviews 등
 │   ├── explore/          # explore-client
 │   ├── guide/            # guide-wizard, guide-viewer
@@ -459,9 +459,9 @@ className={cn("... focus-visible:outline-none focus-visible:ring-2 focus-visible
 ## 📝 협업 및 코드 스타일 규칙
 - **TS Strict**: `any` 사용 금지, 인터페이스 명확히 정의.
 - **Server First**: 상호작용이 필요한 경우에만 `"use client"` 사용.
-- **Design System**: Zinc/Blue 포인트, `rounded-3xl` 카드, 불투명 표면. **제목(h1·h2)과 로고는 IBM Plex Sans KR**(600/700, `next/font`의 `--font-plex-kr`, `font-heading` 유틸리티), 본문은 Geist + 한글 시스템 폰트. 프로젝트 아이콘은 `rounded-[22%]`(앱 아이콘 모양)로 통일, 아이콘 없는 프로젝트는 제목 첫 글자 + 제목 해시로 고른 색 타일(`ProjectIcon` 폴백). 개성은 홈 히어로(주기율표·1등 카드·로딩 시퀀스)에 집중하고 나머지는 차분하게 유지. 모눈종이 라인 배경(`.paper-grid`)은 히어로에서만 쓴다. 아래 "AI 템플릿 느낌" 요소는 쓰지 않는다 (2026-10 전면 제거):
+- **Design System**: Zinc/Blue 포인트, `rounded-3xl` 카드, 불투명 표면. **제목(h1·h2)과 로고는 IBM Plex Sans KR**(600/700, `next/font`의 `--font-plex-kr`, `font-heading` 유틸리티), 본문은 Geist + 한글 시스템 폰트. 프로젝트 아이콘은 `rounded-[22%]`(앱 아이콘 모양)로 통일, 아이콘 없는 프로젝트는 제목 첫 글자 + 제목 해시로 고른 색 타일(`ProjectIcon` 폴백). 개성은 홈 히어로(아이콘 나열·로딩 시퀀스)에 집중하고 나머지는 차분하게 유지. 모눈종이 라인 배경(`.paper-grid`)은 히어로에서만 쓴다. 아래 "AI 템플릿 느낌" 요소는 쓰지 않는다 (2026-10 전면 제거):
   - 배경 블러 블롭(`blur-[120px]` 원), 그라디언트 텍스트, 파랑→보라 그라디언트 아바타, 글래스모피즘(`bg-white/70 backdrop-blur`)
-  - hover 시 확대(`hover:scale-*`)·떠오름(`hover:-translate-y-*`)·컬러 글로우 그림자(`shadow-blue-500/20`), 섹션별 fade-up 스크롤 리빌
+  - hover 시 확대(`hover:scale-*`)·떠오름(`hover:-translate-y-*`)·컬러 글로우 그림자(`shadow-blue-500/20`), 섹션마다 거는 스크롤 리빌. 예외: 홈 중간·하단의 `RevealObserver` 리빌(2026-10-24 사용자 요청) — 다른 페이지엔 넣지 않는다
   - 제목 위 아이콘+섹션명 알약(eyebrow), `uppercase tracking-wider` 라벨, ✨ 환영 배지, 이모지 안내문, 마케팅 문구("새로움을 창조하세요")
   - `transition-all` 금지 — 바뀌는 속성만 지정(`transition-colors`, `transition-[color,background-color,border-color,scale]`)
 - **카피**: 기능을 쉬운 말로 설명하는 해요체. 빈 상태엔 다음 행동 링크 제공. 로딩 문구는 `…`(말줄임표 문자).
