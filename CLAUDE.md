@@ -386,7 +386,7 @@
 - **`(nav)/layout.tsx` DOM 최하단**에 `<SiteHeader>` 및 콘텐츠와 분리된 독립 컴포넌트로 배치. 헤더 CSS stacking context 영향 없음.
 - `fixed bottom-0 inset-x-0 z-50 flex sm:hidden` — 뷰포트 바닥에 고정.
 - **아이콘 전용** (`h-5 w-5`). 활성 항목은 `h-9 w-9 rounded-full` **원형 컬러 배경 + 흰색 아이콘**, 비활성은 배경 없이 zinc 아이콘.
-- 모바일 헤더: 로고(아이콘 + 2줄 텍스트) + 공지 벨 + 프로필만 표시(간격 `gap-1`). 다크모드 토글은 폭이 모자라 모바일에선 숨기고 **프로필 드롭다운의 "다크/라이트 모드로 전환" 항목**으로 옮겼다(`auth-buttons.tsx`, matchMedia로 모바일일 때만 렌더 — `sm:hidden` 항목은 데스크탑 화살표 이동에 걸릴 수 있어서). 비로그인 모바일은 토글 없이 시스템 테마. 로고 텍스트는 1줄 "DSHS Developer Platform"(`text-base sm:text-[17px]`, `font-heading`) + 2줄 읽는 이름 "대곽 개발자 플랫폼"(`text-[11px]` zinc-600). 공식 이름은 영문(도메인 dshs.dev·옛 dshs-developer-platform.vercel.app과 일치)이고 한글은 부르는 이름일 뿐이라 탭 제목·푸터는 영문만 쓴다.
+- 모바일 헤더: 로고(아이콘 + 2줄 텍스트) + 공지 벨 + 프로필만 표시(간격 `gap-1`). 다크모드 토글은 폭이 모자라 모바일에선 숨기고 **프로필 드롭다운의 "다크/라이트 모드로 전환" 항목**으로 옮겼다(`auth-buttons.tsx`, matchMedia로 모바일일 때만 렌더 — `sm:hidden` 항목은 데스크탑 화살표 이동에 걸릴 수 있어서). 비로그인 모바일은 토글 없이 시스템 테마. 로고 텍스트는 1줄 "DSHS Developer Platform"(`text-[15px] sm:text-[17px]`, `font-heading` — 360px 비로그인에서 벨에 붙지 않게 모바일 15px, 헤더 두 묶음 사이 `gap-2`) + 2줄 읽는 이름 "대곽 개발자 플랫폼"(`text-[11px]` zinc-600). 공식 이름은 영문(도메인 dshs.dev·옛 dshs-developer-platform.vercel.app과 일치)이고 한글은 부르는 이름일 뿐이라 탭 제목·푸터는 영문만 쓴다.
 - **로고 정렬**: 아이콘은 `<Image width={32} height={32} className="block ...">` (fill 미사용 — inline baseline 문제 방지). 텍스트는 `<span>` 2줄 세로 스택(`flex flex-col gap-px`, 각 줄 `leading-[1.1]`), Link의 `items-center`로 아이콘과 중앙 정렬.
 - `(nav)/layout.tsx`에서 콘텐츠를 `<div className="pb-16 sm:pb-0">` 로 감싸 탭바(56px)에 가려지지 않도록 여백 확보.
 

@@ -27,7 +27,7 @@ export function SiteHeader({
   rightExtra,
   showNav = false,
 }: SiteHeaderProps) {
-  const containerClass = cn(MAX_WIDTH_CLASS[maxWidth], "mx-auto px-6 h-16 flex items-center justify-between");
+  const containerClass = cn(MAX_WIDTH_CLASS[maxWidth], "mx-auto px-6 h-16 flex items-center justify-between gap-2");
 
   return (
     <header
@@ -55,7 +55,7 @@ export function SiteHeader({
             />
             {/* 공식 이름은 영문(도메인과 일치), 읽는 이름 "대곽 개발자 플랫폼"을 아래 작은 글씨로 병기 */}
             <span className="flex flex-col gap-px">
-              <span className="font-heading font-bold text-base sm:text-[17px] leading-[1.1] tracking-tight text-zinc-900 dark:text-white">
+              <span className="font-heading font-bold text-[15px] sm:text-[17px] leading-[1.1] tracking-tight text-zinc-900 dark:text-white">
                 DSHS Developer Platform
               </span>
               <span className="text-[11px] leading-[1.1] font-medium text-zinc-600 dark:text-zinc-400">
