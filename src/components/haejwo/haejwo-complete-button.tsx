@@ -79,11 +79,11 @@ export function HaejwoCompleteButton({ ideaId }: { ideaId: string }) {
         onClick={handleOpen}
         className={cn(
           buttonVariants({ size: "default" }),
-          "w-full rounded-2xl bg-emerald-700 text-white hover:bg-emerald-800",
+          "h-9 shrink-0 rounded-full bg-orange-700 px-4 text-white hover:bg-orange-800",
         )}
       >
-        <CheckCircle2 className="mr-2 h-4 w-4" />
-        구현완료
+        <CheckCircle2 className="mr-1.5 h-4 w-4" aria-hidden />
+        구현완료로 표시
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>

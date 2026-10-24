@@ -72,7 +72,7 @@ export function TipLikeButton({ tipId, initialCount }: TipLikeButtonProps) {
       aria-pressed={liked}
       aria-label={`좋아요 ${count}개`}
       className={cn(
-        "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors",
+        "inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-colors",
         liked
           ? "border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-400"
           : "border-zinc-200 bg-white text-zinc-600 hover:border-rose-200 hover:text-rose-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-rose-900/50",

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Loader2, MessageSquare, Trash2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
 import { cn, isExternalImage } from "@/lib/utils";
+import { SECTION_COLORS } from "@/lib/section-colors";
 
 export interface TipCommentItem {
   id: string;
@@ -79,12 +80,11 @@ export function TipComments({ tipId, comments }: TipCommentsProps) {
 
   return (
     <>
-    <section className="mt-8 rounded-3xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 sm:p-8">
-      <div className="mb-6 flex items-center gap-2">
-        <MessageSquare className="h-5 w-5 text-zinc-700 dark:text-zinc-300" />
-        <h3 className="text-xl font-bold text-zinc-900 dark:text-white">댓글</h3>
-        <span className="text-sm text-zinc-500">({comments.length})</span>
-      </div>
+    <section className="mt-9">
+      <h2 className="mb-4 font-heading text-xl font-bold text-zinc-900 dark:text-white">
+        댓글
+        <span className="ml-1.5 text-base font-semibold text-zinc-500 tabular-nums dark:text-zinc-400">{comments.length}</span>
+      </h2>
 
       {/* 작성 */}
       {userId ? (
@@ -101,7 +101,7 @@ export function TipComments({ tipId, comments }: TipCommentsProps) {
               type="button"
               onClick={submit}
               disabled={pending || !text.trim()}
-              className="rounded-full bg-blue-600 text-white hover:bg-blue-700"
+              className={cn("h-9 rounded-full px-4", SECTION_COLORS.tips.button)}
             >
               {pending ? "작성 중…" : "댓글 작성"}
             </Button>
@@ -112,7 +112,7 @@ export function TipComments({ tipId, comments }: TipCommentsProps) {
           <p className="mb-3 text-sm text-zinc-600 dark:text-zinc-400">
             댓글을 작성하려면 로그인이 필요합니다.
           </p>
-          <Link href={`/login?next=/tips/${tipId}`} className={cn(buttonVariants({ size: "sm" }))}>
+          <Link href={`/login?next=/tips/${tipId}`} className={cn(buttonVariants({ size: "sm" }), "h-9 rounded-full", SECTION_COLORS.tips.button)}>
             로그인
           </Link>
         </div>
@@ -124,11 +124,11 @@ export function TipComments({ tipId, comments }: TipCommentsProps) {
           아직 댓글이 없습니다. 첫 댓글을 남겨보세요!
         </p>
       ) : (
-        <ul className="space-y-5">
+        <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
           {comments.map((c) => {
             const name = c.user?.nickname || c.user?.full_name || "알 수 없음";
             return (
-              <li key={c.id} className="flex gap-3">
+              <li key={c.id} className="flex gap-3 py-4 first:pt-0">
                 <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800">
                   {c.user?.avatar_url ? (
                     <Image
