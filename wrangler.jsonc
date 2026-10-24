@@ -14,8 +14,8 @@
   "services": [
     { "binding": "WORKER_SELF_REFERENCE", "service": "dshs-developer-platform" }
   ],
-  // Supabase(서울)와 자주 왕복하므로 Worker를 DB 가까이에서 실행
-  "placement": { "mode": "smart" },
+  // Supabase(AWS 서울)와 자주 왕복하므로 Worker를 DB 가까이에서 실행 (smart 모드는 트래픽이 쌓여야 작동)
+  "placement": { "region": "aws:ap-northeast-2" },
   "observability": { "enabled": true },
 
   // next/image 최적화
