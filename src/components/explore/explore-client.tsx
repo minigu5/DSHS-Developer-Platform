@@ -2,12 +2,15 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { Search, Filter, ChevronDown, ArrowUpDown, X } from "lucide-react";
+import type { CSSProperties } from "react";
 
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { ProjectCard, type ProjectCardData } from "@/components/projects/project-card";
 import { PROJECT_TYPES, PLATFORMS, FEATURES } from "@/lib/constants";
 import { TYPE_ICONS, PLATFORM_ICONS, CATEGORY_ICONS } from "@/lib/type-icons";
+import { PageHero } from "@/components/shared/page-hero";
+import { MobileFilterBar } from "@/components/explore/mobile-filter-bar";
 
 
 interface ExploreClientProps {
@@ -19,7 +22,6 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [typeOpen, setTypeOpen] = useState(false);
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [platformOpen, setPlatformOpen] = useState(false);
@@ -105,10 +107,97 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
 
   const activeFilterCount = selectedTypes.length + selectedCategories.length + selectedPlatforms.length;
 
+  const sortButton = (
+    <div className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => setSortOpen(o => !o)}
+                aria-label={`정렬: ${sortBy === 'newest' ? '최신순' : sortBy === 'clicks' ? '인기순' : '별점순'}`}
+                aria-expanded={sortOpen}
+                className="flex h-[34px] items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3.5 text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition-colors"
+              >
+                <ArrowUpDown className="h-3.5 w-3.5 text-zinc-500" aria-hidden />
+                <span>
+                  {sortBy === 'newest' ? '최신순' : sortBy === 'clicks' ? '인기순' : '별점순'}
+                </span>
+              </button>
+              {sortOpen && (
+                <div className="absolute right-0 top-full mt-1 z-30 min-w-[112px] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-2">
+                  {([
+                    { value: 'newest', label: '최신순' },
+                    { value: 'clicks', label: '인기순' },
+                    { value: 'rating', label: '별점순' },
+                  ] as const).map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => { setSortBy(opt.value); setSortOpen(false); }}
+                      aria-current={sortBy === opt.value ? "true" : undefined}
+                      className={cn(
+                        "w-full px-4 py-2.5 text-sm text-left font-medium transition-colors",
+                        sortBy === opt.value
+                          ? "bg-blue-500/10 text-blue-700 dark:text-blue-300"
+                          : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+    </div>
+  );
+
   return (
-    <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-8">
-        <div className="flex flex-col md:flex-row gap-3">
+    <div className="flex flex-col min-h-screen bg-white dark:bg-zinc-950">
+      <PageHero
+        section="explore"
+        icon={Search}
+        title="모든 프로젝트"
+        description="친구들이 만든 프로젝트를 찾아보고, 써 본 뒤 리뷰를 남겨요."
+        maxWidth="lg"
+      >
+        <div className="rise relative mt-5 w-full max-w-[640px] sm:mt-6" style={{ "--rise-delay": "180ms" } as CSSProperties}>
+          <Search className="pointer-events-none absolute left-5 top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-zinc-500 dark:text-zinc-400" aria-hidden />
+          <Input
+            type="search"
+            aria-label="프로젝트 검색"
+            autoComplete="off"
+            placeholder="프로젝트, 태그, 만든 사람 검색"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-[46px] rounded-full border-zinc-200 bg-white pl-12 pr-12 text-[15px] shadow-sm focus-visible:ring-blue-500 sm:h-[52px] dark:border-zinc-800 dark:bg-zinc-900"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-zinc-500 transition-[background-color,color,scale] hover:bg-zinc-100 hover:text-zinc-700 active:scale-[0.96] dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+              aria-label="검색어 지우기"
+            >
+              <X className="h-4 w-4" aria-hidden />
+            </button>
+          )}
+        </div>
+      </PageHero>
+
+      <MobileFilterBar
+        selectedTypes={selectedTypes}
+        selectedCategories={selectedCategories}
+        selectedPlatforms={selectedPlatforms}
+        onToggleType={handleTypeChange}
+        onToggleCategory={handleCategoryChange}
+        onTogglePlatform={handlePlatformChange}
+        onReset={() => {
+          setSelectedTypes([]);
+          setSelectedCategories([]);
+          setSelectedPlatforms([]);
+        }}
+        sortButton={sortButton}
+      />
+
+      <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8">
+        <div className="flex gap-8">
           {/* SIDEBAR / FILTERS (데스크탑 전용) */}
           <aside className="hidden md:block w-56 shrink-0 sticky top-24 self-start">
             <div className="space-y-8">
@@ -284,196 +373,14 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
           </aside>
 
           {/* MAIN CONTENT / SEARCH & GRID */}
-          <div className="flex-1 min-w-0 min-h-[calc(100vh-12rem)]">
-            {/* 모바일 전용 필터 토글 — absolute 드롭다운으로 레이아웃 고정 */}
-            <div className="md:hidden mb-6 relative z-20">
-              <button
-                type="button"
-                onClick={() => setFiltersOpen((o) => !o)}
-                aria-expanded={filtersOpen}
-                className="flex w-full items-center justify-between rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300 shadow-sm"
-              >
-                <span className="flex items-center gap-2">
-                  <Filter className="h-4 w-4" aria-hidden /> 필터
-                  {activeFilterCount > 0 && (
-                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1.5 text-xs font-semibold text-white">
-                      {activeFilterCount}
-                    </span>
-                  )}
-                </span>
-                <ChevronDown className={cn("h-4 w-4 transition-transform", filtersOpen && "rotate-180")} aria-hidden />
-              </button>
+          <div className="flex-1 min-w-0">
+            <div className="mb-4 flex items-baseline justify-between gap-2">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400" aria-live="polite">
+                <b className="font-semibold text-zinc-900 tabular-nums dark:text-white">{filteredProjects.length}개</b>
+                {activeFilterCount > 0 && " · 필터 적용"}
+              </p>
 
-              {filtersOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1 space-y-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-lg animate-in fade-in slide-in-from-top-2">
-                  <div>
-                    <h4 className="mb-2.5 text-sm font-semibold text-zinc-700 dark:text-zinc-300">프로그램 종류</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {PROJECT_TYPES.map(({ value, label }) => {
-                        const Icon = TYPE_ICONS[value];
-                        const active = selectedTypes.includes(value);
-                        return (
-                          <button
-                            key={value}
-                            type="button"
-                            onClick={() => handleTypeChange(value, !active)}
-                            aria-pressed={active}
-                            className={cn(
-                              "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
-                              active
-                                ? "border-blue-500 bg-blue-500/10 text-blue-700 dark:text-blue-300"
-                                : "border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400",
-                            )}
-                          >
-                            {Icon && <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden />}
-                            {label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="mb-2.5 text-sm font-semibold text-zinc-700 dark:text-zinc-300">카테고리</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {FEATURES.map(({ value, label }) => {
-                        const Icon = CATEGORY_ICONS[value];
-                        const active = selectedCategories.includes(value);
-                        return (
-                          <button
-                            key={value}
-                            type="button"
-                            onClick={() => handleCategoryChange(value, !active)}
-                            aria-pressed={active}
-                            className={cn(
-                              "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
-                              active
-                                ? "border-blue-500 bg-blue-500/10 text-blue-700 dark:text-blue-300"
-                                : "border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400",
-                            )}
-                          >
-                            {Icon && <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden />}
-                            {label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="mb-2.5 text-sm font-semibold text-zinc-700 dark:text-zinc-300">플랫폼</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {PLATFORMS.map(({ value, label }) => {
-                        const Icon = PLATFORM_ICONS[value];
-                        const active = selectedPlatforms.includes(value);
-                        return (
-                          <button
-                            key={value}
-                            type="button"
-                            onClick={() => handlePlatformChange(value, !active)}
-                            aria-pressed={active}
-                            className={cn(
-                              "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
-                              active
-                                ? "border-blue-500 bg-blue-500/10 text-blue-700 dark:text-blue-300"
-                                : "border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400",
-                            )}
-                          >
-                            {Icon && <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden />}
-                            {label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {activeFilterCount > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedTypes([]);
-                        setSelectedCategories([]);
-                        setSelectedPlatforms([]);
-                      }}
-                      className="text-sm font-medium text-zinc-600 dark:text-zinc-400 underline-offset-4 hover:underline hover:text-zinc-900 dark:hover:text-white"
-                    >
-                      필터 초기화
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="mb-8 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-400 w-5 h-5 z-10 pointer-events-none" aria-hidden />
-              <Input
-                type="search"
-                aria-label="프로젝트 검색"
-                autoComplete="off"
-                placeholder="제목, 태그, 개발자나 팀 이름으로 검색"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-11 h-12 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm text-base focus-visible:ring-blue-500"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-full text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-[0.96] transition-[transform,background-color,color]"
-                  aria-label="검색어 지우기"
-                >
-                  <X className="w-4 h-4" aria-hidden />
-                </button>
-              )}
-            </div>
-
-            <div className="mb-6 flex justify-between items-center gap-2">
-              <h1 className="text-xl font-bold text-zinc-900 dark:text-white">
-                모든 프로젝트{" "}
-                <span className="text-zinc-500 dark:text-zinc-400 text-base font-normal ml-1 tabular-nums" aria-live="polite">
-                  {filteredProjects.length}개
-                </span>
-              </h1>
-
-              {/* 정렬 드롭다운 */}
-              <div className="relative shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setSortOpen(o => !o)}
-                  aria-label={`정렬: ${sortBy === 'newest' ? '최신순' : sortBy === 'clicks' ? '인기순' : '별점순'}`}
-                  aria-expanded={sortOpen}
-                  className="flex items-center gap-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 py-1.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 shadow-sm hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition-colors"
-                >
-                  <ArrowUpDown className="h-3.5 w-3.5 text-zinc-500" aria-hidden />
-                  <span className="hidden sm:inline">
-                    {sortBy === 'newest' ? '최신순' : sortBy === 'clicks' ? '인기순' : '별점순'}
-                  </span>
-                </button>
-                {sortOpen && (
-                  <div className="absolute right-0 top-full mt-1 z-30 min-w-[112px] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-2">
-                    {([
-                      { value: 'newest', label: '최신순' },
-                      { value: 'clicks', label: '인기순' },
-                      { value: 'rating', label: '별점순' },
-                    ] as const).map(opt => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => { setSortBy(opt.value); setSortOpen(false); }}
-                        aria-current={sortBy === opt.value ? "true" : undefined}
-                        className={cn(
-                          "w-full px-4 py-2.5 text-sm text-left font-medium transition-colors",
-                          sortBy === opt.value
-                            ? "bg-blue-500/10 text-blue-700 dark:text-blue-300"
-                            : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60"
-                        )}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <div className="hidden md:block">{sortButton}</div>
             </div>
 
             {filteredProjects.length === 0 ? (
@@ -495,7 +402,7 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                 {filteredProjects.map((project) => (
                   <ProjectCard key={project.id} project={project} mode="showcase" />
                 ))}
