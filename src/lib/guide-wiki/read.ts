@@ -2,11 +2,12 @@ import 'server-only'
 
 import { revertedBy } from '@/lib/guide-wiki/diff'
 import { loadSourceDoc, sourceHash } from '@/lib/guide-wiki/source'
+import { HISTORY_PAGE_SIZE } from '@/lib/guide-wiki/types'
 import type { RevisionStats, WikiDoc, WikiStep } from '@/lib/guide-wiki/types'
 import { createClient } from '@/lib/supabase/server'
 import type { GuideRevisionKind, Json } from '@/lib/types'
 
-const DEFAULT_LIST_LIMIT = 30
+const DEFAULT_LIST_LIMIT = HISTORY_PAGE_SIZE
 const WITHDRAWN_NICKNAME = '탈퇴한 사용자'
 
 export type RevisionListItem = {
@@ -176,6 +177,15 @@ export async function listRevisions(
   const { data, error } = await query
   if (error) throw new Error(`guide_revisions 조회 실패: ${error.message}`)
   return (data ?? []).map(toItem)
+}
+
+/** 고친 기록 한 쪽(최신순). 한 개 더 읽어 다음 쪽이 있는지 알려 준다. */
+export async function listHistoryPage(
+  key: string,
+  before?: number,
+): Promise<{ items: RevisionListItem[]; hasMore: boolean }> {
+  const rows = await listRevisions(key, { before, limit: HISTORY_PAGE_SIZE + 1 })
+  return { items: rows.slice(0, HISTORY_PAGE_SIZE), hasMore: rows.length > HISTORY_PAGE_SIZE }
 }
 
 /** 특정 버전의 문서 내용과 목록 항목 정보. */

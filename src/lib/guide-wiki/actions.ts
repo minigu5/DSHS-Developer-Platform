@@ -4,7 +4,14 @@ import { revalidatePath } from 'next/cache'
 
 import { isAllowedEmail } from '@/lib/constants'
 import { computeStats } from '@/lib/guide-wiki/diff'
-import { getLatestDoc, getRevision, isSourceStale } from '@/lib/guide-wiki/read'
+import {
+  getLatestDoc,
+  getRevertedMap,
+  getRevision,
+  isSourceStale,
+  listHistoryPage,
+  type RevisionListItem,
+} from '@/lib/guide-wiki/read'
 import {
   EditInputSchema,
   RevertInputSchema,
@@ -239,4 +246,30 @@ export async function syncFromSource(input: SyncInput): Promise<SaveResult> {
     stats: statsJson(computeStats(latest.doc.steps, source.steps), sourceHash(source)),
     latest,
   })
+}
+
+export type HistoryPage = {
+  items: RevisionListItem[]
+  hasMore: boolean
+  /** 이 쪽의 버전 -> 그 버전을 무효로 만든 되돌리기 버전. */
+  reverted: Record<number, number>
+}
+
+const DOC_KEY_PATTERN = /^[a-z0-9][a-z0-9-]{0,99}$/
+
+/** 고친 기록 "더 보기". `before` 보다 오래된 쪽을 읽기만 한다(쓰기 없음). */
+export async function loadMoreRevisions(key: string, before: number): Promise<HistoryPage> {
+  if (!DOC_KEY_PATTERN.test(key) || !Number.isSafeInteger(before) || before < 1) {
+    return { items: [], hasMore: false, reverted: {} }
+  }
+  const [{ items, hasMore }, map] = await Promise.all([
+    listHistoryPage(key, before),
+    getRevertedMap(key),
+  ])
+  const reverted: Record<number, number> = {}
+  for (const item of items) {
+    const by = map.get(item.revNo)
+    if (by !== undefined) reverted[item.revNo] = by
+  }
+  return { items, hasMore, reverted }
 }

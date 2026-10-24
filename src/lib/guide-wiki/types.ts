@@ -16,3 +16,6 @@ export type RevisionStats = {
   minus: number
   sourceHash?: string
 }
+
+/** 고친 기록 목록 한 번에 보여 주는 개수("더 보기" 단위). */
+export const HISTORY_PAGE_SIZE = 30

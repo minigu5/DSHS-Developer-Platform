@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useReducer, useRef, useState, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Eye, Info, Pencil } from "lucide-react";
+import { Eye, Pencil } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { saveGuideEdit, syncFromSource, type SaveResult } from "@/lib/guide-wiki/actions";
+import { saveGuideEdit, type SaveResult } from "@/lib/guide-wiki/actions";
 import { computeStats, describeStats } from "@/lib/guide-wiki/diff";
 import { titleOf } from "@/lib/guide-wiki/steps";
 import type { WikiDoc } from "@/lib/guide-wiki/types";
@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DocHeader, type DocUsage } from "@/components/guide-wiki/doc-header";
+import { StaleBanner } from "@/components/guide-wiki/stale-banner";
 import {
   editorReducer,
   initEditorState,
@@ -54,12 +55,13 @@ export function GuideWikiEditor({ doc, baseRev: initialBaseRev, usages, stale, f
   const [state, dispatch] = useReducer(editorReducer, doc.steps, initEditorState);
   const [baseRev, setBaseRev] = useState(initialBaseRev);
   const [saving, setSaving] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const [conflict, setConflict] = useState<{ latestRev: number } | null>(null);
   const [leaveHref, setLeaveHref] = useState<string | null>(null);
 
   // 연타해도 요청은 하나만 나가게 렌더와 상관없이 바로 잠근다.
   const busyRef = useRef(false);
+  // 원본 가져오기(StaleBanner)가 도는 동안은 저장하지 않는다.
+  const syncingRef = useRef(false);
   // 저장에 성공해 떠나는 중이면 beforeunload 경고를 끈다.
   const leavingRef = useRef(false);
   const pendingFocus = useRef<PendingFocus | null>(null);
@@ -144,7 +146,7 @@ export function GuideWikiEditor({ doc, baseRev: initialBaseRev, usages, stale, f
   }
 
   async function runSave(base: number) {
-    if (busyRef.current || !canSave) return;
+    if (busyRef.current || syncingRef.current || !canSave) return;
     busyRef.current = true;
     setSaving(true);
     setConflict(null);
@@ -178,32 +180,6 @@ export function GuideWikiEditor({ doc, baseRev: initialBaseRev, usages, stale, f
     const latest = conflict.latestRev;
     setBaseRev(latest);
     void runSave(latest);
-  }
-
-  async function runSync() {
-    if (busyRef.current || dirty) return;
-    busyRef.current = true;
-    setSyncing(true);
-    let result: SaveResult;
-    try {
-      result = await syncFromSource({ key: doc.key, baseRev });
-    } catch {
-      result = { error: SAVE_FAILED };
-    }
-    if ("revNo" in result) {
-      toast.success(`저장소 원본을 가져왔어요 (버전 ${result.revNo})`);
-    } else if ("conflict" in result) {
-      toast.error("그 사이 다른 사람이 저장했어요. 최신 내용으로 다시 불러올게요.");
-    } else {
-      toast.error(result.error);
-      busyRef.current = false;
-      setSyncing(false);
-      return;
-    }
-    // 페이지가 새 최신 버전으로 다시 그려지면 편집기도 새로 시작한다(page 의 key).
-    router.refresh();
-    busyRef.current = false;
-    setSyncing(false);
   }
 
   function requestLeave(href: string) {
@@ -244,26 +220,16 @@ export function GuideWikiEditor({ doc, baseRev: initialBaseRev, usages, stale, f
           />
 
           {stale && (
-            <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
-              <div className="flex gap-2">
-                <Info className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500" aria-hidden />
-                <div>
-                  <p className="font-medium text-zinc-900 dark:text-white">저장소 원본이 새로 바뀌었어요</p>
-                  {dirty && (
-                    <p className="mt-0.5 text-[13px] text-zinc-600 dark:text-zinc-400">
-                      고친 내용이 있으면 가져올 수 없어요. 저장하거나 취소한 뒤 가져와 주세요.
-                    </p>
-                  )}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={runSync}
-                disabled={dirty || syncing || saving}
-                className="inline-flex min-h-11 shrink-0 items-center justify-center self-start rounded-full border border-zinc-300 bg-white px-4 text-[13px] font-medium text-zinc-900 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-9 sm:self-auto dark:border-zinc-700 dark:bg-zinc-950 dark:text-white dark:hover:bg-zinc-800"
-              >
-                {syncing ? "가져오는 중…" : "원본 가져오기"}
-              </button>
+            <div className="mt-5">
+              <StaleBanner
+                docKey={doc.key}
+                baseRev={baseRev}
+                blocked={dirty}
+                disabled={saving}
+                onSyncingChange={(v) => {
+                  syncingRef.current = v;
+                }}
+              />
             </div>
           )}
 
