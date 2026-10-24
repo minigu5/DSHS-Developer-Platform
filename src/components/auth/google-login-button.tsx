@@ -54,14 +54,10 @@ export function GoogleLoginButton({ next }: GoogleLoginButtonProps) {
       disabled={loading}
       variant="outline"
       size="lg"
-      className="w-full"
+      className="flex h-[52px] w-full items-center justify-center gap-3 rounded-full border-zinc-200 bg-white text-[15px] font-semibold text-zinc-900 shadow-sm hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800 sm:h-[60px] sm:text-[17px]"
     >
-      {loading ? (
-        <Loader2 className="animate-spin" />
-      ) : (
-        <GoogleIcon className="size-4" />
-      )}
-      Google 계정으로 로그인
+      {loading ? <Loader2 className="size-5 animate-spin" aria-hidden /> : <GoogleIcon className="size-5 sm:size-6" />}
+      Google로 계속하기
     </Button>
   );
 }

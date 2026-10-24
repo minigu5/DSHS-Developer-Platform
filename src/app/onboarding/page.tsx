@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { AuthShell } from "@/components/auth/auth-shell";
 import { OnboardingForm } from './onboarding-form';
 
 export default async function OnboardingPage() {
