@@ -8,7 +8,7 @@ import {
   Tablet, Laptop, Monitor, Sparkles,
 } from "lucide-react";
 
-import { GUIDE_STEPS, visibleSteps, buildSlug, type GuideAnswers } from "@/lib/guide";
+import { GUIDE_STEPS, visibleSteps, buildSlug, chipLabel, type GuideAnswers } from "@/lib/guide";
 import { cn } from "@/lib/utils";
 
 const STEP_OPTION_ICONS: Record<string, Record<string, React.ElementType>> = {
@@ -38,7 +38,9 @@ export function GuideWizard({ initialType }: GuideWizardProps = {}) {
   // 지금까지 고른 답 라벨 (질문 순서대로)
   const picked = steps
     .filter((s) => s.key in answers)
-    .map((s) => s.options.find((o) => o.value === answers[s.key])?.label ?? answers[s.key]);
+    .map((s) => s.options.find((o) => o.value === answers[s.key]))
+    .map((o) => (o ? chipLabel(o) : null))
+    .filter((l): l is string => Boolean(l));
 
   // 단계가 바뀌면 새 질문 제목으로 포커스를 옮겨 스크린리더·키보드 사용자가 흐름을 놓치지 않게 함
   const headingRef = useRef<HTMLHeadingElement>(null);

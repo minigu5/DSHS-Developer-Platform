@@ -12,7 +12,19 @@ import {
 } from "@/lib/constants";
 
 export type GuideAnswers = Record<string, string>;
-export type GuideOption = { value: string; label: string; desc?: string };
+export type GuideOption = {
+  value: string;
+  label: string;
+  desc?: string;
+  /** 결과·위저드 칩에 쓰는 짧은 이름(답만 봐도 뜻이 통하게). 빈 문자열이면 칩을 숨긴다 */
+  chip?: string;
+};
+
+/** 칩 라벨: chip 이 있으면 그것, 없으면 label. 빈 문자열이면 null(숨김) */
+export function chipLabel(o: GuideOption): string | null {
+  const c = o.chip ?? o.label;
+  return c ? c : null;
+}
 
 export type GuideStep = {
   key: string;
