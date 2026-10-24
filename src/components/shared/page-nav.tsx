@@ -5,14 +5,16 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Search, Rocket, BookOpen, Newspaper, Megaphone, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SECTION_COLORS } from "@/lib/section-colors";
 
+// 알약 색은 섹션 색 맵(src/lib/section-colors.ts)과 공유 — 페이지 머리 타일·주 버튼과 같은 색
 const NAV_ITEMS = [
-  { href: "/explore", label: "모든 프로젝트", icon: Search, pillClass: "bg-blue-600" },
-  { href: "/projects/new", label: "프로젝트 등록", icon: Rocket, pillClass: "bg-emerald-700" },
-  { href: "/guide", label: "나도 개발해볼래!", icon: BookOpen, pillClass: "bg-purple-600" },
-  { href: "/tips", label: "개발 팁", icon: Newspaper, pillClass: "bg-amber-700" },
-  { href: "/haejwo", label: "해줘!", icon: Megaphone, pillClass: "bg-orange-700" },
-  { href: "/announcements", label: "공지사항", icon: Bell, pillClass: "bg-sky-700" },
+  { href: "/explore", label: "모든 프로젝트", icon: Search, pillClass: SECTION_COLORS.explore.pill },
+  { href: "/projects/new", label: "프로젝트 등록", icon: Rocket, pillClass: SECTION_COLORS.new.pill },
+  { href: "/guide", label: "나도 개발해볼래!", icon: BookOpen, pillClass: SECTION_COLORS.guide.pill },
+  { href: "/tips", label: "개발 팁", icon: Newspaper, pillClass: SECTION_COLORS.tips.pill },
+  { href: "/haejwo", label: "해줘!", icon: Megaphone, pillClass: SECTION_COLORS.haejwo.pill },
+  { href: "/announcements", label: "공지사항", icon: Bell, pillClass: SECTION_COLORS.announcements.pill },
 ] as const;
 
 const STORAGE_KEY = "pagenav-pill";

@@ -114,14 +114,14 @@ export function RecentPosts({
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
       <Column
         icon={Newspaper}
-        tileClass="bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+        tileClass="bg-tip-100 text-tip-700 dark:bg-tip-950 dark:text-tip-300"
         title="개발 팁"
         href="/tips"
         order={0}
         footer={
           <>
             알게 된 노하우가 있다면{" "}
-            <Link href="/tips/new" className="font-semibold text-amber-700 dark:text-amber-400 hover:underline underline-offset-4">
+            <Link href="/tips/new" className="font-semibold text-tip-700 dark:text-tip-300 hover:underline underline-offset-4">
               팁을 써 주세요
             </Link>
             .
