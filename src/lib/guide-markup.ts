@@ -26,6 +26,11 @@ const markerLabel = (m: RegExpMatchArray) => (m[2] ?? m[3] ?? "").trim();
 const FENCE_RE = /^\s*(```|~~~)/;
 const HEADING_RE = /^#{1,2}\s+(.+?)\s*#*\s*$/;
 
+/** 줄 단위로 자른다. Windows 줄바꿈(CRLF)·폼 저장 텍스트도 같은 결과가 되게 정규화 */
+function toLines(text: string): string[] {
+  return text.replace(/\r\n?/g, "\n").split("\n");
+}
+
 function isKnownMarker(line: string): RegExpMatchArray | null {
   const m = line.match(MARKER_RE);
   if (!m) return null;
@@ -48,7 +53,7 @@ export function parseStepMeta(body: string): { title: string | null; next: strin
   let title: string | null = null;
   let next: string | null = null;
   let route: string | null = null;
-  eachOutsideFence(body.split("\n"), (line) => {
+  eachOutsideFence(toLines(body), (line) => {
     if (title === null) {
       const h = line.match(HEADING_RE);
       if (h) title = h[1].trim();
@@ -65,7 +70,7 @@ export function parseStepMeta(body: string): { title: string | null; next: strin
 
 /** 첫 # / ## 제목 줄을 뺀 본문 (뷰어가 제목을 따로 그릴 때) */
 export function stripTitle(body: string): string {
-  const lines = body.split("\n");
+  const lines = toLines(body);
   let idx = -1;
   eachOutsideFence(lines, (line, i) => {
     if (idx === -1 && HEADING_RE.test(line)) idx = i;
@@ -75,7 +80,7 @@ export function stripTitle(body: string): string {
 }
 
 export function splitSegments(body: string): StepSegment[] {
-  const lines = body.split("\n");
+  const lines = toLines(body);
   const out: StepSegment[] = [];
   let md: string[] = [];
   let inFence = false;
@@ -149,7 +154,7 @@ export function resolveGuideLinks(text: string, answers: GuideAnswers | undefine
 export function splitFragmentSteps(md: string): string[] {
   const steps: string[][] = [[]];
   let inFence = false;
-  for (const line of md.split("\n")) {
+  for (const line of toLines(md)) {
     if (FENCE_RE.test(line)) inFence = !inFence;
     if (!inFence && /^\s*---\s*$/.test(line)) {
       steps.push([]);

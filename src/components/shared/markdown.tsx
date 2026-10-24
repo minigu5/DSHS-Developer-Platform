@@ -1,7 +1,7 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-import { cn } from "@/lib/utils";
+import { cn, isInternalHref } from "@/lib/utils";
 
 const components = {
   h1: (props: React.ComponentProps<"h1">) => (
@@ -26,7 +26,7 @@ const components = {
   a: (props: React.ComponentProps<"a">) => (
     <a
       className="font-medium text-blue-600 underline underline-offset-2 hover:text-blue-700 dark:text-blue-400"
-      {...(props.href?.startsWith("/") ? {} : { target: "_blank", rel: "noreferrer" })}
+      {...(isInternalHref(props.href) ? {} : { target: "_blank", rel: "noreferrer" })}
       {...props}
     />
   ),
