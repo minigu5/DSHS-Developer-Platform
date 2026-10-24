@@ -21,7 +21,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // 모바일(sm 미만) 여부 — 모바일에서는 헤더의 다크모드 토글이 숨겨져 프로필 메뉴에 테마 항목을 둔다.
 // 메뉴 항목을 sm:hidden으로 숨기면 데스크탑에서 화살표 키 이동이 숨은 항목에 걸릴 수 있어 아예 렌더하지 않는다.
-const MOBILE_QUERY = "(max-width: 639.98px)";
+// Tailwind sm(40rem)과 같은 단위로 — px로 쓰면 브라우저 글꼴을 키운 사용자에게 토글이 양쪽 다 사라지는 구간이 생긴다.
+const MOBILE_QUERY = "(width < 40rem)";
 function subscribeMobile(onChange: () => void) {
   const mql = window.matchMedia(MOBILE_QUERY);
   mql.addEventListener("change", onChange);

@@ -39,14 +39,20 @@ function resolveActive(pathname: string): string {
 }
 
 // 누른 메뉴를 주소가 바뀌기 전에 먼저 활성으로 보여 준다(서버 왕복이 길어 1초쯤 반응이 없던 문제, 2026-10-24).
-// 주소가 바뀌면(또는 그대로 머물면 다음 클릭 때) 실제 주소 기준으로 돌아간다.
+// 주소가 바뀌면 눌렀던 기록을 지우고 실제 주소 기준으로 돌아간다 — 지우지 않으면 벨·푸터·뒤로가기로
+// 눌렀던 화면에 되돌아왔을 때 옛 칸이 다시 켜진다. (렌더 중 파생 상태 갱신 — effect 안 setState 금지 규칙 회피)
 function useOptimisticActive() {
   const pathname = usePathname();
-  const [pending, setPending] = useState<{ href: string; from: string } | null>(null);
-  const active = pending && pending.from === pathname ? pending.href : resolveActive(pathname);
+  const [pending, setPending] = useState<string | null>(null);
+  const [seenPath, setSeenPath] = useState(pathname);
+  if (seenPath !== pathname) {
+    setSeenPath(pathname);
+    setPending(null);
+  }
+  const active = seenPath === pathname && pending ? pending : resolveActive(pathname);
   const onNavigate = (href: string) => (e: MouseEvent<HTMLAnchorElement>) => {
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; // 새 탭 열기 등
-    setPending({ href, from: pathname });
+    setPending(href);
   };
   return { pathname, active, onNavigate };
 }
