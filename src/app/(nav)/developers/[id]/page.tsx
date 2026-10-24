@@ -143,6 +143,15 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
           </span>
         }
       >
+        {nickname && (
+          <span
+            className="rise mt-3 inline-flex items-center rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:border-zinc-700/50 dark:bg-zinc-800 dark:text-zinc-400"
+            style={riseDelay(90)}
+          >
+            {actualFullName}
+          </span>
+        )}
+
         {bio && (
           <p className="rise mt-3.5 max-w-[34em] text-base leading-relaxed text-zinc-600 break-keep dark:text-zinc-400" style={riseDelay(120)}>
             {bio}
