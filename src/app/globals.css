@@ -79,21 +79,70 @@ html.dark {
   scale: 1;
 }
 
-/* 히어로 배경 모눈종이 — 라인 색은 zinc-100과 zinc-200 사이(라이트) / zinc-900 근처(다크) */
+/* 모눈종이 배경 — 홈 히어로·모든 페이지 머리(PageHero)·로그인 계열 화면이 공유.
+   모눈은 ::before 레이어에 그리므로 내용 래퍼에 `relative z-10`을 둬야 모눈 위에 올라온다.
+   라인 색은 2026-10-24에 한 단계 연하게(#ececef → #f0f0f3): 진하면 답답하다는 피드백.
+   물결: 모눈 전체가 10초에 한 칸(24px) 대각선으로 흐르고, 그 위에 "잘 보이는 구역" 두 덩이(mask)가
+   28초 주기로 서로 반대 방향·다른 속도로 지나간다. 덩이 밖은 모눈이 38%만 보이고 덩이 안은 100% —
+   바다 표면처럼 일부는 또렷하고 일부는 흐리다. 색 블롭·블러가 아니라 모눈의 가시도만 바뀐다.
+   동작 줄이기 설정이면 아래 전역 규칙이 두 애니메이션을 멈춘다(마스크는 첫 위치에 고정, 모눈은 보임). */
 .paper-grid {
+  position: relative;
+  isolation: isolate;
   background-color: #ffffff;
-  background-image:
-    linear-gradient(#ececef 1px, transparent 1px),
-    linear-gradient(90deg, #ececef 1px, transparent 1px);
-  background-size: 24px 24px;
-  background-position: center top;
 }
 
 .dark .paper-grid {
   background-color: #09090b;
+}
+
+.paper-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
   background-image:
-    linear-gradient(#1c1c20 1px, transparent 1px),
-    linear-gradient(90deg, #1c1c20 1px, transparent 1px);
+    linear-gradient(#f0f0f3 1px, transparent 1px),
+    linear-gradient(90deg, #f0f0f3 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: 50% 0;
+  -webkit-mask-image:
+    radial-gradient(closest-side, #000 0%, #000 30%, transparent 100%),
+    radial-gradient(closest-side, #000 0%, #000 25%, transparent 100%),
+    linear-gradient(rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0.38));
+  mask-image:
+    radial-gradient(closest-side, #000 0%, #000 30%, transparent 100%),
+    radial-gradient(closest-side, #000 0%, #000 25%, transparent 100%),
+    linear-gradient(rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0.38));
+  -webkit-mask-size: 75% 160%, 60% 130%, 100% 100%;
+  mask-size: 75% 160%, 60% 130%, 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  /* 동작 줄이기로 애니메이션이 멈춰도 덩이가 첫 위치에 머물도록 기본값을 명시 */
+  -webkit-mask-position: -15% 45%, 115% 55%, 0 0;
+  mask-position: -15% 45%, 115% 55%, 0 0;
+  animation:
+    grid-drift 10s linear infinite,
+    grid-wave 28s ease-in-out infinite alternate;
+}
+
+.dark .paper-grid::before {
+  background-image:
+    linear-gradient(#18181c 1px, transparent 1px),
+    linear-gradient(90deg, #18181c 1px, transparent 1px);
+}
+
+/* 한 칸(24px) 흐른 뒤 같은 자리라 반복이 끊기지 않는다 */
+@keyframes grid-drift {
+  from { background-position: 50% 0; }
+  to   { background-position: calc(50% + 24px) 24px; }
+}
+
+@keyframes grid-wave {
+  0%   { -webkit-mask-position: -15% 45%, 115% 55%, 0 0; mask-position: -15% 45%, 115% 55%, 0 0; }
+  50%  { -webkit-mask-position: 55% 85%, 35% 5%, 0 0;    mask-position: 55% 85%, 35% 5%, 0 0; }
+  100% { -webkit-mask-position: 115% 25%, -15% 75%, 0 0; mask-position: 115% 25%, -15% 75%, 0 0; }
 }
 
 .announcement-ticker-track {
@@ -131,6 +180,13 @@ html.dark {
   --font-sans: var(--font-geist-sans), "Apple SD Gothic Neo", "Pretendard", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
   --font-heading: var(--font-plex-kr), var(--font-geist-sans), "Apple SD Gothic Neo", "Pretendard", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+  /* 개발 팁 섹션 색 — Tailwind v4의 pink-600은 oklch 기반이라 시안에서 승인된 색보다 밝고 흰 글자 대비가 경계(4.5:1).
+     승인된 hex로 고정(흰 글자 대비 4.6:1). 사용: bg-tip-600 / hover:bg-tip-700 / bg-tip-100 text-tip-700 / dark:bg-tip-950 dark:text-tip-300 */
+  --color-tip-100: #fce7f3;
+  --color-tip-300: #f9a8d4;
+  --color-tip-600: #db2777;
+  --color-tip-700: #be185d;
+  --color-tip-950: #500724;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);

@@ -35,9 +35,9 @@ export function EditButton({
   return (
     <Link
       href={`/projects/${projectId}/edit`}
-      className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "rounded-full font-medium")}
+      className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "h-11 rounded-full px-4 text-sm text-zinc-700 dark:text-zinc-300")}
     >
-      <Pencil className="w-4 h-4 mr-2 text-zinc-600 dark:text-zinc-400" /> 수정하기
+      <Pencil className="mr-1.5 h-4 w-4" aria-hidden /> 수정하기
     </Link>
   );
 }

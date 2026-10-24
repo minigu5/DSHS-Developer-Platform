@@ -26,7 +26,7 @@ export function SiteHeader({
   rightExtra,
   showNav = false,
 }: SiteHeaderProps) {
-  const containerClass = cn(MAX_WIDTH_CLASS[maxWidth], "mx-auto px-4 sm:px-6 h-16 flex items-center justify-between");
+  const containerClass = cn(MAX_WIDTH_CLASS[maxWidth], "mx-auto px-6 h-16 flex items-center justify-between");
 
   return (
     <header

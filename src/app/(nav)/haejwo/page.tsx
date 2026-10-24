@@ -1,35 +1,31 @@
 export const revalidate = 30;
 
+import { Suspense } from "react";
 import Link from "next/link";
-import { PenLine } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { ko } from "date-fns/locale";
+import { Megaphone, PenLine } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { PROJECT_TYPES, FEATURES } from "@/lib/constants";
+import { SECTION_COLORS } from "@/lib/section-colors";
+import { PageHero } from "@/components/shared/page-hero";
+import type { HaejwoCardData } from "@/components/haejwo/haejwo-card";
+import { HaejwoStatusTabs } from "@/components/haejwo/haejwo-status-tabs";
+import { HaejwoGrid } from "@/components/haejwo/haejwo-grid";
 
 export const metadata = {
   title: "해줘! 아이디어 — DSHS Developer Platform",
 };
 
-type IdeaRow = {
-  id: string;
-  title: string;
-  type: string;
-  category: string;
-  status: string;
-  created_at: string;
-  author: { nickname: string | null; full_name: string | null } | null;
+type IdeaRow = Omit<HaejwoCardData, "linked_title" | "author"> & {
+  author: HaejwoCardData["author"] | HaejwoCardData["author"][] | null;
+  linked_project: { title: string } | { title: string }[] | null;
 };
 
-const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
-  open: { label: "구현 요청 중", cls: "bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" },
-  in_progress: { label: "개발 중", cls: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
-  done: { label: "완료", cls: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
-};
-
+/**
+ * 해줘 목록 — 서버는 전체 목록만 ISR(30초)로 내려주고, 상태 세그먼트(`?status=`)는 클라이언트에서 거른다.
+ * searchParams를 서버에서 읽으면 페이지가 동적으로 바뀌어 ISR을 잃기 때문.
+ */
 export default async function HaejwoPage() {
   const supabase = await createClient();
 
@@ -37,101 +33,55 @@ export default async function HaejwoPage() {
     .from("ideas")
     .select(
       `id, title, type, category, status, created_at,
-       author:users!ideas_author_id_fkey(nickname, full_name)`,
+       author:users!ideas_author_id_fkey(nickname, full_name),
+       linked_project:projects(title)`,
     )
     .order("created_at", { ascending: false })
     .returns<IdeaRow[]>();
 
-  const ideas = data ?? [];
+  const ideas: HaejwoCardData[] = (data ?? []).map((row) => {
+    const linked = Array.isArray(row.linked_project) ? row.linked_project[0] ?? null : row.linked_project;
+    return {
+      ...row,
+      author: Array.isArray(row.author) ? row.author[0] ?? null : row.author,
+      linked_title: linked?.title ?? null,
+    };
+  });
+
+  const counts = {
+    all: ideas.length,
+    open: ideas.filter((i) => i.status !== "done").length,
+    done: ideas.filter((i) => i.status === "done").length,
+  };
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
-
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 sm:px-6 py-12">
-        <div className="mb-8">
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                해줘!
-              </h1>
-              <p className="mt-3 max-w-xl text-base sm:text-lg text-zinc-600 dark:text-zinc-400 break-keep">
-                있으면 좋겠는 프로그램을 적어 두면, 만들 수 있는 사람이 보고 가져가요.
-              </p>
-            </div>
-            <Link
-              href="/haejwo/new"
-              className={cn(
-                buttonVariants({ size: "sm" }),
-                "shrink-0 rounded-full bg-orange-700 text-white hover:bg-orange-800",
-              )}
-            >
-              <PenLine className="mr-1.5 h-4 w-4" />
-              <span className="hidden sm:inline">아이디어 올리기</span>
-              <span className="sm:hidden">올리기</span>
-            </Link>
-          </div>
-        </div>
-
-        {ideas.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-zinc-300 bg-white py-20 text-center dark:border-zinc-700 dark:bg-zinc-900/40">
-            <p className="text-zinc-600 dark:text-zinc-400">아직 올라온 아이디어가 없어요.</p>
-            <Link
-              href="/haejwo/new"
-              className={cn(buttonVariants({ size: "sm" }), "mt-4 rounded-full bg-orange-700 text-white hover:bg-orange-800")}
-            >
-              <PenLine className="mr-1.5 h-4 w-4" /> 첫 아이디어 올리기
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {ideas.map((idea) => {
-              const typeName = PROJECT_TYPES.find((t) => t.value === idea.type)?.label ?? idea.type;
-              const categoryName = FEATURES.find((f) => f.value === idea.category)?.label ?? idea.category;
-              const status = STATUS_LABELS[idea.status] ?? STATUS_LABELS.open;
-              const authorName =
-                Array.isArray(idea.author)
-                  ? (idea.author[0]?.nickname ?? idea.author[0]?.full_name ?? "익명")
-                  : (idea.author?.nickname ?? idea.author?.full_name ?? "익명");
-              const timeAgo = formatDistanceToNow(new Date(idea.created_at), {
-                addSuffix: true,
-                locale: ko,
-              });
-
-              return (
-                <Link
-                  key={idea.id}
-                  href={`/haejwo/${idea.id}`}
-                  className="group flex flex-col gap-3 rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm transition-colors duration-200 hover:border-orange-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-orange-700"
-                >
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="inline-flex items-center rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-medium text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
-                      {typeName}
-                    </span>
-                    <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-                      {categoryName}
-                    </span>
-                    <span
-                      className={cn(
-                        "ml-auto inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium",
-                        status.cls,
-                      )}
-                    >
-                      {status.label}
-                    </span>
-                  </div>
-                  <p className="line-clamp-2 font-semibold leading-snug text-zinc-900 group-hover:text-orange-700 dark:text-white dark:group-hover:text-orange-400">
-                    {idea.title}
-                  </p>
-                  <div className="mt-auto flex items-center gap-2 text-xs text-zinc-400">
-                    <span>{authorName}</span>
-                    <span>·</span>
-                    <span>{timeAgo}</span>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+    <div className="flex min-h-screen flex-col bg-white dark:bg-zinc-950">
+      <PageHero
+        section="haejwo"
+        icon={Megaphone}
+        title="해줘!"
+        description="있으면 좋겠는 프로그램을 올리면, 만들 수 있는 사람이 가져가요. 개발을 못 해도 괜찮아요."
+        actions={
+          <Link
+            href="/haejwo/new"
+            className={cn(buttonVariants({ size: "lg" }), "h-11 rounded-full px-5 text-sm", SECTION_COLORS.haejwo.button)}
+          >
+            <PenLine className="mr-1.5 h-4 w-4" aria-hidden />
+            해줘! 등록
+          </Link>
+        }
+      >
+        {ideas.length > 0 && (
+          <Suspense fallback={null}>
+            <HaejwoStatusTabs counts={counts} />
+          </Suspense>
         )}
+      </PageHero>
+
+      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-9">
+        <Suspense fallback={null}>
+          <HaejwoGrid ideas={ideas} />
+        </Suspense>
       </main>
     </div>
   );

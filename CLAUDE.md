@@ -77,7 +77,13 @@
   - 편집 모드 진입 시 기존 `team_members` 이메일로 프로필을 일괄 로드.
   - 팀원 목록 표시: 이메일 pill → **아바타 + 닉네임/실명 + 이메일 세로 카드** 형태.
 
-### 프로젝트 상세 팀 정보 (`src/app/(nav)/projects/[id]/page.tsx`)
+### 프로젝트 상세 (`src/app/(nav)/projects/[id]/page.tsx`)
+- **머리(2026-10-24)**: "← 모든 프로젝트" → 아이콘 **스티커 112px**(모바일 72px, `ring-[3px]` + 그림자) + 종류 배지·태그 → h1(Plex) → 한 줄 설명 → 작성자 줄("· 개인/팀 프로젝트 · 등록일") → 알약 버튼(방문 blue / GitHub 보조 / 수정 ghost).
+- **수치 띠** `StatStrip`(`src/components/projects/stat-strip.tsx`): 별점(리뷰 0이면 "–"/"아직 리뷰가 없어요") · 방문(`url` 없으면 칸 생략 → 3칸) · 플랫폼(웹사이트+전체면 "Web / 모든 브라우저") · 소스코드("허용 N개"). 모바일 2열.
+- **본문**: `ReadingSurface`(마크다운) + 사이드 카드 3개 — 개발자(또는 팀+팀원), 라이선스(허용/제한), 정보(종류·플랫폼·공개 여부·등록일·최근 수정). 옛 "환경 및 플랫폼" 카드는 정보 카드로 합쳐짐.
+- **리뷰**: 카드 바깥 제목 "리뷰 N"(Plex) → 작성 폼 카드(별점 선택은 머리 오른쪽, 버튼 "리뷰 남기기") → 리뷰마다 카드.
+
+### 프로젝트 상세 팀 정보
 - `author_role === 'team'`이면 `team_members` 이메일 배열로 `users` 테이블을 `.in('email', ...)` 쿼리해 프로필 일괄 조회.
 - 팀원 표시: 이메일 chip → **아바타 + 닉네임 세로 목록**. 각 항목은 `/developers/[id]` 로 링크됨.
 - `EditButton`에 `teamMembers` prop 전달 — 팀원에게도 "수정하기" 버튼 노출.
@@ -148,8 +154,8 @@
 
 ## 📝 개발 팁 블로그 (`/tips`)
 - **목록** `/tips`(`revalidate=30`): 카드 그리드(커버·태그·작성자·좋아요/댓글 수·상대시간). 헤더 우측 "팁 작성".
-- **작성** `/tips/new` · **수정** `/tips/[id]/edit`: `TipEditor`(`src/components/tips/tip-editor.tsx`) — 마크다운 작성/분할/미리보기 3탭, Tab 들여쓰기 지원. 둘 다 보호 라우트(미들웨어). 수정은 작성자만.
-- **상세** `/tips/[id]`(`revalidate=30`): `Markdown` 렌더, 좋아요(`TipLikeButton`, 낙관적), 댓글(`TipComments`, 작성/삭제). 작성자에게만 수정/삭제 노출(`TipOwnerActions`). 상단에 "목록으로" 버튼(`ArrowLeft`)이 태그·수정/삭제 버튼과 **같은 행 왼쪽**에 배치됨.
+- **작성** `/tips/new` · **수정** `/tips/[id]/edit`: 페이지는 `PageHero variant="compact"`(타일 + 제목만). `TipEditor`(`src/components/tips/tip-editor.tsx`) — 카드 2장: ① 큰 밑줄 제목 입력(`TITLE_INPUT_CLASS`) + 2열(한 줄 요약/태그) + 대표 이미지, ② 본문(`EditorTabs` 작성/분할/미리보기, Tab 들여쓰기). 제출 버튼은 섹션 색(`SECTION_COLORS.tips.button`) "팁 발행"/"저장". 둘 다 보호 라우트(미들웨어). 수정은 작성자만. 공지 작성(`AnnouncementEditor`)도 같은 틀 — 카드 ① 맨 위에 카테고리 카드 선택(단일 선택이라 sky 유지).
+- **상세** `/tips/[id]`(`revalidate=30`): 글 레이아웃 — `ArticleHeader`("← 개발 팁" 줄 + 태그 + h1 + 요약 + 작성자 줄) → 커버 16:9 → `ReadingSurface`(마크다운, 하단에 `TipLikeButton` 알약 + "도움이 됐다면 눌러 주세요") → `TipComments`(카드 없이 "댓글 N" 제목 + 행 목록). 작성자에게만 수정/삭제 노출(`TipOwnerActions`). 팁·해줘·공지 상세가 같은 틀을 쓴다.
 - 서버 액션: **`src/lib/tips/actions.ts`**(`createTip`/`updateTip`/`deleteTip`). 라우트 그룹 밖에 위치 — `(nav)` 경로에 두면 Turbopack에서 client→server action 바인딩이 깨지는 문제 있음.
 - 팁 작성 필수 필드: 제목, **한 줄 요약(최대 30자)**, **대표 이미지 (파일 업로드 또는 URL)**, 본문.
 - 삭제 확인창은 `window.confirm` 대신 shadcn `Dialog` 컴포넌트 사용(팁 삭제·댓글 삭제 모두).
@@ -162,10 +168,11 @@
 ## 🔎 탐색/검색 (`/explore`)
 - `src/components/explore/explore-client.tsx`: 클라이언트 측 필터링.
 - 검색 대상: 프로젝트 제목·설명·태그(`features`) + **작성자 닉네임·실명·팀 이름**.
-- **사이드바 필터** (데스크탑): **프로그램 종류 → 플랫폼** 순 (다중 선택). 체크박스 없이 아이콘+라벨 토글 버튼으로 구성. 선택 시 파란 배경+파란 텍스트로 강조.
+- **머리(2026-10-24 톤 통일)**: `PageHero`(section=explore, `maxWidth="lg"`) 안에 큰 검색창(`rounded-full`, 최대 640px)이 들어간다 — 이 페이지의 히어로. 검색창은 `ExploreClient`가 렌더(상태 공유).
+- **사이드바 필터** (데스크탑, `md:` 이상): **프로그램 종류 → 카테고리 → 플랫폼** 접이식 3그룹(다중 선택). 체크박스 없이 아이콘+라벨 토글 버튼으로 구성. 선택 시 파란 배경+파란 텍스트로 강조. 컨테이너는 `max-w-6xl`(사이드바 224px + 카드 **최대 2열**).
   - `aside` 자체에 `sticky top-24 self-start` 적용 — `self-start`가 없으면 flex 컨테이너 높이를 따라 늘어나 필터 적용 시 프로젝트 수가 줄어들 때 사이드바 위치가 흔들리는 버그 발생.
-  - 아이콘 매핑: 웹사이트→Globe, 앱→Smartphone, 확장프로그램→Puzzle, CLI→Terminal, 라이브러리→Package / Web→Globe, iOS→Apple, Android→Bot, Windows→Monitor, macOS→Laptop, Linux→Server.
-- **모바일 필터**: 토글 버튼 클릭 시 `absolute top-full` 드롭다운으로 열림 — 아래 콘텐츠가 밀리지 않도록 레이아웃 흐름 밖에 배치. pill 스타일(아이콘+라벨, 선택 시 파란 테두리+배경).
+  - 아이콘 매핑은 `src/lib/type-icons.ts`(`TYPE_ICONS`·`PLATFORM_ICONS`·`CATEGORY_ICONS`) — 해줘 카드·등록 폼·위저드와 공유.
+- **모바일 필터**(`src/components/explore/mobile-filter-bar.tsx`): 머리 아래 `sticky` 가로 스크롤 바 — [종류 ▾][카테고리 ▾][플랫폼 ▾] 드롭다운 알약 + 선택된 값은 파란 칩(× 해제) + 오른쪽 정렬. 드롭다운은 `absolute top-full` 패널(바깥 클릭·Esc로 닫힘, `aria-expanded`). 결과 줄은 "N개 · 필터 적용" + 정렬(데스크탑).
 - 헤더 우측 버튼은 제거됨 — 전역 `PageNav`로 이동.
 - 로그인 페이지(`/login`) 뒤로가기 링크는 `/`가 아닌 `/explore`로 이동.
 
@@ -187,7 +194,8 @@
 - **`reviews`**: 프로젝트 접근 권한자만 조회 가능, 본인만 생성/수정/삭제 가능.
 
 ### 개발자 프로필 페이지 (`src/app/(nav)/developers/[id]/page.tsx`)
-- **이메일 항상 표시**: `isOwner` 조건 없이 모든 방문자에게 학교 이메일 표시.
+- **머리(2026-10-24)**: `PageHero`의 `avatar` 변형 — 아바타 스티커(104px, `ring-[3px]` + 그림자) → **닉네임만** h1(없으면 실명) → 자기소개 → **연락처 알약**(아이콘 + 값) → 관심분야 칩. **실명·이메일 줄은 머리에 두지 않는다**; 이메일은 연락처 알약 하나로 항상 노출(`contacts`에 email이 있으면 그것만, 없으면 학교 이메일). 본인이면 알약 아래 "프로필 설정"(다이얼로그) + "로그아웃"(`sign-out-button.tsx`).
+- **아래 구간**: zinc-50 띠 "내 프로젝트/등록한 프로젝트 N"(2열 `ProjectCard`, 본인이면 `manage` 모드 + 점선 "새 프로젝트 등록" 칸) → 흰 구간 "작성한 글 N"(팁·해줘를 한 목록에 얇은 행, 최근 6개). `/me`는 본인 프로필로 리다이렉트(별도 페이지 없음).
 - **연락처**: `users.contacts` JSONB 배열 — `{ type: 'github'|'email'|'instagram'|'discord'|'website', value: string }[]`. 프로필 설정 다이얼로그에서 추가/제거(최대 8개). GitHub·인스타그램은 username만 입력하면 URL 자동 변환. `docs/14-supabase-users-contacts.sql` 실행 필요.
 - **프로필 설정 다이얼로그** (`profile-settings-dialog.tsx`): 닉네임·자기소개·아바타·관심분야·연락처 편집. `updateProfile` 서버 액션으로 저장.
 
@@ -218,14 +226,14 @@
 - DB 스키마: `docs/10-supabase-haejwo.sql` — `ideas` 테이블 (`id`, `author_id`, `title`, `type`, `category`, `content`, `status`(`open`/`in_progress`/`done`), `linked_project_id`(nullable FK → projects), `created_at`, `updated_at`).
 - 컴포넌트: `src/components/haejwo/haejwo-wizard.tsx`, `src/components/haejwo/haejwo-owner-actions.tsx`, `src/components/haejwo/haejwo-complete-button.tsx`.
 - **구현완료 흐름**: 로그인된 사용자가 상세 페이지 하단 "구현완료" 버튼 클릭 → 다이얼로그에서 내 프로젝트 목록 표시 → 선택 시 `markIdeaDone(ideaId, projectId)` 서버 액션 호출 → `status='done'`, `linked_project_id` 업데이트 → 완료 후 연결된 프로젝트 카드 노출. 프로젝트 미등록 시 "프로젝트 등록하기" 버튼 제공.
-- 색상 포인트: **오렌지** (`orange-500`) — 개발 팁(amber)과 구별.
+- 색상 포인트: **오렌지** (`orange-700`) — 개발 팁(`tip-*` 분홍)과 구별. 목록 머리 아래 **상태 세그먼트** `HaejwoStatusTabs`(전체·구현 요청 중·완료, `?status=` 링크; `in_progress`는 설정 UI가 없어 세그먼트에 없음). 카드는 `HaejwoCard`(상태 알약·종류 아이콘 칩·카테고리 칩, 완료는 점선 테두리 + 연결 프로젝트 한 줄). 상세는 글 레이아웃(`ArticleHeader` + `ReadingSurface`) + 미완료면 점선 "만들었어요?" 카드, 완료면 emerald 연결 프로젝트 카드.
 - ⚠️ 새 환경에서는 `docs/10-supabase-haejwo.sql` → `docs/11-supabase-haejwo-alter.sql` 순서로 Supabase에서 실행해야 함.
 
 ---
 
 ## 📢 공지사항 (`/announcements`)
 - **목적**: 개발자가 프로젝트 홍보, 베타 테스트 모집, 의견 수렴, 업데이트 공지 등을 올리는 게시판.
-- **목록** `/announcements`(`revalidate=30`): 카드 그리드. 고정 공지(`is_pinned=true`)가 상단에 먼저 표시.
+- **목록** `/announcements`(`revalidate=30`): `PageHero` + 카드 그리드 한 덩어리(고정 공지가 먼저). 카드(`AnnouncementCard`)는 카테고리 알약(`src/lib/announcement-colors.ts` — 티커·상세와 같은 색) + 제목 2줄 + **본문 첫 문단 요약 2줄**(`announcementSummary`, 서버에서 생성해 `summary` prop) + 작성자·시간. **고정 공지는 배경 없이 테두리만 sky** + 오른쪽 끝 핀 "고정".
 - **작성** `/announcements/new` (보호 라우트): 카테고리 카드 선택 → 제목 → 마크다운 에디터(작성/분할/미리보기 탭).
 - **상세** `/announcements/[id]`(`revalidate=30`): 마크다운 렌더. 작성자·관리자에게만 수정/삭제 버튼 노출. 관리자에게만 "고정/고정해제" 버튼 노출. 상단에 "목록으로" 버튼(`ArrowLeft`) 별도 행으로 배치됨.
 - **수정** `/announcements/[id]/edit` (보호 라우트): 작성자 또는 관리자만 접근 가능.
@@ -341,7 +349,7 @@
   - `/tips/*` → "개발 팁"
   - `/haejwo/*` → "해줘!"
   - `/announcements/*` → "공지사항"
-- **버튼별 고유 색**: 모든 프로젝트=blue, 프로젝트 등록=emerald, 나도 개발해볼래!=purple, 개발 팁=amber, 해줘!=orange, 공지사항=sky.
+- **버튼별 고유 색**: `src/lib/section-colors.ts`의 `SECTION_COLORS`에서 가져온다 — 모든 프로젝트=blue-600, 프로젝트 등록=emerald-700, 나도 개발해볼래!=purple-600, **개발 팁=tip-600(분홍 `#db2777`, `globals.css` `@theme`의 `--color-tip-*` 커스텀 토큰; 2026-10-24 amber에서 교체)**, 해줘!=orange-700, 공지사항=sky-700. 같은 맵이 페이지 머리 타일·주 버튼·활성 칩에도 쓰인다.
 
 ### 데스크탑 (`PageNav`, `sm:` 이상)
 - `SiteHeader` 로고 우측에 얇은 구분선(`hidden sm:block w-px h-5`)으로 분리하여 인라인 배치. `<div className="hidden sm:block">` 래퍼로 모바일에서 완전히 숨김.
@@ -367,16 +375,33 @@
 
 > 원칙: **데스크탑(`sm:` 640px 이상) 디자인은 그대로 두고, 모바일(기본 브레이크포인트)에서만 보강**한다. 모든 반응형 클래스는 `기본값(모바일) + sm:기존값(데스크탑 동일)` 패턴으로 작성해 데스크탑 레이아웃이 픽셀 단위로 동일하게 유지되도록 한다.
 
-- **좌우 여백**: 페이지 `<main>`/섹션은 `px-4 sm:px-6` (모바일 16px, 데스크탑 24px). 헤더(`SiteHeader`) 컨테이너도 동일.
+- **좌우 여백**: 페이지 `<main>`/섹션은 **모든 폭에서 `px-6`(24px)** — 2026-10-24 "모바일 16px은 너무 좁다" 피드백으로 `px-4 sm:px-6`을 폐기. 헤더(`SiteHeader`) 컨테이너도 동일. 카드 안 여백(20px)은 그대로.
 - **헤더 우측 버튼**: 좁은 폰에서 오버플로우 방지를 위해 라벨을 반응형 처리. 예) tips의 "팁 작성"은 모바일 "작성"/데스크탑 "팁 작성"(`<span className="hidden sm:inline">`). 모바일 헤더는 로고·다크모드·프로필만 표시 (`PageNav`는 하단 탭바로 분리).
 - **모바일 하단 탭바**: `MobileNav`(`sm:hidden`)가 뷰포트 바닥에 고정. 아이콘 전용, 활성 항목은 원형 컬러 배경+흰색 아이콘으로 강조. 콘텐츠가 가려지지 않도록 `(nav)/layout.tsx`에서 `pb-16 sm:pb-0` 여백 처리.
-- **큰 제목**: 모바일에서 한 단계 작게. 홈 히어로 `text-4xl sm:text-5xl`, 각 페이지 h1 `text-3xl sm:text-4xl`.
+- **큰 제목**: 모바일에서 한 단계 작게. 홈 히어로 `text-3xl sm:text-6xl`, 페이지 머리(`PageHero`) h1 `text-3xl sm:text-[40px]`(compact `text-2xl sm:text-[28px]`). 모바일 머리는 설명 문장을 숨긴다.
 - **카드/섹션 패딩**: `p-6 sm:p-8` (모바일 24px, 데스크탑 32px).
 - **세로 스택 전환**: 좁은 폭에서 잘리는 행은 `flex-col sm:flex-row`로 전환 (예: 프로젝트 리뷰의 "이미 작성하셨습니다" 행).
 - **섹션 헤더 정렬**: `flex-col sm:flex-row justify-between` 컨테이너에서 `items-start sm:items-end` 패턴 사용 — 모바일(`flex-col`)에서 `items-end`를 쓰면 콘텐츠가 오른쪽으로 붙어버림.
 - **홈 CTA 버튼**: 모바일에서 `max-w-[280px] sm:max-w-none` 제한 — `w-full`만 두면 전체 너비로 늘어나 이상해 보임.
 - **홈 섹션별 카드 수**: 모바일에서 최대 3개만 표시. 프로젝트 fetch는 6개(데스크탑 3열 채움)이나 index ≥ 3 항목에 `hidden sm:block` 적용.
 - 신규 페이지/컴포넌트 작성 시에도 위 패턴을 따를 것.
+
+## 🧱 하위 페이지 공통 톤 (2026-10-24 통일)
+
+설계: `docs/superpowers/specs/2026-10-24-subpage-tone-design.md`, 계획: `docs/superpowers/plans/2026-10-24-subpage-tone.md`. 홈을 제외한 모든 페이지가 아래 규칙을 따른다.
+
+- **바탕**: `bg-white dark:bg-zinc-950`. 보조 구간만 `bg-zinc-50 dark:bg-zinc-900/40` + `border-t` 띠(프로필 프로젝트). `bg-zinc-50` 페이지 바탕 금지.
+- **페이지 머리 `PageHero`** (`src/components/shared/page-hero.tsx`): 홈 히어로의 축소판 — 모눈 배경 + 가운데 세로 스택(섹션 색 아이콘 타일 → h1 Plex → 한 줄 설명 → 알약 버튼 → 추가 요소). `variant="compact"`(에디터·위저드: 타일 36px + 제목만), `avatar`(프로필), `maxWidth="lg"`(탐색), `children`(검색창·세그먼트). 머리 요소만 `.rise` 0/60/120/180ms로 한 번 등장; 카드·목록은 애니메이션 없음. **모바일은 설명 문장을 숨긴다.**
+- **섹션 색 `SECTION_COLORS`** (`src/lib/section-colors.ts`): 쓰는 곳은 세 군데만 — 머리 아이콘 타일(연한 배경), 페이지의 주 버튼, 활성 칩(필터·세그먼트·내비). 나머지는 zinc. 개발 팁은 `tip-*` 토큰(분홍).
+- **다중 선택 폼은 무채색**: 프로젝트 등록·수정, 온보딩 관심 분야처럼 선택이 많은 폼은 선택 상태에 섹션 색을 쓰지 않는다 — `SelectCard`/`ToggleChip`/`ChoiceRow`(`src/components/forms/`) 기본 `tone="neutral"` = zinc-900 반전(다크 흰색). 한 화면에서 하나만 고르는 위저드(가이드·해줘 등록)는 `tone="guide"|"haejwo"`로 섹션 색.
+- **등록 폼** `ProjectForm`: `FormSection` 카드 5장(기본 정보 → 상세 설명 → 분류 → 소스코드·라이선스 → 공개 범위·만든 사람) + 수정 페이지 소유자만 "위험 구역"(rose). 데스크탑(`lg:`)은 오른쪽 `FormRail` 목차(완료 체크, "필수 항목 N / 7", IntersectionObserver 강조, 클릭 스크롤). emerald는 머리 타일과 "등록하기/저장하기" 버튼에만.
+- **글 상세**(팁·해줘·공지): `ArticleHeader` + `ReadingSurface`. 다크에서 긴 글은 바탕(zinc-950)보다 밝은 zinc-900 카드 위에 올린다("눈 아프다" 피드백). 본문 글자 라이트 zinc-700 / 다크 zinc-300.
+- **에디터**: `EditorTabs`(작성/분할/미리보기 세그먼트, `showSplit`) + `TITLE_INPUT_CLASS`(밑줄만 있는 Plex 제목 입력). 팁·공지·프로젝트·해줘 에디터가 공유.
+- **프로젝트 아이콘 = 스티커**: 어디서나 `rounded-[22%]`; 상세 112px·등록 폼 미리보기 72px·프로필 아바타는 홈 나열과 같은 `ring-[3px] ring-white dark:ring-zinc-950` + 그림자.
+- **모눈 물결** (`globals.css` `.paper-grid`): 모눈은 `::before` 레이어(요소는 `relative isolation-isolate`, 내용 래퍼에 `relative z-10` 필요). 라인 `#f0f0f3`(다크 `#18181c`). 모눈 전체가 10초에 한 칸(24px) 대각선으로 흐르고(`grid-drift`), `mask-image` 3층으로 "잘 보이는 구역" 두 덩이가 28초 주기로 지나가 일부는 또렷·일부는 흐림(`grid-wave`, 바탕 가시도 38%). 색 블롭이 아니라 모눈 가시도만 바뀌는 것. 동작 줄이기면 전역 규칙으로 정지.
+- **로그인 계열** `AuthShell`(`src/components/auth/auth-shell.tsx`): 헤더 없는 독립 화면(로그인·온보딩·접근 거부). 모눈 물결이 화면 전체, 가운데 스택(데스크탑 620px / 모바일 400px), 로고 스티커 또는 rose 방패 타일, `AuthNote` 안내 상자. 로그인 버튼은 흰 알약 + Google 로고 "Google로 계속하기". 온보딩은 단계 알약 "1 / 2단계" + `ToggleChip` 관심 분야, 고정 다크 배경 제거.
+- **버튼**: `rounded-full`, 주 h-11 / 보조 h-9 / 작은 h-7. `transition-all` 금지.
+- **콘텐츠 너비**: 목록·상세 `max-w-5xl`, 탐색만 `max-w-6xl`, 글·에디터 `max-w-3xl`.
 
 ## 🚫 Claude 컨텍스트 제외 목록 (`.claudeignore`)
 
@@ -432,18 +457,20 @@ src/
 │   ├── haejwo/           # 해줘! 아이디어 요청 (page=목록, new, [id])
 │   └── announcements/    # 공지사항 (page=목록, new, [id], [id]/edit)
 ├── components/
-│   ├── shared/           # site-header, page-nav, auth-buttons, back-button, markdown, image-upload-input, announcement-ticker 등
+│   ├── shared/           # site-header, page-nav, page-hero, article-header, reading-surface, editor-tabs, markdown, image-upload-input, announcement-ticker 등
+│   ├── forms/            # select-card, toggle-chip, choice-row(선택 UI, tone="neutral"|섹션 키), form-section, form-rail(등록 폼 카드·목차)
+│   ├── auth/             # google-login-button, auth-shell(로그인·온보딩·접근 거부 공통 틀)
 │   ├── home/             # icon-shelf, reveal-observer, section-header, home-project-card, how-it-works, recent-posts, guide-teaser, closing-cta, site-footer
-│   ├── projects/         # project-card, project-form, project-icon, project-reviews 등
-│   ├── explore/          # explore-client
+│   ├── projects/         # project-card, project-form, project-icon, project-reviews, stat-strip 등
+│   ├── explore/          # explore-client, mobile-filter-bar
 │   ├── guide/            # guide-wizard, guide-viewer
 │   ├── guide-wiki/       # 가이드 위키 편집: editor/(카드 편집기·reducer), history-list, revert-dialog, step-diff-view, doc-render, stale-banner
 │   ├── tips/             # tip-card, tip-editor, tip-like-button, tip-comments 등
-│   ├── haejwo/           # haejwo-wizard, haejwo-owner-actions
+│   ├── haejwo/           # haejwo-wizard, haejwo-card, haejwo-status-tabs, haejwo-owner-actions, haejwo-complete-button
 │   ├── announcements/    # announcement-card, announcement-editor, announcement-owner-actions, announcement-pin-button
 │   └── ui/               # shadcn 컴포넌트
 ├── content/guides/       # 가이드 마크다운 콘텐츠 (.md, 직접 작성)
-├── lib/                  # 유틸리티 및 설정 (supabase, constants, types, utils, guide, guide-content, guide-wiki, haejwo, announcements, cloudinary)
+├── lib/                  # 유틸리티 및 설정 (supabase, constants, types, utils, guide, guide-content, guide-wiki, haejwo, announcements, cloudinary, section-colors, type-icons, announcement-colors)
 └── middleware.ts         # 세션 관리 및 도메인 검증
 ```
 
@@ -453,7 +480,7 @@ src/
 - **본문 건너뛰기 링크**: `SiteHeader` 첫 요소(`sr-only focus:not-sr-only`) → `#main-content`. `(nav)/layout.tsx` 콘텐츠 래퍼와 홈 `<main>`에 `id="main-content" tabIndex={-1}`.
 - **포커스 표시 기본값**: `globals.css`에서 `:where(a, button, [role="button"], summary, [tabindex]):focus-visible`에 파란 outline. 개별 컴포넌트의 `focus-visible:ring-*`이 있으면 그쪽이 우선.
 - **동작 줄이기**: `prefers-reduced-motion: reduce`면 전역 애니메이션·트랜지션 사실상 0. 장식 애니메이션 추가 시 `motion-reduce:` 변형도 고려.
-- **색 대비**: 흰 글자 배경색은 WCAG AA(4.5:1) 충족 색만 사용 — blue-600, purple-600, emerald-700, amber-700, orange-700, sky-700 이상. `*-500` 배경 + 흰 글자 금지. 회색 본문은 `text-zinc-500` 이상(밝은 배경), `text-zinc-400`은 장식 아이콘에만.
+- **색 대비**: 흰 글자 배경색은 WCAG AA(4.5:1) 충족 색만 사용 — blue-600, purple-600, emerald-700, tip-600(#db2777), orange-700, sky-700 이상. (Tailwind v4 `pink-600`은 oklch라 대비가 경계선이어서 팁 색은 hex 토큰으로 고정.) `*-500` 배경 + 흰 글자 금지. 회색 본문은 `text-zinc-500` 이상(밝은 배경), `text-zinc-400`은 장식 아이콘에만.
 - **내비게이션**: `PageNav`/`MobileNav` 각 링크에 `aria-label`(아이콘 전용 대비) + 현재 페이지 `aria-current="page"`, `<nav aria-label="주요 메뉴">`.
 - **아이콘**: 장식 아이콘은 `aria-hidden`, 아이콘 전용 버튼은 한국어 `aria-label`. 이름 옆 아바타 이미지는 `alt=""`.
 - **토글/펼침 버튼**: 선택형 칩은 `aria-pressed`, 접이식·드롭다운 트리거는 `aria-expanded`. 접힌 영역은 `invisible`로 Tab 순서에서 제외.
@@ -478,7 +505,7 @@ className={cn("... focus-visible:outline-none focus-visible:ring-2 focus-visible
 ## 📝 협업 및 코드 스타일 규칙
 - **TS Strict**: `any` 사용 금지, 인터페이스 명확히 정의.
 - **Server First**: 상호작용이 필요한 경우에만 `"use client"` 사용.
-- **Design System**: Zinc/Blue 포인트, `rounded-3xl` 카드, 불투명 표면. **제목(h1·h2)과 로고는 IBM Plex Sans KR**(600/700, `next/font`의 `--font-plex-kr`, `font-heading` 유틸리티), 본문은 Geist + 한글 시스템 폰트. 프로젝트 아이콘은 `rounded-[22%]`(앱 아이콘 모양)로 통일, 아이콘 없는 프로젝트는 제목 첫 글자 + 제목 해시로 고른 색 타일(`ProjectIcon` 폴백). 개성은 홈 히어로(아이콘 나열·로딩 시퀀스)에 집중하고 나머지는 차분하게 유지. 모눈종이 라인 배경(`.paper-grid`)은 히어로에서만 쓴다. 아래 "AI 템플릿 느낌" 요소는 쓰지 않는다 (2026-10 전면 제거):
+- **Design System**: Zinc/Blue 포인트, `rounded-3xl` 카드, 불투명 표면. **제목(h1·h2)과 로고는 IBM Plex Sans KR**(600/700, `next/font`의 `--font-plex-kr`, `font-heading` 유틸리티), 본문은 Geist + 한글 시스템 폰트. 프로젝트 아이콘은 `rounded-[22%]`(앱 아이콘 모양)로 통일, 아이콘 없는 프로젝트는 제목 첫 글자 + 제목 해시로 고른 색 타일(`ProjectIcon` 폴백). 개성은 홈 히어로(아이콘 나열·로딩 시퀀스)에 집중하고 나머지는 차분하게 유지. 모눈종이 배경(`.paper-grid`)은 **홈 히어로·모든 페이지 머리(`PageHero`)·로그인 계열 화면(`AuthShell`)**에 쓰고 그 외에는 쓰지 않는다(2026-10-24 하위 페이지 톤 통일 — 아래 「🧱 하위 페이지 공통 톤」 참고). 아래 "AI 템플릿 느낌" 요소는 쓰지 않는다 (2026-10 전면 제거):
   - 배경 블러 블롭(`blur-[120px]` 원), 그라디언트 텍스트, 파랑→보라 그라디언트 아바타, 글래스모피즘(`bg-white/70 backdrop-blur`)
   - hover 시 확대(`hover:scale-*`)·떠오름(`hover:-translate-y-*`)·컬러 글로우 그림자(`shadow-blue-500/20`), 섹션마다 거는 스크롤 리빌. 예외: 홈 중간·하단의 `RevealObserver` 리빌(2026-10-24 사용자 요청) — 다른 페이지엔 넣지 않는다
   - 제목 위 아이콘+섹션명 알약(eyebrow), `uppercase tracking-wider` 라벨, ✨ 환영 배지, 이모지 안내문, 마케팅 문구("새로움을 창조하세요")

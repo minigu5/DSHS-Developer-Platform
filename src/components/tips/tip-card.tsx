@@ -25,10 +25,10 @@ export function TipCard({ tip }: { tip: TipCardData }) {
   return (
     <Link
       href={`/tips/${tip.id}`}
-      className="group flex flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm transition-colors duration-300 hover:border-blue-500/50 dark:border-zinc-800 dark:bg-zinc-900"
+      className="group flex flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm transition-colors duration-150 hover:border-zinc-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
     >
       {tip.cover_url && (
-        <div className="relative h-40 w-full overflow-hidden">
+        <div className="relative aspect-[16/10] w-full overflow-hidden">
           {/* 이미지 끝 색상을 블러 처리해 letterbox 배경으로 사용 */}
           <Image
             src={tip.cover_url}
@@ -42,7 +42,7 @@ export function TipCard({ tip }: { tip: TipCardData }) {
             src={tip.cover_url}
             alt={tip.title}
             fill
-            className="object-contain transition-transform duration-300"
+            className="object-contain"
             unoptimized={isExternalImage(tip.cover_url)}
             quality={90}
           />
@@ -64,17 +64,17 @@ export function TipCard({ tip }: { tip: TipCardData }) {
           </div>
         )}
 
-        <h2 className="line-clamp-2 text-lg font-bold text-zinc-900 transition-colors group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
+        <h2 className="line-clamp-2 text-[17px] font-bold leading-snug text-zinc-900 dark:text-white">
           {tip.title}
         </h2>
         {tip.summary && (
-          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+          <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
             {tip.summary}
           </p>
         )}
 
-        <div className="flex-1 min-h-4" />
-        <div className="pt-3 flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800">
+        <div className="flex-1 min-h-3" />
+        <div className="mt-3 flex items-center justify-between border-t border-zinc-100 pt-3 dark:border-zinc-800">
           <div className="flex items-center gap-2">
             <div className="relative h-6 w-6 overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800">
               {tip.author?.avatar_url ? (
@@ -94,12 +94,12 @@ export function TipCard({ tip }: { tip: TipCardData }) {
             <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">{authorName}</span>
           </div>
 
-          <div className="flex items-center gap-3 text-xs text-zinc-400">
+          <div className="flex items-center gap-2.5 text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
             <span className="inline-flex items-center gap-1">
-              <Heart className="h-3.5 w-3.5" /> {tip.likeCount}
+              <Heart className="h-3 w-3" aria-hidden /> {tip.likeCount}
             </span>
             <span className="inline-flex items-center gap-1">
-              <MessageSquare className="h-3.5 w-3.5" /> {tip.commentCount}
+              <MessageSquare className="h-3 w-3" aria-hidden /> {tip.commentCount}
             </span>
             <span>{formatDistanceToNow(new Date(tip.created_at), { addSuffix: true, locale: ko })}</span>
           </div>

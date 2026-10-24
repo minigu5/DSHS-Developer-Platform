@@ -1,6 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { Rocket } from "lucide-react";
+import { PageHero } from "@/components/shared/page-hero";
 import { ProjectForm } from "@/components/projects/project-form";
 import { isDeveloper } from "@/lib/constants";
 
@@ -39,17 +41,10 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
   const isAuthor = project.author_id === session.user.id || userIsDeveloper;
 
   return (
-    <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      
-      <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-12">
-        <div className="max-w-3xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-2">프로젝트 수정하기</h1>
-            <p className="text-zinc-500 dark:text-zinc-400">프로젝트의 최신 정보를 반영해주세요.</p>
-          </div>
-
-          <ProjectForm initialData={project} isEdit={true} canDelete={isAuthor} />
-        </div>
+    <div className="flex min-h-screen flex-col bg-white dark:bg-zinc-950">
+      <PageHero section="new" icon={Rocket} title="프로젝트 수정" description="프로젝트의 최신 정보를 반영해요." />
+      <main className="w-full flex-1 px-6 py-9">
+        <ProjectForm initialData={project} isEdit={true} canDelete={isAuthor} />
       </main>
     </div>
   );

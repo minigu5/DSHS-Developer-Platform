@@ -45,7 +45,7 @@ function StarDisplay({ rating }: { rating: number | null }) {
           className={cn(
             "w-4 h-4",
             n <= rating
-              ? "fill-yellow-400 text-yellow-400"
+              ? "fill-amber-400 text-amber-400"
               : "text-zinc-300 dark:text-zinc-600",
           )}
         />
@@ -68,19 +68,19 @@ export function ReviewList({
 
   if (reviews.length === 0) {
     return (
-      <div className="py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
-        아직 작성된 리뷰가 없습니다. 첫 번째 리뷰를 남겨보세요.
+      <div className="rounded-3xl border border-dashed border-zinc-300 py-10 text-center text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
+        아직 리뷰가 없어요. 첫 리뷰를 남겨 보세요.
       </div>
     );
   }
 
   return (
-    <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
+    <ul className="grid gap-3">
       {reviews.map((review) => {
         const name = review.user?.nickname || review.user?.full_name || "알 수 없음";
         const isMine = currentUserId === review.user_id;
         return (
-          <li key={review.id} className="py-5 first:pt-0 last:pb-0">
+          <li key={review.id} className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
             <div className="flex items-start gap-3">
               <Avatar>
                 {review.user?.avatar_url && (

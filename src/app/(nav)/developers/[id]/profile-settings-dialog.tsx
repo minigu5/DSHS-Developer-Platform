@@ -74,8 +74,8 @@ export function ProfileSettingsDialog({ userId, initialNickname, initialBio, ini
         toast.success("사용 가능한 닉네임입니다.");
         setIsNicknameChecked(true);
       }
-    } catch (err: any) {
-      toast.error(`중복 확인 실패: ${err.message}`);
+    } catch (err) {
+      toast.error(`중복 확인 실패: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setCheckingNickname(false);
     }
@@ -99,9 +99,9 @@ export function ProfileSettingsDialog({ userId, initialNickname, initialBio, ini
       toast.success("프로필이 성공적으로 업데이트되었습니다.");
       setOpen(false);
       router.refresh();
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      toast.error(`프로필 업데이트에 실패했습니다. (${err.message || err})`);
+      toast.error(`프로필 업데이트에 실패했습니다. (${err instanceof Error ? err.message : String(err)})`);
     } finally {
       setLoading(false);
     }
@@ -109,8 +109,12 @@ export function ProfileSettingsDialog({ userId, initialNickname, initialBio, ini
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <button onClick={() => setOpen(true)} className="w-full py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors flex items-center justify-center">
-        <Settings className="w-4 h-4 mr-2" />
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex h-9 items-center rounded-full border border-zinc-300 bg-white px-4 text-[13px] font-medium text-zinc-900 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800"
+      >
+        <Settings className="mr-1.5 h-4 w-4" aria-hidden />
         프로필 설정
       </button>
       <DialogContent className="sm:max-w-[425px] rounded-3xl">

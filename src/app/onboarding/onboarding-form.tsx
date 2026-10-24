@@ -12,8 +12,11 @@ import { updateProfile, checkNicknameDuplicate } from "@/app/(nav)/developers/ac
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { ChevronRight, Rocket } from "lucide-react";
+import { ToggleChip } from "@/components/forms/toggle-chip";
+import { AUTH_TITLE_CLASS, AUTH_LEAD_CLASS, riseDelay } from "@/components/auth/auth-shell";
+import { cn } from "@/lib/utils";
+import { SECTION_COLORS } from "@/lib/section-colors";
 
 const onboardingSchema = z.object({
   nickname: z.string().min(2, "닉네임은 2자 이상이어야 합니다.").max(20, "닉네임은 20자 이하이어야 합니다."),
@@ -106,104 +109,100 @@ export function OnboardingForm({ user }: { user: User }) {
     }
   };
 
-  return (
-    <Card className="border-zinc-800 bg-zinc-900 rounded-3xl overflow-hidden">
-      <CardHeader className="space-y-1 pb-8">
-        <p className="text-sm text-zinc-400">{step} / 2단계</p>
-        <CardTitle className="text-2xl font-bold tracking-tight text-white">
-          {step === 1 ? "닉네임 정하기" : "관심 분야 고르기"}
-        </CardTitle>
-        <CardDescription className="text-zinc-400">
-          {step === 1 ? "사이트에서 내 이름 대신 보일 닉네임이에요. 나중에 바꿀 수 있어요." : "관심 있는 분야나 과목을 골라 주세요. 건너뛰어도 괜찮아요."}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form 
-          onSubmit={form.handleSubmit(onSubmit)} 
-          onKeyDown={handleKeyDown}
-          className="space-y-6"
-        >
-          {step === 1 && (
-            <div className="space-y-4 animate-in fade-in duration-200">
-              <div className="space-y-2">
-                <Label htmlFor="nickname" className="text-zinc-300">닉네임</Label>
-                <Input
-                  id="nickname"
-                  placeholder="예: 대곽개발자"
-                  autoComplete="off"
-                  spellCheck={false}
-                  aria-invalid={!!form.formState.errors.nickname}
-                  aria-describedby={form.formState.errors.nickname ? "nickname-error" : undefined}
-                  className="bg-zinc-800 border-zinc-700 text-white h-12 rounded-xl"
-                  {...form.register("nickname")}
-                />
-                {form.formState.errors.nickname && (
-                  <p id="nickname-error" role="alert" className="text-sm text-red-400 mt-1">{form.formState.errors.nickname.message}</p>
-                )}
-              </div>
-              <div className="pt-2 p-1 -m-1">
-                <Button 
-                  type="button" 
-                  onClick={nextStep} 
-                  disabled={loading}
-                  className="w-full h-12 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold"
-                >
-                  {loading ? "확인 중…" : "다음"}
-                </Button>
-              </div>
-            </div>
-          )}
+  const email = user.email ?? "";
+  const initial = (email.charAt(0) || "?").toUpperCase();
 
-          {step === 2 && (
-            <div className="space-y-6 animate-in fade-in duration-200">
-              <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto p-2 -m-2 custom-scrollbar">
-                {INTERESTS.map((interest) => {
-                  const selected = selectedInterests.includes(interest.value);
-                  return (
-                    <button
-                      key={interest.value}
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() => toggleInterest(interest.value)}
-                      className={`flex items-center gap-2 p-3 rounded-xl border text-left transition-colors duration-150 select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 ${
-                        selected
-                          ? "bg-blue-600/20 border-blue-500 text-white"
-                          : "bg-zinc-800/40 border-zinc-700 text-zinc-300 hover:border-zinc-500"
-                      }`}
-                    >
-                      <Check className={`h-4 w-4 shrink-0 ${selected ? "text-blue-400" : "text-transparent"}`} aria-hidden />
-                      <span className="text-sm font-medium">{interest.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="text-xs text-zinc-400 text-center">
-                고른 관심 분야는 프로필 페이지에 공개돼요.
-              </p>
-              {form.formState.errors.interests && (
-                <p className="text-sm text-red-400">{form.formState.errors.interests.message}</p>
-              )}
-              <div className="flex gap-3 pt-2 p-1 -m-1">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setStep(1)}
-                  className="flex-1 h-12 border-zinc-700 bg-transparent text-zinc-300 hover:bg-zinc-800 hover:text-white rounded-xl"
-                >
-                  이전
+  return (
+    <>
+      <span
+        className="rise mt-[22px] inline-flex h-[26px] items-center rounded-full bg-blue-50 px-[11px] text-xs font-semibold text-blue-700 tabular-nums dark:bg-blue-950 dark:text-blue-300"
+        style={riseDelay(60)}
+      >
+        {step} / 2단계
+      </span>
+      <h1 className={cn(AUTH_TITLE_CLASS, "mt-3 sm:mt-3 sm:text-[40px]")} style={riseDelay(90)}>
+        {step === 1 ? "닉네임 정하기" : "관심 분야 고르기"}
+      </h1>
+      <p className={AUTH_LEAD_CLASS} style={riseDelay(120)}>
+        {step === 1 ? "사이트에서 내 이름 대신 보일 닉네임이에요. 나중에 바꿀 수 있어요." : "관심 있는 분야나 과목을 골라 주세요. 건너뛰어도 괜찮아요."}
+      </p>
+
+      <form onSubmit={form.handleSubmit(onSubmit)} onKeyDown={handleKeyDown} className="flex w-full flex-col items-center">
+        {step === 1 && (
+          <div className="rise mt-7 w-full max-w-[460px] text-left animate-in fade-in duration-200" style={riseDelay(180)}>
+            <Label htmlFor="nickname" className="text-[13px] font-semibold text-zinc-900 dark:text-white">닉네임</Label>
+            <Input
+              id="nickname"
+              placeholder="예: 대곽개발자"
+              autoComplete="off"
+              spellCheck={false}
+              aria-invalid={!!form.formState.errors.nickname}
+              aria-describedby={form.formState.errors.nickname ? "nickname-error" : "nickname-hint"}
+              className="mt-1.5 h-11 rounded-xl"
+              {...form.register("nickname")}
+            />
+            {form.formState.errors.nickname ? (
+              <p id="nickname-error" role="alert" className="mt-1.5 text-[13px] text-rose-600 dark:text-rose-400">{form.formState.errors.nickname.message}</p>
+            ) : (
+              <p id="nickname-hint" className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">2~20자. 나중에 프로필에서 바꿀 수 있어요.</p>
+            )}
+            <Button
+              type="button"
+              onClick={nextStep}
+              disabled={loading}
+              className={cn("mt-[26px] h-11 w-full rounded-full text-sm", SECTION_COLORS.explore.button)}
+            >
+              {loading ? "확인 중…" : "다음"}
+              <ChevronRight className="ml-1 h-4 w-4" aria-hidden />
+            </Button>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="w-full animate-in fade-in duration-200">
+            <div className="rise mx-auto mt-[26px] flex max-w-[520px] flex-wrap justify-center gap-2" style={riseDelay(180)} role="group" aria-label="관심 분야">
+              {INTERESTS.map((interest) => (
+                <ToggleChip
+                  key={interest.value}
+                  pressed={selectedInterests.includes(interest.value)}
+                  onToggle={() => toggleInterest(interest.value)}
+                  label={interest.label}
+                />
+              ))}
+            </div>
+            <p className="rise mt-3 text-xs text-zinc-500 dark:text-zinc-400" style={riseDelay(200)}>
+              고른 관심 분야는 프로필 페이지에 공개돼요.
+            </p>
+            {form.formState.errors.interests && (
+              <p className="mt-1.5 text-[13px] text-rose-600 dark:text-rose-400">{form.formState.errors.interests.message}</p>
+            )}
+            <div className="rise mx-auto mt-[26px] flex w-full max-w-[460px] items-center justify-between gap-2.5" style={riseDelay(220)}>
+              <Button type="button" variant="ghost" onClick={() => setStep(1)} className="h-11 rounded-full px-4 text-sm">
+                이전
+              </Button>
+              <div className="flex gap-2.5">
+                <Button type="submit" variant="ghost" disabled={loading} className="h-11 rounded-full px-4 text-sm text-zinc-600 dark:text-zinc-400">
+                  건너뛰기
                 </Button>
-                <Button 
-                  type="submit" 
-                  disabled={loading}
-                  className="flex-[2] h-12 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold"
-                >
-                  {loading ? "저장 중…" : "프로필 저장"}
+                <Button type="submit" disabled={loading} className={cn("h-11 rounded-full px-5 text-sm", SECTION_COLORS.explore.button)}>
+                  <Rocket className="mr-1.5 h-4 w-4" aria-hidden />
+                  {loading ? "저장 중…" : "시작하기"}
                 </Button>
               </div>
             </div>
-          )}
-        </form>
-      </CardContent>
-    </Card>
+          </div>
+        )}
+      </form>
+
+      <span
+        className="rise mt-5 inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white py-1 pl-1.5 pr-3 text-[13px] text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400"
+        style={riseDelay(260)}
+      >
+        <span className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-zinc-100 text-[10px] font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200" aria-hidden>
+          {initial}
+        </span>
+        {email}로 로그인했어요
+      </span>
+    </>
   );
 }

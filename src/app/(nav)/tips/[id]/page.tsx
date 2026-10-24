@@ -1,16 +1,15 @@
 export const revalidate = 30;
 
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import Image from "next/image";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { ArrowLeft } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
-import { cn, isExternalImage } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
+import { isExternalImage } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { ArticleHeader } from "@/components/shared/article-header";
+import { ReadingSurface } from "@/components/shared/reading-surface";
 import { Markdown } from "@/components/shared/markdown";
 import { TipLikeButton } from "@/components/tips/tip-like-button";
 import { TipComments, type TipCommentItem } from "@/components/tips/tip-comments";
@@ -71,105 +70,66 @@ export default async function TipDetailPage({ params }: { params: Promise<{ id: 
   }));
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex min-h-screen flex-col bg-white dark:bg-zinc-950">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-7">
+        <ArticleHeader
+          backHref="/tips"
+          backLabel="개발 팁"
+          actions={<TipOwnerActions tipId={tip.id} authorId={tip.author_id} />}
+          chips={
+            tip.tags.length > 0
+              ? tip.tags.map((tag) => (
+                  <Badge
+                    key={tag}
+                    variant="outline"
+                    className="h-6 rounded-full border-zinc-200 px-2.5 text-xs text-zinc-600 dark:border-zinc-800 dark:text-zinc-400"
+                  >
+                    {tag}
+                  </Badge>
+                ))
+              : undefined
+          }
+          title={tip.title}
+          lead={tip.summary}
+          author={{ id: tip.author_id, name: authorName, avatarUrl: author?.avatar_url ?? null }}
+          dateLabel={format(new Date(tip.created_at), "yyyy년 M월 d일", { locale: ko })}
+        />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 sm:px-6 py-8">
-        <div className="mb-2 mt-4 flex min-h-[32px] items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <Link
-              href="/tips"
-              className={cn(
-                buttonVariants({ variant: "ghost", size: "sm" }),
-                "rounded-full text-zinc-500 -ml-2",
-              )}
-            >
-              <ArrowLeft className="mr-1.5 h-4 w-4" />
-              목록으로
-            </Link>
-            {tip.tags.map((tag) => (
-              <Badge
-                key={tag}
-                variant="outline"
-                className="h-6 rounded-full border-zinc-200 px-2.5 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400"
-              >
-                {tag}
-              </Badge>
-            ))}
+        {tip.cover_url && (
+          <div className="relative mt-7 aspect-[16/9] w-full overflow-hidden rounded-3xl border border-zinc-200 dark:border-zinc-800">
+            {/* 이미지 끝 색상을 블러 처리해 letterbox 배경으로 사용 */}
+            <Image
+              src={tip.cover_url}
+              alt=""
+              fill
+              className="scale-110 object-cover blur-2xl"
+              unoptimized={isExternalImage(tip.cover_url)}
+              aria-hidden
+            />
+            <Image
+              src={tip.cover_url}
+              alt={tip.title}
+              fill
+              sizes="(max-width: 768px) calc(100vw - 3rem), 768px"
+              className="object-contain"
+              quality={90}
+              unoptimized={isExternalImage(tip.cover_url)}
+            />
           </div>
-          <TipOwnerActions tipId={tip.id} authorId={tip.author_id} />
-        </div>
+        )}
 
-        <article>
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-4xl">
-            {tip.title}
-          </h1>
-          {tip.summary && (
-            <p className="mt-3 text-lg leading-relaxed text-zinc-500 dark:text-zinc-400">
-              {tip.summary}
-            </p>
-          )}
-
-          <div className="mt-6 flex items-center gap-3 border-b border-zinc-100 pb-6 dark:border-zinc-800/50">
-            <Link
-              href={`/developers/${tip.author_id}`}
-              className="group/author flex items-center gap-3 hover:opacity-80 transition-opacity"
-            >
-              <div className="relative h-9 w-9 overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800">
-                {author?.avatar_url ? (
-                  <Image
-                    src={author.avatar_url}
-                    alt={authorName}
-                    fill
-                    className="object-cover"
-                    unoptimized={isExternalImage(author.avatar_url)}
-                  />
-                ) : (
-                  <span className="flex h-full w-full items-center justify-center text-xs font-bold text-zinc-700 dark:text-zinc-200">
-                    {authorName.charAt(0)}
-                  </span>
-                )}
-              </div>
-              <div>
-                <div className="text-sm font-semibold text-zinc-900 underline-offset-2 group-hover/author:underline dark:text-white">{authorName}</div>
-                <div className="text-xs text-zinc-400">
-                  {format(new Date(tip.created_at), "yyyy년 M월 d일", { locale: ko })}
-                </div>
-              </div>
-            </Link>
-          </div>
-
-          {tip.cover_url && (
-            <div className="relative mt-8 aspect-[16/9] w-full overflow-hidden rounded-3xl border border-zinc-200 dark:border-zinc-800">
-              {/* 이미지 끝 색상을 블러 처리해 letterbox 배경으로 사용 */}
-              <Image
-                src={tip.cover_url}
-                alt=""
-                fill
-                className="scale-110 object-cover blur-2xl"
-                unoptimized={isExternalImage(tip.cover_url)}
-                aria-hidden
-              />
-              <Image
-                src={tip.cover_url}
-                alt={tip.title}
-                fill
-                sizes="(max-width: 768px) calc(100vw - 2rem), 768px"
-                className="object-contain"
-                quality={90}
-                unoptimized={isExternalImage(tip.cover_url)}
-              />
+        {/* 본문 카드 — 다크에서 바탕보다 한 단계 밝은 면 */}
+        <ReadingSurface
+          className="mt-7"
+          footer={
+            <div className="flex flex-wrap items-center gap-3">
+              <TipLikeButton tipId={tip.id} initialCount={likeCount} />
+              <span className="text-[13px] text-zinc-500 dark:text-zinc-400">도움이 됐다면 눌러 주세요</span>
             </div>
-          )}
-
-          <div className={cn("mt-8")}>
-            <Markdown>{tip.content}</Markdown>
-          </div>
-
-          <div className="mt-10 flex items-center gap-3 border-t border-zinc-100 pt-6 dark:border-zinc-800/50">
-            <TipLikeButton tipId={tip.id} initialCount={likeCount} />
-            <span className="text-sm text-zinc-400">이 팁이 도움이 됐다면 좋아요를 눌러주세요.</span>
-          </div>
-        </article>
+          }
+        >
+          <Markdown>{tip.content}</Markdown>
+        </ReadingSurface>
 
         <TipComments tipId={tip.id} comments={comments} />
       </main>
