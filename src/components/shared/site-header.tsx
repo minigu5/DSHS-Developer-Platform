@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { AuthButtons } from "@/components/shared/auth-buttons";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { AnnouncementsLink } from "@/components/shared/announcements-link";
 import { PageNav } from "@/components/shared/page-nav";
 import { cn } from "@/lib/utils";
 
@@ -72,9 +73,13 @@ export function SiteHeader({
           )}
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {rightExtra}
-          <ThemeToggle />
+          {/* 모바일은 헤더가 좁아 다크모드 토글을 프로필 메뉴로 옮긴다(auth-buttons.tsx) */}
+          <div className="hidden sm:block">
+            <ThemeToggle />
+          </div>
+          <AnnouncementsLink />
           <AuthButtons />
         </div>
       </div>

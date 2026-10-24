@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut, User as UserIcon } from "lucide-react";
+import { LogOut, Moon, Sun, User as UserIcon } from "lucide-react";
+import { useTheme } from "next-themes";
 import type { User } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/client";
@@ -18,7 +19,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+// 모바일(sm 미만) 여부 — 모바일에서는 헤더의 다크모드 토글이 숨겨져 프로필 메뉴에 테마 항목을 둔다.
+// 메뉴 항목을 sm:hidden으로 숨기면 데스크탑에서 화살표 키 이동이 숨은 항목에 걸릴 수 있어 아예 렌더하지 않는다.
+const MOBILE_QUERY = "(max-width: 639.98px)";
+function subscribeMobile(onChange: () => void) {
+  const mql = window.matchMedia(MOBILE_QUERY);
+  mql.addEventListener("change", onChange);
+  return () => mql.removeEventListener("change", onChange);
+}
+
 export function AuthButtons() {
+  const isMobile = useSyncExternalStore(
+    subscribeMobile,
+    () => window.matchMedia(MOBILE_QUERY).matches,
+    () => false,
+  );
+  const { resolvedTheme, setTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<{ nickname: string | null; full_name: string | null; avatar_url: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -99,6 +116,12 @@ export function AuthButtons() {
             <UserIcon className="mr-2 h-4 w-4" aria-hidden />
             <span>내 페이지</span>
           </DropdownMenuItem>
+          {isMobile && (
+            <DropdownMenuItem onClick={() => setTheme(isDark ? "light" : "dark")} className="cursor-pointer">
+              {isDark ? <Sun className="mr-2 h-4 w-4" aria-hidden /> : <Moon className="mr-2 h-4 w-4" aria-hidden />}
+              <span>{isDark ? "라이트 모드로 전환" : "다크 모드로 전환"}</span>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400">
             <LogOut className="mr-2 h-4 w-4" aria-hidden />
