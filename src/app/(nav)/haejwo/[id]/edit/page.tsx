@@ -1,6 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { Megaphone } from "lucide-react";
+import { PageHero } from "@/components/shared/page-hero";
 import { HaejwoWizard } from "@/components/haejwo/haejwo-wizard";
 
 export const metadata = {
@@ -26,9 +28,9 @@ export default async function EditHaejwoPage({ params }: { params: Promise<{ id:
   if (idea.author_id !== user.id) redirect(`/haejwo/${id}`);
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
-
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 sm:px-6 py-12 flex flex-col items-center">
+    <div className="flex min-h-screen flex-col bg-white dark:bg-zinc-950">
+      <PageHero section="haejwo" icon={Megaphone} title="해줘! 수정" variant="compact" />
+      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center px-6 py-7">
         <HaejwoWizard
           mode="edit"
           defaults={{

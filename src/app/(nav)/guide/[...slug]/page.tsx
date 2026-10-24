@@ -7,6 +7,8 @@ import { loadGuide } from "@/lib/guide-content";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { GuideViewer } from "@/components/guide/guide-viewer";
+import { PageHero } from "@/components/shared/page-hero";
+import { BookOpen } from "lucide-react";
 
 interface GuideResultPageProps {
   params: Promise<{ slug: string[] }>;
@@ -24,25 +26,22 @@ export default async function GuideResultPage({ params }: GuideResultPageProps) 
   const guideTitle = `${byKey("ai")} · ${byKey("type")} 가이드`;
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
-
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 sm:px-6 py-8">
-        {/* 선택 요약 */}
-        <div className="mb-6 flex flex-wrap gap-2">
+    <div className="flex min-h-screen flex-col bg-white dark:bg-zinc-950">
+      <PageHero section="guide" icon={BookOpen} title={guideTitle} variant="compact">
+        <div className="mt-3.5 flex flex-wrap justify-center gap-1.5">
           {picks.map((p) => (
             <span
               key={p.step.key}
-              className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400"
+              className="inline-flex h-6 items-center rounded-full border border-zinc-200 bg-white px-2.5 text-xs font-medium text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400"
             >
               {p.step.segmentLabel}:{" "}
-              <span className="text-zinc-900 dark:text-white">{p.option.label}</span>
+              <span className="ml-1 text-zinc-900 dark:text-white">{p.option.label}</span>
             </span>
           ))}
         </div>
+      </PageHero>
 
-        <h1 className="mb-8 text-3xl sm:text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">
-          {guideTitle}
-        </h1>
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 py-8">
 
         {guide ? (
           <GuideViewer

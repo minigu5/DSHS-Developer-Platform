@@ -1,6 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { Newspaper } from "lucide-react";
+import { PageHero } from "@/components/shared/page-hero";
 import { TipEditor, type TipEditorDefaults } from "@/components/tips/tip-editor";
 
 export const metadata = {
@@ -35,12 +37,9 @@ export default async function EditTipPage({ params }: { params: Promise<{ id: st
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
-
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 sm:px-6 py-8">
-        <h1 className="mb-8 text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
-          팁 수정
-        </h1>
+    <div className="flex min-h-screen flex-col bg-white dark:bg-zinc-950">
+      <PageHero section="tips" icon={Newspaper} title="팁 수정" variant="compact" />
+      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-7">
         <TipEditor mode="edit" defaults={defaults} />
       </main>
     </div>
