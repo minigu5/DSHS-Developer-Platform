@@ -191,7 +191,7 @@ export default async function HomePage() {
             hasTicker ? "pt-14 sm:pt-24" : "pt-28 sm:pt-40"
           )}
         >
-          <div className="max-w-5xl mx-auto flex flex-col items-center text-center">
+          <div className="relative z-10 max-w-5xl mx-auto flex flex-col items-center text-center">
             <h1 className="rise text-3xl sm:text-6xl font-bold text-zinc-900 dark:text-white leading-[1.2] break-keep">
               <span className="block">발견하고, 공유하고,</span>
               <span className="block text-blue-600 dark:text-blue-400">만들어요.</span>
