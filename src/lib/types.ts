@@ -69,7 +69,7 @@ export type Database = {
           author_id: string;
           title: string;
           description: string;
-          type: string;
+          types: string[];
           platforms: string[];
           source_type: string;
           repo_url: string | null;
@@ -98,7 +98,7 @@ export type Database = {
           author_id: string;
           title: string;
           description: string;
-          type: string;
+          types: string[];
           platforms?: string[];
           source_type: string;
           repo_url?: string | null;
@@ -124,7 +124,7 @@ export type Database = {
           author_id?: string;
           title?: string;
           description?: string;
-          type?: string;
+          types?: string[];
           platforms?: string[];
           source_type?: string;
           repo_url?: string | null;

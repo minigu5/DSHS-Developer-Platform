@@ -13,7 +13,7 @@ import { ProjectReviews } from "@/components/projects/project-reviews";
 import { ProjectIcon } from "@/components/projects/project-icon";
 import { EditButton } from "@/components/projects/edit-button";
 import type { ReviewItem } from "@/components/projects/review-list";
-import { LICENSE_FEATURES, PLATFORMS, isDeveloper } from "@/lib/constants";
+import { LICENSE_FEATURES, PLATFORMS, isDeveloper, projectTypeLabels } from "@/lib/constants";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { StatStrip, type StatStripItem } from "@/components/projects/stat-strip";
 import { ReadingSurface } from "@/components/shared/reading-surface";
@@ -107,7 +107,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const platformLabels: string[] = (project.platforms ?? []).map(
     (v: string) => PLATFORMS.find((p) => p.value === v)?.label ?? v,
   );
-  const isWebsiteAll = project.type === "website" && platformLabels.length >= PLATFORMS.length;
+  const isWebsiteAll = (project.types ?? []).includes("website") && platformLabels.length >= PLATFORMS.length;
   const allowedCount = (project.license_features ?? []).length;
   const createdLabel = new Date(project.created_at).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
 
@@ -166,9 +166,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">
-              <Badge variant="secondary" className="h-5 rounded-md bg-blue-50 px-1.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                {project.type}
-              </Badge>
+              {projectTypeLabels(project.types, true).map((label) => (
+                <Badge key={label} variant="secondary" className="h-5 rounded-md bg-blue-50 px-1.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                  {label}
+                </Badge>
+              ))}
               {tags.map((tag: string) => (
                 <Badge key={tag} variant="outline" className="h-5 rounded-full border-zinc-200 px-2 text-[11px] text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
                   {tag}
@@ -373,7 +375,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               <dl className="grid gap-2.5 text-[13px]">
                 <div className="flex items-center justify-between gap-3">
                   <dt className="text-zinc-500 dark:text-zinc-400">종류</dt>
-                  <dd className="font-medium text-zinc-900 dark:text-white">{project.type}</dd>
+                  <dd className="text-right font-medium text-zinc-900 dark:text-white">{projectTypeLabels(project.types, true).join(" · ") || "–"}</dd>
                 </div>
                 <div className="flex items-center justify-between gap-3">
                   <dt className="text-zinc-500 dark:text-zinc-400">플랫폼</dt>

@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { PROJECT_TYPES } from "@/lib/constants";
+import { projectTypeLabels } from "@/lib/constants";
 import { markIdeaDone } from "@/lib/haejwo/actions";
 import {
   Dialog,
@@ -23,7 +23,7 @@ import {
 type ProjectCard = {
   id: string;
   title: string;
-  type: string;
+  types: string[] | null;
   short_description: string | null;
 };
 
@@ -51,7 +51,7 @@ export function HaejwoCompleteButton({ ideaId }: { ideaId: string }) {
     }
     const { data } = await supabase
       .from("projects")
-      .select("id, title, type, short_description")
+      .select("id, title, types, short_description")
       .eq("author_id", user.id)
       .order("created_at", { ascending: false });
     setProjects(data ?? []);
@@ -124,8 +124,7 @@ export function HaejwoCompleteButton({ ideaId }: { ideaId: string }) {
             <>
               <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
                 {projects.map((p) => {
-                  const typeName =
-                    PROJECT_TYPES.find((t) => t.value === p.type)?.label ?? p.type;
+                  const typeName = projectTypeLabels(p.types, true).join(" · ");
                   const isSelected = selected === p.id;
                   return (
                     <button

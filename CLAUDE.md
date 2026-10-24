@@ -56,7 +56,7 @@
 
 | 항목 | 키 | 값 |
 |---|---|---|
-| **프로그램 종류** | `type` | 웹사이트, 앱, 확장프로그램, CLI, 라이브러리 |
+| **프로그램 종류** | `types` | 웹사이트, 앱, 확장프로그램, CLI, 라이브러리 (다중 선택, 최소 1개 — 2026-10-24 단일 `type`에서 변경) |
 | **지원 플랫폼** | `platforms` | Web, iOS, Android, Windows, macOS, Linux (다중 선택) |
 | **소스코드** | `source_type` | `open`(`repo_url` 필수) / `closed` |
 | **라이선스 권한** | `license_features` | 상업적 이용, 수정, 배포, 개인적 이용, 법적 책임, 보증 (다중 선택) |
@@ -65,8 +65,8 @@
 | **아이콘** | `icon_type` | `auto` (URL favicon 자동 추출) / `link` (이미지 업로드 또는 URL 직접 입력) |
 
 ### 프로젝트 등록 폼 UX (`src/components/projects/project-form.tsx`)
-- **프로그램 종류 선택**: `<Select>` 드롭다운 대신 다른 항목들과 동일한 **카드 그리드 UI** (단일 선택). 5개 항목, 2~3열 배치.
-- **플랫폼 자동 선택**: `type === 'website'` 선택 시 `useEffect`로 모든 플랫폼을 자동 선택하고 카드를 비활성화(`pointer-events-none`). "웹사이트는 모든 플랫폼의 브라우저에서 열 수 있어서 전체 플랫폼이 자동으로 선택돼요." 안내 표시. 다른 종류로 바꾸면 잠금 해제.
+- **프로그램 종류 선택**: `<Select>` 드롭다운 대신 다른 항목들과 동일한 **카드 그리드 UI** (다중 선택, 최소 1개). 5개 항목, 2~3열 배치. 저장 시 `PROJECT_TYPES` 순서로 정렬.
+- **플랫폼 자동 선택**: `types`에 `website`가 포함되면 `useEffect`로 모든 플랫폼을 자동 선택하고 카드를 비활성화(`pointer-events-none`). "웹사이트는 모든 플랫폼의 브라우저에서 열 수 있어서 전체 플랫폼이 자동으로 선택돼요." 안내 표시. 웹사이트를 빼면 잠금 해제. `app`이 포함되면 플랫폼 1개 이상 필수.
 - 플랫폼 힌트 문구(웹사이트 제외)는 제거됨 — 사용자가 직접 선택.
 - **아이콘 link 모드**: `ImageUploadInput` 컴포넌트 사용 — 파일 드래그·선택 업로드 + URL 직접 입력 폴백. 업로드된 이미지는 Cloudinary에 자동 저장.
 - **키보드 접근성**: 카드 그리드 UI(`div` 기반)에 `tabIndex={0}` · `role="button"` · `onKeyDown`(Enter/Space) · `focus-visible:ring-2` 적용. Tab 키로 모든 카드 포커스 이동, Enter/Space로 선택 가능. 웹사이트 타입 선택 시 비활성화된 플랫폼 카드는 `tabIndex={-1}`로 Tab 순서에서 제외.
@@ -91,7 +91,8 @@
 
 ### 프로젝트 카드 UI (`src/components/projects/project-card.tsx`)
 - **플랫폼 표시**: 작은 둥근 칩 형태(`rounded-full bg-zinc-100`). `PLATFORMS` 상수에서 value → label 변환 후 전체 표시.
-- **웹사이트 + 전체 플랫폼**: `type === 'website'` 이고 모든 플랫폼이 선택된 경우 카드에서는 "Web" 하나만 표시 (DB 실제 값은 유지).
+- **종류 배지**: `projectTypeLabels(types, true)`(`src/lib/constants.ts`, 짧은 이름)로 종류마다 배지 하나씩. 카드·홈 카드·상세 머리·정보 카드 공통.
+- **웹사이트 + 전체 플랫폼**: `types`에 `website`가 있고 모든 플랫폼이 선택된 경우 카드에서는 "Web" 하나만 표시 (DB 실제 값은 유지).
 - **아이콘**: `mt-[5px]`로 텍스트 영역보다 5px 아래에 위치.
 - **별점/리뷰 수**: 쿼리에 `reviews(rating)` 포함 시 플랫폼 칩 옆에 평균 별점(`Star` 아이콘 + 소수 1자리)과 리뷰 수(`MessageSquare` 아이콘)를 작게 표시. rating=null 리뷰는 별점 평균 계산에서 제외.
 
@@ -174,7 +175,7 @@
 
 ### 주요 테이블 구조
 - **`users`**: `id`, `email`, `full_name`, `nickname`, `bio`, `interests`, `avatar_url`, `contacts`(JSONB, `docs/14-supabase-users-contacts.sql` 적용 필요)
-- **`projects`**: `id`, `author_id`, `title`, `description`, `type`, `platforms`, `source_type`, `repo_url`, `url`, `license_features`, `visibility`, `allowed_users`, `icon_url`
+- **`projects`**: `id`, `author_id`, `title`, `description`, `types`(text[], `docs/17-supabase-projects-multi-type.sql` 적용 필요), `platforms`, `source_type`, `repo_url`, `url`, `license_features`, `visibility`, `allowed_users`, `icon_url`
 - **`reviews`**: `id`, `project_id`, `user_id`, `rating`(nullable, `docs/15-supabase-reviews-optional-rating.sql` 적용 필요), `comment`
 
 ### RLS 정책 요약

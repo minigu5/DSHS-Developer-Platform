@@ -9,6 +9,24 @@ export const PROJECT_TYPES = [
   { value: 'library', label: '라이브러리 / 패키지' },
 ] as const;
 
+// 카드·배지처럼 좁은 곳에 쓰는 짧은 이름.
+const PROJECT_TYPE_SHORT_LABELS: Record<string, string> = {
+  website: '웹사이트',
+  app: '앱',
+  extension: '확장프로그램',
+  cli: 'CLI',
+  library: '라이브러리',
+};
+
+/** 프로젝트 종류(`projects.types`, 여러 개) → 표시 이름 목록. 모르는 값은 그대로 둔다. */
+export function projectTypeLabels(types: readonly string[] | null | undefined, short = false): string[] {
+  return (types ?? []).map((v) =>
+    short
+      ? PROJECT_TYPE_SHORT_LABELS[v] ?? v
+      : PROJECT_TYPES.find((t) => t.value === v)?.label ?? v,
+  );
+}
+
 export const PLATFORMS = [
   { value: 'web', label: 'Web' },
   { value: 'ios', label: 'iOS' },
