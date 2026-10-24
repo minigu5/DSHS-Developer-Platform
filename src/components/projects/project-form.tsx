@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import { UploadCloud, Lock, Globe, Code2, Users, User as UserIcon, Plus, X, Link as LinkIcon, Loader2, Image as ImageIcon, Trash2, Pencil, Columns2, Eye } from "lucide-react";
+import { Lock, Globe, Code2, Users, User as UserIcon, Plus, X, Link as LinkIcon, Loader2, Image as ImageIcon, Trash2, Rocket } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -10,8 +10,6 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   PROJECT_TYPES,
   PLATFORMS,
@@ -19,9 +17,19 @@ import {
   LICENSE_FEATURES,
   FEATURES,
   VISIBILITY,
+  GUIDE_PROGRAM_TYPES,
   isAllowedEmail
 } from "@/lib/constants";
 import { ImageUploadInput } from "@/components/shared/image-upload-input";
+import { EditorTabs, type EditorTab } from "@/components/shared/editor-tabs";
+import { ProjectIcon } from "@/components/projects/project-icon";
+import { SelectCard } from "@/components/forms/select-card";
+import { ToggleChip } from "@/components/forms/toggle-chip";
+import { ChoiceRow } from "@/components/forms/choice-row";
+import { FormSection } from "@/components/forms/form-section";
+import { FormRail, type FormRailSection } from "@/components/forms/form-rail";
+import { TYPE_ICONS, PLATFORM_ICONS, CATEGORY_ICONS } from "@/lib/type-icons";
+import { SECTION_COLORS } from "@/lib/section-colors";
 import { Markdown } from "@/components/shared/markdown";
 import { createClient } from "@/lib/supabase/client";
 import type { ProjectRow } from "@/lib/types";
@@ -64,7 +72,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
   // 설명
   const [shortDesc, setShortDesc] = useState<string>(initialData?.short_description ?? "");
   const [description, setDescription] = useState<string>(initialData?.description ?? "");
-  const [descTab, setDescTab] = useState<"write" | "preview" | "split">("write");
+  const [descTab, setDescTab] = useState<EditorTab>("write");
   const descTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // 작성자 정보
@@ -477,63 +485,338 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
     }
   };
 
-  return (
-    <>
-    <form onSubmit={handleSubmit} className="space-y-8">
-      {errorMsg && (
-        <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded-xl border border-red-200 dark:border-red-800 text-sm font-medium">
-          {errorMsg}
-        </div>
-      )}
+  // 목차 레일·필수 항목 집계 — 필수 7: 아이콘, 이름, 링크, 간단 설명, 상세 설명, 종류, 플랫폼
+  const iconReady = iconType === "auto" ? Boolean(url.trim()) : Boolean(iconUrl.trim());
+  const requiredFlags = [
+    iconReady,
+    Boolean(title.trim()),
+    Boolean(url.trim()),
+    Boolean(shortDesc.trim()),
+    Boolean(description.trim()),
+    Boolean(type),
+    selectedPlatforms.length > 0,
+  ];
+  const requiredDone = requiredFlags.filter(Boolean).length;
+  const railSections: FormRailSection[] = [
+    { id: "section-basic", title: "기본 정보", done: iconReady && Boolean(title.trim()) && Boolean(url.trim()) && Boolean(shortDesc.trim()) },
+    { id: "section-description", title: "상세 설명", done: Boolean(description.trim()) },
+    { id: "section-category", title: "분류", done: Boolean(type) && selectedPlatforms.length > 0 },
+    { id: "section-source", title: "소스코드·라이선스", done: sourceType === "closed" || Boolean(repoUrl.trim()) },
+    { id: "section-visibility", title: "공개 범위·만든 사람", done: authorRole === "individual" || Boolean(teamName.trim()) },
+  ];
+  const typeDesc = (value: string) => GUIDE_PROGRAM_TYPES.find((t) => t.value === value)?.desc;
 
-      {/* 작성자 정보 */}
-      <Card className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden">
-        <CardHeader className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800">
-          <CardTitle className="text-xl">개발자 정보</CardTitle>
-          <CardDescription>개인 프로젝트인지 팀 프로젝트인지 선택해주세요.</CardDescription>
-        </CardHeader>
-        <CardContent className="p-6 space-y-6">
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div
-              onClick={() => setAuthorRole("individual")}
-              tabIndex={0}
-              role="button"
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setAuthorRole("individual"); } }}
-              className={cn(
-                "flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
-                authorRole === "individual"
-                  ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20"
-                  : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-black/5"
-              )}
-            >
-              <UserIcon className={cn("w-6 h-6 mb-2 transition-colors", authorRole === "individual" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />
-              <h4 className={cn("font-semibold transition-colors", authorRole === "individual" ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>개인</h4>
+  const labelClass = "text-[13px] font-semibold text-zinc-900 dark:text-white";
+  const hintClass = "text-xs text-zinc-500 dark:text-zinc-400";
+  const req = <span className="ml-0.5 text-rose-600" aria-hidden>*</span>;
+  const descTextareaClass =
+    "min-h-[260px] w-full resize-y rounded-2xl border border-zinc-200 bg-white p-4 font-mono text-sm leading-relaxed text-zinc-900 outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-100";
+  const descPreviewClass =
+    "min-h-[260px] overflow-auto rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950/40";
+  const showDanger = isEdit && canDelete && Boolean(initialData?.id);
+
+  return (
+    <div className="mx-auto flex w-full max-w-5xl items-start gap-10">
+      <form onSubmit={handleSubmit} className="grid min-w-0 flex-1 gap-[18px] lg:max-w-3xl">
+        {errorMsg && (
+          <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
+            {errorMsg}
+          </div>
+        )}
+
+        {/* 1. 기본 정보 */}
+        <FormSection id="section-basic" title="기본 정보">
+          <div className="grid gap-2" id="icon_section">
+            <Label className={labelClass}>아이콘{req}</Label>
+            <div className="flex items-start gap-4">
+              <ProjectIcon
+                src={iconType === "auto" ? autoIconPreview : iconUrl || null}
+                title={title || "?"}
+                className="h-[72px] w-[72px] shrink-0 rounded-[22%] ring-[3px] ring-white shadow-[0_8px_20px_-8px_rgba(0,0,0,0.25)] dark:ring-zinc-950"
+                decorative
+              />
+              <div className="grid min-w-0 flex-1 gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <ToggleChip pressed={iconType === "auto"} onToggle={() => handleIconTypeChange("auto")} label="URL에서 자동 추출" icon={Globe} />
+                  <ToggleChip pressed={iconType === "link"} onToggle={() => handleIconTypeChange("link")} label="직접 올리기" icon={ImageIcon} />
+                </div>
+                <p className={hintClass}>웹사이트 링크를 넣으면 파비콘을 가져와요. 마음에 안 들면 직접 올려요.</p>
+              </div>
             </div>
-            <div
-              onClick={() => setAuthorRole("team")}
-              tabIndex={0}
-              role="button"
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setAuthorRole("team"); } }}
-              className={cn(
-                "flex flex-col items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
-                authorRole === "team"
-                  ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20"
-                  : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-black/5"
-              )}
-            >
-              <Users className={cn("w-6 h-6 mb-2 transition-colors", authorRole === "team" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />
-              <h4 className={cn("font-semibold transition-colors", authorRole === "team" ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>팀</h4>
+            {iconType === "link" && (
+              <div className="animate-in fade-in slide-in-from-top-2">
+                <ImageUploadInput value={iconUrl} onChange={handleIconChange} shape="square" previewSize="md" />
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+            <div className="grid gap-1.5" id="title_section">
+              <Label htmlFor="title" className={labelClass}>프로젝트 이름{req}</Label>
+              <Input id="title" value={title} onChange={e => setTitle(e.target.value)} placeholder="예: 급식알리미" className="h-11 rounded-xl" />
+            </div>
+            <div className="grid gap-1.5" id="url_section">
+              <Label htmlFor="url" className={labelClass}>웹사이트 또는 다운로드 링크{req}</Label>
+              <div className="relative">
+                <LinkIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" aria-hidden />
+                <Input id="url" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://..." className="h-11 rounded-xl pl-9" />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-1.5" id="short_description_section">
+            <div className="flex items-end justify-between">
+              <Label htmlFor="short_description" className={labelClass}>간단 설명{req}</Label>
+              <span className={cn("text-xs tabular-nums", shortDesc.length > 100 ? "font-medium text-rose-600" : "text-zinc-500")}>
+                {shortDesc.length} / 100
+              </span>
+            </div>
+            <Textarea
+              id="short_description"
+              value={shortDesc}
+              onChange={e => setShortDesc(e.target.value)}
+              placeholder="탐색 카드에 보일 한 줄 설명"
+              className={cn("min-h-[72px] resize-none rounded-xl", shortDesc.length > 100 && "border-rose-500 focus-visible:ring-rose-500")}
+            />
+            <p className={hintClass}>탐색 카드에 2줄까지 보여요. 60자 안쪽이 좋아요.</p>
+          </div>
+        </FormSection>
+
+        {/* 2. 상세 설명 */}
+        <FormSection id="section-description" title="상세 설명" hint="마크다운">
+          <div className="grid gap-2.5" id="description_section">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <EditorTabs value={descTab} onChange={setDescTab} />
+              <span className={hintClass}>Tab으로 두 칸 들여쓰기, Shift+Tab으로 해제</span>
+            </div>
+            {descTab === "write" && (
+              <textarea
+                ref={descTextareaRef}
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                onKeyDown={handleDescKeyDown}
+                spellCheck={false}
+                placeholder={"# 프로젝트 이름\n\n프로젝트의 자세한 기능, 개발 배경, 사용 기술 등을 자유롭게 적어 주세요.\n\n## 주요 기능\n- 기능 1\n- 기능 2"}
+                className={descTextareaClass}
+              />
+            )}
+            {descTab === "preview" && (
+              <div className={descPreviewClass}>
+                {description.trim() ? <Markdown>{description}</Markdown> : <p className="text-sm text-zinc-500">작성한 내용이 여기에 미리보기로 표시돼요.</p>}
+              </div>
+            )}
+            {descTab === "split" && (
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <textarea
+                  ref={descTextareaRef}
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  onKeyDown={handleDescKeyDown}
+                  spellCheck={false}
+                  placeholder={"# 프로젝트 이름\n\n마크다운으로 자유롭게 작성하세요."}
+                  className={descTextareaClass}
+                />
+                <div className={descPreviewClass}>
+                  {description.trim() ? <Markdown>{description}</Markdown> : <p className="text-sm text-zinc-500">작성한 내용이 여기에 미리보기로 표시돼요.</p>}
+                </div>
+              </div>
+            )}
+          </div>
+        </FormSection>
+
+        {/* 3. 분류 */}
+        <FormSection id="section-category" title="분류">
+          <div className="grid gap-2.5" id="type_section">
+            <Label className={labelClass}>프로그램 종류{req}</Label>
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+              {PROJECT_TYPES.map(pt => (
+                <SelectCard
+                  key={pt.value}
+                  icon={TYPE_ICONS[pt.value]}
+                  label={pt.label}
+                  description={typeDesc(pt.value)}
+                  selected={type === pt.value}
+                  onSelect={() => setType(pt.value)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-2.5" id="platforms_section">
+            <Label className={labelClass}>지원 플랫폼{req}</Label>
+            <div className="flex flex-wrap gap-2">
+              {PLATFORMS.map(platform => (
+                <ToggleChip
+                  key={platform.value}
+                  pressed={selectedPlatforms.includes(platform.value)}
+                  disabled={type === "website"}
+                  onToggle={() => handlePlatformChange(platform.value, !selectedPlatforms.includes(platform.value))}
+                  label={platform.label}
+                  icon={PLATFORM_ICONS[platform.value]}
+                />
+              ))}
+            </div>
+            {type === "website" && (
+              <p className={hintClass}>웹사이트는 모든 플랫폼의 브라우저에서 열 수 있어서 전체 플랫폼이 자동으로 선택돼요.</p>
+            )}
+          </div>
+
+          <div className="grid gap-2.5">
+            <Label className={labelClass}>
+              카테고리 <span className="font-medium text-zinc-500 dark:text-zinc-400">(여러 개)</span>
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              {FEATURES.map(feature => (
+                <ToggleChip
+                  key={feature.value}
+                  pressed={selectedFeatures.includes(feature.value)}
+                  onToggle={() => handleFeatureChange(feature.value, !selectedFeatures.includes(feature.value))}
+                  label={feature.label}
+                  icon={CATEGORY_ICONS[feature.value]}
+                />
+              ))}
+            </div>
+            {selectedFeatures.includes("other") && (
+              <div className="animate-in fade-in slide-in-from-top-2">
+                <Input placeholder="기타 기능/카테고리를 직접 적어 주세요" value={featureCustom} onChange={e => setFeatureCustom(e.target.value)} className="h-11 rounded-xl" />
+              </div>
+            )}
+          </div>
+        </FormSection>
+
+        {/* 4. 소스코드·라이선스 */}
+        <FormSection id="section-source" title="소스코드·라이선스">
+          <div className="grid gap-2.5">
+            <Label className={labelClass}>소스코드 공개</Label>
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              {SOURCE_TYPES.map(stype => (
+                <ChoiceRow
+                  key={stype.value}
+                  icon={stype.value === "open" ? Code2 : Lock}
+                  label={stype.value === "open" ? "오픈소스" : "비공개"}
+                  description={stype.value === "open" ? "저장소 링크를 함께 올려요" : "코드는 공개하지 않아요"}
+                  selected={sourceType === stype.value}
+                  onSelect={() => setSourceType(stype.value as SourceType)}
+                />
+              ))}
+            </div>
+          </div>
+
+          {sourceType === "open" && (
+            <div className="grid gap-1.5 animate-in fade-in slide-in-from-top-2" id="repo_url_section">
+              <Label htmlFor="repo_url" className={labelClass}>저장소 링크{req}</Label>
+              <div className="relative">
+                <Code2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" aria-hidden />
+                <Input id="repo_url" value={repoUrl} onChange={e => setRepoUrl(e.target.value)} placeholder="https://github.com/username/repo" className="h-11 rounded-xl pl-9" />
+              </div>
+            </div>
+          )}
+
+          <div className={cn("grid gap-2.5", sourceType === "closed" && "pointer-events-none select-none opacity-40")}>
+            <Label className={labelClass}>허용하는 것</Label>
+            <div className="flex flex-wrap gap-2">
+              {LICENSE_FEATURES.map(lf => (
+                <ToggleChip
+                  key={lf.value}
+                  pressed={licenseFeatures.includes(lf.value)}
+                  onToggle={() => handleLicenseFeatureChange(lf.value, !licenseFeatures.includes(lf.value))}
+                  label={lf.label}
+                />
+              ))}
+              <ToggleChip pressed={hasCustomLicense} onToggle={() => setHasCustomLicense(!hasCustomLicense)} label="기타 (직접 입력)" />
+            </div>
+            <p className={hintClass}>
+              {sourceType === "closed"
+                ? "소스코드를 비공개로 두면 라이선스 항목을 고를 수 없어요."
+                : "체크하지 않은 항목은 상세 페이지에 \"제한\"으로 표시돼요."}
+            </p>
+            {hasCustomLicense && (
+              <div className="animate-in fade-in slide-in-from-top-2">
+                <Input value={licenseCustom} onChange={e => setLicenseCustom(e.target.value)} placeholder="기타 라이선스 조건" className="h-11 rounded-xl" />
+              </div>
+            )}
+          </div>
+        </FormSection>
+
+        {/* 5. 공개 범위·만든 사람 */}
+        <FormSection id="section-visibility" title="공개 범위·만든 사람">
+          <div className="grid gap-2.5">
+            <Label className={labelClass}>공개 여부</Label>
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              {VISIBILITY.map(v => (
+                <ChoiceRow
+                  key={v.value}
+                  icon={v.value === "public" ? Globe : Lock}
+                  label={v.label}
+                  description={v.value === "public" ? "누구나 볼 수 있어요" : "내가 고른 사람만 볼 수 있어요"}
+                  selected={visibility === v.value}
+                  onSelect={() => setVisibility(v.value as Visibility)}
+                />
+              ))}
+            </div>
+          </div>
+
+          {visibility === "private" && (
+            <div className="animate-in fade-in slide-in-from-top-2">
+              <div className="space-y-2">
+                <Label className="text-[13px] font-semibold text-zinc-900 dark:text-white">열람을 허용할 사용자 <span className="font-medium text-zinc-500 dark:text-zinc-400">(@ts.hs.kr)</span></Label>
+                <div className="flex gap-2">
+                  <Input 
+                    value={currentUser}
+                    onChange={(e) => { setCurrentUser(e.target.value); setUserError(""); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addAllowedUser(); } }}
+                    placeholder="이메일 입력 후 추가 버튼 또는 엔터" 
+                    className={cn("h-11 rounded-xl flex-1", userError && "border-red-500 focus-visible:ring-red-500")} 
+                  />
+                  <button 
+                    type="button" 
+                    onClick={addAllowedUser}
+                    aria-label="접근 허용 사용자 추가"
+                    className={cn(buttonVariants({ variant: "outline" }), "h-11 rounded-xl px-4")}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+                {userError && <p className="text-xs text-red-500 mt-1">{userError}</p>}
+                {allowedUsers.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {allowedUsers.map(user => {
+                      const isTeamMember = authorRole === 'team' && teamMembers.includes(user);
+                      return (
+                        <div key={user} className={cn("flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium", isTeamMember ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300")}>
+                          {user}
+                          {isTeamMember ? (
+                            <span className="text-xs text-blue-500 dark:text-blue-400 ml-0.5">팀원</span>
+                          ) : (
+                            <button type="button" onClick={() => removeAllowedUser(user)} className="text-zinc-400 hover:text-red-500 rounded-full p-0.5">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="grid gap-2.5">
+            <Label className={labelClass}>만든 사람</Label>
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              <ChoiceRow icon={UserIcon} label="개인" description="내 이름으로 올려요" selected={authorRole === "individual"} onSelect={() => setAuthorRole("individual")} />
+              <ChoiceRow icon={Users} label="팀" description="팀 이름과 팀원을 적어요" selected={authorRole === "team"} onSelect={() => setAuthorRole("team")} />
             </div>
           </div>
 
           {authorRole === "team" && (
             <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
               <div className="space-y-2" id="team_name_section">
-                <Label htmlFor="team_name" className="text-sm font-medium">팀 이름 <span className="text-red-500">*</span></Label>
+                <Label htmlFor="team_name" className="text-[13px] font-semibold text-zinc-900 dark:text-white">팀 이름<span className="ml-0.5 text-rose-600" aria-hidden>*</span></Label>
                 <Input id="team_name" value={teamName} onChange={e => setTeamName(e.target.value)} placeholder="팀 이름을 입력하세요" className="h-11 rounded-xl" />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium">팀원 추가 (@ts.hs.kr)</Label>
+                <Label className="text-[13px] font-semibold text-zinc-900 dark:text-white">팀원 추가 <span className="font-medium text-zinc-500 dark:text-zinc-400">(@ts.hs.kr)</span></Label>
                 <div className="flex gap-2">
                   <Input
                     value={currentMember}
@@ -584,529 +867,57 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </FormSection>
 
-      {/* 기본 정보 */}
-      <Card className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden">
-        <CardHeader className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800">
-          <CardTitle className="text-xl">기본 정보</CardTitle>
-          <CardDescription>프로젝트를 잘 나타낼 수 있는 이름과 설명을 작성해주세요.</CardDescription>
-        </CardHeader>
-        <CardContent className="p-6 space-y-6">
-          
-          <div className="space-y-4" id="icon_section">
-            <Label className="text-sm font-medium">아이콘 설정 <span className="text-red-500">*</span></Label>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div
-                onClick={() => handleIconTypeChange("auto")}
-                tabIndex={0}
-                role="button"
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleIconTypeChange("auto"); } }}
-                className={cn(
-                  "flex items-center p-3 rounded-xl border-2 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
-                  iconType === "auto"
-                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20"
-                    : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800"
-                )}
-              >
-                <div className="w-8 h-8 mr-3 rounded-lg shrink-0 overflow-hidden flex items-center justify-center bg-zinc-100 dark:bg-zinc-800">
-                  {autoIconPreview ? (
-                    <img src={autoIconPreview} alt="" className="w-full h-full object-contain" onError={() => setAutoIconPreview(null)} />
-                  ) : (
-                    <Globe className={cn("w-4 h-4 transition-colors", iconType === "auto" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />
-                  )}
-                </div>
-                <div>
-                  <h4 className={cn("font-medium text-sm transition-colors", iconType === "auto" ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>웹사이트에서 가져오기</h4>
-                  <p className="text-xs text-zinc-500">파비콘 자동 추출 (실패 시 기본 아이콘)</p>
-                </div>
-              </div>
-              <div
-                onClick={() => handleIconTypeChange("link")}
-                tabIndex={0}
-                role="button"
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleIconTypeChange("link"); } }}
-                className={cn(
-                  "flex items-center p-3 rounded-xl border-2 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
-                  iconType === "link"
-                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20"
-                    : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800"
-                )}
-              >
-                <ImageIcon className={cn("w-5 h-5 mr-3 transition-colors", iconType === "link" ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />
-                <div>
-                  <h4 className={cn("font-medium text-sm transition-colors", iconType === "link" ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>이미지 링크 입력</h4>
-                  <p className="text-xs text-zinc-500">외부 이미지 URL 붙여넣기</p>
-                </div>
-              </div>
-            </div>
-
-            {iconType === 'link' && (
-              <div className="mt-4 animate-in fade-in slide-in-from-top-2">
-                <ImageUploadInput
-                  value={iconUrl}
-                  onChange={handleIconChange}
-                  shape="square"
-                  previewSize="md"
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-2" id="title_section">
-            <Label htmlFor="title" className="text-sm font-medium">프로젝트 이름 <span className="text-red-500">*</span></Label>
-            <Input id="title" value={title} onChange={e => setTitle(e.target.value)} placeholder="예: 대곽 유틸리티 허브" className="h-11 rounded-xl" />
-          </div>
-
-          <div className="space-y-2" id="url_section">
-            <Label htmlFor="url" className="text-sm font-medium">웹사이트 또는 다운로드 링크 <span className="text-red-500">*</span></Label>
-            <div className="relative">
-              <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-              <Input 
-                id="url" 
-                type="url"
-                value={url}
-                onChange={(e) => { setUrl(e.target.value); if (iconType === 'auto') fetchAutoFavicon(e.target.value); }}
-                placeholder="https://..." 
-                className="h-11 rounded-xl pl-9" 
-              />
-            </div>
-          </div>
-          
-          <div className="space-y-2" id="short_description_section">
-            <div className="flex justify-between items-end">
-              <Label htmlFor="short_description" className="text-sm font-medium">간단 설명 <span className="text-red-500">*</span></Label>
-              <span className={cn("text-xs", shortDesc.length > 100 ? "text-red-500 font-bold" : "text-zinc-500")}>
-                {shortDesc.length} / 100
-              </span>
-            </div>
-            <Textarea 
-              id="short_description" 
-              value={shortDesc}
-              onChange={(e) => setShortDesc(e.target.value)}
-              placeholder="탐색 페이지의 작은 카드에 표시될 한 줄 설명을 입력해주세요." 
-              className={cn("min-h-[80px] rounded-xl resize-none", shortDesc.length > 100 && "border-red-500 focus-visible:ring-red-500")} 
-            />
-          </div>
-
-          <div className="space-y-2" id="description_section">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <Label className="text-sm font-medium">상세 설명 (마크다운) <span className="text-red-500">*</span></Label>
-              <div className="inline-flex rounded-full border border-zinc-200 dark:border-zinc-800 p-0.5">
-                <DescTabButton active={descTab === "write"} onClick={() => setDescTab("write")} icon={<Pencil className="mr-1.5 h-3.5 w-3.5" />} label="작성" />
-                <DescTabButton active={descTab === "split"} onClick={() => setDescTab("split")} icon={<Columns2 className="mr-1.5 h-3.5 w-3.5" />} label="분할" hideOnMobile />
-                <DescTabButton active={descTab === "preview"} onClick={() => setDescTab("preview")} icon={<Eye className="mr-1.5 h-3.5 w-3.5" />} label="미리보기" />
-              </div>
-            </div>
-            {descTab === "write" && (
-              <textarea
-                ref={descTextareaRef}
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                onKeyDown={handleDescKeyDown}
-                spellCheck={false}
-                placeholder={"# 프로젝트 이름\n\n프로젝트의 자세한 기능, 개발 배경, 사용 기술 등을 자유롭게 작성해주세요.\n\n## 주요 기능\n- 기능 1\n- 기능 2"}
-                className="min-h-[240px] w-full resize-y rounded-xl border border-zinc-200 bg-white p-4 font-mono text-sm leading-relaxed text-zinc-900 outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
-              />
-            )}
-            {descTab === "preview" && (
-              <div className="min-h-[240px] overflow-auto rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-                {description.trim() ? (
-                  <Markdown>{description}</Markdown>
-                ) : (
-                  <p className="text-sm text-zinc-400">작성한 내용이 여기에 미리보기로 표시됩니다.</p>
-                )}
-              </div>
-            )}
-            {descTab === "split" && (
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <textarea
-                  ref={descTextareaRef}
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  onKeyDown={handleDescKeyDown}
-                  spellCheck={false}
-                  placeholder={"# 프로젝트 이름\n\n마크다운으로 자유롭게 작성하세요."}
-                  className="min-h-[240px] w-full resize-y rounded-xl border border-zinc-200 bg-white p-4 font-mono text-sm leading-relaxed text-zinc-900 outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
-                />
-                <div className="min-h-[240px] overflow-auto rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-                  {description.trim() ? (
-                    <Markdown>{description}</Markdown>
-                  ) : (
-                    <p className="text-sm text-zinc-400">작성한 내용이 여기에 미리보기로 표시됩니다.</p>
-                  )}
-                </div>
-              </div>
-            )}
-            <p className="text-xs text-zinc-400">
-              Tab으로 두 칸 들여쓰기, Shift+Tab으로 해제. 코드 블록은 <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">```언어</code>로 감쌀 수 있어요.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 분류 및 기능 */}
-      <Card className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden">
-        <CardHeader className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800">
-          <CardTitle className="text-xl">분류 및 기능</CardTitle>
-          <CardDescription>어떤 종류의 프로젝트이며, 어떤 기능들을 제공하나요?</CardDescription>
-        </CardHeader>
-        <CardContent className="p-6 space-y-8">
-          
-          <div className="space-y-3" id="type_section">
-            <Label className="text-sm font-medium">프로그램 종류 <span className="text-red-500">*</span></Label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {PROJECT_TYPES.map(pt => (
-                <div
-                  key={pt.value}
-                  onClick={() => setType(pt.value)}
-                  tabIndex={0}
-                  role="button"
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setType(pt.value); } }}
-                  className={cn(
-                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out cursor-pointer select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
-                    type === pt.value
-                      ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400"
-                      : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-blue-200 dark:hover:border-blue-800"
-                  )}
-                >
-                  <Label className="cursor-pointer text-sm font-semibold w-full">
-                    {pt.label}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <Label className="text-sm font-medium text-zinc-900 dark:text-zinc-200">주요 기능 / 카테고리 (다중 선택)</Label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {FEATURES.map(feature => (
-                <div
-                  key={feature.value}
-                  onClick={() => handleFeatureChange(feature.value, !selectedFeatures.includes(feature.value))}
-                  tabIndex={0}
-                  role="button"
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleFeatureChange(feature.value, !selectedFeatures.includes(feature.value)); } }}
-                  className={cn(
-                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out cursor-pointer select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
-                    selectedFeatures.includes(feature.value)
-                      ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400"
-                      : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-blue-200 dark:hover:border-blue-800"
-                  )}
-                >
-                  <Checkbox 
-                    checked={selectedFeatures.includes(feature.value)}
-                    className="hidden"
-                  />
-                  <Label className="cursor-pointer text-sm font-semibold w-full">
-                    {feature.label}
-                  </Label>
-                </div>
-              ))}
-            </div>
-            
-            {/* 기타 커스텀 입력창 */}
-            {selectedFeatures.includes('other') && (
-              <div className="mt-3 animate-in fade-in slide-in-from-top-2">
-                <Input 
-                  placeholder="기타 기능/카테고리를 직접 입력해주세요" 
-                  value={featureCustom}
-                  onChange={e => setFeatureCustom(e.target.value)}
-                  className="h-11 rounded-xl" 
-                />
-              </div>
-            )}
-          </div>
-
-        </CardContent>
-      </Card>
-
-      {/* 플랫폼 및 라이선스 */}
-      <Card className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden">
-        <CardHeader className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800">
-          <CardTitle className="text-xl">환경 및 소스코드</CardTitle>
-          <CardDescription>어디서 실행되며 소스코드는 어떻게 관리되나요?</CardDescription>
-        </CardHeader>
-        <CardContent className="p-6 space-y-8">
-          
-            <div className={cn("grid grid-cols-2 sm:grid-cols-3 gap-3 animate-in fade-in slide-in-from-top-2", type === 'website' && "opacity-70 pointer-events-none")}>
-              {PLATFORMS.map(platform => (
-                <div
-                  key={platform.value}
-                  onClick={type === 'website' ? undefined : () => handlePlatformChange(platform.value, !selectedPlatforms.includes(platform.value))}
-                  tabIndex={type === 'website' ? -1 : 0}
-                  role="button"
-                  aria-disabled={type === 'website'}
-                  onKeyDown={(e) => { if (type !== 'website' && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); handlePlatformChange(platform.value, !selectedPlatforms.includes(platform.value)); } }}
-                  className={cn(
-                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-colors duration-200 ease-out select-none",
-                    type !== 'website' && "cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
-                    selectedPlatforms.includes(platform.value)
-                      ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400"
-                      : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-blue-200 dark:hover:border-blue-800"
-                  )}
-                >
-                  <Checkbox
-                    checked={selectedPlatforms.includes(platform.value)}
-                    className="hidden"
-                  />
-                  <Label className="cursor-pointer text-sm font-semibold w-full">
-                    {platform.label}
-                  </Label>
-                </div>
-              ))}
-            </div>
-            {type === 'website' && (
-              <p className="text-[11px] text-zinc-500 bg-zinc-800/5 py-1.5 px-3 rounded-lg border border-zinc-800/10 inline-block">
-                웹사이트는 모든 플랫폼의 브라우저에서 열 수 있어서 전체 플랫폼이 자동으로 선택돼요.
-              </p>
-            )}
-
-          <div className="space-y-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-            <Label className="text-sm font-medium text-zinc-900 dark:text-zinc-200">소스코드 공개 여부</Label>
-            <div className="grid sm:grid-cols-2 gap-4">
-              {SOURCE_TYPES.map(stype => (
-                <div
-                  key={stype.value}
-                  onClick={() => setSourceType(stype.value as SourceType)}
-                  tabIndex={0}
-                  role="button"
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSourceType(stype.value as SourceType); } }}
-                  className={cn(
-                    "flex flex-col items-start p-4 rounded-xl border-2 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
-                    sourceType === stype.value
-                      ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20"
-                      : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800"
-                  )}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    {stype.value === 'open' ? <Code2 className={cn("w-5 h-5 transition-colors", sourceType === stype.value ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} /> : <Lock className={cn("w-5 h-5 transition-colors", sourceType === stype.value ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />}
-                    <h4 className={cn("font-semibold transition-colors", sourceType === stype.value ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>{stype.label}</h4>
-                  </div>
-                  <p className={cn("text-xs transition-colors", sourceType === stype.value ? "text-blue-700 dark:text-blue-400" : "text-zinc-500")}>
-                    {stype.value === 'open' ? "누구나 코드를 볼 수 있습니다." : "소스코드를 비공개로 유지합니다."}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            {sourceType === 'open' && (
-              <div id="repo_url_section" className="mt-4 p-4 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-xl animate-in fade-in slide-in-from-top-2">
-                <Label htmlFor="repo_url" className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-2 block">
-                  GitHub Repository URL <span className="text-red-500">*</span>
-                </Label>
-                <Input id="repo_url" value={repoUrl} onChange={e => setRepoUrl(e.target.value)} placeholder="https://github.com/username/repo" className="h-11 bg-white dark:bg-black rounded-lg border-blue-200 dark:border-blue-800/50 focus-visible:ring-blue-500" />
-              </div>
-            )}
-          </div>
-
-          <div className={cn("space-y-4 pt-4 border-t border-zinc-100 dark:border-zinc-800", sourceType === 'closed' && "opacity-40 pointer-events-none select-none")}>
-            <Label className="text-sm font-medium">라이선스 (허용 및 보장 항목)</Label>
-            {sourceType === 'closed' ? (
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">소스코드를 비공개로 유지하는 경우 라이선스 항목을 선택할 수 없습니다.</p>
-            ) : (
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">이 프로그램 및 소스코드에 대한 사용 권한을 직관적으로 선택해주세요. 다중 선택이 가능합니다.</p>
-            )}
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {LICENSE_FEATURES.map(lf => (
-                <div
-                  key={lf.value}
-                  onClick={() => handleLicenseFeatureChange(lf.value, !licenseFeatures.includes(lf.value))}
-                  tabIndex={0}
-                  role="button"
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleLicenseFeatureChange(lf.value, !licenseFeatures.includes(lf.value)); } }}
-                  className={cn(
-                    "flex items-center space-x-2 p-3 rounded-xl border-2 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out cursor-pointer select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
-                    licenseFeatures.includes(lf.value)
-                      ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400"
-                      : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-blue-200 dark:hover:border-blue-800"
-                  )}
-                >
-                  <Checkbox 
-                    checked={licenseFeatures.includes(lf.value)}
-                    className="hidden"
-                  />
-                  <Label className="cursor-pointer text-sm font-semibold w-full">
-                    {lf.label}
-                  </Label>
-                </div>
-              ))}
-              <div
-                onClick={() => setHasCustomLicense(!hasCustomLicense)}
-                tabIndex={0}
-                role="button"
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setHasCustomLicense(!hasCustomLicense); } }}
-                className={cn(
-                  "flex items-center space-x-2 p-3 rounded-xl border-2 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out cursor-pointer select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
-                  hasCustomLicense
-                    ? "bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400"
-                    : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-blue-200 dark:hover:border-blue-800"
-                )}
-              >
-                <Checkbox checked={hasCustomLicense} className="hidden" />
-                <Label className="cursor-pointer text-sm font-semibold w-full">
-                  기타 (직접 입력)
-                </Label>
-              </div>
-            </div>
-
-            {hasCustomLicense && (
-              <div className="mt-3 animate-in fade-in slide-in-from-top-2">
-                <Input value={licenseCustom} onChange={e => setLicenseCustom(e.target.value)} placeholder="기타 라이선스 조건 입력" className="h-11 rounded-xl" />
-              </div>
-            )}
-          </div>
-
-        </CardContent>
-      </Card>
-
-      {/* 접근 및 권한 */}
-      <Card className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden">
-        <CardHeader className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800">
-          <CardTitle className="text-xl">접근 권한 설정</CardTitle>
-          <CardDescription>누가 이 프로젝트를 열람할 수 있는지 설정합니다.</CardDescription>
-        </CardHeader>
-        <CardContent className="p-6 space-y-6">
-          
-          <div className="grid sm:grid-cols-2 gap-4">
-            {VISIBILITY.map(v => (
-              <div
-                key={v.value}
-                onClick={() => setVisibility(v.value as Visibility)}
-                tabIndex={0}
-                role="button"
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setVisibility(v.value as Visibility); } }}
-                className={cn(
-                  "flex flex-col items-start p-4 rounded-xl border-2 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
-                  visibility === v.value
-                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20"
-                    : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-blue-200 dark:hover:border-blue-800"
-                )}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  {v.value === 'public' ? <Globe className={cn("w-5 h-5 transition-colors", visibility === v.value ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} /> : <Lock className={cn("w-5 h-5 transition-colors", visibility === v.value ? "text-blue-600 dark:text-blue-400" : "text-zinc-500")} />}
-                  <h4 className={cn("font-semibold transition-colors", visibility === v.value ? "text-blue-900 dark:text-blue-100" : "text-zinc-700 dark:text-zinc-300")}>{v.label}</h4>
-                </div>
-                <p className={cn("text-xs transition-colors", visibility === v.value ? "text-blue-700 dark:text-blue-400" : "text-zinc-500")}>
-                  {v.value === 'public' ? "누구나 이 프로젝트를 볼 수 있습니다." : "나와 허락된 사용자만 볼 수 있습니다."}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {visibility === "private" && (
-            <div className="space-y-4 pt-4 border-t border-zinc-100 dark:border-zinc-800 animate-in fade-in slide-in-from-top-2">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">열람을 허용할 사용자 이메일 (@ts.hs.kr)</Label>
-                <div className="flex gap-2">
-                  <Input 
-                    value={currentUser}
-                    onChange={(e) => { setCurrentUser(e.target.value); setUserError(""); }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addAllowedUser(); } }}
-                    placeholder="이메일 입력 후 추가 버튼 또는 엔터" 
-                    className={cn("h-11 rounded-xl flex-1", userError && "border-red-500 focus-visible:ring-red-500")} 
-                  />
-                  <button 
-                    type="button" 
-                    onClick={addAllowedUser}
-                    aria-label="접근 허용 사용자 추가"
-                    className={cn(buttonVariants({ variant: "outline" }), "h-11 rounded-xl px-4")}
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-                {userError && <p className="text-xs text-red-500 mt-1">{userError}</p>}
-                {allowedUsers.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {allowedUsers.map(user => {
-                      const isTeamMember = authorRole === 'team' && teamMembers.includes(user);
-                      return (
-                        <div key={user} className={cn("flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium", isTeamMember ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300")}>
-                          {user}
-                          {isTeamMember ? (
-                            <span className="text-xs text-blue-500 dark:text-blue-400 ml-0.5">팀원</span>
-                          ) : (
-                            <button type="button" onClick={() => removeAllowedUser(user)} className="text-zinc-400 hover:text-red-500 rounded-full p-0.5">
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-        </CardContent>
-      </Card>
-      
-      <div className="flex justify-end gap-4 pt-4 pb-4">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className={cn(
-            buttonVariants({ variant: "outline", size: "lg" }),
-            "rounded-full px-8 text-base h-12 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out active:scale-[0.96]"
-          )}
-        >
-          취소
-        </button>
-        <button
-          type="submit"
-          disabled={isLoading || shortDesc.length > 100}
-          className={cn(
-            buttonVariants({ size: "lg" }),
-            "rounded-full px-8 text-base bg-blue-600 hover:bg-blue-700 text-white h-12 flex items-center transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out active:scale-[0.96]",
-            (isLoading || shortDesc.length > 100) && "opacity-50 cursor-not-allowed"
-          )}
-        >
-          {isLoading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <UploadCloud className="w-5 h-5 mr-2" />}
-          {isEdit ? "프로젝트 수정하기" : "프로젝트 게시하기"}
-        </button>
-      </div>
-    </form>
-
-    {isEdit && canDelete && initialData?.id && (
-      <>
-        <Card className="border-red-200 dark:border-red-900/50 bg-red-50/30 dark:bg-red-950/20 rounded-3xl overflow-hidden">
-          <CardHeader className="bg-red-50/50 dark:bg-red-950/30 border-b border-red-200/50 dark:border-red-900/30">
-            <CardTitle className="text-xl text-red-700 dark:text-red-400">위험 구역</CardTitle>
-            <CardDescription className="text-red-600/70 dark:text-red-500/70">아래 작업은 되돌릴 수 없습니다.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h4 className="font-semibold text-zinc-800 dark:text-zinc-200">프로젝트 삭제하기</h4>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">프로젝트와 모든 관련 데이터(리뷰, 별점 등)가 영구적으로 삭제됩니다.</p>
-              </div>
+        {/* 6. 위험 구역 — 수정 페이지, 소유자만 */}
+        {showDanger && (
+          <FormSection id="section-danger" title="위험 구역" hint="수정 페이지에서만" danger>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">삭제하면 리뷰까지 함께 사라지고 되돌릴 수 없어요.</p>
               <button
                 type="button"
                 onClick={() => setShowDeleteDialog(true)}
                 className={cn(
-                  buttonVariants({ variant: "outline", size: "lg" }),
-                  "rounded-full px-6 text-base h-12 border-red-300 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/50 shrink-0 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out active:scale-[0.96]"
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "h-9 shrink-0 rounded-full border-rose-300 px-4 text-rose-700 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-rose-950/40",
                 )}
               >
-                <Trash2 className="w-4 h-4 mr-2" />
-                삭제하기
+                <Trash2 className="mr-1.5 h-4 w-4" aria-hidden />
+                프로젝트 삭제
               </button>
             </div>
-          </CardContent>
-        </Card>
+          </FormSection>
+        )}
 
-        <div className="pb-20" />
+        <div className="flex items-center justify-end gap-2.5 pb-6 pt-1">
+          <button type="button" onClick={() => router.back()} className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "h-11 rounded-full px-4 text-sm")}>
+            취소
+          </button>
+          <button
+            type="submit"
+            disabled={isLoading || shortDesc.length > 100}
+            className={cn(
+              buttonVariants({ size: "lg" }),
+              "h-11 rounded-full px-5 text-sm transition-[background-color,scale] active:scale-[0.96]",
+              SECTION_COLORS.new.button,
+              (isLoading || shortDesc.length > 100) && "cursor-not-allowed opacity-50",
+            )}
+          >
+            {isLoading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden /> : <Rocket className="mr-1.5 h-4 w-4" aria-hidden />}
+            {isEdit ? "저장하기" : "등록하기"}
+          </button>
+        </div>
+      </form>
 
+      <FormRail sections={railSections} requiredDone={requiredDone} requiredTotal={requiredFlags.length} className="sticky top-24 hidden w-[200px] shrink-0 lg:grid" />
+
+      {showDanger && (
         <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
           <DialogContent showCloseButton={false} className="rounded-2xl">
             <DialogHeader>
               <DialogTitle className="text-lg">정말 삭제하시겠습니까?</DialogTitle>
               <DialogDescription>
-                <span className="font-semibold text-zinc-800 dark:text-zinc-200">{initialData.title}</span> 프로젝트와 모든 관련 데이터가 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.
+                <span className="font-semibold text-zinc-800 dark:text-zinc-200">{initialData?.title}</span> 프로젝트와 모든 관련 데이터가 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -1134,32 +945,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </>
-    )}
-    </>
-  );
-}
-
-function DescTabButton({
-  active, onClick, icon, label, hideOnMobile,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-  hideOnMobile?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "inline-flex items-center rounded-full px-3 py-1 text-sm font-medium transition-colors",
-        active ? "bg-blue-600 text-white" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white",
-        hideOnMobile && "hidden sm:inline-flex",
       )}
-    >
-      {icon}{label}
-    </button>
+    </div>
   );
 }
