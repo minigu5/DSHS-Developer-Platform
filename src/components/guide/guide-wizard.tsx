@@ -10,7 +10,7 @@ import {
   Server, Cloud, Code2,
 } from "lucide-react";
 
-import { visibleSteps, buildSlug, type GuideAnswers } from "@/lib/guide";
+import { GUIDE_STEPS, visibleSteps, buildSlug, type GuideAnswers } from "@/lib/guide";
 import { cn } from "@/lib/utils";
 
 const STEP_OPTION_ICONS: Record<string, Record<string, React.ElementType>> = {
@@ -48,11 +48,18 @@ const STEP_OPTION_ICONS: Record<string, Record<string, React.ElementType>> = {
   },
 };
 
-export function GuideWizard() {
+type GuideWizardProps = {
+  /** 홈 가이드 미리보기 등에서 1단계(프로그램 종류)를 미리 골라 들어올 때 */
+  initialType?: string;
+};
+
+export function GuideWizard({ initialType }: GuideWizardProps = {}) {
   const router = useRouter();
-  const [answers, setAnswers] = useState<GuideAnswers>({});
+  const typeStep = GUIDE_STEPS[0];
+  const hasInitialType = !!initialType && typeStep.options.some((o) => o.value === initialType);
+  const [answers, setAnswers] = useState<GuideAnswers>(hasInitialType ? { [typeStep.key]: initialType! } : {});
   // 답한 순서를 스택으로 추적해 '이전'으로 정확히 되돌린다.
-  const [order, setOrder] = useState<string[]>([]);
+  const [order, setOrder] = useState<string[]>(hasInitialType ? [typeStep.key] : []);
 
   const steps = visibleSteps(answers);
   const current = steps.find((s) => !(s.key in answers)) ?? null;

@@ -2,56 +2,69 @@ export const revalidate = 30;
 
 import type { CSSProperties } from "react";
 import Link from "next/link";
-import { Search, Rocket, BookOpen, Newspaper, Megaphone, Bell, ChevronRight } from "lucide-react";
+import { Search, Rocket } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { PROJECT_TYPES } from "@/lib/constants";
 import { SiteHeader } from "@/components/shared/site-header";
 import { createClient } from "@/lib/supabase/server";
 import { AnnouncementTicker, type TickerItem } from "@/components/shared/announcement-ticker";
-import { ProjectCard, type ProjectCardData } from "@/components/projects/project-card";
+import type { ProjectCardData } from "@/components/projects/project-card";
 import { IconShelf, SHELF_LIMIT, type ShelfProject } from "@/components/home/icon-shelf";
 import { RevealObserver } from "@/components/home/reveal-observer";
+import { SectionHeader } from "@/components/home/section-header";
+import { HomeProjectCard } from "@/components/home/home-project-card";
+import { HowItWorks, type HowItWorksExamples } from "@/components/home/how-it-works";
+import { RecentPosts, type RecentTip, type RecentIdea } from "@/components/home/recent-posts";
+import { GuideTeaser } from "@/components/home/guide-teaser";
+import { ClosingCta } from "@/components/home/closing-cta";
+import { SiteFooter } from "@/components/home/site-footer";
 
-// 프로젝트 외 메뉴 — 아이콘 타일 색은 PageNav 의 섹션 색과 동일하게 맞춤
-const SECTION_LINKS = [
-  {
-    href: "/guide",
-    icon: BookOpen,
-    tileClass: "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300",
-    title: "나도 개발해볼래!",
-    description: "만들고 싶은 프로그램과 쓰는 컴퓨터를 고르면 시작 방법을 단계별로 알려줘요.",
-  },
-  {
-    href: "/tips",
-    icon: Newspaper,
-    tileClass: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
-    title: "개발 팁",
-    description: "직접 부딪혀 알게 된 개발 노하우를 글로 남기고 읽어요.",
-  },
-  {
-    href: "/haejwo",
-    icon: Megaphone,
-    tileClass: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
-    title: "해줘!",
-    description: "있으면 좋겠는 프로그램을 올리면, 만들 수 있는 사람이 가져가요.",
-  },
-  {
-    href: "/announcements",
-    icon: Bell,
-    tileClass: "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300",
-    title: "공지사항",
-    description: "베타 테스터 모집, 업데이트 소식, 의견 요청을 올리는 게시판이에요.",
-  },
-] as const;
+type Person = { nickname: string | null; full_name: string | null } | null;
+type TipJoined = {
+  id: string;
+  title: string;
+  cover_url: string | null;
+  author: Person;
+  tip_likes: { count: number }[] | null;
+  tip_comments: { count: number }[] | null;
+};
+type IdeaJoined = {
+  id: string;
+  title: string;
+  type: string;
+  category: string;
+  status: "open" | "in_progress" | "done";
+  author: Person;
+};
+type ReviewJoined = {
+  comment: string;
+  rating: number | null;
+  users: Person;
+  projects: { title: string; icon_url: string | null } | null;
+};
 
+const personName = (p: Person, fallback = "알 수 없음") => p?.nickname || p?.full_name || fallback;
 const riseDelay = (ms: number) => ({ "--rise-delay": `${ms}ms` }) as CSSProperties;
-
 // 스크롤 리빌 차례 — 같은 줄의 n번째 카드는 n×90ms 늦게 재생
 const revealOrder = (n: number) => ({ "--reveal-delay": `${n * 90}ms` }) as CSSProperties;
 
+const IDEA_STATUS_LABEL: Record<IdeaJoined["status"], string> = {
+  open: "구현 요청 중",
+  in_progress: "개발 중",
+  done: "구현 완료",
+};
+
 export default async function HomePage() {
   const supabase = await createClient();
-  const [{ data: announcementsRaw }, { data: projectsRaw }, { data: shelfRaw }] = await Promise.all([
+  const [
+    { data: announcementsRaw },
+    { data: projectsRaw },
+    { data: shelfRaw },
+    { data: tipsRaw },
+    { data: ideasRaw },
+    { data: reviewRaw },
+  ] = await Promise.all([
     supabase
       .from("announcements")
       .select("id, title, category, is_pinned")
@@ -88,12 +101,76 @@ export default async function HomePage() {
       .order("created_at", { ascending: false })
       .limit(SHELF_LIMIT)
       .returns<ShelfProject[]>(),
+    supabase
+      .from("tips")
+      .select("id, title, cover_url, author:users!tips_author_id_fkey(nickname, full_name), tip_likes(count), tip_comments(count)")
+      .order("created_at", { ascending: false })
+      .limit(3)
+      .returns<TipJoined[]>(),
+    supabase
+      .from("ideas")
+      .select("id, title, type, category, status, author:users!ideas_author_id_fkey(nickname, full_name)")
+      .order("created_at", { ascending: false })
+      .limit(3)
+      .returns<IdeaJoined[]>(),
+    // "이렇게 써요" 2단계 예시 — 공개 프로젝트에 달린 가장 최근 리뷰 한 개
+    supabase
+      .from("reviews")
+      .select("comment, rating, users(nickname, full_name), projects!inner(title, icon_url)")
+      .eq("projects.visibility", "public")
+      .neq("comment", "")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .returns<ReviewJoined[]>(),
   ]);
 
   const tickerItems: TickerItem[] = announcementsRaw ?? [];
   const hasTicker = tickerItems.length > 0;
   const recentProjects: ProjectCardData[] = projectsRaw ?? [];
   const shelfProjects: ShelfProject[] = shelfRaw ?? [];
+
+  const tips: RecentTip[] = (tipsRaw ?? []).map((t) => ({
+    id: t.id,
+    title: t.title,
+    cover_url: t.cover_url,
+    authorName: personName(t.author),
+    likeCount: t.tip_likes?.[0]?.count ?? 0,
+    commentCount: t.tip_comments?.[0]?.count ?? 0,
+  }));
+  const ideas: RecentIdea[] = (ideasRaw ?? []).map((i) => ({
+    id: i.id,
+    title: i.title,
+    type: i.type,
+    category: i.category,
+    status: i.status,
+    authorName: personName(i.author),
+  }));
+  const recentAnnouncements = tickerItems.slice(0, 4);
+
+  const latest = recentProjects[0];
+  const latestUser = latest ? (Array.isArray(latest.users) ? latest.users[0] : latest.users) : null;
+  const review = reviewRaw?.[0];
+  const examples: HowItWorksExamples = {
+    latestProject: latest
+      ? {
+          title: latest.title,
+          icon_url: latest.icon_url,
+          authorName: latest.author_role === "team" && latest.team_name ? `${latest.team_name} 팀` : personName(latestUser),
+          typeLabel: PROJECT_TYPES.find((t) => t.value === latest.type)?.label ?? latest.type,
+        }
+      : null,
+    latestReview:
+      review && review.projects
+        ? {
+            comment: review.comment,
+            rating: review.rating,
+            reviewerName: personName(review.users),
+            projectTitle: review.projects.title,
+            projectIcon: review.projects.icon_url,
+          }
+        : null,
+    latestIdea: ideas[0] ? { title: ideas[0].title, statusLabel: IDEA_STATUS_LABEL[ideas[0].status] } : null,
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-zinc-950">
@@ -110,7 +187,7 @@ export default async function HomePage() {
         {/* HERO — 가운데 정렬 세로 스택(모바일에서도 같은 구조). 모눈종이 배경 + 로드 시 한 번의 등장 시퀀스 */}
         <section
           className={cn(
-            "paper-grid border-b border-zinc-200 dark:border-zinc-800 px-4 sm:px-6 pb-16 sm:pb-20",
+            "paper-grid border-b border-zinc-200 dark:border-zinc-800 px-6 pb-16 sm:pb-20",
             hasTicker ? "pt-14 sm:pt-24" : "pt-28 sm:pt-40"
           )}
         >
@@ -161,21 +238,9 @@ export default async function HomePage() {
         </section>
 
         {/* 최근 프로젝트 */}
-        <section aria-labelledby="recent-projects" className="px-4 sm:px-6 pt-16 sm:pt-20 pb-20">
+        <section aria-labelledby="recent-projects" className="px-6 pt-14 pb-14 sm:pt-20 sm:pb-20">
           <div className="max-w-5xl mx-auto">
-            <div className="reveal flex items-end justify-between gap-4 mb-6">
-              <h2 id="recent-projects" className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white">
-                최근 올라온 프로젝트
-              </h2>
-              <Link
-                href="/explore"
-                className="inline-flex items-center text-sm font-medium text-blue-700 dark:text-blue-400 hover:underline underline-offset-4 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-              >
-                전체 보기
-                <ChevronRight className="ml-0.5 h-4 w-4" aria-hidden />
-              </Link>
-            </div>
-
+            <SectionHeader id="recent-projects" title="최근 올라온 프로젝트" description="새로 등록된 순서예요." moreHref="/explore" />
             {recentProjects.length > 0 ? (
               <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
                 {recentProjects.map((project, index) => (
@@ -184,12 +249,12 @@ export default async function HomePage() {
                     className={cn("reveal", index >= 3 && "hidden sm:block")}
                     style={revealOrder(index % 3)}
                   >
-                    <ProjectCard project={project} mode="showcase" />
+                    <HomeProjectCard project={project} />
                   </li>
                 ))}
               </ul>
             ) : (
-              <div className="rounded-3xl border border-dashed border-zinc-300 dark:border-zinc-700 p-8 text-center">
+              <div className="rounded-[20px] border border-dashed border-zinc-300 dark:border-zinc-700 p-8 text-center">
                 <p className="text-zinc-600 dark:text-zinc-400">아직 공개된 프로젝트가 없어요.</p>
                 <Link
                   href="/projects/new"
@@ -202,48 +267,39 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* 다른 메뉴 */}
-        <section
-          aria-labelledby="more-sections"
-          className="px-4 sm:px-6 py-16 bg-zinc-50 dark:bg-zinc-900/40 border-t border-zinc-200 dark:border-zinc-800"
-        >
+        {/* 이렇게 써요 */}
+        <section aria-labelledby="how-it-works" className="px-6 py-14 sm:py-16 bg-zinc-50 dark:bg-zinc-900/40 border-t border-zinc-200 dark:border-zinc-800">
           <div className="max-w-5xl mx-auto">
-            <h2 id="more-sections" className="reveal text-xl sm:text-2xl font-bold text-zinc-900 dark:text-white mb-6">
-              프로젝트 말고도
-            </h2>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {SECTION_LINKS.map((item, index) => {
-                const Icon = item.icon;
-                return (
-                  <li key={item.href} className="reveal" style={revealOrder(index)}>
-                    <Link
-                      href={item.href}
-                      className="flex h-full flex-col gap-3.5 rounded-[20px] border border-zinc-200 bg-white p-5 transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                    >
-                      <span className={cn("inline-flex h-10 w-10 items-center justify-center rounded-xl", item.tileClass)} aria-hidden>
-                        <Icon className="h-5 w-5" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block font-semibold text-zinc-900 dark:text-white">{item.title}</span>
-                        <span className="mt-1 block text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400 break-keep">
-                          {item.description}
-                        </span>
-                      </span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+            <SectionHeader id="how-it-works" title="이렇게 써요" description="학교 계정으로 로그인하면 바로 할 수 있는 세 가지." />
+            <HowItWorks examples={examples} />
+          </div>
+        </section>
+
+        {/* 요즘 올라온 글 */}
+        <section aria-labelledby="recent-posts" className="px-6 py-14 sm:py-20">
+          <div className="max-w-5xl mx-auto">
+            <SectionHeader id="recent-posts" title="요즘 올라온 글" description="프로젝트 말고도 글이 올라와요." />
+            <RecentPosts tips={tips} ideas={ideas} announcements={recentAnnouncements} />
+          </div>
+        </section>
+
+        {/* 직접 만들어 보고 싶다면 */}
+        <section aria-labelledby="guide-teaser" className="px-6 py-14 sm:py-16 bg-zinc-50 dark:bg-zinc-900/40 border-t border-zinc-200 dark:border-zinc-800">
+          <div className="max-w-5xl mx-auto">
+            <h2 id="guide-teaser" className="sr-only">직접 만들어 보고 싶다면</h2>
+            <GuideTeaser />
+          </div>
+        </section>
+
+        {/* 마무리 한 번 더 */}
+        <section aria-labelledby="closing-cta" className="px-6 py-14 sm:py-20">
+          <div className="max-w-5xl mx-auto">
+            <ClosingCta projects={shelfProjects} />
           </div>
         </section>
       </main>
 
-      <footer className="py-10 px-4 sm:px-6 border-t border-zinc-200 dark:border-zinc-800 text-sm text-zinc-600 dark:text-zinc-400">
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row gap-2 sm:justify-between">
-          <p>© {new Date().getFullYear()} DSHS Developer Platform</p>
-          <p>대구과학고 @ts.hs.kr 계정으로 로그인할 수 있어요.</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

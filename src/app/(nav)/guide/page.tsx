@@ -4,7 +4,12 @@ export const metadata = {
   title: "바이브 코딩 가이드 — DSHS Developer Platform",
 };
 
-export default function GuidePage() {
+export default async function GuidePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string }>;
+}) {
+  const { type } = await searchParams;
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950">
 
@@ -18,7 +23,7 @@ export default function GuidePage() {
           </p>
         </div>
 
-        <GuideWizard />
+        <GuideWizard initialType={type} />
       </main>
     </div>
   );
