@@ -1,5 +1,5 @@
 -- guide_revisions 저장 함수 보강 (20261024120000 의 후속). 테이블은 건드리지 않는다.
--- docs/17-supabase-guide-revisions.sql 이 source of truth 이며 이 파일은 그 함수 부분과 같다.
+-- docs/18-supabase-guide-revisions.sql 이 source of truth 이며 이 파일은 그 함수 부분과 같다.
 
 -- 2a. 내부 검증 도우미 — 제목·단계·stats 를 검사하고 다듬은 제목을 돌려준다. 아무에게도 EXECUTE 를 주지 않는다.
 CREATE OR REPLACE FUNCTION public._guide_validate_doc(

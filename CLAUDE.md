@@ -143,8 +143,8 @@
 ### 가이드 위키식 편집 (`/guide-wiki/[key]/…`, 2026-10-24)
 - 설계: `docs/superpowers/specs/2026-10-24-guide-wiki-editing-design.md`, 시안 https://claude.ai/artifact/7Wh7o1TxSvSjf24CK1K3zc (편집기 = 2-B 카드 세로 스택 + 미리보기).
 - **누구나 수정**: 로그인한 `@ts.hs.kr` 사용자 누구나 가이드 조각을 고치고 즉시 반영. 관리자 잠금·승인 없음 — 장난 수정은 다른 학생이 되돌린다(사용자 결정).
-- **버전**: `public.guide_revisions`(`docs/17-supabase-guide-revisions.sql`, 운영 적용 완료 — migration `20261024120000`·`20261024130000`). 버전은 쓰면 안 바뀐다(RLS SELECT만, 쓰기 정책 없음). 저장은 `save_guide_revision` 함수로만, **EXECUTE는 `service_role` 전용** — 서버 액션(`src/lib/guide-wiki/actions.ts`)이 `getUser()` 확인 후 `createAdminClient()`로 부른다. 작성자 이메일은 `author_email`에 스냅샷.
-- ⚠️ `docs/17`은 DROP TABLE을 포함하므로 운영 DB에 다시 실행 금지. 함수 수정은 새 migration으로. 동작 확인은 `docs/17-supabase-guide-revisions-verify.sql`(항상 롤백).
+- **버전**: `public.guide_revisions`(`docs/18-supabase-guide-revisions.sql`, 운영 적용 완료 — migration `20261024120000`·`20261024130000`). 버전은 쓰면 안 바뀐다(RLS SELECT만, 쓰기 정책 없음). 저장은 `save_guide_revision` 함수로만, **EXECUTE는 `service_role` 전용** — 서버 액션(`src/lib/guide-wiki/actions.ts`)이 `getUser()` 확인 후 `createAdminClient()`로 부른다. 작성자 이메일은 `author_email`에 스냅샷.
+- ⚠️ `docs/18`은 DROP TABLE을 포함하므로 운영 DB에 다시 실행 금지. 함수 수정은 새 migration으로. 동작 확인은 `docs/18-supabase-guide-revisions-verify.sql`(항상 롤백).
 - **원본과 버전 번호**: DB 기록이 없으면 저장소 원본을 버전 0으로 보여 주고, 첫 저장 때 원본을 버전 1(`kind='seed'`)로 남긴 뒤 수정본이 버전 2. 되돌리기는 옛 내용을 새 버전(`kind='revert'`)으로 저장, 원본 가져오기는 `kind='sync'`. 저장소 원본이 바뀌어도 DB 최신이 이기고, 안내 띠로 "원본 가져오기"를 제안.
 - **충돌**: 저장 시 `baseRev`가 최신과 다르면 `{ conflict }` — 편집 내용은 유지하고 바뀐 점 보기 / 내 내용으로 저장 선택.
 - **화면**: `edit`(보호, 카드 스택·작성/나란히/미리보기·전체 미리보기·하단 저장 바·요약 필수), `history`(작성자·요약·글자 수·"버전 K로 되돌림"/"버전 R에서 되돌려짐" 칩·되돌리기 Dialog), `diff?from&to`(단계 단위 + 줄 diff, `?source=1`은 최신 vs 저장소 원본), `rev/[n]`(옛 버전 보기). 모두 `force-dynamic`.

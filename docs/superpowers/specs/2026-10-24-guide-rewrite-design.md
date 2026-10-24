@@ -177,7 +177,7 @@ Cloudflare는 기본 경로에 넣지 않는다(경로 하나 원칙).(내 결�
 
 ## 7. 위키 편집 기능(6f 세션)과 맞닿는 곳
 
-6f 설계 §4·§7.5 기준. 합의된 분담: 이 작업은 위 §6 파일들, 6f는 `docs/17-supabase-guide-revisions.sql`, `src/lib/guide-wiki/*`, `src/components/guide-wiki/*`, `src/app/(nav)/guide-wiki/**`, 미들웨어 보호 라우트.
+6f 설계 §4·§7.5 기준. 합의된 분담: 이 작업은 위 §6 파일들, 6f는 `docs/18-supabase-guide-revisions.sql`, `src/lib/guide-wiki/*`, `src/components/guide-wiki/*`, `src/app/(nav)/guide-wiki/**`, 미들웨어 보호 라우트.
 
 - 결과 화면 장 이름 줄 오른쪽에 조각별 "고치기"(`/guide-wiki/<key>/edit?from=<지금 가이드 경로>`) · "기록"(`/guide-wiki/<key>/history`) ghost 링크 자리. 카드 아래에 "마지막으로 ○○님이 고침 · 3일 전" 한 줄 자리(`getDocMeta(key)`).
 - 6f 코드가 main에 없을 때는 이 자리를 렌더하지 않는다(빈 자리·죽은 링크 금지). 6f 코드가 있는지는 빌드 시점에 import로 정해지므로, 이 작업은 링크 자리를 `GuideChapterTools({ fragmentKey, from })` 같은 작은 컴포넌트로 분리해 두고 6f가 그 안을 채우게 한다.(내 결정)

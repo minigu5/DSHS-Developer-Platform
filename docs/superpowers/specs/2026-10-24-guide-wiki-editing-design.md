@@ -38,7 +38,7 @@
 | 담당 | 범위 |
 |---|---|
 | 가이드 재작성 세션 | `src/lib/guide.ts`, `src/lib/guide-content.ts`, `src/content/guides/`, `src/components/guide/*`, `src/app/(nav)/guide/**` |
-| 이 작업 (새 파일 위주) | `docs/17-supabase-guide-revisions.sql`, `src/lib/guide-wiki/*`, `src/components/guide-wiki/*`, `src/app/(nav)/guide-wiki/**`, `src/middleware.ts`(보호 라우트 추가), `src/components/shared/page-nav.tsx`(활성 판정 한 줄) |
+| 이 작업 (새 파일 위주) | `docs/18-supabase-guide-revisions.sql`, `src/lib/guide-wiki/*`, `src/components/guide-wiki/*`, `src/app/(nav)/guide-wiki/**`, `src/middleware.ts`(보호 라우트 추가), `src/components/shared/page-nav.tsx`(활성 판정 한 줄) |
 
 재작성 세션이 설계 문서에 넣어 주기로 한 것:
 - `getFragment(key)` — 조각 key → 저장소 원본 콘텐츠
@@ -77,7 +77,7 @@ export async function getLatestDoc(key: string): Promise<WikiDoc | null>;  // DB
 
 ## 5. 데이터 (Supabase)
 
-`docs/17-supabase-guide-revisions.sql` — 재실행 가능하게 작성한다(기존 SQL 파일 관례).
+`docs/18-supabase-guide-revisions.sql` — 재실행 가능하게 작성한다(기존 SQL 파일 관례).
 
 ```sql
 CREATE TABLE public.guide_revisions (
@@ -109,7 +109,7 @@ CREATE INDEX guide_revisions_author_idx ON public.guide_revisions (author_id);
   4. 최신 `rev_no`가 `p_base_rev`와 다르면 `conflict` 오류(현재 최신 번호 포함)를 돌려준다.
   5. `rev_no = 최신+1`로 새 행을 넣고 그 번호를 돌려준다.
   6. 크기 검사: steps 1~50개, 단계 body 각 20,000자 이하, 전체 JSON 200KB 이하. kind는 `edit`·`revert`·`sync`만 받는다.
-- **적용 방법(사용자 결정, 2026-10-24)**: 사용자가 SQL 편집기에서 실행하지 않는다. Claude가 연결된 Supabase CLI(`supabase/.temp/project-ref`로 이미 link됨)로 운영 프로젝트에 적용한다. `docs/17-…sql`이 source of truth이고, CLI 적용용 migration 파일은 같은 내용으로 둔다. 적용 전에 원격 migration 기록 상태를 먼저 확인한다(기존 `20260603085157_remote_schema.sql` 하나뿐).
+- **적용 방법(사용자 결정, 2026-10-24)**: 사용자가 SQL 편집기에서 실행하지 않는다. Claude가 연결된 Supabase CLI(`supabase/.temp/project-ref`로 이미 link됨)로 운영 프로젝트에 적용한다. `docs/18-…sql`이 source of truth이고, CLI 적용용 migration 파일은 같은 내용으로 둔다. 적용 전에 원격 migration 기록 상태를 먼저 확인한다(기존 `20260603085157_remote_schema.sql` 하나뿐).
 - `types.generated.ts`는 SQL 적용 후 다시 생성한다. `src/lib/types.ts`에는 `GuideRevision` 타입을 손으로 추가한다.
 
 ## 6. 서버 액션 — `src/lib/guide-wiki/actions.ts`

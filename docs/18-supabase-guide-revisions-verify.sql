@@ -1,7 +1,7 @@
 -- ============================================================
 -- save_guide_revision 동작 검증 (운영 DB에서 돌려도 안전)
 -- ============================================================
--- 실행: supabase db query --linked -f docs/17-supabase-guide-revisions-verify.sql
+-- 실행: supabase db query --linked -f docs/18-supabase-guide-revisions-verify.sql
 --
 -- 하나의 DO 블록(= 하나의 트랜잭션) 안에서 테스트 문서(zz-verify-*)를 만들고,
 -- 마지막에 항상 RAISE EXCEPTION 으로 끝나 전부 롤백된다. 아무것도 남지 않는다.

@@ -35,8 +35,8 @@
 ### Task 1: DB 스키마와 적용
 
 **Files:**
-- Create: `docs/17-supabase-guide-revisions.sql`
-- Create: `supabase/migrations/20261024120000_guide_revisions.sql`(docs/17과 같은 내용)
+- Create: `docs/18-supabase-guide-revisions.sql`
+- Create: `supabase/migrations/20261024120000_guide_revisions.sql`(docs/18과 같은 내용)
 - Modify: `src/lib/types.generated.ts`(재생성), `src/lib/types.ts`
 
 **Interfaces:**
@@ -192,7 +192,7 @@
 ### Task 9: 마무리 — 문서·정리·전체 확인
 
 **Files:**
-- Modify: `CLAUDE.md`(「🧭 바이브 코딩 가이드」 아래 "가이드 위키식 편집" 소절: 경로 4개, 보호 라우트, `docs/17` 적용됨, 저장 함수 service_role 전용, 어댑터 `source.ts`, dev-sample 비운영, 재작성 세션 연결 대기), 「보호 라우트」 목록에 `/guide-wiki/[key]/edit` 추가, `AGENTS.md` 같은 내용
+- Modify: `CLAUDE.md`(「🧭 바이브 코딩 가이드」 아래 "가이드 위키식 편집" 소절: 경로 4개, 보호 라우트, `docs/18` 적용됨, 저장 함수 service_role 전용, 어댑터 `source.ts`, dev-sample 비운영, 재작성 세션 연결 대기), 「보호 라우트」 목록에 `/guide-wiki/[key]/edit` 추가, `AGENTS.md` 같은 내용
 
 - [ ] **Step 1: 전체 검사** — `npx tsc --noEmit && npm run lint && npm test && npm run build`. Expected: 전부 성공.
 - [ ] **Step 2: 쓰기 거부 확인** — anon 키로 `guide_revisions`에 insert/update/delete 시도하는 일회성 스크립트(scratchpad, 커밋 안 함, `@supabase/supabase-js` + `.env.local`) → 셋 다 실패, 그리고 `rpc('save_guide_revision', …)`도 permission denied.
