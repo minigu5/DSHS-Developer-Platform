@@ -11,7 +11,7 @@ import { syncFromSource, type SaveResult } from "@/lib/guide-wiki/actions";
 const SAVE_FAILED = "저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.";
 
 const BUTTON_CLASS =
-  "inline-flex min-h-11 shrink-0 items-center justify-center self-start rounded-full border border-zinc-300 bg-white px-4 text-[13px] font-medium text-zinc-900 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-9 sm:self-auto dark:border-zinc-700 dark:bg-zinc-950 dark:text-white dark:hover:bg-zinc-800";
+  "inline-flex min-h-11 shrink-0 items-center justify-center rounded-full border border-zinc-300 bg-white px-4 text-[13px] font-medium text-zinc-900 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-9 dark:border-zinc-700 dark:bg-zinc-950 dark:text-white dark:hover:bg-zinc-800";
 
 interface StaleBannerProps {
   docKey: string;
@@ -82,20 +82,31 @@ export function StaleBanner({
           )}
         </div>
       </div>
-      {loginHref ? (
-        <Link href={loginHref} className={BUTTON_CLASS}>
-          로그인하고 원본 가져오기
-        </Link>
-      ) : (
-        <button
-          type="button"
-          onClick={runSync}
-          disabled={blocked || disabled || syncing}
+      <div className="flex flex-wrap gap-2 self-start sm:self-auto">
+        <Link
+          href={`/guide-wiki/${docKey}/diff?source=1`}
+          target={blocked ? "_blank" : undefined}
+          rel={blocked ? "noreferrer" : undefined}
           className={BUTTON_CLASS}
         >
-          {syncing ? "가져오는 중…" : "원본 가져오기"}
-        </button>
-      )}
+          바뀐 점 보기
+          {blocked && <span className="sr-only"> (새 탭)</span>}
+        </Link>
+        {loginHref ? (
+          <Link href={loginHref} className={BUTTON_CLASS}>
+            로그인하고 원본 가져오기
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={runSync}
+            disabled={blocked || disabled || syncing}
+            className={BUTTON_CLASS}
+          >
+            {syncing ? "가져오는 중…" : "원본 가져오기"}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

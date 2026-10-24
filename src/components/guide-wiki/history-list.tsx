@@ -28,10 +28,21 @@ interface HistoryRowProps {
   signedIn: boolean;
 }
 
-function Avatar({ name, url }: { name: string; url: string | null }) {
+export function Avatar({
+  name,
+  url,
+  large = false,
+}: {
+  name: string;
+  url: string | null;
+  large?: boolean;
+}) {
   return (
     <span
-      className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zinc-200 text-[13px] font-semibold text-zinc-800 dark:bg-zinc-700 dark:text-zinc-100"
+      className={cn(
+        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-zinc-200 font-semibold text-zinc-800 dark:bg-zinc-700 dark:text-zinc-100",
+        large ? "h-10 w-10 text-[15px]" : "h-8 w-8 text-[13px]",
+      )}
       aria-hidden
     >
       {url ? (
@@ -39,7 +50,7 @@ function Avatar({ name, url }: { name: string; url: string | null }) {
           src={url}
           alt=""
           fill
-          sizes="32px"
+          sizes={large ? "40px" : "32px"}
           className="object-cover"
           unoptimized={isExternalImage(url)}
         />
