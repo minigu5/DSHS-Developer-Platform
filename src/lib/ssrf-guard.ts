@@ -90,15 +90,49 @@ export async function assertSafePublicUrl(rawUrl: string): Promise<SsrfCheck> {
   }
 
   // DNS 해석 — 모든 결과가 공인 IP 여야 통과
-  try {
-    const results = await lookup(host, { all: true, verbatim: true });
-    if (results.length === 0) return { ok: false, reason: 'no dns result' };
-    for (const r of results) {
-      if (isBlockedIp(r.address)) return { ok: false, reason: 'resolves to private ip' };
-    }
-  } catch {
-    return { ok: false, reason: 'dns lookup failed' };
+  const addresses = await resolveAddresses(host);
+  if (addresses === null) return { ok: false, reason: 'dns lookup failed' };
+  if (addresses.length === 0) return { ok: false, reason: 'no dns result' };
+  for (const address of addresses) {
+    if (isBlockedIp(address)) return { ok: false, reason: 'resolves to private ip' };
   }
 
   return { ok: true, url };
+}
+
+// node:dns 가 안 되는 환경(Cloudflare Workers 로컬 실행 등)에서는 DNS-over-HTTPS 로 다시 찾는다.
+// 모두 실패하면 null — 호출부가 막는다(fail closed).
+async function resolveAddresses(host: string): Promise<string[] | null> {
+  try {
+    return (await lookup(host, { all: true, verbatim: true })).map((r) => r.address);
+  } catch {
+    // 아래 DoH 로
+  }
+  for (const endpoint of DOH_ENDPOINTS) {
+    try {
+      const [a, aaaa] = await Promise.all([queryDoh(endpoint, host, 'A'), queryDoh(endpoint, host, 'AAAA')]);
+      return [...a, ...aaaa];
+    } catch {
+      // 다음 엔드포인트
+    }
+  }
+  return null;
+}
+
+const DOH_ENDPOINTS = ['https://cloudflare-dns.com/dns-query', 'https://dns.google/resolve'];
+const DOH_TYPES = { A: 1, AAAA: 28 } as const;
+
+type DohResponse = { Status: number; Answer?: { type: number; data: string }[] };
+
+async function queryDoh(endpoint: string, host: string, type: keyof typeof DOH_TYPES): Promise<string[]> {
+  const res = await fetch(`${endpoint}?name=${encodeURIComponent(host)}&type=${type}`, {
+    headers: { accept: 'application/dns-json' },
+    signal: AbortSignal.timeout(3000),
+  });
+  if (!res.ok) throw new Error(`doh ${res.status}`);
+  const body = (await res.json()) as DohResponse;
+  if (body.Status === 3) return []; // NXDOMAIN
+  if (body.Status !== 0) throw new Error(`doh status ${body.Status}`);
+  // CNAME 등은 건너뛰고 최종 주소만
+  return (body.Answer ?? []).filter((r) => r.type === DOH_TYPES[type]).map((r) => r.data);
 }

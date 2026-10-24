@@ -20,7 +20,7 @@
 | **Framework** | Next.js (**App Router 필수**, TypeScript) |
 | **Styling** | Tailwind CSS + shadcn/ui |
 | **BaaS (DB & Auth)** | Supabase (PostgreSQL + Supabase Auth) |
-| **Hosting** | Vercel |
+| **Hosting** | Cloudflare Workers (OpenNext, `dshs.dev`) — 전환 전까지 Vercel. `docs/19-cloudflare-workers.md` |
 | **추가 라이브러리** | `@supabase/ssr`, `react-hook-form`, `zod`, `lucide-react`, `date-fns` |
 
 ---
@@ -118,7 +118,7 @@
 | 서비스 | URL / 식별자 |
 |---|---|
 | **GitHub Repository** | https://github.com/minigu5/DSHS-Developer-Platform |
-| **Vercel Deployment** | https://dshs-developer-platform.vercel.app/ |
+| **Production** | https://dshs.dev (Cloudflare Worker `dshs-developer-platform`) — 전환 전 옛 주소 https://dshs-developer-platform.vercel.app/ |
 | **Supabase Project URL** | `https://aclcleemnsmxyixcfqro.supabase.co` |
 | **Supabase Region** | Northeast Asia (Seoul) |
 | **Google OAuth** | Google Cloud Console에서 생성 완료 (Web Client) |
@@ -130,7 +130,7 @@
 - `NEXT_PUBLIC_SITE_URL` (로컬: `http://localhost:3000`)
 - `ALLOWED_EMAIL_DOMAIN=ts.hs.kr`
 
-> Vercel 환경변수에도 동일하게 등록되어 있어야 함 (배포 시).
+> Cloudflare에도 등록 필요: `NEXT_PUBLIC_*`는 빌드 변수, 비밀은 `npx wrangler secret put` (`docs/19-cloudflare-workers.md`).
 
 ---
 

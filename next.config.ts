@@ -42,3 +42,7 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+// `next dev`에서도 Cloudflare 바인딩(env)을 쓸 수 있게 한다 — OpenNext(Cloudflare Workers) 배포용.
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+initOpenNextCloudflareForDev();

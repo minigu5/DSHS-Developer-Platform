@@ -1,11 +1,11 @@
-// 가이드 조각 파일 읽기 (server 전용: fs 사용).
+// 가이드 조각 읽기 (server 전용).
 // 조각 = 장 하나 분량의 마크다운 파일 src/content/guides/<key>.md.
 // 여러 답 조합이 같은 조각을 함께 쓴다. 어떤 조합이 어떤 조각을 쓰는지는 planGuide()가 정한다.
 // 파일 안에서는 '---' 한 줄로 단계를 나눈다. 작성법: src/content/guides/README.md
+// 운영(Cloudflare Workers)은 파일 시스템이 없어 빌드 때 묶은 fragments.generated.ts를 읽고,
+// 개발에서는 md를 고치면 바로 보이도록 파일을 직접 읽는다.
 
-import { promises as fs } from "fs";
-import path from "path";
-
+import { GUIDE_FRAGMENTS } from "@/content/guides/fragments.generated";
 import {
   FRAGMENT_TITLES,
   allGuideAnswers,
@@ -19,8 +19,19 @@ import {
 import { splitFragmentSteps } from "@/lib/guide-markup";
 import { getDocMeta, getLatestDoc } from "@/lib/guide-wiki/read";
 
-const GUIDES_DIR = path.join(process.cwd(), "src", "content", "guides");
 const KEY_RE = /^[a-z0-9][a-z0-9-]{0,99}$/;
+
+async function readFragmentSource(key: string): Promise<string | null> {
+  if (process.env.NODE_ENV === "development") {
+    const [{ readFile }, path] = await Promise.all([import("fs/promises"), import("path")]);
+    try {
+      return await readFile(path.join(process.cwd(), "src", "content", "guides", `${key}.md`), "utf-8");
+    } catch {
+      return null;
+    }
+  }
+  return Object.hasOwn(GUIDE_FRAGMENTS, key) ? GUIDE_FRAGMENTS[key] : null;
+}
 
 export type GuideFragmentStep = { id: string; body: string };
 
@@ -34,12 +45,8 @@ export type GuideFragment = {
 
 export async function getFragment(key: string): Promise<GuideFragment | null> {
   if (!KEY_RE.test(key)) return null;
-  let md: string;
-  try {
-    md = await fs.readFile(path.join(GUIDES_DIR, `${key}.md`), "utf-8");
-  } catch {
-    return null;
-  }
+  const md = await readFragmentSource(key);
+  if (md === null) return null;
   return {
     key,
     title: FRAGMENT_TITLES[key] ?? key,

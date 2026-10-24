@@ -20,7 +20,7 @@
 | **Framework** | Next.js 16 (**App Router 필수**, TypeScript strict) |
 | **Styling** | Tailwind CSS v4 + shadcn/ui (`base-nova` style, base-ui/react 기반) |
 | **BaaS (DB & Auth)** | Supabase (PostgreSQL + Supabase Auth + **RLS**) |
-| **Hosting** | Vercel |
+| **Hosting** | Cloudflare Workers (`@opennextjs/cloudflare`, 도메인 `dshs.dev`) — 2026-10-24 전환 준비 완료, 전환 전까지 Vercel 운영. 순서·설정: `docs/19-cloudflare-workers.md` |
 | **추가 라이브러리** | `@supabase/ssr`, `react-hook-form`, `zod`, `lucide-react`, `date-fns`, `sonner`, `next-themes`, `react-markdown` + `remark-gfm` (바이브 코딩 가이드 렌더링), `cloudinary` (이미지 업로드) |
 
 > ⚠️ shadcn `base-nova` style 의 Button 은 **`asChild` 미지원**. Link 에 `buttonVariants()` 클래스를 입혀 사용.
@@ -268,10 +268,19 @@
 
 | 항목 | 설정값 |
 |---|---|
-| **Vercel 배포 리전** | `icn1` (서울, ap-northeast-2) |
-| **Supabase DB 리전** | `ap-northeast-2` (서울) |
+| **Cloudflare Worker** | `dshs-developer-platform` (`wrangler.jsonc`), Smart Placement로 DB 가까이 실행 |
+| **Vercel 배포 리전** (전환 전까지) | `icn1` (서울, ap-northeast-2) |
+| **Supabase DB 리전** | `ap-northeast-2` (서울) — DB·인증은 Supabase 유지(2026-10-24 사용자 결정, D1 이전 안 함) |
 
-> 두 서비스를 서울 리전으로 통일하여 서버 → DB 왕복 레이턴시를 최소화함.
+> 서버 → DB 왕복 레이턴시를 줄이려고 서버를 DB(서울) 가까이에 둔다.
+
+### Cloudflare Workers 주의 (`docs/19-cloudflare-workers.md`)
+- **파일 시스템 없음**: 런타임 `fs` 읽기 금지. 가이드 조각은 `scripts/gen-guide-fragments.mjs`가 `postinstall`·`predev`·`prebuild`에서 `src/content/guides/fragments.generated.ts`(커밋 안 함)로 묶고, 운영은 그것을 읽는다(개발은 md 직접).
+- **`node:dns` 불안정**: `ssrf-guard.ts`는 `lookup` 실패 시 DoH(fetch)로 대체.
+- **ISR 캐시 없음**: `revalidate` 페이지도 쿠키를 읽어 실제로는 동적(ƒ). `open-next.config.ts`는 정적 자산 캐시만. 쿠키 없는 ISR 페이지를 만들면 R2 캐시로 바꿀 것.
+- **무료 요금제 CPU 10 ms/요청** — 넘으면 오류 1102, Workers Paid($5/월) 필요.
+- `wrangler types` 결과(`cloudflare-env.d.ts`)는 두지 않는다 — 런타임 타입이 브라우저 `Response.json()`을 `unknown`으로 덮어 `tsc`가 깨짐.
+- `src/middleware.ts` 유지(OpenNext가 Next 16 `proxy.ts`를 아직 인식 못 한다는 보고). Next는 16.4.1 이상 필요(OpenNext peer).
 
 ---
 
@@ -300,7 +309,7 @@
 - 공용 컴포넌트: `src/components/shared/image-upload-input.tsx` — 파일 드래그·선택 드롭존 + URL 직접 입력 폴백.
 - 서버: `POST /api/upload` — 로그인 검증 후 Cloudinary에 업로드, `secure_url` 반환. 최대 10MB, 이미지 포맷만 허용.
 - 자동 압축: `quality: "auto:good"`, `fetch_format: "auto"` 변환 적용.
-- 환경변수 3개 필요: `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` (Vercel에도 동일하게 설정 필요).
+- 환경변수 3개 필요: `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` (Cloudflare에는 `wrangler secret put`으로 설정).
 - `src/lib/parse-image-url.ts`와 `GET /api/resolve-image`는 기존 imgbb URL을 위해 유지.
 
 ### 이미지 포맷 최적화 — `next.config.ts`
@@ -362,7 +371,7 @@
 - **`(nav)/layout.tsx` DOM 최하단**에 `<SiteHeader>` 및 콘텐츠와 분리된 독립 컴포넌트로 배치. 헤더 CSS stacking context 영향 없음.
 - `fixed bottom-0 inset-x-0 z-50 flex sm:hidden` — 뷰포트 바닥에 고정.
 - **아이콘 전용** (`h-5 w-5`). 활성 항목은 `h-9 w-9 rounded-full` **원형 컬러 배경 + 흰색 아이콘**, 비활성은 배경 없이 zinc 아이콘.
-- 모바일 헤더: 로고(아이콘 + 2줄 텍스트) + 다크모드 토글 + 프로필만 표시. 로고 텍스트는 1줄 "DSHS Developer Platform"(`text-base sm:text-[17px]`, `font-heading`) + 2줄 읽는 이름 "대곽 개발자 플랫폼"(`text-[11px]` zinc-600). 공식 이름은 영문(도메인 dshs-developer-platform.vercel.app과 일치)이고 한글은 부르는 이름일 뿐이라 탭 제목·푸터는 영문만 쓴다.
+- 모바일 헤더: 로고(아이콘 + 2줄 텍스트) + 다크모드 토글 + 프로필만 표시. 로고 텍스트는 1줄 "DSHS Developer Platform"(`text-base sm:text-[17px]`, `font-heading`) + 2줄 읽는 이름 "대곽 개발자 플랫폼"(`text-[11px]` zinc-600). 공식 이름은 영문(도메인 dshs.dev·옛 dshs-developer-platform.vercel.app과 일치)이고 한글은 부르는 이름일 뿐이라 탭 제목·푸터는 영문만 쓴다.
 - **로고 정렬**: 아이콘은 `<Image width={32} height={32} className="block ...">` (fill 미사용 — inline baseline 문제 방지). 텍스트는 `<span>` 2줄 세로 스택(`flex flex-col gap-px`, 각 줄 `leading-[1.1]`), Link의 `items-center`로 아이콘과 중앙 정렬.
 - `(nav)/layout.tsx`에서 콘텐츠를 `<div className="pb-16 sm:pb-0">` 로 감싸 탭바(56px)에 가려지지 않도록 여백 확보.
 
@@ -426,7 +435,7 @@
 2. `npx tsc --noEmit` 실행하여 타입 에러 0 확인.
 3. `.env.local` 환경 변수 설정 확인.
 
-### 필수 환경변수 목록 (`.env.local` · Vercel 동일하게 설정)
+### 필수 환경변수 목록 (`.env.local` · Cloudflare 설정 — `NEXT_PUBLIC_*`는 빌드 변수, 나머지는 `wrangler secret`/`vars`, `docs/19-cloudflare-workers.md`)
 
 | 변수명 | 출처 |
 |---|---|

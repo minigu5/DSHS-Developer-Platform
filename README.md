@@ -19,7 +19,7 @@
 | Framework | Next.js 16 (App Router, TypeScript strict) |
 | Styling | Tailwind CSS v4 + shadcn/ui (base-nova) |
 | BaaS | Supabase (PostgreSQL + Auth + RLS) |
-| Hosting | Vercel (서울 리전 `icn1`) |
+| Hosting | Cloudflare Workers (OpenNext, `dshs.dev`) |
 
 ## 시작하기
 

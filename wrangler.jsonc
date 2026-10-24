@@ -1,0 +1,34 @@
+// Cloudflare Workers 배포 설정 (OpenNext). 설명: docs/19-cloudflare-workers.md
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dshs-developer-platform",
+  // 개인 계정(Seong381400@gmail.com) — dshs.dev 영역이 있는 계정
+  "account_id": "370e521d89a70d895de8448a36449b93",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-20",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    { "binding": "WORKER_SELF_REFERENCE", "service": "dshs-developer-platform" }
+  ],
+  // Supabase(서울)와 자주 왕복하므로 Worker를 DB 가까이에서 실행
+  "placement": { "mode": "smart" },
+  "observability": { "enabled": true },
+
+  // next/image 최적화
+  "images": { "binding": "IMAGES" },
+
+  // 비밀이 아닌 런타임 값. 비밀은 `npx wrangler secret put <이름>`으로.
+  "vars": {
+    "ALLOWED_EMAIL_DOMAIN": "ts.hs.kr"
+  }
+
+  // dshs.dev 영역이 이 계정에 추가된 뒤 주석 해제 (위 "vars" 블록 끝에 쉼표 추가)
+  // "routes": [
+  //   { "pattern": "dshs.dev", "custom_domain": true },
+  //   { "pattern": "www.dshs.dev", "custom_domain": true }
+  // ]
+}
