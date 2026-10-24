@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
-import { Search, Rocket, BookOpen, Newspaper, Megaphone, Bell } from "lucide-react";
+import { Search, Rocket, BookOpen, MessagesSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SECTION_COLORS } from "@/lib/section-colors";
 
@@ -12,18 +12,22 @@ const NAV_ITEMS = [
   { href: "/explore", label: "모든 프로젝트", icon: Search, pillClass: SECTION_COLORS.explore.pill },
   { href: "/projects/new", label: "프로젝트 등록", icon: Rocket, pillClass: SECTION_COLORS.new.pill },
   { href: "/guide", label: "나도 개발해볼래!", icon: BookOpen, pillClass: SECTION_COLORS.guide.pill },
-  { href: "/tips", label: "개발 팁", icon: Newspaper, pillClass: SECTION_COLORS.tips.pill },
-  { href: "/haejwo", label: "해줘!", icon: Megaphone, pillClass: SECTION_COLORS.haejwo.pill },
-  { href: "/announcements", label: "공지사항", icon: Bell, pillClass: SECTION_COLORS.announcements.pill },
+  // 개발 팁(/tips)과 해줘!(/haejwo)를 한 칸으로 — 칸은 /tips로 가고, 활성은 두 경로 모두 이 칸
+  { href: "/tips", label: "커뮤니티", icon: MessagesSquare, pillClass: SECTION_COLORS.tips.pill },
 ] as const;
+
+// 공지사항은 내비 칸이 아니라 헤더 오른쪽 벨(announcements-link.tsx)이다 — 공지 화면에서는 어느 칸도 켜지지 않는다.
 
 const STORAGE_KEY = "pagenav-pill";
 
+// 커뮤니티 칸은 해줘! 화면에서 주황, 개발 팁 화면에서 분홍 — 페이지 머리 타일·주 버튼 색과 맞춘다
+function pillFor(href: string, pillClass: string, pathname: string): string {
+  return href === "/tips" && pathname.startsWith("/haejwo") ? SECTION_COLORS.haejwo.pill : pillClass;
+}
+
 function resolveActive(pathname: string): string {
   if (pathname.startsWith("/guide")) return "/guide";
-  if (pathname.startsWith("/tips")) return "/tips";
-  if (pathname.startsWith("/haejwo")) return "/haejwo";
-  if (pathname.startsWith("/announcements")) return "/announcements";
+  if (pathname.startsWith("/tips") || pathname.startsWith("/haejwo")) return "/tips";
   if (pathname === "/projects/new" || pathname.endsWith("/edit")) return "/projects/new";
   if (
     pathname.startsWith("/explore") ||
@@ -91,14 +95,15 @@ export function PageNav() {
     setPill({ ...next, top, height, ready: true });
   }, [activeIndex, pathname]);
 
-  const activePill = activeIndex >= 0 ? NAV_ITEMS[activeIndex].pillClass : "";
+  const activeItem = activeIndex >= 0 ? NAV_ITEMS[activeIndex] : null;
+  const activePill = activeItem ? pillFor(activeItem.href, activeItem.pillClass, pathname) : "";
 
   return (
     <nav aria-label="주요 메뉴" className="relative flex items-center gap-0.5 sm:gap-1">
       <span
         aria-hidden
         className={cn(
-          "pointer-events-none absolute left-0 rounded-full transition-[transform,width,opacity] duration-300 ease-out motion-reduce:transition-none",
+          "pointer-events-none absolute left-0 rounded-full transition-[transform,width,opacity,background-color] duration-300 ease-out motion-reduce:transition-none",
           activePill,
           pill.ready ? "opacity-100" : "opacity-0",
         )}
@@ -145,7 +150,7 @@ export function PageNav() {
 
 // 모바일 전용 — (nav)/layout.tsx 최하단에서 사용
 export function MobileNav() {
-  const { active, onNavigate } = useOptimisticActive();
+  const { pathname, active, onNavigate } = useOptimisticActive();
 
   return (
     <nav
@@ -168,7 +173,7 @@ export function MobileNav() {
               className={cn(
                 "flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-200 group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-blue-600",
                 isActive
-                  ? cn(pillClass, "text-white")
+                  ? cn(pillFor(href, pillClass, pathname), "text-white")
                   : "text-zinc-600 dark:text-zinc-400",
               )}
             >
