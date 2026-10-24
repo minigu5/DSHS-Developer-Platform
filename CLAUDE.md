@@ -71,6 +71,7 @@
 - **아이콘 link 모드**: `ImageUploadInput` 컴포넌트 사용 — 파일 드래그·선택 업로드 + URL 직접 입력 폴백. 업로드된 이미지는 Cloudinary에 자동 저장.
 - **키보드 접근성**: 카드 그리드 UI(`div` 기반)에 `tabIndex={0}` · `role="button"` · `onKeyDown`(Enter/Space) · `focus-visible:ring-2` 적용. Tab 키로 모든 카드 포커스 이동, Enter/Space로 선택 가능. 웹사이트 타입 선택 시 비활성화된 플랫폼 카드는 `tabIndex={-1}`로 Tab 순서에서 제외.
 - **상세 설명 마크다운 에디터**: `<Textarea>` 대신 작성 / 분할 / 미리보기 3탭 UI. Tab 키 두 칸 들여쓰기(Shift+Tab으로 해제) 지원. `Markdown` 컴포넌트로 실시간 미리보기.
+- **GitHub README 가져오기**(2026-10-24): 상세 설명 카드 맨 위에 "GitHub에서 가져오기" 줄 — 저장소 링크 입력 + "README 가져오기" 버튼(Enter도 동작). `GET /api/github-readme?url=`(로그인 필요, 라우트 `src/app/api/github-readme/route.ts`)이 GitHub API `/repos/{o}/{r}/readme`를 부르고, 한도(403/429)·실패면 `raw.githubusercontent.com/.../HEAD/README.md` 계열로 대체. 호스트가 고정이고 owner/repo를 정규식으로 제한해서 SSRF 가드는 쓰지 않음. 변환·파싱 순수 로직은 `src/lib/github-readme.ts`(테스트 `github-readme.test.ts`): 상대 이미지·링크를 `raw.githubusercontent.com`/`github.com/.../blob/HEAD/` 절대 주소로, `Markdown` 컴포넌트가 raw HTML을 못 그리므로 `<img>`·`<a>`·`<h1~6>`·`<br>` 등을 마크다운으로 바꾸고 나머지 태그는 제거(코드 블록·인라인 코드 안은 그대로), 3만 자 넘으면 줄 단위로 자름. 이미 쓴 설명이 있으면 shadcn `Dialog`로 덮어쓰기 확인. 오픈소스 선택 상태에서 저장소 링크가 비어 있으면 입력한 링크를 `repo_url`에도 채움. 비공개 저장소·`.rst` 등 비마크다운 README는 오류 안내. 선택 환경변수 `GITHUB_TOKEN`(없어도 동작 — API 한도는 IP당 시간당 60회, 있으면 한도 완화).
 - **팀 프로젝트 팀원 관리**:
   - 이메일 입력 시 `@ts.hs.kr` 도메인 확인 후 `users` 테이블에서 **실제 가입 여부를 검증** (미가입이면 "가입되지 않은 사용자입니다." 에러).
   - `authorRole === 'team'` 전환 시 `useEffect`로 현재 로그인 사용자를 자동 추가. 자신은 X 버튼이 없어 삭제 불가.
@@ -331,14 +332,14 @@
 
 ### 홈 페이지 CTA 프리패치 — `src/app/page.tsx`
 - 홈 페이지는 PageNav가 없어 `/explore`(force-dynamic) 등 동적 페이지가 자동 프리패치되지 않음.
-- **홈 구성** (2026-10-24 리뉴얼, 같은 날 세로 길이 보강): 히어로(모눈종이 배경 `.paper-grid`, **가운데 정렬 세로 스택** — 큰 2줄 제목 "발견하고, 공유하고, / 만들어요."(2줄째만 단색 blue-600) → 설명 → 알약형 CTA 2개 → **아이콘 나열**) → "최근 올라온 프로젝트"(공개 6개, `HomeProjectCard`) → "이렇게 써요"(zinc-50 띠, `HowItWorks`) → "요즘 올라온 글"(`RecentPosts`) → "직접 만들어 보고 싶다면"(zinc-50 띠, `GuideTeaser`) → "다음 아이콘은 내 프로젝트로."(`ClosingCta`) → 푸터(`SiteFooter`, 홈 전용). 가운데 정렬 단일 컬럼이라 모바일에서도 구조가 같다 — 데스크탑 좌우 분할(텍스트 | 장식)은 모바일에서 장식이 쪼그라들어 사용자가 거부함(2026-10-23). 헤드라인에 프로젝트 개수는 넣지 않는다(수가 적을 때 빈약해 보임). 그라디언트 글자·블롭·환영 배지는 옛 히어로 구조를 되살릴 때도 쓰지 않는다. 통계 띠("프로젝트 N개")·리뷰 인용 섹션은 콘텐츠가 적어 보류, "프로젝트 말고도" 4열 메뉴 카드는 2026-10-24 제거(사용자 결정 — 역할을 "요즘 올라온 글"·푸터가 대신함). 홈은 모바일 좌우 여백 `px-6`(24px).
+- **홈 구성** (2026-10-24 리뉴얼, 같은 날 세로 길이 보강): 히어로(모눈종이 배경 `.paper-grid`, **가운데 정렬 세로 스택** — 큰 2줄 제목 "발견하고, 공유하고, / 만들어요."(2줄째만 단색 blue-600) → 설명 → 알약형 CTA 2개 → **아이콘 나열**) → "최근 올라온 프로젝트"(공개 6개, `HomeProjectCard`) → "이렇게 써요"(zinc-50 띠, `HowItWorks`) → "요즘 올라온 글"(`RecentPosts`) → "직접 만들어 보고 싶다면"(zinc-50 띠, `GuideTeaser`) → "다음 아이콘은 내 프로젝트로."(`ClosingCta`) → 푸터(`SiteFooter`, `(nav)` 페이지 전체와 공통). 가운데 정렬 단일 컬럼이라 모바일에서도 구조가 같다 — 데스크탑 좌우 분할(텍스트 | 장식)은 모바일에서 장식이 쪼그라들어 사용자가 거부함(2026-10-23). 헤드라인에 프로젝트 개수는 넣지 않는다(수가 적을 때 빈약해 보임). 그라디언트 글자·블롭·환영 배지는 옛 히어로 구조를 되살릴 때도 쓰지 않는다. 통계 띠("프로젝트 N개")·리뷰 인용 섹션은 콘텐츠가 적어 보류, "프로젝트 말고도" 4열 메뉴 카드는 2026-10-24 제거(사용자 결정 — 역할을 "요즘 올라온 글"·푸터가 대신함). 홈은 모바일 좌우 여백 `px-6`(24px).
 - **홈 섹션 공통 머리** (`src/components/home/section-header.tsx`): 제목(`font-heading`) + 한 줄 설명 + 오른쪽 "전체 보기"(선택). 새 홈 섹션은 모두 이 패턴.
 - **홈 전용 프로젝트 카드** (`src/components/home/home-project-card.tsx`): 홈의 다른 섹션 카드와 같은 20px 모서리·테두리·그림자 없음·hover 테두리 진해짐. 카드 전체가 링크라 작성자는 링크 없이 표시. 탐색·프로필의 `ProjectCard`(24px, shadow-sm)와 별개 — 사용자가 홈만 통일하기로 함(2026-10-24).
 - **이렇게 써요** (`how-it-works.tsx`): 올리기 → 리뷰 → 해줘 3단계 카드. 각 칸 아래 실제 최근 예시 한 줄(가장 최근 공개 프로젝트 / 공개 프로젝트의 최근 리뷰 1개(`reviews` + `projects!inner`, `visibility=public`) / 최근 해줘 1개), 없으면 안내 문구. 한국어 조사(이/가·을/를) 붙이지 말고 `제목 · 작성자 · 종류`처럼 점 구분으로.
 - **요즘 올라온 글** (`recent-posts.tsx`): 개발 팁(최근 3, `tips_author_id_fkey`) · 해줘!(최근 3, `ideas_author_id_fkey`) · 공지(티커용 10개 중 앞 4개, 고정 우선) 세 칸. 비면 "첫 글 쓰기" 안내가 칸 하단 점선 위에. 공지 카테고리 색은 티커와 동일.
 - **직접 만들어 보고 싶다면** (`guide-teaser.tsx`): 가이드 위저드 첫 질문(`GUIDE_STEPS[0]`, 옵션 4개: 웹사이트·앱·확장프로그램·그 밖의 도구)을 홈에 그대로 노출. 옵션 클릭 시 `/guide?type=<value>` — `GuideWizard`가 `initialType` prop으로 첫 질문을 미리 답한 상태로 시작, `/guide/page.tsx`가 `searchParams.type`을 넘김.
 - **마무리 CTA** (`closing-cta.tsx`): 어두운 단색 카드(라이트 zinc-900 / 다크는 반전 zinc-100) + 아이콘 나열 상위 3개 미니 타일 + "내 프로젝트 등록하기"(blue-600)·"만드는 법부터 보기".
-- **푸터** (`site-footer.tsx`): 소개 한 줄 + 메뉴 3열(둘러보기/만들기/이 사이트: GitHub 저장소·이슈·마이페이지) + 저작권·로그인 안내. 홈에서만 사용(`(nav)` 레이아웃엔 푸터 없음).
+- **푸터** (`site-footer.tsx`): 소개 한 줄 + 메뉴 3열(둘러보기/만들기/이 사이트: GitHub 저장소·이슈·마이페이지) + 저작권·로그인 안내. 홈(`src/app/page.tsx`)과 `(nav)/layout.tsx`(콘텐츠 아래, 모바일 탭바에 안 가리게 `pb-16 sm:pb-0` 래퍼 안)에서 같은 컴포넌트를 쓴다 — 모든 `(nav)` 페이지에 동일하게 나옴(2026-10-24 사용자 요청). 로그인 계열(`AuthShell`) 독립 화면에는 없음.
 - **아이콘 나열** (`src/components/home/icon-shelf.tsx`): 사이트의 개성을 담당하는 장식 요소. 공개 프로젝트를 **많이 찾는 순**(`click_count` desc, 동률이면 최신 등록) `SHELF_LIMIT`(11)개 + "내 앱 올리기" 칸을 72px(sm 80px) `rounded-[22%]` 아이콘 스티커로 가운데 flex-wrap. 흰 `ring-[3px]`(다크 zinc-950) + 중립 그림자. 이름은 안 보이고 `aria-label`·`title`로만. 모바일(72px, 간격 14px)에서 4칸씩 3줄.
 - **로딩 시퀀스** (`globals.css`): 페이지 로드 때 한 번만. 제목·설명·버튼 `.rise`(`--rise-delay` 0/90/180ms) → 아이콘 `.tile-pop`(`--pop-delay` 260ms부터 65ms 간격) → "내 앱 올리기" 칸 `.tile-invite`가 파란 테두리·배경으로 3번 깜빡임(다크는 `tile-invite-dark`). 동작 줄이기 설정이면 전역 규칙이 duration과 **delay**를 0으로 만들어 즉시 표시(delay를 안 지우면 `fill: both` 요소가 지연 동안 안 보이는 버그가 있었음).
 - **스크롤 리빌** (`src/components/home/reveal-observer.tsx` + `globals.css` `.reveal`, 2026-10-24 사용자 요청): 히어로 아래 모든 섹션(`SectionHeader`·카드·`GuideTeaser`·`ClosingCta`)이 뷰포트에 15% 들어오면 한 번 올라오며 나타남(opacity 0→1, translate 28px, scale .97, 600ms). `RevealObserver`(클라이언트, UI 없음)가 마운트 시 `<html>`에 `reveal-ready`를 붙이고 IntersectionObserver로 `.is-in`을 추가 — `reveal-ready` 전에는 숨기지 않아 JS가 없어도 내용이 보임. 같은 줄 카드는 `revealOrder(n)`(`--reveal-delay` n×90ms)로 차례. 동작 줄이기면 관찰 없이 전부 `.is-in`. 처음엔 CSS `animation-timeline: view()`로 했으나 로드 때 이미 보이는 섹션은 안 움직이고 Safari/Firefox 지원이 갈려 교체함.
@@ -377,7 +378,7 @@
 
 ### 적용 방법
 - `SiteHeader`에 `showNav` prop → `<SiteHeader showNav />`. 홈(`/`)·로그인(`/login`) 페이지는 미적용.
-- `(nav)/layout.tsx`: `<SiteHeader showNav />` + 콘텐츠 래퍼 + `<MobileNav />` 순서로 배치.
+- `(nav)/layout.tsx`: `<SiteHeader showNav />` + 콘텐츠 래퍼 + `<SiteFooter />`(`pb-16 sm:pb-0` 래퍼) + `<MobileNav />` 순서로 배치.
 
 ---
 
