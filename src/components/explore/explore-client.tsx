@@ -1,69 +1,14 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import {
-  Search,
-  Filter,
-  ChevronDown,
-  Globe,
-  Smartphone,
-  Puzzle,
-  Terminal,
-  Package,
-  Monitor,
-  Laptop,
-  Server,
-  Bot,
-  Apple,
-  FileText,
-  Sparkles,
-  BookOpen,
-  Wrench,
-  Gamepad2,
-  Users,
-  Film,
-  Zap,
-  Code2,
-  MoreHorizontal,
-  ArrowUpDown,
-  X,
-  type LucideIcon,
-} from "lucide-react";
+import { Search, Filter, ChevronDown, ArrowUpDown, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { ProjectCard, type ProjectCardData } from "@/components/projects/project-card";
 import { PROJECT_TYPES, PLATFORMS, FEATURES } from "@/lib/constants";
+import { TYPE_ICONS, PLATFORM_ICONS, CATEGORY_ICONS } from "@/lib/type-icons";
 
-const TYPE_ICONS: Record<string, LucideIcon> = {
-  website: Globe,
-  app: Smartphone,
-  extension: Puzzle,
-  cli: Terminal,
-  library: Package,
-};
-
-const PLATFORM_ICONS: Record<string, LucideIcon> = {
-  web: Globe,
-  ios: Apple,
-  android: Bot,
-  windows: Monitor,
-  macos: Laptop,
-  linux: Server,
-};
-
-const CATEGORY_ICONS: Record<string, LucideIcon> = {
-  document: FileText,
-  ai: Sparkles,
-  study: BookOpen,
-  utility: Wrench,
-  game: Gamepad2,
-  social: Users,
-  media: Film,
-  productivity: Zap,
-  "dev-tool": Code2,
-  other: MoreHorizontal,
-};
 
 interface ExploreClientProps {
   initialProjects: ProjectCardData[];

@@ -4,9 +4,8 @@ import { Pin } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 
-import { Badge } from "@/components/ui/badge";
-import { isExternalImage } from "@/lib/utils";
-import { ANNOUNCEMENT_CATEGORIES } from "@/lib/constants";
+import { cn, isExternalImage } from "@/lib/utils";
+import { announcementCategoryColor, announcementCategoryLabel } from "@/lib/announcement-colors";
 
 export type AnnouncementCardData = {
   id: string;
@@ -14,76 +13,76 @@ export type AnnouncementCardData = {
   category: string;
   is_pinned: boolean;
   created_at: string;
+  /** 본문 첫 문단 평문(서버에서 `announcementSummary`로 생성) */
+  summary: string;
   author: { nickname: string | null; full_name: string | null; avatar_url: string | null } | null;
 };
 
-const CATEGORY_COLORS: Record<string, string> = {
-  promotion: "border-sky-200 text-sky-600 dark:border-sky-900/50 dark:text-sky-400",
-  beta:      "border-violet-200 text-violet-600 dark:border-violet-900/50 dark:text-violet-400",
-  feedback:  "border-emerald-200 text-emerald-600 dark:border-emerald-900/50 dark:text-emerald-400",
-  update:    "border-amber-200 text-amber-600 dark:border-amber-900/50 dark:text-amber-400",
-  general:   "border-zinc-200 text-zinc-500 dark:border-zinc-700 dark:text-zinc-400",
-};
-
+/**
+ * 공지 카드 — 카테고리 알약(티커와 같은 색) + 고정 표시, 제목 2줄, 요약 2줄, 작성자·시간.
+ * 고정 공지는 배경을 칠하지 않고 테두리만 sky.
+ */
 export function AnnouncementCard({ announcement }: { announcement: AnnouncementCardData }) {
   const authorName =
     announcement.author?.nickname || announcement.author?.full_name || "알 수 없음";
 
-  const categoryLabel =
-    ANNOUNCEMENT_CATEGORIES.find((c) => c.value === announcement.category)?.label ??
-    announcement.category;
-
-  const colorClass = CATEGORY_COLORS[announcement.category] ?? CATEGORY_COLORS.general;
-
   return (
     <Link
       href={`/announcements/${announcement.id}`}
-      className="group flex flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm transition-colors duration-300 hover:border-sky-500/50 dark:border-zinc-800 dark:bg-zinc-900"
+      className={cn(
+        "group flex min-h-[160px] flex-col gap-3 rounded-3xl border bg-white p-5 shadow-sm transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:bg-zinc-900",
+        announcement.is_pinned
+          ? "border-sky-300 hover:border-sky-400 dark:border-sky-800 dark:hover:border-sky-700"
+          : "border-zinc-200 hover:border-zinc-300 dark:border-zinc-800 dark:hover:border-zinc-700",
+      )}
     >
-      <div className="flex flex-1 flex-col p-6">
-        <div className="mb-3 flex items-center gap-2">
-          {announcement.is_pinned && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-600 dark:bg-sky-950/40 dark:text-sky-400">
-              <Pin className="h-2.5 w-2.5" /> 고정됨
-            </span>
+      <div className="flex items-center gap-1.5">
+        <span
+          className={cn(
+            "inline-flex h-[22px] items-center rounded-full px-2.5 text-[11px] font-semibold",
+            announcementCategoryColor(announcement.category),
           )}
-          <Badge
-            variant="outline"
-            className={`h-5 rounded-full px-2 text-[10px] ${colorClass}`}
-          >
-            {categoryLabel}
-          </Badge>
-        </div>
-
-        <h2 className="line-clamp-2 text-lg font-bold text-zinc-900 transition-colors group-hover:text-sky-600 dark:text-white dark:group-hover:text-sky-400">
-          {announcement.title}
-        </h2>
-
-        <div className="flex-1 min-h-4" />
-        <div className="flex items-center justify-between border-t border-zinc-100 pt-4 dark:border-zinc-800">
-          <div className="flex items-center gap-2">
-            <div className="relative h-6 w-6 overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800">
-              {announcement.author?.avatar_url ? (
-                <Image
-                  src={announcement.author.avatar_url}
-                  alt={authorName}
-                  fill
-                  className="object-cover"
-                  unoptimized={isExternalImage(announcement.author.avatar_url)}
-                />
-              ) : (
-                <span className="flex h-full w-full items-center justify-center text-[10px] font-bold text-sky-700 dark:text-sky-300">
-                  {authorName.charAt(0)}
-                </span>
-              )}
-            </div>
-            <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">{authorName}</span>
-          </div>
-
-          <span className="text-xs text-zinc-400">
-            {formatDistanceToNow(new Date(announcement.created_at), { addSuffix: true, locale: ko })}
+        >
+          {announcementCategoryLabel(announcement.category)}
+        </span>
+        {announcement.is_pinned && (
+          <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-sky-700 dark:text-sky-300">
+            <Pin className="h-3 w-3" aria-hidden />
+            고정
           </span>
-        </div>
+        )}
+      </div>
+
+      <h2 className="line-clamp-2 text-[17px] font-bold leading-snug text-zinc-900 dark:text-white">
+        {announcement.title}
+      </h2>
+      {announcement.summary && (
+        <p className="line-clamp-2 text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+          {announcement.summary}
+        </p>
+      )}
+
+      <div className="mt-auto flex items-center justify-between gap-2 pt-1 text-xs text-zinc-500 dark:text-zinc-400">
+        <span className="flex items-center gap-2">
+          <span className="relative h-6 w-6 overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800">
+            {announcement.author?.avatar_url ? (
+              <Image
+                src={announcement.author.avatar_url}
+                alt=""
+                fill
+                sizes="24px"
+                className="object-cover"
+                unoptimized={isExternalImage(announcement.author.avatar_url)}
+              />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center text-[10px] font-bold text-zinc-700 dark:text-zinc-200" aria-hidden>
+                {authorName.charAt(0)}
+              </span>
+            )}
+          </span>
+          <span className="font-medium text-zinc-600 dark:text-zinc-400">{authorName}</span>
+        </span>
+        <span>{formatDistanceToNow(new Date(announcement.created_at), { addSuffix: true, locale: ko })}</span>
       </div>
     </Link>
   );

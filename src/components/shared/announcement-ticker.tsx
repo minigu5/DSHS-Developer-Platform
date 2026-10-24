@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, type CSSProperties } from "react";
 import { Bell, ChevronRight, Pause, Pin, Play } from "lucide-react";
-import { ANNOUNCEMENT_CATEGORIES, ADMIN_ANNOUNCEMENT_CATEGORY } from "@/lib/constants";
+import { announcementCategoryColor, announcementCategoryLabel } from "@/lib/announcement-colors";
 
 export type TickerItem = {
   id: string;
@@ -12,19 +12,6 @@ export type TickerItem = {
   is_pinned: boolean;
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  ...Object.fromEntries(ANNOUNCEMENT_CATEGORIES.map((c) => [c.value, c.label])),
-  [ADMIN_ANNOUNCEMENT_CATEGORY.value]: ADMIN_ANNOUNCEMENT_CATEGORY.label,
-};
-
-const CATEGORY_COLORS: Record<string, string> = {
-  promotion: "bg-blue-100/80 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  beta:      "bg-violet-100/80 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
-  feedback:  "bg-amber-100/80 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  update:    "bg-emerald-100/80 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-  general:   "bg-zinc-100/80 text-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-400",
-  admin:     "bg-rose-100/80 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400",
-};
 
 export function AnnouncementTicker({ items }: { items: TickerItem[] }) {
   const [paused, setPaused] = useState(false);
@@ -67,8 +54,8 @@ export function AnnouncementTicker({ items }: { items: TickerItem[] }) {
                 {item.is_pinned && (
                   <Pin className="h-2.5 w-2.5 shrink-0 text-zinc-500" />
                 )}
-                <span className={`inline-block rounded-full px-1.5 py-px text-[11px] font-medium leading-none ${CATEGORY_COLORS[item.category] ?? CATEGORY_COLORS.general}`}>
-                  {CATEGORY_LABELS[item.category] ?? item.category}
+                <span className={`inline-block rounded-full px-1.5 py-px text-[11px] font-medium leading-none ${announcementCategoryColor(item.category)}`}>
+                  {announcementCategoryLabel(item.category)}
                 </span>
                 <span className="text-zinc-700 dark:text-zinc-300">{item.title}</span>
               </span>
