@@ -7,7 +7,7 @@ import { ONBOARDING_COOKIE_NAME, ONBOARDING_COOKIE_SECURE } from '@/lib/supabase
 import { updateSession } from '@/lib/supabase/middleware';
 
 // 로그인이 강제되는 경로 prefix. 메인/탐색/상세는 비로그인도 열람 가능.
-const PROTECTED_PREFIXES = ['/projects/new', '/tips/new', '/haejwo/new', '/announcements/new', '/me'] as const;
+const PROTECTED_PREFIXES = ['/projects/new', '/tips/new', '/haejwo/new', '/announcements/new', '/me', '/domains'] as const;
 
 // 온보딩 완료 여부를 캐시하는 쿠키 이름 (운영은 __Host- 접두사 — cookie-options.ts)
 const ONBOARDING_COOKIE = ONBOARDING_COOKIE_NAME;

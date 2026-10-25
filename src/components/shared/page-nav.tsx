@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
-import { Search, Rocket, BookOpen, MessagesSquare } from "lucide-react";
+import { Search, Rocket, BookOpen, Globe, MessagesSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SECTION_COLORS } from "@/lib/section-colors";
 
@@ -12,6 +12,8 @@ const NAV_ITEMS = [
   { href: "/explore", label: "모든 프로젝트", icon: Search, pillClass: SECTION_COLORS.explore.pill },
   { href: "/projects/new", label: "프로젝트 등록", icon: Rocket, pillClass: SECTION_COLORS.new.pill },
   { href: "/guide", label: "나도 개발해볼래!", icon: BookOpen, pillClass: SECTION_COLORS.guide.pill },
+  // 학생 웹사이트에 이름.dshs.dev 주소를 붙여 주는 화면 — 배포 직후 찾아오도록 가이드 바로 다음
+  { href: "/domains", label: "주소 받기", icon: Globe, pillClass: SECTION_COLORS.domains.pill },
   // 개발 팁(/tips)과 해줘!(/haejwo)를 한 칸으로 — 칸은 /tips로 가고, 활성은 두 경로 모두 이 칸
   { href: "/tips", label: "커뮤니티", icon: MessagesSquare, pillClass: SECTION_COLORS.tips.pill },
 ] as const;
@@ -27,6 +29,7 @@ function pillFor(href: string, pillClass: string, pathname: string): string {
 
 function resolveActive(pathname: string): string {
   if (pathname.startsWith("/guide")) return "/guide";
+  if (pathname === "/domains" || pathname.startsWith("/domains/")) return "/domains";
   if (pathname.startsWith("/tips") || pathname.startsWith("/haejwo")) return "/tips";
   if (pathname === "/projects/new" || pathname.endsWith("/edit")) return "/projects/new";
   if (

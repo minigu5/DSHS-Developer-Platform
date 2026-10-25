@@ -81,7 +81,8 @@ export async function listMyDomainProjects(userId: string): Promise<DomainProjec
       .select('id, title, url, icon_url, types')
       .eq('author_id', userId)
       .contains('types', ['website'])
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: false })
+      .order('id'),
     supabase
       .from('subdomains')
       .select(DOMAIN_COLUMNS)

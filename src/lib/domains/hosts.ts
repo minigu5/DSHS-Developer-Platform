@@ -36,7 +36,7 @@ export const HOST_PRESETS: Record<HostKey, HostPreset> = {
     allowsVercelTxt: true,
     settingsUrl: 'https://vercel.com/dashboard',
     steps: [
-      'Vercel에서 이 프로젝트를 열고 Settings → Domains → Add Domain에 {fqdn}을 넣어요.',
+      'Vercel에서 이 프로젝트를 열고 Settings → Domains → Add Domain을 눌러 이 주소를 넣어요: {fqdn}',
       'Vercel이 보여 주는 CNAME 값(예: abc123.vercel-dns-017.com)을 복사해 아래에 붙여 넣어요.',
       'TXT 확인값(_vercel)을 달라고 하면 그것도 아래 "TXT 확인값"에 붙여 넣어요.',
     ],
@@ -51,7 +51,7 @@ export const HOST_PRESETS: Record<HostKey, HostPreset> = {
     allowsVercelTxt: false,
     settingsUrl: 'https://app.netlify.com',
     steps: [
-      'Netlify에서 사이트를 열고 Domain management → Add a domain에 {fqdn}을 넣어요.',
+      'Netlify에서 사이트를 열고 Domain management → Add a domain을 눌러 이 주소를 넣어요: {fqdn}',
       '아래 CNAME 값에 내 사이트 주소(이름.netlify.app)가 맞는지 확인해요.',
     ],
     notFound: (status, _headers, body) => status === 404 && body.includes('Not Found - Request ID'),
@@ -66,7 +66,7 @@ export const HOST_PRESETS: Record<HostKey, HostPreset> = {
     settingsUrl:
       'https://docs.github.com/ko/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site#configuring-a-subdomain',
     steps: [
-      '저장소 Settings → Pages → Custom domain에 {fqdn}을 넣고 저장해요.',
+      '저장소 Settings → Pages → Custom domain 칸에 이 주소를 넣고 저장해요: {fqdn}',
       '아래 CNAME 값은 저장소 이름 없이 내아이디.github.io 여야 해요.',
       '인증서가 나오면 같은 화면에서 Enforce HTTPS를 켜요.',
     ],
@@ -81,7 +81,7 @@ export const HOST_PRESETS: Record<HostKey, HostPreset> = {
     allowsVercelTxt: false,
     settingsUrl: 'https://dashboard.render.com',
     steps: [
-      'Render에서 서비스를 열고 Settings → Custom Domains → Add Custom Domain에 {fqdn}을 넣어요.',
+      'Render에서 서비스를 열고 Settings → Custom Domains → Add Custom Domain을 눌러 이 주소를 넣어요: {fqdn}',
       '아래 CNAME 값에 내 서비스 주소(이름.onrender.com)가 맞는지 확인해요.',
     ],
     notFound: (status, headers) => status === 404 && (headers.get('x-render-routing') ?? '').includes('no-server'),
