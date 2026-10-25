@@ -17,6 +17,7 @@ import { HomeProjectCard } from "@/components/home/home-project-card";
 import { HowItWorks, type HowItWorksExamples } from "@/components/home/how-it-works";
 import { RecentPosts, type RecentTip, type RecentIdea } from "@/components/home/recent-posts";
 import { GuideTeaser } from "@/components/home/guide-teaser";
+import { DomainTeaser } from "@/components/home/domain-teaser";
 import { ClosingCta } from "@/components/home/closing-cta";
 import { SiteFooter } from "@/components/home/site-footer";
 
@@ -287,7 +288,10 @@ export default async function HomePage() {
         <section aria-labelledby="guide-teaser" className="px-6 py-14 sm:py-16 bg-zinc-50 dark:bg-zinc-900/40 border-t border-zinc-200 dark:border-zinc-800">
           <div className="max-w-5xl mx-auto">
             <h2 id="guide-teaser" className="sr-only">직접 만들어 보고 싶다면</h2>
-            <GuideTeaser />
+            <div className="grid gap-4 sm:gap-5">
+              <GuideTeaser />
+              <DomainTeaser />
+            </div>
           </div>
         </section>
 
