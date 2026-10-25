@@ -50,7 +50,7 @@ async function deleteCloudinaryImages(urls: string[]) {
 }
 
 // withdraw_account() 가 한 트랜잭션으로 계정·글·팀원 표시를 정리한다. 이 함수는 service_role 전용.
-// 주소 받기(서브도메인)는 withdraw_account() 가 반납하고, DNS 레코드는 여기서 바로 지운다(놓치면 매일 점검이 정리).
+// 도메인 마련하기(서브도메인)는 withdraw_account() 가 반납하고, DNS 레코드는 여기서 바로 지운다(놓치면 매일 점검이 정리).
 async function eraseAccount(userId: string): Promise<boolean> {
   const admin = createAdminClient()
   const { data: domains } = await admin

@@ -187,9 +187,10 @@
 
 ---
 
-## 🌐 주소 받기 — 서브도메인 빌려주기 (`/domains`, 2026-10-25)
+## 🌐 도메인 마련하기 — 서브도메인 빌려주기 (`/domains`, 2026-10-25)
 
-웹사이트 프로젝트 소유자가 `<이름>.dshs.dev`를 받아 자기 호스트(Vercel·Netlify·GitHub Pages·Render)에 연결한다. 우리는 서버를 빌려주지 않고 Cloudflare에 **CNAME(+필요하면 TXT)만** 만든다. 설계 `docs/superpowers/specs/2026-10-25-subdomain-lending-design.md`, 계획 `docs/superpowers/plans/2026-10-25-subdomain-lending.md`, 시안 B(내 프로젝트 줄마다 "주소 받기" → 그 자리에서 3단계).
+웹사이트 프로젝트 소유자가 `<이름>.dshs.dev`를 받아 자기 호스트(Vercel·Netlify·GitHub Pages·Render)에 연결한다. 우리는 서버를 빌려주지 않고 Cloudflare에 **CNAME(+필요하면 TXT)만** 만든다. 설계 `docs/superpowers/specs/2026-10-25-subdomain-lending-design.md`, 계획 `docs/superpowers/plans/2026-10-25-subdomain-lending.md`, 시안 B(내 프로젝트 줄마다 "도메인 마련하기" → 그 자리에서 3단계).
+- **이름**(2026-10-25 사용자 요청 — "내 집 마련" 느낌): 화면에 보이는 기능 이름·내비 칸·버튼은 **"도메인 마련하기"**(처음엔 "주소 받기"). 안쪽 설명·단계 안내는 쉬운 말 "주소"를 그대로 쓴다. 옛 설계·계획 문서(`docs/superpowers/`)와 migration·`docs/22` 주석에는 옛 이름이 남아 있다(적용된 기록이라 안 고침).
 - **사용자 결정**: 등록된 웹사이트 프로젝트에만, 프로젝트당 1개·**계정당 3개**, 신청·연결·반납은 **소유자만**(팀원 불가), 관리자 **강제 회수**, 이름은 자유·선착순, 연결돼도 방문 주소는 자동으로 안 바꾸고 **제안 띠 + "바꾸기"**, 비로그인은 로그인 화면으로, **소유 확인 토큰 필수**(아래), 권한은 "매우 엄격하게".
 - **화면**: `/domains`(보호, `force-dynamic`, 섹션 색 teal-700·`Globe`) — `DomainList`(줄·상태 알약: 설정 중/연결됨/끊김 N일 뒤 자동 반납/회수됨) → `DomainSteps`(① 이름 `[ ].dshs.dev` 400ms 디바운스 확인 ② `HostPicker` 호스트 카드 6개(프로젝트 url로 미리 고름) + 프리셋 안내·설정 링크 + CNAME + TXT(프리셋 `txt` — Vercel `_vercel` 선택, GitLab·Railway 필수, 이름은 미리 채움) ③ 확인 코드 `<meta name="dshs-verify" content="…">` 복사 + "지금 확인하기" + **자동 확인**). url 없는 웹사이트 프로젝트는 회색 줄 + 수정 링크. `/domains/admin`(개발자 계정만, 아니면 404) — 전체 표, 회수(이유 필수)·이름 풀기.
 - **호스트 프리셋** `src/lib/domains/hosts.ts`: 호스트마다 `detect`·`cnameTarget`(호스트 소유 도메인만, IP·임의 도메인 거부)·안내·`notFound`(호스트의 "사이트 없음" 판별). 호스트: Vercel·Netlify·GitHub Pages·GitLab Pages·Render·Railway(뒤 둘은 2026-10-25 추가, migration `20261025140000`). 호스트 추가 = 프리셋 + 새 migration으로 DB `host` CHECK·`subdomain_target_ok()`. **Firebase(A 레코드 요구)·Cloudflare Pages(교차 계정 미확인 — 다른 계정 Pages로 시험 후 추가 예정)·Cloudflare Workers(존이 같은 계정이어야 함)·Surge(공용 CNAME 대상이라 가로채기 쉬움)는 제외**. GitLab의 모르는 주소는 로그인으로 302라 `notFound`로 못 가림("연결 안 됨"으로 보임), Pages 공개 범위가 Everyone이어야 확인됨. GitHub Pages `_github-pages-challenge-*` TXT는 dshs.dev 전체를 확인하므로 **받지 않는다**. TXT는 내 이름 아래(`*.<이름>.dshs.dev`)만, 예외 `_vercel.dshs.dev`는 값이 `vc-domain-verify=<이름>.dshs.dev,`로 시작할 때만.
@@ -380,9 +381,9 @@
 - **이렇게 써요** (`how-it-works.tsx`): 올리기 → 리뷰 → 해줘 3단계 카드. 각 칸 아래 실제 최근 예시 한 줄(가장 최근 공개 프로젝트 / 공개 프로젝트의 최근 리뷰 1개(`reviews` + `projects!inner`, `visibility=public`) / 최근 해줘 1개), 없으면 안내 문구. 한국어 조사(이/가·을/를) 붙이지 말고 `제목 · 작성자 · 종류`처럼 점 구분으로.
 - **요즘 올라온 글** (`recent-posts.tsx`): 개발 팁(최근 3, `tips_author_id_fkey`) · 해줘!(최근 3, `ideas_author_id_fkey`) · 공지(티커용 10개 중 앞 4개, 고정 우선) 세 칸. 비면 "첫 글 쓰기" 안내가 칸 하단 점선 위에. 공지 카테고리 색은 티커와 동일.
 - **직접 만들어 보고 싶다면** (`guide-teaser.tsx`): 가이드 위저드 첫 질문(`GUIDE_STEPS[0]`, 옵션 4개: 웹사이트·앱·확장프로그램·그 밖의 도구)을 홈에 그대로 노출. 옵션 클릭 시 `/guide?type=<value>` — `GuideWizard`가 `initialType` prop으로 첫 질문을 미리 답한 상태로 시작, `/guide/page.tsx`가 `searchParams.type`을 넘김.
-- **주소 받기 소개** (`domain-teaser.tsx`, 2026-10-25 사용자 요청 — 새 기능 홍보): 같은 띠에서 `GuideTeaser` 바로 아래 같은 모양 카드(teal `SECTION_COLORS.domains`). 왼쪽 `Globe` 타일 + "웹사이트를 올렸다면, 짧은 주소도 받아요" + 설명(등록한 웹사이트 프로젝트·계정당 3개) + teal 주 버튼 "주소 받기"(`/domains`, 비로그인은 로그인 화면). 오른쪽은 주소창 모양 예시 `https://omm.dshs.dev` + 3단계(이름 정하기 → 호스트에 등록 → 연결 확인, `DomainSteps`와 같은 순서). 정적 내용 — 연결된 주소 목록은 RLS상 본인·관리자만 읽을 수 있어 안 보여 준다.
+- **도메인 마련하기 소개** (`domain-teaser.tsx`, 2026-10-25 사용자 요청 — 새 기능 홍보): 같은 띠에서 `GuideTeaser` 바로 아래 같은 모양 카드(teal `SECTION_COLORS.domains`). 왼쪽 `Globe` 타일 + "웹사이트를 올렸다면, 짧은 주소도 받아요" + 설명(등록한 웹사이트 프로젝트·계정당 3개) + teal 주 버튼 "도메인 마련하기"(`/domains`, 비로그인은 로그인 화면). 오른쪽은 주소창 모양 예시 `https://omm.dshs.dev` + 3단계(이름 정하기 → 호스트에 등록 → 연결 확인, `DomainSteps`와 같은 순서). 정적 내용 — 연결된 주소 목록은 RLS상 본인·관리자만 읽을 수 있어 안 보여 준다.
 - **마무리 CTA** (`closing-cta.tsx`): 어두운 단색 카드(라이트 zinc-900 / 다크는 반전 zinc-100) + 아이콘 나열 상위 3개 미니 타일 + "내 프로젝트 등록하기"(blue-600)·"만드는 법부터 보기".
-- **푸터** (`site-footer.tsx`): 소개 한 줄 + 메뉴 3열(둘러보기/만들기(주소 받기 포함)/이 사이트: GitHub 저장소·이슈·마이페이지·개인정보 처리방침) + 저작권·로그인 안내. 홈(`src/app/page.tsx`)과 `(nav)/layout.tsx`(콘텐츠 아래, 모바일 탭바에 안 가리게 `pb-16 sm:pb-0` 래퍼 안)에서 같은 컴포넌트를 쓴다 — 모든 `(nav)` 페이지에 동일하게 나옴(2026-10-24 사용자 요청). 로그인 계열(`AuthShell`) 독립 화면에는 없음.
+- **푸터** (`site-footer.tsx`): 소개 한 줄 + 메뉴 3열(둘러보기/만들기(도메인 마련하기 포함)/이 사이트: GitHub 저장소·이슈·마이페이지·개인정보 처리방침) + 저작권·로그인 안내. 홈(`src/app/page.tsx`)과 `(nav)/layout.tsx`(콘텐츠 아래, 모바일 탭바에 안 가리게 `pb-16 sm:pb-0` 래퍼 안)에서 같은 컴포넌트를 쓴다 — 모든 `(nav)` 페이지에 동일하게 나옴(2026-10-24 사용자 요청). 로그인 계열(`AuthShell`) 독립 화면에는 없음.
 - **아이콘 나열** (`src/components/home/icon-shelf.tsx`): 사이트의 개성을 담당하는 장식 요소. 공개 프로젝트를 **많이 찾는 순**(`click_count` desc, 동률이면 최신 등록) `SHELF_LIMIT`(11)개 + "내 앱 올리기" 칸을 72px(sm 80px) `rounded-[22%]` 아이콘 스티커로 가운데 flex-wrap. 흰 `ring-[3px]`(다크 zinc-950) + 중립 그림자. 이름은 안 보이고 `aria-label`·`title`로만. 모바일(72px, 간격 14px)에서 4칸씩 3줄.
 - **로딩 시퀀스** (`globals.css`): 페이지 로드 때 한 번만. 제목·설명·버튼 `.rise`(`--rise-delay` 0/90/180ms) → 아이콘 `.tile-pop`(`--pop-delay` 260ms부터 65ms 간격) → "내 앱 올리기" 칸 `.tile-invite`가 파란 테두리·배경으로 3번 깜빡임(다크는 `tile-invite-dark`). 동작 줄이기 설정이면 전역 규칙이 duration과 **delay**를 0으로 만들어 즉시 표시(delay를 안 지우면 `fill: both` 요소가 지연 동안 안 보이는 버그가 있었음).
 - **스크롤 리빌** (`src/components/home/reveal-observer.tsx` + `globals.css` `.reveal`, 2026-10-24 사용자 요청): 히어로 아래 모든 섹션(`SectionHeader`·카드·`GuideTeaser`·`ClosingCta`)이 뷰포트에 15% 들어오면 한 번 올라오며 나타남(opacity 0→1, translate 28px, scale .97, 600ms). `RevealObserver`(클라이언트, UI 없음)가 마운트 시 `<html>`에 `reveal-ready`를 붙이고 IntersectionObserver로 `.is-in`을 추가 — `reveal-ready` 전에는 숨기지 않아 JS가 없어도 내용이 보임. 같은 줄 카드는 `revealOrder(n)`(`--reveal-delay` n×90ms)로 차례. 동작 줄이기면 관찰 없이 전부 `.is-in`. 처음엔 CSS `animation-timeline: view()`로 했으나 로드 때 이미 보이는 섹션은 안 움직이고 Safari/Firefox 지원이 갈려 교체함.
@@ -394,7 +395,7 @@
 ## 🧭 전역 페이지 내비게이션 (`PageNav` / `MobileNav`)
 
 - 파일: `src/components/shared/page-nav.tsx` (`"use client"`, 두 컴포넌트 모두 export)
-- **5개 항목**(2026-10-24 6칸에서 병합해 4칸 → 2026-10-25 "주소 받기" 추가): 모든 프로젝트(→ `/explore`), 프로젝트 등록(→ `/projects/new`), 나도 개발해볼래!(→ `/guide`), **주소 받기(→ `/domains`, teal-700)**, **커뮤니티(→ `/tips`)**. 커뮤니티 = 개발 팁 + 해줘!(URL은 `/tips`·`/haejwo` 그대로, 두 목록 사이는 `CommunityTabs`로 오감). **공지사항은 내비 칸이 아니라 헤더 오른쪽 벨 아이콘**(`src/components/shared/announcements-link.tsx`, 프로필 옆, 글자·안 읽음 점 없음, 모바일 포함).
+- **5개 항목**(2026-10-24 6칸에서 병합해 4칸 → 2026-10-25 "도메인 마련하기" 추가): 모든 프로젝트(→ `/explore`), 프로젝트 등록(→ `/projects/new`), 나도 개발해볼래!(→ `/guide`), **도메인 마련하기(→ `/domains`, teal-700)**, **커뮤니티(→ `/tips`)**. 커뮤니티 = 개발 팁 + 해줘!(URL은 `/tips`·`/haejwo` 그대로, 두 목록 사이는 `CommunityTabs`로 오감). **공지사항은 내비 칸이 아니라 헤더 오른쪽 벨 아이콘**(`src/components/shared/announcements-link.tsx`, 프로필 옆, 글자·안 읽음 점 없음, 모바일 포함).
 - **모든 Link에 `prefetch={true}`** — `force-dynamic` 페이지 포함 전체 콘텐츠를 뷰포트 진입 시 미리 패치.
 - **활성 버튼 판정**:
   - `/explore`, `/projects/*`(등록·수정 제외), `/developers/*` → "모든 프로젝트"
@@ -492,7 +493,7 @@
 | `CLOUDINARY_CLOUD_NAME` | Cloudinary → Dashboard |
 | `CLOUDINARY_API_KEY` | 위 동일 |
 | `CLOUDINARY_API_SECRET` | 위 동일 |
-| `CLOUDFLARE_DNS_API_TOKEN` | Cloudflare 계정 토큰(`cfat_…`) — `dshs.dev` 존 **DNS 편집만**. 주소 받기용. Workers는 `wrangler secret put`, Actions는 저장소 Secrets |
+| `CLOUDFLARE_DNS_API_TOKEN` | Cloudflare 계정 토큰(`cfat_…`) — `dshs.dev` 존 **DNS 편집만**. 도메인 마련하기용. Workers는 `wrangler secret put`, Actions는 저장소 Secrets |
 | `CLOUDFLARE_ZONE_ID` | `c9fac6d72c704d4836b837590f18e144`(dshs.dev). Workers `vars`, Actions Secrets |
 
 ## ⚠️ 보안 및 주의사항
@@ -525,7 +526,7 @@ src/
 │   ├── guide/            # guide-wizard, guide-viewer(스테퍼), guide-step-body(단계 렌더러), guide-chapter-tools
 │   ├── guide-wiki/       # 가이드 위키 편집: editor/(카드 편집기·reducer), history-list, revert-dialog, step-diff-view, doc-render, stale-banner
 │   ├── privacy/          # privacy-gate(동의 팝업, 루트 레이아웃), withdraw-button(동의 철회·탈퇴)
-│   ├── domains/          # 주소 받기: domain-list, domain-steps, host-picker, admin-domain-table
+│   ├── domains/          # 도메인 마련하기: domain-list, domain-steps, host-picker, admin-domain-table
 │   ├── tips/             # tip-card, tip-editor, tip-like-button, tip-comments 등
 │   ├── haejwo/           # haejwo-wizard, haejwo-card, haejwo-status-tabs, haejwo-owner-actions, haejwo-complete-button
 │   ├── announcements/    # announcement-card, announcement-editor, announcement-owner-actions, announcement-pin-button

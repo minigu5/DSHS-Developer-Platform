@@ -17,7 +17,7 @@ const COLUMNS = [
     links: [
       { href: "/projects/new", label: "내 프로젝트 등록" },
       { href: "/guide", label: "나도 개발해볼래!" },
-      { href: "/domains", label: "주소 받기" },
+      { href: "/domains", label: "도메인 마련하기" },
       { href: "/tips/new", label: "팁 쓰기" },
       { href: "/haejwo/new", label: "해줘! 올리기" },
     ],

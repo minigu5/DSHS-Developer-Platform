@@ -1,6 +1,6 @@
 'use server'
 
-// 주소 받기 서버 액션. (nav) 밖에 둔다 — Turbopack client→server action 바인딩 문제.
+// 도메인 마련하기 서버 액션. (nav) 밖에 둔다 — Turbopack client→server action 바인딩 문제.
 // 순서는 항상: getUser() → 학교 계정 확인 → 입력 검사 → 서비스 키로 subdomain_* 함수(안에서 소유자·관리자 재확인)
 // → Cloudflare. DB 함수가 마지막 방어선이고, 여기의 검사는 빠른 실패·친절한 문구를 위한 것.
 // 설계: docs/superpowers/specs/2026-10-25-subdomain-lending-design.md

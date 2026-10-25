@@ -11,7 +11,7 @@ const STEPS = [
   { title: "연결 확인", body: "확인 코드를 사이트에 붙이고 \"확인하기\"를 눌러요." },
 ] as const;
 
-/** 홈 "주소 받기" 소개 — 웹사이트를 올린 학생에게 `<이름>.dshs.dev` 주소를 받을 수 있다고 알린다. */
+/** 홈 "도메인 마련하기" 소개 — 웹사이트를 올린 학생에게 `<이름>.dshs.dev` 주소를 받을 수 있다고 알린다. */
 export function DomainTeaser() {
   return (
     <div className="reveal grid gap-6 rounded-3xl border border-zinc-200 bg-white p-6 sm:grid-cols-2 sm:items-center sm:gap-8 sm:p-8 dark:border-zinc-800 dark:bg-zinc-900">
@@ -34,7 +34,7 @@ export function DomainTeaser() {
             SECTION_COLORS.domains.button,
           )}
         >
-          주소 받기
+          도메인 마련하기
           <ChevronRight className="ml-1 h-4 w-4" aria-hidden />
         </Link>
       </div>

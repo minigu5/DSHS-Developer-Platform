@@ -13,7 +13,7 @@ const NAV_ITEMS = [
   { href: "/projects/new", label: "프로젝트 등록", icon: Rocket, pillClass: SECTION_COLORS.new.pill },
   { href: "/guide", label: "나도 개발해볼래!", icon: BookOpen, pillClass: SECTION_COLORS.guide.pill },
   // 학생 웹사이트에 이름.dshs.dev 주소를 붙여 주는 화면 — 배포 직후 찾아오도록 가이드 바로 다음
-  { href: "/domains", label: "주소 받기", icon: Globe, pillClass: SECTION_COLORS.domains.pill },
+  { href: "/domains", label: "도메인 마련하기", icon: Globe, pillClass: SECTION_COLORS.domains.pill },
   // 개발 팁(/tips)과 해줘!(/haejwo)를 한 칸으로 — 칸은 /tips로 가고, 활성은 두 경로 모두 이 칸
   { href: "/tips", label: "커뮤니티", icon: MessagesSquare, pillClass: SECTION_COLORS.tips.pill },
 ] as const;

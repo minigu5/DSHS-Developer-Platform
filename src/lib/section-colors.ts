@@ -49,7 +49,7 @@ export const SECTION_COLORS: Record<SectionKey, SectionColor> = {
     text: "text-purple-700 dark:text-purple-300",
     border: "border-purple-600 dark:border-purple-400",
   },
-  // 주소 받기(서브도메인) — 2026-10-25
+  // 도메인 마련하기(서브도메인) — 2026-10-25
   domains: {
     pill: "bg-teal-700",
     tile: "bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300",

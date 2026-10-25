@@ -64,7 +64,7 @@ npm run upload    # 빌드 후 새 버전만 올리기(배포 안 함)
 - [Workers 한도](https://developers.cloudflare.com/workers/platform/limits/) — 무료: 요청 10만/일, CPU 10 ms/요청
 - OpenNext는 Next 16 `proxy.ts`를 아직 인식하지 못한다는 보고가 있어 `src/middleware.ts`를 유지한다.
 
-## 주소 받기(서브도메인) DNS 토큰 — 2026-10-25
+## 도메인 마련하기(서브도메인) DNS 토큰 — 2026-10-25
 
 학생 주소(`<이름>.dshs.dev`) 레코드를 만들고 지우는 토큰. 본 사이트 배포 토큰과 따로 둔다.
 

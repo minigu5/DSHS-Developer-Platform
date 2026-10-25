@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "주소 받기 — DSHS Developer Platform",
+  title: "도메인 마련하기 — DSHS Developer Platform",
 };
 
 const MAX_DOMAINS = 3;
@@ -34,7 +34,7 @@ export default async function DomainsPage() {
       <PageHero
         section="domains"
         icon={Globe}
-        title="주소 받기"
+        title="도메인 마련하기"
         description="내 웹사이트에 이름.dshs.dev 주소를 붙여요"
         actions={
           isDeveloper(user.email) ? (

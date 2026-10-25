@@ -1,6 +1,6 @@
 name: Check subdomains
 
-# 주소 받기(<이름>.dshs.dev): 매일 밤 소유 확인 토큰을 확인하고, 7일 넘게 끊긴·연결 안 된 주소를 반납하고,
+# 도메인 마련하기(<이름>.dshs.dev): 매일 밤 소유 확인 토큰을 확인하고, 7일 넘게 끊긴·연결 안 된 주소를 반납하고,
 # 반납·회수된 주소의 Cloudflare 레코드를 지운다(주인이 떠난 주소를 남이 가로채지 못하게).
 # 스크립트: scripts/check-subdomains.mts / 설정: supabase/migrations/20261025100000_subdomains.sql
 

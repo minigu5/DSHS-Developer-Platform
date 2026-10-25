@@ -113,11 +113,11 @@
 
 ---
 
-## 🌐 주소 받기 — 서브도메인 빌려주기 (`/domains`, 2026-10-25)
+## 🌐 도메인 마련하기 — 서브도메인 빌려주기 (`/domains`, 2026-10-25)
 
 - 웹사이트 프로젝트 소유자가 `<이름>.dshs.dev`를 받아 자기 호스트(Vercel·Netlify·GitHub Pages·Render)에 연결. 우리는 Cloudflare에 CNAME(+TXT)만 만든다. 계정당 3개, 프로젝트당 1개, 소유자만, 관리자 회수, 소유 확인 토큰(`<meta name="dshs-verify">`) 필수.
 - DB `public.subdomains` — RLS SELECT만, 쓰기는 `service_role` 전용 `subdomain_*` 함수(`supabase/migrations/20261025100000_subdomains.sql`). 서버 액션 `src/lib/domains/actions.ts`, 순수 로직 `src/lib/domains/*.ts`(테스트 `node --test`), 매일 점검 `.github/workflows/check-subdomains.yml`.
-- 보안: 운영 세션 쿠키는 `__Host-` 접두사, `Domain=.dshs.dev` 쿠키 금지, 쿠키 인증 Route Handler는 `isSameOrigin()` 필수. 자세한 내용은 `CLAUDE.md` 「🌐 주소 받기」.
+- 보안: 운영 세션 쿠키는 `__Host-` 접두사, `Domain=.dshs.dev` 쿠키 금지, 쿠키 인증 Route Handler는 `isSameOrigin()` 필수. 자세한 내용은 `CLAUDE.md` 「🌐 도메인 마련하기」.
 - 환경변수: `CLOUDFLARE_DNS_API_TOKEN`(dshs.dev DNS 편집 전용), `CLOUDFLARE_ZONE_ID`.
 
 ## 🌐 외부 서비스 정보

@@ -59,7 +59,7 @@ export function DomainList({ rows, limitReached }: { rows: DomainProjectRow[]; l
 
         let action: string;
         if (live) action = domain.status === "active" ? "관리" : "설정 이어서 하기";
-        else action = "주소 받기";
+        else action = "도메인 마련하기";
 
         return (
           <li

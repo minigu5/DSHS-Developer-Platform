@@ -31,7 +31,7 @@ export default async function DomainsAdminPage() {
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-9">
         <Link href="/domains" className="mb-5 inline-flex items-center gap-1 text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
           <ArrowLeft className="h-4 w-4" aria-hidden />
-          주소 받기
+          도메인 마련하기
         </Link>
         {rows.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-zinc-300 px-6 py-12 text-center text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
