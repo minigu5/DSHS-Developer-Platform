@@ -10,7 +10,7 @@ import type { DomainView } from "@/lib/domains/read";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { cn } from "@/lib/utils";
 
-const HOST_ORDER: HostKey[] = ["vercel", "netlify", "github-pages", "render"];
+const HOST_ORDER: HostKey[] = ["vercel", "netlify", "github-pages", "gitlab-pages", "render", "railway"];
 const INPUT =
   "w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 font-mono text-sm outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-950";
 
@@ -20,10 +20,15 @@ export function HostPicker({ domain, projectUrl, onDone }: { domain: DomainView;
   const detected = detectHost(projectUrl);
   const [host, setHost] = useState<HostKey | null>(domain.host ?? detected?.host ?? null);
   const [target, setTarget] = useState(domain.target ?? detected?.prefill ?? "");
-  const [txt, setTxt] = useState<TxtInput>(domain.txt[0] ?? { name: "", value: "" });
+  const fqdn = `${domain.name}.dshs.dev`;
+  // 호스트가 정해 둔 TXT 이름은 미리 채워 둔다 — 학생은 값만 붙여 넣으면 된다
+  const emptyTxt = (key: HostKey | null): TxtInput => ({
+    name: key ? (HOST_PRESETS[key].txt?.name.replaceAll("{label}", domain.name) ?? "") : "",
+    value: "",
+  });
+  const [txt, setTxt] = useState<TxtInput>(domain.txt[0] ?? emptyTxt(host));
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
-  const fqdn = `${domain.name}.dshs.dev`;
   const preset = host ? HOST_PRESETS[host] : null;
 
   const pick = (key: HostKey) => {
@@ -32,13 +37,14 @@ export function HostPicker({ domain, projectUrl, onDone }: { domain: DomainView;
     // 사이트 주소가 곧 CNAME 값인 호스트는 프로젝트 주소로 채워 둔다
     const d = detectHost(projectUrl);
     setTarget(d?.host === key && d.prefill ? d.prefill : domain.host === key ? (domain.target ?? "") : "");
+    setTxt(domain.host === key && domain.txt[0] ? domain.txt[0] : emptyTxt(key));
   };
 
   const submit = () =>
     start(async () => {
       if (!host) return;
       setError("");
-      const r = await connectHost(domain.id, host, target, txt.name || txt.value ? [txt] : []);
+      const r = await connectHost(domain.id, host, target, txt.value.trim() ? [txt] : []);
       if (!r.ok) return setError(r.error);
       onDone();
       router.refresh();
@@ -46,7 +52,7 @@ export function HostPicker({ domain, projectUrl, onDone }: { domain: DomainView;
 
   return (
     <div className="flex flex-col gap-3">
-      <div role="group" aria-label="호스트 고르기" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div role="group" aria-label="호스트 고르기" className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {HOST_ORDER.map((key) => {
           const selected = host === key;
           return (
@@ -68,7 +74,7 @@ export function HostPicker({ domain, projectUrl, onDone }: { domain: DomainView;
           );
         })}
       </div>
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">다른 곳에 올렸다면 아직 지원하지 않아요. 위 네 곳 중 하나로 올려 주세요.</p>
+      <p className="text-xs text-zinc-500 dark:text-zinc-400">다른 곳에 올렸다면 아직 지원하지 않아요. 위 여섯 곳 중 하나로 올려 주세요.</p>
 
       {preset && (
         <form
@@ -98,7 +104,7 @@ export function HostPicker({ domain, projectUrl, onDone }: { domain: DomainView;
             <input
               value={target}
               onChange={(e) => setTarget(e.target.value)}
-              placeholder={host === "vercel" ? "abc123.vercel-dns-017.com" : host === "github-pages" ? "내아이디.github.io" : `이름.${host === "netlify" ? "netlify.app" : "onrender.com"}`}
+              placeholder={preset.targetPlaceholder}
               autoComplete="off"
               spellCheck={false}
               className={INPUT}
@@ -106,31 +112,52 @@ export function HostPicker({ domain, projectUrl, onDone }: { domain: DomainView;
             />
           </label>
 
-          {preset.allowsVercelTxt && (
-            <details className="text-sm" open={Boolean(domain.txt.length)}>
-              <summary className="cursor-pointer text-zinc-600 dark:text-zinc-400">TXT 확인값을 달라고 하면 (선택)</summary>
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                <label className="flex flex-col gap-1">
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400">이름(Name)</span>
-                  <input value={txt.name} onChange={(e) => setTxt({ ...txt, name: e.target.value })} placeholder="_vercel" className={INPUT} />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400">값(Value)</span>
-                  <input
-                    value={txt.value}
-                    onChange={(e) => setTxt({ ...txt, value: e.target.value })}
-                    placeholder={`vc-domain-verify=${fqdn},…`}
-                    className={INPUT}
-                  />
-                </label>
-              </div>
-            </details>
-          )}
+          {preset.txt &&
+            (() => {
+              const fields = (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400">이름(Name)</span>
+                    <input
+                      value={txt.name}
+                      onChange={(e) => setTxt({ ...txt, name: e.target.value })}
+                      placeholder={preset.txt.name.replaceAll("{label}", domain.name)}
+                      autoComplete="off"
+                      spellCheck={false}
+                      className={INPUT}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400">값(Value)</span>
+                    <input
+                      value={txt.value}
+                      onChange={(e) => setTxt({ ...txt, value: e.target.value })}
+                      placeholder={preset.txt.valuePlaceholder.replaceAll("{fqdn}", fqdn)}
+                      autoComplete="off"
+                      spellCheck={false}
+                      className={INPUT}
+                      required={preset.txt.required}
+                    />
+                  </label>
+                </div>
+              );
+              return preset.txt.required ? (
+                <fieldset className="flex flex-col gap-1.5 text-sm">
+                  <legend className="mb-1.5 font-medium text-zinc-800 dark:text-zinc-200">TXT 확인값</legend>
+                  {fields}
+                </fieldset>
+              ) : (
+                <details className="text-sm" open={Boolean(domain.txt.length)}>
+                  <summary className="cursor-pointer text-zinc-600 dark:text-zinc-400">TXT 확인값을 달라고 하면 (선택)</summary>
+                  <div className="mt-2">{fields}</div>
+                </details>
+              );
+            })()}
 
           <div>
             <button
               type="submit"
-              disabled={pending || !target.trim()}
+              disabled={pending || !target.trim() || (Boolean(preset.txt?.required) && !txt.value.trim())}
               className={cn(
                 "inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition-colors disabled:opacity-50",
                 SECTION_COLORS.domains.button,

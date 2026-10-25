@@ -21,7 +21,7 @@ export type GuideRevisionKind = 'seed' | 'edit' | 'revert' | 'sync';
 
 // 주소 받기(서브도메인) — supabase/migrations/20261025100000_subdomains.sql
 export type SubdomainStatus = 'reserved' | 'pending' | 'active' | 'broken' | 'released' | 'revoked';
-export type SubdomainHost = 'vercel' | 'netlify' | 'github-pages' | 'render';
+export type SubdomainHost = 'vercel' | 'netlify' | 'github-pages' | 'gitlab-pages' | 'render' | 'railway';
 
 export type Database = {
   public: {

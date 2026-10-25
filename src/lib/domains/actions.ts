@@ -35,6 +35,7 @@ const RPC_ERRORS: Record<string, string> = {
   not_live: '이미 반납되었거나 회수된 주소예요.',
   target_invalid: 'CNAME 값이 고른 호스트의 주소가 아니에요. 호스트가 보여 준 값을 그대로 붙여 넣어요.',
   txt_invalid: 'TXT 확인값이 이 주소의 것이 아니에요. 호스트가 보여 준 값을 그대로 붙여 넣어요.',
+  txt_missing: '이 호스트는 TXT 확인값이 있어야 연결돼요. 호스트가 보여 준 값을 붙여 넣어요.',
   not_active: '연결이 확인된 주소만 방문 주소로 바꿀 수 있어요.',
   not_admin: '관리자만 할 수 있어요.',
   reason_invalid: '회수 이유를 1~200자로 적어 주세요.',
@@ -110,7 +111,7 @@ export async function reserveSubdomain(projectId: string, rawName: string): Prom
 export async function connectHost(id: string, host: HostKey, rawTarget: string, rawTxt: TxtInput[]): Promise<ActionResult> {
   const user = await currentUser()
   if (!user) return LOGIN_REQUIRED
-  if (!(host in HOST_PRESETS)) return { ok: false, error: RPC_ERRORS.target_invalid }
+  if (!Object.hasOwn(HOST_PRESETS, host)) return { ok: false, error: RPC_ERRORS.target_invalid }
 
   const row = await loadRow(id)
   if (!row || row.owner_id !== user.id) return { ok: false, error: RPC_ERRORS.not_owner }
@@ -126,6 +127,7 @@ export async function connectHost(id: string, host: HostKey, rawTarget: string, 
     if (!ok) return { ok: false, error: RPC_ERRORS.txt_invalid }
     txt.push(ok)
   }
+  if (HOST_PRESETS[host].txt?.required && txt.length === 0) return { ok: false, error: RPC_ERRORS.txt_missing }
 
   try {
     const dns = getDnsClient()

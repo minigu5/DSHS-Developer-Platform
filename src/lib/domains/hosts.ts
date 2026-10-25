@@ -1,12 +1,13 @@
-// 호스트별 연결 절차(프리셋). 호스트를 늘리려면 여기 하나 추가 + DB host CHECK 에 키 추가.
+// 호스트별 연결 절차(프리셋). 호스트를 늘리려면 여기 하나 추가 + DB host CHECK·subdomain_target_ok() 에 키 추가(새 migration).
 //
-// 첫 버전 제외(2026-10-25): Firebase Hosting(CNAME 대신 A 레코드 요구),
-// Cloudflare Pages(학생 계정이 우리 계정과 다르면 DNS only CNAME 이 되는지 미확인).
+// 제외(2026-10-25): Firebase Hosting(CNAME 대신 A 레코드 요구),
+// Cloudflare Pages(학생 계정이 우리 계정과 다르면 DNS only CNAME 이 되는지 미확인 — 시험 후 추가),
+// Cloudflare Workers(커스텀 도메인은 존이 같은 계정에 있어야 함), Surge(모두 같은 CNAME 대상이라 가로채기 쉬움).
 // GitHub Pages 의 `_github-pages-challenge-*` TXT 는 dshs.dev 전체를 그 사용자 것으로 확인하므로 받지 않는다.
 
 import { ROOT_DOMAIN } from './name.ts'
 
-export type HostKey = 'vercel' | 'netlify' | 'github-pages' | 'render'
+export type HostKey = 'vercel' | 'netlify' | 'github-pages' | 'gitlab-pages' | 'render' | 'railway'
 
 export type HostPreset = {
   key: HostKey
@@ -17,8 +18,10 @@ export type HostPreset = {
   cnameTarget: RegExp
   /** 프로젝트 url 호스트가 곧 CNAME 값인 호스트 */
   prefillFromUrl: boolean
-  /** Vercel 의 `_vercel.dshs.dev` 확인 TXT 허용 */
-  allowsVercelTxt: boolean
+  /** CNAME 칸 예시 */
+  targetPlaceholder: string
+  /** 호스트가 요구하는 확인용 TXT 칸. name 의 `{label}` 은 내 이름으로 바뀐다 */
+  txt: { name: string; valuePlaceholder: string; required: boolean } | null
   settingsUrl: string
   /** 2단계 안내(해요체). `{fqdn}` 은 화면에서 실제 주소로 바뀐다 */
   steps: string[]
@@ -33,7 +36,8 @@ export const HOST_PRESETS: Record<HostKey, HostPreset> = {
     detect: /\.vercel\.app$/,
     cnameTarget: /^(cname\.vercel-dns\.com|cname\.vercel-dns-\d{1,4}\.com|[a-z0-9]{8,32}\.vercel-dns-\d{1,4}\.com)$/,
     prefillFromUrl: false,
-    allowsVercelTxt: true,
+    targetPlaceholder: 'abc123.vercel-dns-017.com',
+    txt: { name: '_vercel', valuePlaceholder: 'vc-domain-verify={fqdn},…', required: false },
     settingsUrl: 'https://vercel.com/dashboard',
     steps: [
       'Vercel에서 이 프로젝트를 열고 Settings → Domains → Add Domain을 눌러 이 주소를 넣어요: {fqdn}',
@@ -48,7 +52,8 @@ export const HOST_PRESETS: Record<HostKey, HostPreset> = {
     detect: /\.netlify\.app$/,
     cnameTarget: /^[a-z0-9-]+\.netlify\.app$/,
     prefillFromUrl: true,
-    allowsVercelTxt: false,
+    targetPlaceholder: '이름.netlify.app',
+    txt: null,
     settingsUrl: 'https://app.netlify.com',
     steps: [
       'Netlify에서 사이트를 열고 Domain management → Add a domain을 눌러 이 주소를 넣어요: {fqdn}',
@@ -62,7 +67,8 @@ export const HOST_PRESETS: Record<HostKey, HostPreset> = {
     detect: /\.github\.io$/,
     cnameTarget: /^[a-z0-9-]+\.github\.io$/,
     prefillFromUrl: true,
-    allowsVercelTxt: false,
+    targetPlaceholder: '내아이디.github.io',
+    txt: null,
     settingsUrl:
       'https://docs.github.com/ko/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site#configuring-a-subdomain',
     steps: [
@@ -72,19 +78,55 @@ export const HOST_PRESETS: Record<HostKey, HostPreset> = {
     ],
     notFound: (status, _headers, body) => status === 404 && body.includes("There isn't a GitHub Pages site here"),
   },
+  'gitlab-pages': {
+    key: 'gitlab-pages',
+    label: 'GitLab Pages',
+    detect: /\.gitlab\.io$/,
+    cnameTarget: /^[a-z0-9-]+\.gitlab\.io$/,
+    prefillFromUrl: true,
+    targetPlaceholder: '내아이디.gitlab.io',
+    txt: { name: '_gitlab-pages-verification-code.{label}', valuePlaceholder: 'gitlab-pages-verification-code=…', required: true },
+    settingsUrl: 'https://docs.gitlab.com/user/project/pages/custom_domains_ssl_tls_certification/',
+    steps: [
+      '프로젝트에서 Deploy → Pages → New Domain을 눌러 이 주소를 넣어요: {fqdn}',
+      '아래 CNAME 값은 프로젝트 이름 없이 내아이디.gitlab.io 여야 해요.',
+      'GitLab이 보여 주는 확인 코드(gitlab-pages-verification-code=…)를 아래 "TXT 확인값"에 붙여 넣어요.',
+      'Settings → General → Visibility에서 Pages를 Everyone으로 열어 두어야 확인돼요.',
+    ],
+    // 모르는 주소는 projects.gitlab.io 로그인으로 넘겨서(302) 여기까지 오지 않는다 → "연결 안 됨"으로 보인다
+    notFound: () => false,
+  },
   render: {
     key: 'render',
     label: 'Render',
     detect: /\.onrender\.com$/,
     cnameTarget: /^[a-z0-9-]+\.onrender\.com$/,
     prefillFromUrl: true,
-    allowsVercelTxt: false,
+    targetPlaceholder: '이름.onrender.com',
+    txt: null,
     settingsUrl: 'https://dashboard.render.com',
     steps: [
       'Render에서 서비스를 열고 Settings → Custom Domains → Add Custom Domain을 눌러 이 주소를 넣어요: {fqdn}',
       '아래 CNAME 값에 내 서비스 주소(이름.onrender.com)가 맞는지 확인해요.',
     ],
     notFound: (status, headers) => status === 404 && (headers.get('x-render-routing') ?? '').includes('no-server'),
+  },
+  railway: {
+    key: 'railway',
+    label: 'Railway',
+    detect: /\.up\.railway\.app$/,
+    // 서비스 주소가 아니라 도메인마다 따로 주는 값(예: g05ns7.up.railway.app)
+    cnameTarget: /^[a-z0-9-]+\.up\.railway\.app$/,
+    prefillFromUrl: false,
+    targetPlaceholder: 'abc123.up.railway.app',
+    txt: { name: '_railway-verify.{label}', valuePlaceholder: 'railway-verify=…', required: true },
+    settingsUrl: 'https://railway.com/dashboard',
+    steps: [
+      'Railway에서 서비스를 열고 Settings → Networking → Custom Domain을 눌러 이 주소를 넣어요: {fqdn}',
+      'Railway가 보여 주는 CNAME 값(예: abc123.up.railway.app)을 복사해 아래에 붙여 넣어요. 서비스 주소와 달라요.',
+      'TXT 확인값(_railway-verify)도 아래 "TXT 확인값"에 붙여 넣어요. 없으면 연결이 안 돼요.',
+    ],
+    notFound: (status, headers) => status === 404 && headers.get('x-railway-fallback') === 'true',
   },
 }
 
@@ -121,7 +163,7 @@ export function validateTxt(host: HostKey, label: string, txt: TxtInput): TxtInp
 
   const fqdn = `${label}.${ROOT_DOMAIN}`
   if (name === `_vercel.${ROOT_DOMAIN}`) {
-    return HOST_PRESETS[host].allowsVercelTxt && value.startsWith(`vc-domain-verify=${fqdn},`) ? { name, value } : null
+    return host === 'vercel' && value.startsWith(`vc-domain-verify=${fqdn},`) ? { name, value } : null
   }
   // 내 이름 바로 그 자리(CNAME 과 같은 이름)는 안 되고, 그 아래만
   const sub = name.slice(0, -(fqdn.length + 1))
