@@ -32,6 +32,7 @@ import { TYPE_ICONS, PLATFORM_ICONS, CATEGORY_ICONS } from "@/lib/type-icons";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { Markdown } from "@/components/shared/markdown";
 import { parseGithubRepo } from "@/lib/github-readme";
+import { deleteProject } from "@/lib/projects/actions";
 import { createClient } from "@/lib/supabase/client";
 import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 import type { ProjectRow } from "@/lib/types";
@@ -52,14 +53,17 @@ interface ProjectFormProps {
   initialData?: ProjectRow;
   isEdit?: boolean;
   canDelete?: boolean;
+  /** 이 프로젝트에 살아 있는 주소(서브도메인) 이름 — 삭제하면 함께 반납돼요 */
+  subdomainName?: string | null;
 }
 
-export function ProjectForm({ initialData, isEdit = false, canDelete = true }: ProjectFormProps) {
+export function ProjectForm({ initialData, isEdit = false, canDelete = true, subdomainName = null }: ProjectFormProps) {
   const router = useRouter();
   const supabase = createClient();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const [title, setTitle] = useState<string>(initialData?.title ?? "");
@@ -388,26 +392,20 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
     setIconPreview(url || null);
   };
 
+  // 주소(서브도메인)가 있으면 서버 액션이 먼저 반납하고 DNS 레코드를 지운다
   const handleDelete = async () => {
     setIsDeleting(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("로그인이 필요합니다.");
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', initialData!.id)
-        .eq('author_id', session.user.id);
-      if (error) throw error;
-      allowLeave();
-      router.push('/explore');
-      router.refresh();
-    } catch (err) {
-      console.error('[ProjectForm] delete error:', err);
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
+    setDeleteError("");
+    const result = await deleteProject(initialData!.id);
+    setIsDeleting(false);
+    if (!result.ok) {
+      setDeleteError(result.error);
+      return;
     }
+    setShowDeleteDialog(false);
+    allowLeave();
+    router.push('/explore');
+    router.refresh();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1084,7 +1082,15 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
               <DialogTitle className="text-lg">정말 삭제하시겠습니까?</DialogTitle>
               <DialogDescription>
                 <span className="font-semibold text-zinc-800 dark:text-zinc-200">{initialData?.title}</span> 프로젝트와 모든 관련 데이터가 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.
+                {subdomainName && (
+                  <span className="mt-2 block">
+                    이 프로젝트의 주소 <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-200">{subdomainName}.dshs.dev</span>도 반납돼요.
+                  </span>
+                )}
               </DialogDescription>
+              {deleteError && (
+                <p role="alert" className="text-sm text-red-600 dark:text-red-400">{deleteError}</p>
+              )}
             </DialogHeader>
             <DialogFooter>
               <button
