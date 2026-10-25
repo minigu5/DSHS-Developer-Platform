@@ -19,6 +19,7 @@ import { SECTION_COLORS } from "@/lib/section-colors";
 import { cn } from "@/lib/utils";
 
 import { HostPicker } from "./host-picker";
+import { UrlChangedDialog } from "./url-changed-dialog";
 import { AUTO_INTERVAL_MS, AUTO_MAX_ROUNDS, type AutoState, type CheckState } from "./use-domain-checks";
 
 const PRIMARY = cn("inline-flex h-9 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-semibold transition-colors disabled:opacity-50", SECTION_COLORS.domains.button);
@@ -253,7 +254,7 @@ function ReleaseButton({ domain }: { domain: DomainView }) {
   );
 }
 
-function UrlSuggestion({ domain }: { domain: DomainView }) {
+function UrlSuggestion({ domain, onApplied }: { domain: DomainView; onApplied: () => void }) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
@@ -270,6 +271,7 @@ function UrlSuggestion({ domain }: { domain: DomainView }) {
           start(async () => {
             const r = await applyProjectUrl(domain.id);
             if (!r.ok) return setError(r.error);
+            onApplied();
             router.refresh();
           })
         }
@@ -296,6 +298,8 @@ export function DomainSteps({
   onCheck: () => void;
 }) {
   const [reconnect, setReconnect] = useState(false);
+  // "바꾸기" 직후 project.url 이 새 주소로 바뀌므로, 안내에 쓸 옛 주소는 누르는 순간에 붙잡아 둔다
+  const [urlChange, setUrlChange] = useState<{ from: string | null; open: boolean } | null>(null);
   const fqdn = domain ? `${domain.name}.dshs.dev` : null;
   const connected = domain !== null && domain.status !== "reserved";
   const showHost = domain !== null && (!connected || reconnect);
@@ -303,7 +307,12 @@ export function DomainSteps({
 
   return (
     <div className="flex flex-col gap-4">
-      {domain?.status === "active" && !urlIsDomain && <UrlSuggestion domain={domain} />}
+      {domain?.status === "active" && !urlIsDomain && (
+        <UrlSuggestion domain={domain} onApplied={() => setUrlChange({ from: project.url?.trim() || null, open: true })} />
+      )}
+      {fqdn && (
+        <UrlChangedDialog open={urlChange?.open ?? false} onClose={() => setUrlChange((c) => c && { ...c, open: false })} oldUrl={urlChange?.from ?? null} newUrl={`https://${fqdn}`} />
+      )}
 
       <ol className="flex flex-col gap-4">
         <Step n={1} state={domain ? "done" : "current"} title={domain ? <>이름 <span className="font-mono">{fqdn}</span></> : "이름 정하기"}>
