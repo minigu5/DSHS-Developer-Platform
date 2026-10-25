@@ -3,13 +3,14 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { isAllowedEmail } from '@/lib/constants';
 import { PRIVACY_COOKIE, PRIVACY_COOKIE_OPTIONS } from '@/lib/privacy/config';
 import { PRIVACY_POLICY_VERSION } from '@/lib/privacy/version';
+import { ONBOARDING_COOKIE_NAME, ONBOARDING_COOKIE_SECURE } from '@/lib/supabase/cookie-options';
 import { updateSession } from '@/lib/supabase/middleware';
 
 // 로그인이 강제되는 경로 prefix. 메인/탐색/상세는 비로그인도 열람 가능.
 const PROTECTED_PREFIXES = ['/projects/new', '/tips/new', '/haejwo/new', '/announcements/new', '/me'] as const;
 
-// 온보딩 완료 여부를 캐시하는 쿠키 이름
-const ONBOARDING_COOKIE = 'ds_onboarded';
+// 온보딩 완료 여부를 캐시하는 쿠키 이름 (운영은 __Host- 접두사 — cookie-options.ts)
+const ONBOARDING_COOKIE = ONBOARDING_COOKIE_NAME;
 
 // /projects/[id]/edit 같은 동적 보호 라우트
 function isProtectedRoute(pathname: string): boolean {
@@ -105,7 +106,7 @@ export async function middleware(request: NextRequest) {
       supabaseResponse.cookies.set(ONBOARDING_COOKIE, '1', {
         httpOnly: true,
         sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
+        secure: ONBOARDING_COOKIE_SECURE,
         maxAge: 60 * 60 * 24 * 30, // 30일
         path: '/',
       });
