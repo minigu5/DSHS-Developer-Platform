@@ -44,7 +44,7 @@
 | **User** (로그인) | 위 + 프로젝트 게시/수정/삭제, 댓글/별점 작성. Private 프로젝트는 작성자 또는 `allowed_users`에 포함된 사용자만 접근 |
 
 ### 보호 라우트 (`src/middleware.ts`)
-- `/projects/new`, `/projects/[id]/edit`, `/tips/new`, `/haejwo/new`, `/me`, `/guide-wiki/[key]/edit`
+- `/projects/new`, `/projects/[id]/edit`, `/tips/new`, `/haejwo/new`, `/me`, `/guide-wiki/[key]/edit`, `/domains`(관리자 화면 `/domains/admin` 포함)
 - 비로그인 시 `/login?next=<원래경로+쿼리>` 로 리다이렉트 (쿼리 보존 — 가이드 편집기의 `?from=` 복귀용)
 - 이미 로그인된 사용자가 `/login` 진입 시 홈으로
 
@@ -185,6 +185,19 @@
 - 로그인 페이지(`/login`) 뒤로가기 링크는 `/`가 아닌 `/explore`로 이동.
 
 ---
+
+## 🌐 주소 받기 — 서브도메인 빌려주기 (`/domains`, 2026-10-25)
+
+웹사이트 프로젝트 소유자가 `<이름>.dshs.dev`를 받아 자기 호스트(Vercel·Netlify·GitHub Pages·Render)에 연결한다. 우리는 서버를 빌려주지 않고 Cloudflare에 **CNAME(+필요하면 TXT)만** 만든다. 설계 `docs/superpowers/specs/2026-10-25-subdomain-lending-design.md`, 계획 `docs/superpowers/plans/2026-10-25-subdomain-lending.md`, 시안 B(내 프로젝트 줄마다 "주소 받기" → 그 자리에서 3단계).
+- **사용자 결정**: 등록된 웹사이트 프로젝트에만, 프로젝트당 1개·**계정당 3개**, 신청·연결·반납은 **소유자만**(팀원 불가), 관리자 **강제 회수**, 이름은 자유·선착순, 연결돼도 방문 주소는 자동으로 안 바꾸고 **제안 띠 + "바꾸기"**, 비로그인은 로그인 화면으로, **소유 확인 토큰 필수**(아래), 권한은 "매우 엄격하게".
+- **화면**: `/domains`(보호, `force-dynamic`, 섹션 색 teal-700·`Globe`) — `DomainList`(줄·상태 알약: 설정 중/연결됨/끊김 N일 뒤 자동 반납/회수됨) → `DomainSteps`(① 이름 `[ ].dshs.dev` 400ms 디바운스 확인 ② `HostPicker` 호스트 카드 4개(프로젝트 url로 미리 고름) + 프리셋 안내·설정 링크 + CNAME(Vercel은 `_vercel` TXT 선택) ③ 확인 코드 `<meta name="dshs-verify" content="…">` 복사 + "확인하기"). url 없는 웹사이트 프로젝트는 회색 줄 + 수정 링크. `/domains/admin`(개발자 계정만, 아니면 404) — 전체 표, 회수(이유 필수)·이름 풀기.
+- **호스트 프리셋** `src/lib/domains/hosts.ts`: 호스트마다 `detect`·`cnameTarget`(호스트 소유 도메인만, IP·임의 도메인 거부)·안내·`notFound`(호스트의 "사이트 없음" 판별). 호스트 추가 = 프리셋 + DB `host` CHECK·`subdomain_target_ok()`. **Firebase(A 레코드 요구)·Cloudflare Pages(교차 계정 미확인)는 제외**. GitHub Pages `_github-pages-challenge-*` TXT는 dshs.dev 전체를 확인하므로 **받지 않는다**. TXT는 내 이름 아래(`*.<이름>.dshs.dev`)만, 예외 `_vercel.dshs.dev`는 값이 `vc-domain-verify=<이름>.dshs.dev,`로 시작할 때만.
+- **소유 확인**(`verify.ts`): 행마다 무작위 `verify_token`. `https://<이름>.dshs.dev/`의 meta 또는 `/.well-known/dshs-verify.txt`가 토큰과 같아야 "연결됨". 리다이렉트는 **같은 호스트로만 3번**, 본문 256KB, 10초(`fetch-site.ts`). 가로챈 사이트·이전 주인 사이트는 토큰이 없어 "끊김"이 된다.
+- **DB** `public.subdomains`(`supabase/migrations/20261025100000_subdomains.sql`, 사본 `docs/21-supabase-subdomains.sql`, 2026-10-25 db push 완료): RLS는 SELECT만(본인·`is_admin()`), 쓰기는 `subdomain_reserve/connect/record_check/release/revoke/unblock/set_url` 함수로만 — **EXECUTE는 `service_role` 전용**, 함수 안에서 소유자·관리자(`subdomain_is_developer`) 재확인. 3개 제한은 트리거(사용자별 advisory lock), 이름·프로젝트 중복은 부분 UNIQUE(회수된 이름은 막아 둠, 반납된 이름은 바로 재사용). 살아 있는 주소가 있는 프로젝트는 **삭제 트리거가 막는다** → 프로젝트 삭제는 서버 액션 `src/lib/projects/actions.ts`(`deleteProject`)가 주소 반납·DNS 삭제 후 지운다. 검증 `docs/21-supabase-subdomains-verify.sql`(항상 롤백, "VERIFY OK"). ⚠️ `docs/21`은 재실행 금지, 수정은 새 migration.
+- **서버 액션** `src/lib/domains/actions.ts`(`(nav)` 밖): getUser → 학교 계정 → 입력 검사 → 서비스 키 RPC → Cloudflare. 연결은 CF 생성 후 DB 기록, DB 실패면 방금 만든 레코드 삭제(`connect.ts`).
+- **DNS** `src/lib/domains/cloudflare.ts`: `proxied:false`, `ttl:1`, `comment: "dshs-subdomain:<행 id>"`. **개발(next dev)은 토큰이 있어도 메모리 가짜**(`[dns:fake]` 로그) — 진짜로 해 보려면 `DOMAINS_REAL_DNS=1`. 운영에서 토큰이 없으면 오류.
+- **매일 점검** `.github/workflows/check-subdomains.yml`(03:30 KST, `workflow_dispatch` + `dry_run`) → `scripts/check-subdomains.mts`: 토큰 확인 → `subdomain_record_check`, 끊긴 지 7일·연결 없이 7일이면 반납(`check.ts` `decide`), comment의 행이 살아 있지 않은 Cloudflare 레코드 삭제. 실패 있으면 exit 1. 로그엔 주소 이름만(공개 저장소). 로컬 `node scripts/check-subdomains.mts --dry-run`.
+- **연결점**: 내비 5번째 칸(가이드 다음), 프로젝트 상세 정보 카드 "주소" 행(연결된 것만), 수정 폼 삭제 확인창 "주소도 반납돼요", 가이드 `register.md` 끝 `[!only type=website]` 안내.
 
 ## 🗄️ 데이터베이스 스키마 (Supabase PostgreSQL)
 
@@ -378,7 +391,7 @@
 ## 🧭 전역 페이지 내비게이션 (`PageNav` / `MobileNav`)
 
 - 파일: `src/components/shared/page-nav.tsx` (`"use client"`, 두 컴포넌트 모두 export)
-- **4개 항목**(2026-10-24 6칸에서 병합 — 서브도메인 "주소 받기" 칸 자리 확보): 모든 프로젝트(→ `/explore`), 프로젝트 등록(→ `/projects/new`), 나도 개발해볼래!(→ `/guide`), **커뮤니티(→ `/tips`)**. 커뮤니티 = 개발 팁 + 해줘!(URL은 `/tips`·`/haejwo` 그대로, 두 목록 사이는 `CommunityTabs`로 오감). **공지사항은 내비 칸이 아니라 헤더 오른쪽 벨 아이콘**(`src/components/shared/announcements-link.tsx`, 프로필 옆, 글자·안 읽음 점 없음, 모바일 포함).
+- **5개 항목**(2026-10-24 6칸에서 병합해 4칸 → 2026-10-25 "주소 받기" 추가): 모든 프로젝트(→ `/explore`), 프로젝트 등록(→ `/projects/new`), 나도 개발해볼래!(→ `/guide`), **주소 받기(→ `/domains`, teal-700)**, **커뮤니티(→ `/tips`)**. 커뮤니티 = 개발 팁 + 해줘!(URL은 `/tips`·`/haejwo` 그대로, 두 목록 사이는 `CommunityTabs`로 오감). **공지사항은 내비 칸이 아니라 헤더 오른쪽 벨 아이콘**(`src/components/shared/announcements-link.tsx`, 프로필 옆, 글자·안 읽음 점 없음, 모바일 포함).
 - **모든 Link에 `prefetch={true}`** — `force-dynamic` 페이지 포함 전체 콘텐츠를 뷰포트 진입 시 미리 패치.
 - **활성 버튼 판정**:
   - `/explore`, `/projects/*`(등록·수정 제외), `/developers/*` → "모든 프로젝트"
@@ -476,8 +489,11 @@
 | `CLOUDINARY_CLOUD_NAME` | Cloudinary → Dashboard |
 | `CLOUDINARY_API_KEY` | 위 동일 |
 | `CLOUDINARY_API_SECRET` | 위 동일 |
+| `CLOUDFLARE_DNS_API_TOKEN` | Cloudflare 계정 토큰(`cfat_…`) — `dshs.dev` 존 **DNS 편집만**. 주소 받기용. Workers는 `wrangler secret put`, Actions는 저장소 Secrets |
+| `CLOUDFLARE_ZONE_ID` | `c9fac6d72c704d4836b837590f18e144`(dshs.dev). Workers `vars`, Actions Secrets |
 
 ## ⚠️ 보안 및 주의사항
+- **학생 주소(`*.dshs.dev`)와 같은 사이트(same-site)**: 학생 사이트 JS가 `.dshs.dev` 쿠키를 심을 수 있다. 그래서 운영 세션 쿠키는 `__Host-sb-auth`·`__Host-ds_onboarded`(`src/lib/supabase/cookie-options.ts`, 세 Supabase 클라이언트 공통 — 개발은 `sb-dev-auth`). **본 사이트는 `Domain=.dshs.dev` 쿠키를 절대 쓰지 않는다.** SameSite=Lax가 막아 주지 않으므로 쿠키로 인증하는 상태 변경 Route Handler는 `isSameOrigin()`(`src/lib/same-origin.ts`) 검사 필수(`/api/upload` 적용). 서버 액션은 Next가 Origin을 검사. 학생 JS가 큰 쿠키를 심어 `dshs.dev`를 431로 막는 "쿠키 폭탄"은 서버에서 못 막는다 — 관리자 회수로 대응.
 - **실명 파생**: `student_mappings` 테이블은 삭제됨. 이제 `users.full_name`은 로그인 시 이메일(입학연도)과 구글 계정명(숫자4자리+이름)에서 자동 파생 — `src/app/auth/callback/route.ts` 참고.
 - **Supabase Client**: 서버 사이드에서는 `createServerClient`, 클라이언트에서는 `createBrowserClient` 사용. 민감한 작업은 항상 `getUser()`로 검증.
 
@@ -506,6 +522,7 @@ src/
 │   ├── guide/            # guide-wizard, guide-viewer(스테퍼), guide-step-body(단계 렌더러), guide-chapter-tools
 │   ├── guide-wiki/       # 가이드 위키 편집: editor/(카드 편집기·reducer), history-list, revert-dialog, step-diff-view, doc-render, stale-banner
 │   ├── privacy/          # privacy-gate(동의 팝업, 루트 레이아웃), withdraw-button(동의 철회·탈퇴)
+│   ├── domains/          # 주소 받기: domain-list, domain-steps, host-picker, admin-domain-table
 │   ├── tips/             # tip-card, tip-editor, tip-like-button, tip-comments 등
 │   ├── haejwo/           # haejwo-wizard, haejwo-card, haejwo-status-tabs, haejwo-owner-actions, haejwo-complete-button
 │   ├── announcements/    # announcement-card, announcement-editor, announcement-owner-actions, announcement-pin-button

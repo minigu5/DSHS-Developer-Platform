@@ -26,7 +26,9 @@
 
   // 비밀이 아닌 런타임 값. 비밀은 `npx wrangler secret put <이름>`으로.
   "vars": {
-    "ALLOWED_EMAIL_DOMAIN": "ts.hs.kr"
+    "ALLOWED_EMAIL_DOMAIN": "ts.hs.kr",
+    // 주소 받기(서브도메인) — dshs.dev 존. 토큰은 secret CLOUDFLARE_DNS_API_TOKEN
+    "CLOUDFLARE_ZONE_ID": "c9fac6d72c704d4836b837590f18e144"
   }
 
   // dshs.dev 영역이 이 계정에 추가된 뒤 주석 해제 (위 "vars" 블록 끝에 쉼표 추가)
