@@ -124,7 +124,7 @@ export function OnboardingForm({ user }: { user: User }) {
         {step === 1 ? "닉네임 정하기" : "관심 분야 고르기"}
       </h1>
       <p className={AUTH_LEAD_CLASS} style={riseDelay(120)}>
-        {step === 1 ? "사이트에서 내 이름 대신 보일 닉네임이에요. 나중에 바꿀 수 있어요." : "관심 있는 분야나 과목을 골라 주세요. 건너뛰어도 괜찮아요."}
+        {step === 1 ? "사이트에서 내 이름 대신 보일 닉네임이에요. 나중에 바꿀 수 있어요." : "관심 있는 분야나 과목을 골라 주세요. 고르지 않고 시작해도 괜찮아요."}
       </p>
 
       <form onSubmit={form.handleSubmit(onSubmit)} onKeyDown={handleKeyDown} className="flex w-full flex-col items-center">
@@ -180,15 +180,10 @@ export function OnboardingForm({ user }: { user: User }) {
               <Button type="button" variant="ghost" onClick={() => setStep(1)} className="h-11 rounded-full px-4 text-sm">
                 이전
               </Button>
-              <div className="flex gap-2.5">
-                <Button type="submit" variant="ghost" disabled={loading} className="h-11 rounded-full px-4 text-sm text-zinc-600 dark:text-zinc-400">
-                  건너뛰기
-                </Button>
-                <Button type="submit" disabled={loading} className={cn("h-11 rounded-full px-5 text-sm", SECTION_COLORS.explore.button)}>
-                  <Rocket className="mr-1.5 h-4 w-4" aria-hidden />
-                  {loading ? "저장 중…" : "시작하기"}
-                </Button>
-              </div>
+              <Button type="submit" disabled={loading} className={cn("h-11 rounded-full px-5 text-sm", SECTION_COLORS.explore.button)}>
+                <Rocket className="mr-1.5 h-4 w-4" aria-hidden />
+                {loading ? "저장 중…" : "시작하기"}
+              </Button>
             </div>
           </div>
         )}
