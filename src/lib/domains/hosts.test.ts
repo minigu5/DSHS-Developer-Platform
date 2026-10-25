@@ -71,6 +71,17 @@ test('Railway "사이트 없음" 응답을 알아본다', () => {
   assert.equal(nf(404, new Headers(), 'Not Found'), false)
 })
 
+// 확인 코드는 Accept: text/html 로 요청해서 Netlify 가 텍스트가 아니라 HTML "Site not found" 페이지를 준다(2026-10-25 실측)
+test('Netlify "사이트 없음" 응답을 HTML·텍스트 둘 다 알아본다', () => {
+  const nf = HOST_PRESETS.netlify.notFound
+  const html = '<!doctype html><html lang=en><meta charset=utf-8><title>Site not found</title>\n<meta property="og:title" content="This site is no longer here">'
+  assert.equal(nf(404, new Headers({ 'x-nf-request-id': '01M5' }), html), true)
+  assert.equal(nf(404, new Headers(), 'Not Found - Request ID: 01M5SHBQCF35TP0X04AECSJXQZ'), true)
+  // 연결된 사이트가 자기 404 페이지를 주는 경우나 정상 응답은 "사이트 없음"이 아니다
+  assert.equal(nf(404, new Headers({ 'x-nf-request-id': '01M5' }), '<title>페이지를 찾을 수 없어요</title>'), false)
+  assert.equal(nf(200, new Headers(), html), false)
+})
+
 test('TXT 이름은 내 이름 아래만', () => {
   assert.deepEqual(validateTxt('render', 'meal', { name: '_acme.meal.dshs.dev', value: 'tok' }), { name: '_acme.meal.dshs.dev', value: 'tok' })
   assert.deepEqual(validateTxt('render', 'meal', { name: '_acme.meal', value: 'tok' }), { name: '_acme.meal.dshs.dev', value: 'tok' })

@@ -59,7 +59,9 @@ export const HOST_PRESETS: Record<HostKey, HostPreset> = {
       'Netlify에서 사이트를 열고 Domain management → Add a domain을 눌러 이 주소를 넣어요: {fqdn}',
       '아래 CNAME 값에 내 사이트 주소(이름.netlify.app)가 맞는지 확인해요.',
     ],
-    notFound: (status, _headers, body) => status === 404 && body.includes('Not Found - Request ID'),
+    // 요청의 Accept 에 따라 텍스트("Not Found - Request ID") 또는 HTML("Site not found") 페이지가 온다
+    notFound: (status, _headers, body) =>
+      status === 404 && (body.includes('Not Found - Request ID') || body.includes('<title>Site not found</title>')),
   },
   'cloudflare-pages': {
     key: 'cloudflare-pages',
