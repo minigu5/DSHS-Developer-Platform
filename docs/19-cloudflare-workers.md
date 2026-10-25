@@ -56,7 +56,7 @@ npm run upload    # 빌드 후 새 버전만 올리기(배포 안 함)
 7. **도메인 연결** — `wrangler.jsonc`의 `routes` 주석 해제(`vars` 블록 끝에 쉼표) 후 `npm run deploy`. `dshs.dev`·`www.dshs.dev`에 기존 DNS 레코드가 있으면 먼저 지운다.
 8. **Google OAuth** — 콜백이 `https://aclcleemnsmxyixcfqro.supabase.co/auth/v1/callback`이라 **Google Cloud Console은 바꿀 것 없음**. 동의 화면의 홈페이지 주소만 원하면 `dshs.dev`로(승인된 도메인 추가 시 Search Console 소유 확인 필요).
 9. **자동 배포** — Cloudflare 대시보드 → Worker → Settings → Builds에서 GitHub 저장소 연결. 빌드 명령 `npx opennextjs-cloudflare build`, 배포 명령 `npx opennextjs-cloudflare deploy`, 빌드 변수에 `NEXT_PUBLIC_SUPABASE_URL`·`NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-10. **Vercel 정리** — Git 연결 해제(안 하면 push마다 Vercel도 배포됨). 옛 주소 리디렉트 방법은 미정.
+10. **Vercel 정리** — 2026-10-25 레포 루트 `vercel.json`(`git.deploymentEnabled: false`)으로 push 자동 배포를 껐다(Vercel 계정 로그인 없이 가능). 옛 `vercel.app`은 마지막 배포 그대로 남는다. Git 연결 자체는 Vercel 대시보드 → Settings → Git → Disconnect로 끊을 수 있다. 옛 주소 리디렉트 방법은 미정.
 11. **문서** — CLAUDE.md·AGENTS.md 인프라 표, Supabase Redirect URL에서 `vercel.app` 제거.
 
 ## 참고
