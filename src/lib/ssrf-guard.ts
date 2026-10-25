@@ -100,11 +100,18 @@ export async function assertSafePublicUrl(rawUrl: string): Promise<SsrfCheck> {
   return { ok: true, url };
 }
 
+// Cloudflare Workers 의 lookup 은 CNAME 인 이름(예: 학생 서브도메인 → Vercel)에서 CNAME 대상 이름도
+// address 로 돌려준다. IP 가 아니면 isBlockedIp 가 막아 버리므로, 연결할 수 있는 IP 만 남긴다.
+export function ipAddressesOnly(results: { address: string }[]): string[] {
+  return results.map((r) => r.address).filter((a) => net.isIP(a) !== 0);
+}
+
 // node:dns 가 안 되는 환경(Cloudflare Workers 로컬 실행 등)에서는 DNS-over-HTTPS 로 다시 찾는다.
 // 모두 실패하면 null — 호출부가 막는다(fail closed).
 async function resolveAddresses(host: string): Promise<string[] | null> {
   try {
-    return (await lookup(host, { all: true, verbatim: true })).map((r) => r.address);
+    const ips = ipAddressesOnly(await lookup(host, { all: true, verbatim: true }));
+    if (ips.length > 0) return ips;
   } catch {
     // 아래 DoH 로
   }

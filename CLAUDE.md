@@ -312,7 +312,7 @@
 
 ### Cloudflare Workers 주의 (`docs/19-cloudflare-workers.md`)
 - **파일 시스템 없음**: 런타임 `fs` 읽기 금지. 가이드 조각은 `scripts/gen-guide-fragments.mjs`가 `postinstall`·`predev`·`prebuild`에서 `src/content/guides/fragments.generated.ts`(커밋 안 함)로 묶고, 운영은 그것을 읽는다(개발은 md 직접).
-- **`node:dns` 불안정**: `ssrf-guard.ts`는 `lookup` 실패 시 DoH(fetch)로 대체.
+- **`node:dns` 불안정**: `ssrf-guard.ts`는 `lookup` 실패 시 DoH(fetch)로 대체. 또 Workers의 `lookup`은 CNAME인 이름(학생 서브도메인 → Vercel 등)에서 **CNAME 대상 이름까지 `address`로 돌려준다**(2026-10-25 실측 — 로컬 workerd에선 안 나오고 `wrangler dev --remote`에서만 재현). 그대로 두면 `isBlockedIp`(IP가 아니면 막음)가 "resolves to private ip"로 막아 도메인 확인이 전부 실패하므로 `ipAddressesOnly`로 IP만 남긴다(테스트 `ssrf-guard.test.ts`).
 - **ISR 캐시 없음**: `revalidate` 페이지도 쿠키를 읽어 실제로는 동적(ƒ). `open-next.config.ts`는 정적 자산 캐시만. 쿠키 없는 ISR 페이지를 만들면 R2 캐시로 바꿀 것.
 - **무료 요금제 CPU 10 ms/요청** — 넘으면 오류 1102, Workers Paid($5/월) 필요.
 - **한국 접속은 LAX 경유**(무료 망): 첫 응답 0.8~2초(Vercel icn1은 0.1~0.4초). 무료로는 못 고친다 — 체감은 로딩 뼈대로 가린다(아래 「로딩 뼈대」).
