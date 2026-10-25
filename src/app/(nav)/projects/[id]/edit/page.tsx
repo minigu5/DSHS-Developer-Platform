@@ -5,6 +5,7 @@ import { Rocket } from "lucide-react";
 import { PageHero } from "@/components/shared/page-hero";
 import { ProjectForm } from "@/components/projects/project-form";
 import { isDeveloper } from "@/lib/constants";
+import { getLiveDomainName } from "@/lib/domains/read";
 
 export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -39,12 +40,13 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
   }
 
   const isAuthor = project.author_id === session.user.id || userIsDeveloper;
+  const subdomainName = isAuthor ? await getLiveDomainName(project.id) : null;
 
   return (
     <div className="flex min-h-screen flex-col bg-white dark:bg-zinc-950">
       <PageHero section="new" icon={Rocket} title="프로젝트 수정" description="프로젝트의 최신 정보를 반영해요." />
       <main className="w-full flex-1 px-6 py-9">
-        <ProjectForm initialData={project} isEdit={true} canDelete={isAuthor} />
+        <ProjectForm initialData={project} isEdit={true} canDelete={isAuthor} subdomainName={subdomainName} />
       </main>
     </div>
   );

@@ -5,9 +5,11 @@ import { cookies } from 'next/headers'
 
 import { cloudinary } from '@/lib/cloudinary'
 import { isAllowedEmail } from '@/lib/constants'
+import { getDnsClient } from '@/lib/domains/cloudflare'
 import { PRIVACY_COOKIE, PRIVACY_COOKIE_OPTIONS, WITHDRAW_CONFIRM_TEXT } from '@/lib/privacy/config'
 import { cloudinaryPublicId } from '@/lib/privacy/format'
 import { PRIVACY_POLICY_VERSION } from '@/lib/privacy/version'
+import { ONBOARDING_COOKIE_NAME, ONBOARDING_COOKIE_SECURE } from '@/lib/supabase/cookie-options'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 
 export type PrivacyResult = { ok: true } | { error: string }
@@ -25,12 +27,13 @@ async function currentUser() {
   return { supabase, user }
 }
 
-// 탈퇴한 계정의 흔적이 브라우저에 남지 않게 한다. ds_onboarded 는 middleware.ts 의 ONBOARDING_COOKIE —
+// 탈퇴한 계정의 흔적이 브라우저에 남지 않게 한다. 온보딩 쿠키는 middleware.ts 의 ONBOARDING_COOKIE(운영은 __Host- 접두사) —
 // 남겨 두면 같은 브라우저로 새 계정을 만들 때 온보딩(닉네임 입력)이 건너뛰어진다.
+// __Host- 쿠키는 Secure·Path=/ 를 붙여야 브라우저가 지우기를 받아들여서 delete() 대신 만료로 덮는다.
 async function clearSessionCookies() {
   const cookieStore = await cookies()
   cookieStore.delete(PRIVACY_COOKIE)
-  cookieStore.delete('ds_onboarded')
+  cookieStore.set(ONBOARDING_COOKIE_NAME, '', { maxAge: 0, path: '/', secure: ONBOARDING_COOKIE_SECURE })
 }
 
 // 지워진 계정의 이미지를 Cloudinary 에서도 지운다. 실패해도 탈퇴는 이미 끝났으므로 조용히 넘어간다.
@@ -47,9 +50,22 @@ async function deleteCloudinaryImages(urls: string[]) {
 }
 
 // withdraw_account() 가 한 트랜잭션으로 계정·글·팀원 표시를 정리한다. 이 함수는 service_role 전용.
+// 주소 받기(서브도메인)는 withdraw_account() 가 반납하고, DNS 레코드는 여기서 바로 지운다(놓치면 매일 점검이 정리).
 async function eraseAccount(userId: string): Promise<boolean> {
-  const { data: urls, error } = await createAdminClient().rpc('withdraw_account', { p_user_id: userId })
+  const admin = createAdminClient()
+  const { data: domains } = await admin
+    .from('subdomains')
+    .select('cf_record_ids')
+    .eq('owner_id', userId)
+    .in('status', ['reserved', 'pending', 'active', 'broken'])
+  const { data: urls, error } = await admin.rpc('withdraw_account', { p_user_id: userId })
   if (error) return false
+  const recordIds = (domains ?? []).flatMap((d) => d.cf_record_ids)
+  if (recordIds.length) {
+    await getDnsClient()
+      .remove(recordIds)
+      .catch((e) => console.error('[privacy] 탈퇴한 계정의 DNS 레코드 삭제 실패, 매일 점검이 정리', e))
+  }
   await deleteCloudinaryImages(urls ?? [])
   return true
 }

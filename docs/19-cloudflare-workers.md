@@ -63,3 +63,13 @@ npm run upload    # 빌드 후 새 버전만 올리기(배포 안 함)
 - [OpenNext Cloudflare 시작하기](https://opennext.js.org/cloudflare/get-started)
 - [Workers 한도](https://developers.cloudflare.com/workers/platform/limits/) — 무료: 요청 10만/일, CPU 10 ms/요청
 - OpenNext는 Next 16 `proxy.ts`를 아직 인식하지 못한다는 보고가 있어 `src/middleware.ts`를 유지한다.
+
+## 주소 받기(서브도메인) DNS 토큰 — 2026-10-25
+
+학생 주소(`<이름>.dshs.dev`) 레코드를 만들고 지우는 토큰. 본 사이트 배포 토큰과 따로 둔다.
+
+1. Cloudflare 대시보드 → Manage Account → Account API Tokens → Create Token → Custom token.
+2. 권한 **Zone · DNS · Edit** 하나만, Zone Resources는 **Specific zone · dshs.dev**만. (계정 토큰은 `cfat_`로 시작하고, 확인은 `/accounts/<계정 id>/tokens/verify`로 한다 — `/user/tokens/verify`는 "Invalid API Token"이 정상.)
+3. 넣는 곳: 로컬 `.env.local`(`CLOUDFLARE_DNS_API_TOKEN`, `CLOUDFLARE_ZONE_ID`), Workers `npx wrangler secret put CLOUDFLARE_DNS_API_TOKEN` + `wrangler.jsonc` `vars.CLOUDFLARE_ZONE_ID`, GitHub 저장소 Secrets 두 개(매일 점검용).
+4. 개발 서버는 토큰이 있어도 가짜 DNS를 쓴다(`DOMAINS_REAL_DNS=1`일 때만 진짜).
+5. 학생 레코드는 모두 DNS only(회색 구름). 프록시를 켜면 학생 호스트가 인증서를 못 받는다.

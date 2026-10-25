@@ -15,6 +15,7 @@ import { EditButton } from "@/components/projects/edit-button";
 import type { ReviewItem } from "@/components/projects/review-list";
 import { LICENSE_FEATURES, PLATFORMS, isDeveloper, projectTypeLabels } from "@/lib/constants";
 import { SECTION_COLORS } from "@/lib/section-colors";
+import { getLiveDomainName } from "@/lib/domains/read";
 import { StatStrip, type StatStripItem } from "@/components/projects/stat-strip";
 import { ReadingSurface } from "@/components/shared/reading-surface";
 import { Markdown } from "@/components/shared/markdown";
@@ -45,7 +46,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   // 개발자 계정은 비공개 프로젝트도 볼 수 있도록 어드민 클라이언트 사용
   const queryClient = isDeveloper(user?.email) ? createAdminClient() : supabase;
 
-  const [projectResult, reviewsResult] = await Promise.all([
+  // 연결된 주소(<이름>.dshs.dev) — 이름은 공개 DNS 라 프로젝트를 볼 수 있으면 보여 줘도 된다
+  const [projectResult, reviewsResult, domainName] = await Promise.all([
     queryClient
       .from('projects')
       .select(`*, users (*)`)
@@ -56,6 +58,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       .select('id, rating, comment, created_at, user_id, user:users(*)')
       .eq('project_id', id)
       .order('created_at', { ascending: false }),
+    getLiveDomainName(id, true),
   ]);
 
   const { data: project, error } = projectResult;
@@ -381,6 +384,21 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   <dt className="text-zinc-500 dark:text-zinc-400">플랫폼</dt>
                   <dd className="text-right font-medium text-zinc-900 dark:text-white">{isWebsiteAll ? "Web (모든 브라우저)" : platformLabels.join(" · ") || "–"}</dd>
                 </div>
+                {domainName && (
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-zinc-500 dark:text-zinc-400">주소</dt>
+                    <dd className="min-w-0 truncate text-right">
+                      <a
+                        href={`https://${domainName}.dshs.dev`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-xs font-medium text-zinc-900 underline-offset-2 hover:underline dark:text-white"
+                      >
+                        {domainName}.dshs.dev
+                      </a>
+                    </dd>
+                  </div>
+                )}
                 <div className="flex items-center justify-between gap-3">
                   <dt className="text-zinc-500 dark:text-zinc-400">공개 여부</dt>
                   <dd>

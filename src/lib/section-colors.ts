@@ -4,10 +4,10 @@
  * 규칙(2026-10-24 하위 페이지 톤 통일):
  * - 섹션 색은 세 군데만: 머리 타일(연한 배경) · 페이지의 주 버튼 · 활성 칩. 나머지는 zinc.
  * - 선택이 많은 폼(프로젝트 등록·수정)은 선택 상태에 섹션 색을 쓰지 않는다(무채색 반전).
- * - 흰 글자 배경은 WCAG AA(4.5:1)를 넘는 단계만: blue-600, emerald-700, purple-600, tip-600, orange-700, sky-700.
+ * - 흰 글자 배경은 WCAG AA(4.5:1)를 넘는 단계만: blue-600, emerald-700, purple-600, tip-600, orange-700, sky-700, teal-700.
  * - 개발 팁은 `tip-*` 커스텀 토큰(globals.css @theme). Tailwind pink-600은 oklch라 승인된 색과 달라 쓰지 않는다.
  */
-export type SectionKey = "explore" | "new" | "guide" | "tips" | "haejwo" | "announcements" | "privacy";
+export type SectionKey = "explore" | "new" | "guide" | "domains" | "tips" | "haejwo" | "announcements" | "privacy";
 
 export type SectionColor = {
   /** 진한 배경 — PageNav 활성 알약·MobileNav 원 */
@@ -48,6 +48,15 @@ export const SECTION_COLORS: Record<SectionKey, SectionColor> = {
     chip: "bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300",
     text: "text-purple-700 dark:text-purple-300",
     border: "border-purple-600 dark:border-purple-400",
+  },
+  // 주소 받기(서브도메인) — 2026-10-25
+  domains: {
+    pill: "bg-teal-700",
+    tile: "bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300",
+    button: "bg-teal-700 hover:bg-teal-800 text-white",
+    chip: "bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300",
+    text: "text-teal-700 dark:text-teal-300",
+    border: "border-teal-700 dark:border-teal-400",
   },
   tips: {
     pill: "bg-tip-600",

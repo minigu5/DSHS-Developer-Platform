@@ -1,12 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { cloudinary } from "@/lib/cloudinary";
+import { isSameOrigin } from "@/lib/same-origin";
 import { createClient } from "@/lib/supabase/server";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
 export async function POST(request: NextRequest) {
+  // 학생 주소(*.dshs.dev)에서 보낸 요청은 same-site 라 쿠키가 실려 온다 — 출처를 직접 확인
+  if (!isSameOrigin(request.headers, [request.nextUrl.origin, process.env.NEXT_PUBLIC_SITE_URL ?? ""])) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {

@@ -19,6 +19,10 @@ export type Json =
 
 export type GuideRevisionKind = 'seed' | 'edit' | 'revert' | 'sync';
 
+// 주소 받기(서브도메인) — supabase/migrations/20261025100000_subdomains.sql
+export type SubdomainStatus = 'reserved' | 'pending' | 'active' | 'broken' | 'released' | 'revoked';
+export type SubdomainHost = 'vercel' | 'netlify' | 'github-pages' | 'render';
+
 export type Database = {
   public: {
     Tables: {
@@ -488,6 +492,53 @@ export type Database = {
           },
         ];
       };
+      subdomains: {
+        Row: {
+          id: string;
+          name: string;
+          project_id: string | null;
+          owner_id: string;
+          host: SubdomainHost | null;
+          target: string | null;
+          txt_records: Json;
+          cf_record_ids: string[];
+          status: SubdomainStatus;
+          verify_token: string;
+          ever_active: boolean;
+          broken_since: string | null;
+          checked_at: string | null;
+          released_reason: string | null;
+          revoked_reason: string | null;
+          revoked_by: string | null;
+          /** "방문 주소 바꾸기" 전 프로젝트 url — 반납·회수 때 되돌린다 */
+          previous_url: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        // 직접 쓰기는 RLS 로 막혀 있고 subdomain_* 함수(service_role)로만 바꾼다.
+        Insert: Record<string, never>;
+        Update: Record<string, never>;
+        Relationships: [
+          {
+            foreignKeyName: 'subdomains_project_id_fkey';
+            columns: ['project_id'];
+            referencedRelation: 'projects';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'subdomains_owner_id_fkey';
+            columns: ['owner_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      subdomain_reserved: {
+        Row: { name: string };
+        Insert: Record<string, never>;
+        Update: Record<string, never>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -510,6 +561,42 @@ export type Database = {
       withdraw_account: {
         Args: { p_user_id: string };
         Returns: string[];
+      };
+      subdomain_reserve: {
+        Args: { p_user: string; p_project: string; p_name: string };
+        Returns: string;
+      };
+      subdomain_connect: {
+        Args: {
+          p_user: string;
+          p_id: string;
+          p_host: SubdomainHost;
+          p_target: string;
+          p_txt: Json;
+          p_record_ids: string[];
+        };
+        Returns: undefined;
+      };
+      subdomain_record_check: {
+        Args: { p_id: string; p_ok: boolean; p_now: string };
+        Returns: SubdomainStatus;
+      };
+      subdomain_release: {
+        // p_actor null = 서비스 경로(매일 점검·프로젝트 삭제)
+        Args: { p_actor: string | null; p_id: string; p_reason: string };
+        Returns: string[];
+      };
+      subdomain_revoke: {
+        Args: { p_admin: string; p_id: string; p_reason: string };
+        Returns: string[];
+      };
+      subdomain_unblock: {
+        Args: { p_admin: string; p_id: string };
+        Returns: undefined;
+      };
+      subdomain_set_url: {
+        Args: { p_user: string; p_id: string };
+        Returns: undefined;
       };
       track_project_click: {
         Args: {

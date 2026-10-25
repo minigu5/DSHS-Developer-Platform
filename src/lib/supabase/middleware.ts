@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+import { AUTH_COOKIE_OPTIONS } from '@/lib/supabase/cookie-options';
 import type { Database } from '@/lib/types';
 
 // 미들웨어에서 세션 쿠키를 갱신하기 위한 헬퍼.
@@ -12,6 +13,7 @@ export async function updateSession(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: AUTH_COOKIE_OPTIONS,
       cookies: {
         getAll() {
           return request.cookies.getAll();
