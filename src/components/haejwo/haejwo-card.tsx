@@ -1,9 +1,10 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Check } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 
-import { cn } from "@/lib/utils";
+import { cn, isExternalImage } from "@/lib/utils";
 import { PROJECT_TYPES, FEATURES } from "@/lib/constants";
 import { TYPE_ICONS } from "@/lib/type-icons";
 
@@ -14,7 +15,7 @@ export type HaejwoCardData = {
   category: string;
   status: string;
   created_at: string;
-  author: { nickname: string | null; full_name: string | null } | null;
+  author: { nickname: string | null; full_name: string | null; avatar_url: string | null } | null;
   /** 완료된 요청에 연결된 프로젝트 제목 */
   linked_title?: string | null;
 };
@@ -73,10 +74,21 @@ export function HaejwoCard({ idea }: { idea: HaejwoCardData }) {
       <div className="mt-auto flex items-center justify-between gap-2 pt-1 text-xs text-zinc-500 dark:text-zinc-400">
         <span className="flex items-center gap-2">
           <span
-            className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+            className="relative flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-zinc-100 text-[10px] font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
             aria-hidden
           >
-            {authorName.charAt(0)}
+            {idea.author?.avatar_url ? (
+              <Image
+                src={idea.author.avatar_url}
+                alt=""
+                fill
+                sizes="24px"
+                className="object-cover"
+                unoptimized={isExternalImage(idea.author.avatar_url)}
+              />
+            ) : (
+              authorName.charAt(0)
+            )}
           </span>
           <span className="font-medium text-zinc-600 dark:text-zinc-400">{authorName}</span>
         </span>

@@ -34,7 +34,7 @@ export default async function HaejwoPage() {
     .from("ideas")
     .select(
       `id, title, type, category, status, created_at,
-       author:users!ideas_author_id_fkey(nickname, full_name),
+       author:users!ideas_author_id_fkey(nickname, full_name, avatar_url),
        linked_project:projects(title)`,
     )
     .order("created_at", { ascending: false })
