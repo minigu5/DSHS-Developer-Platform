@@ -7,13 +7,16 @@
 --
 -- 03-supabase-schema.sql 의 public.users 와 16-supabase-click-tracking.sql 의 project_clicks,
 -- 18-supabase-guide-revisions.sql 의 guide_revisions 가 이미 있다는 전제.
--- 운영에는 supabase/migrations/20261025090000_privacy_consents.sql 로 적용.
+-- 운영에는 supabase/migrations/20261025090000_privacy_consents.sql 로 적용했고,
+-- policy_version 형식을 넓힌 것(아래 CHECK)은 20261025120000_privacy_consents_version_hash.sql 로 적용.
 
 -- 1. privacy_consents
 CREATE TABLE public.privacy_consents (
   id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id        uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  policy_version text NOT NULL CHECK (policy_version ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'),
+  -- 시행일 + 본문 해시(src/lib/privacy/version.ts). 본문이 바뀌면 값이 달라져 자동으로 재동의를 받는다.
+  -- 날짜만 있는 옛 형식(2026-10-25)도 허용 — 이미 기록된 행.
+  policy_version text NOT NULL CHECK (policy_version ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}(-[0-9a-f]{8})?$'),
   consented_at   timestamptz NOT NULL DEFAULT now(),
   UNIQUE (user_id, policy_version)
 );

@@ -1,7 +1,15 @@
-import { PRIVACY_CONTACT_EMAIL, PRIVACY_POLICY_VERSION } from './config.ts'
+import { PRIVACY_CONTACT_EMAIL } from './config.ts'
+
+/**
+ * 시행일(`YYYY-MM-DD`). 문구를 실제로 바꿀 때 같이 고친다. 처리방침 버전(version.ts)은 이 날짜와 본문 해시로
+ * 만들어지므로 본문을 한 글자라도 고치면 버전이 자동으로 바뀌어 모든 사용자에게 동의 창이 다시 뜬다 —
+ * 오탈자 수정도 마찬가지이니 고친 뒤 배포하기 전에 꼭 필요한 수정인지 확인할 것.
+ */
+export const PRIVACY_EFFECTIVE_DATE = '2026-10-25'
+
+const [year, month, day] = PRIVACY_EFFECTIVE_DATE.split('-').map(Number)
 
 // 처리방침 본문(마크다운). /privacy 가 `Markdown` 컴포넌트로 그린다.
-// 문구를 실제로 바꾸면 config.ts 의 PRIVACY_POLICY_VERSION 도 같이 올릴 것(전원 재동의).
 // 이 파일은 실제 코드가 하는 일을 그대로 적는다 — 코드가 바뀌면 여기도 고친다.
 export const PRIVACY_POLICY_MD = `DSHS Developer Platform(이하 "이 사이트")은 개인정보 보호법에 따라 이용자의 개인정보를 아래와 같이 처리해요.
 
@@ -93,5 +101,5 @@ export const PRIVACY_POLICY_MD = `DSHS Developer Platform(이하 "이 사이트"
 
 내용이 바뀌면 시행 전에 공지사항에 올려요. 내용이 달라진 새 버전은 로그인할 때 동의 창으로 다시 물어봐요.
 
-- 시행일: 2026년 10월 25일 (버전 ${PRIVACY_POLICY_VERSION})
+- 시행일: ${year}년 ${month}월 ${day}일
 `

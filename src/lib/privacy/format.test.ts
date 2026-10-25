@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { cloudinaryPublicId, formatKst } from './format.ts'
+import { cloudinaryPublicId, formatKst, hashText, policyVersion } from './format.ts'
 
 test('formatKst: UTC 시각을 한국 시간으로 보여 준다', () => {
   assert.equal(formatKst('2026-10-25T05:03:00Z'), '2026년 10월 25일 오후 2:03')
@@ -32,4 +32,21 @@ test('cloudinaryPublicId: 남의 계정·다른 폴더·다른 호스트는 null
 
 test('cloudinaryPublicId: 계정 이름을 모르면 아무것도 지우지 않는다', () => {
   assert.equal(cloudinaryPublicId('https://res.cloudinary.com/demo/image/upload/v1/dshs/a.png', undefined), null)
+})
+
+test('hashText: 같은 글은 같은 값, 한 글자만 달라도 다른 값, 8자리 16진수', () => {
+  const a = hashText('개인정보 처리방침 본문')
+  assert.match(a, /^[0-9a-f]{8}$/)
+  assert.equal(hashText('개인정보 처리방침 본문'), a)
+  assert.notEqual(hashText('개인정보 처리방침 본문.'), a)
+  assert.notEqual(hashText('개인정보 처리방침 본문'.replace('본', '분')), a)
+  assert.match(hashText(''), /^[0-9a-f]{8}$/)
+})
+
+test('policyVersion: 시행일 + 본문 해시. 본문이 바뀌면 시행일을 안 올려도 버전이 바뀐다', () => {
+  const v = policyVersion('2026-10-25', '본문')
+  assert.match(v, /^2026-10-25-[0-9a-f]{8}$/)
+  assert.equal(policyVersion('2026-10-25', '본문'), v)
+  assert.notEqual(policyVersion('2026-10-25', '본문 수정'), v)
+  assert.notEqual(policyVersion('2026-11-01', '본문'), v)
 })

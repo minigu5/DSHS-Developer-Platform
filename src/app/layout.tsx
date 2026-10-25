@@ -5,6 +5,7 @@ import { Geist, Geist_Mono, IBM_Plex_Sans_KR } from 'next/font/google';
 import { PrivacyGate } from '@/components/privacy/privacy-gate';
 import { ThemeProvider } from '@/components/shared/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
+import { PRIVACY_POLICY_VERSION } from '@/lib/privacy/version';
 
 import './globals.css';
 
@@ -55,7 +56,7 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {children}
-          <PrivacyGate />
+          <PrivacyGate version={PRIVACY_POLICY_VERSION} />
           <Toaster richColors closeButton position="top-center" />
         </ThemeProvider>
       </body>

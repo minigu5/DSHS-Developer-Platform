@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 import { isAllowedEmail } from '@/lib/constants';
-import { PRIVACY_COOKIE, PRIVACY_COOKIE_OPTIONS, PRIVACY_POLICY_VERSION } from '@/lib/privacy/config';
+import { PRIVACY_COOKIE, PRIVACY_COOKIE_OPTIONS } from '@/lib/privacy/config';
+import { PRIVACY_POLICY_VERSION } from '@/lib/privacy/version';
 import { updateSession } from '@/lib/supabase/middleware';
 
 // 로그인이 강제되는 경로 prefix. 메인/탐색/상세는 비로그인도 열람 가능.

@@ -5,13 +5,15 @@ import { cookies } from 'next/headers'
 
 import { cloudinary } from '@/lib/cloudinary'
 import { isAllowedEmail } from '@/lib/constants'
-import { PRIVACY_COOKIE, PRIVACY_COOKIE_OPTIONS, PRIVACY_POLICY_VERSION, WITHDRAW_CONFIRM_TEXT } from '@/lib/privacy/config'
+import { PRIVACY_COOKIE, PRIVACY_COOKIE_OPTIONS, WITHDRAW_CONFIRM_TEXT } from '@/lib/privacy/config'
 import { cloudinaryPublicId } from '@/lib/privacy/format'
+import { PRIVACY_POLICY_VERSION } from '@/lib/privacy/version'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 
 export type PrivacyResult = { ok: true } | { error: string }
 
 const LOGIN_REQUIRED = '로그인이 필요해요.'
+const POLICY_CHANGED = '그사이 처리방침이 바뀌었어요. 페이지를 새로고침해서 다시 읽어 주세요.'
 const UNKNOWN_ERROR = '처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.'
 const CLOUDINARY_DELETE_BATCH = 100
 
@@ -52,10 +54,14 @@ async function eraseAccount(userId: string): Promise<boolean> {
   return true
 }
 
-/** 동의한다 — 현재 버전의 동의를 기록한다. 이미 있으면 처음 시각을 그대로 둔다. */
-export async function acceptPrivacyPolicy(): Promise<PrivacyResult> {
+/**
+ * 동의한다 — 현재 버전의 동의를 기록한다. 이미 있으면 처음 시각을 그대로 둔다.
+ * `seenVersion` 은 팝업이 사용자에게 보여 준 버전 — 그사이 처리방침이 바뀌었으면 읽지 않은 글에 동의시키지 않고 거절한다.
+ */
+export async function acceptPrivacyPolicy(seenVersion: string): Promise<PrivacyResult> {
   const { user } = await currentUser()
   if (!user || !isAllowedEmail(user.email)) return { error: LOGIN_REQUIRED }
+  if (seenVersion !== PRIVACY_POLICY_VERSION) return { error: POLICY_CHANGED }
 
   const { error } = await createAdminClient()
     .from('privacy_consents')

@@ -5,9 +5,9 @@ import { WithdrawButton } from "@/components/privacy/withdraw-button";
 import { Markdown } from "@/components/shared/markdown";
 import { PageHero } from "@/components/shared/page-hero";
 import { ReadingSurface } from "@/components/shared/reading-surface";
-import { PRIVACY_POLICY_VERSION } from "@/lib/privacy/config";
 import { formatKst } from "@/lib/privacy/format";
 import { PRIVACY_POLICY_MD } from "@/lib/privacy/policy";
+import { PRIVACY_POLICY_VERSION } from "@/lib/privacy/version";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
