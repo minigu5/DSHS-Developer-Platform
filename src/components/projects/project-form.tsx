@@ -33,6 +33,7 @@ import { SECTION_COLORS } from "@/lib/section-colors";
 import { Markdown } from "@/components/shared/markdown";
 import { parseGithubRepo } from "@/lib/github-readme";
 import { createClient } from "@/lib/supabase/client";
+import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 import type { ProjectRow } from "@/lib/types";
 
 type Visibility = 'public' | 'private';
@@ -362,6 +363,17 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authorRole]);
 
+  // 저장 안 한 변경이 있으면 다른 곳으로 갈 때 브라우저 경고. 순서만 달라진 배열은 같은 값으로 본다.
+  const sorted = (list: string[]) => [...list].sort();
+  const formSnapshot = JSON.stringify([
+    title, shortDesc, description, sorted(types), sorted(selectedPlatforms),
+    sourceType, repoUrl, readmeSync, sorted(licenseFeatures), hasCustomLicense, licenseCustom,
+    sorted(selectedFeatures), featureCustom, visibility, sorted(allowedUsers),
+    authorRole, teamName, sorted(teamMembers), url, iconType, iconUrl,
+  ]);
+  const [initialSnapshot] = useState(formSnapshot);
+  const { allowLeave } = useUnsavedWarning(formSnapshot !== initialSnapshot);
+
   const handleIconTypeChange = (newType: IconType) => {
     setIconType(newType);
     if (newType === 'auto') {
@@ -387,6 +399,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
         .eq('id', initialData!.id)
         .eq('author_id', session.user.id);
       if (error) throw error;
+      allowLeave();
       router.push('/explore');
       router.refresh();
     } catch (err) {
@@ -541,10 +554,12 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
         // 수정 시 author_id 는 포함하지 않음 — 원작자 변경 방지 (개발자 계정 포함)
         const { error } = await supabase.from('projects').update(commonFields).eq('id', initialData.id);
         if (error) throw error;
+        allowLeave();
         router.push(`/projects/${initialData.id}`);
       } else {
         const { data, error } = await supabase.from('projects').insert([{ ...commonFields, author_id: session.user.id }]).select().single();
         if (error) throw error;
+        allowLeave();
         router.push(`/projects/${data.id}`);
       }
       
