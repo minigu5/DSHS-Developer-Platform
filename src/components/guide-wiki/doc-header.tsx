@@ -53,7 +53,7 @@ export function DocHeader({
               aria-hidden
             />
           </summary>
-          <ul className="absolute left-0 top-full z-20 mt-2 w-72 max-w-[calc(100vw-3rem)] rounded-2xl border border-zinc-200 bg-white p-1.5 shadow-md dark:border-zinc-800 dark:bg-zinc-900">
+          <ul className="absolute left-0 top-full z-40 mt-2 max-h-80 w-72 max-w-[calc(100vw-3rem)] overflow-y-auto overscroll-contain rounded-2xl border border-zinc-200 bg-white p-1.5 shadow-md dark:border-zinc-800 dark:bg-zinc-900">
             {usages.map((u) => (
               <li key={u.href}>
                 <Link
