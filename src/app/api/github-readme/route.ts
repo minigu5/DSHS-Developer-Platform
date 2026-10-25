@@ -81,8 +81,8 @@ export async function GET(request: NextRequest) {
     return fail('README를 찾지 못했어요. 공개 저장소인지, README 파일이 있는지 확인해 주세요.', 404);
   }
 
-  const { markdown, truncated } = prepareReadme(result.text, target, result.path);
+  const { markdown } = prepareReadme(result.text, target, result.path);
   if (!markdown) return fail('README가 비어 있어요.', 422);
 
-  return NextResponse.json({ markdown, truncated }, { headers: { 'Cache-Control': 'no-store' } });
+  return NextResponse.json({ markdown }, { headers: { 'Cache-Control': 'no-store' } });
 }

@@ -6,8 +6,6 @@ export interface GithubRepo {
   repo: string;
 }
 
-export const README_MAX_CHARS = 30000;
-
 const OWNER_RE = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
 const REPO_RE = /^[A-Za-z0-9._-]{1,100}$/;
 
@@ -107,7 +105,6 @@ function rewriteLinks(chunk: string, repo: GithubRepo, dir: string): string {
 
 export interface PreparedReadme {
   markdown: string;
-  truncated: boolean;
 }
 
 // readmePath: 저장소 안 README 경로 (예: "README.md", "docs/README.md").
@@ -116,11 +113,7 @@ export function prepareReadme(raw: string, repo: GithubRepo, readmePath: string)
   let md = raw.replace(/\r\n?/g, '\n').replace(/^﻿/, '');
   md = mapOutsideCode(md, (chunk) => rewriteLinks(htmlToMarkdown(chunk), repo, dir));
   md = md.replace(/\n{3,}/g, '\n\n').trim();
-
-  if (md.length <= README_MAX_CHARS) return { markdown: md, truncated: false };
-  const cut = md.slice(0, README_MAX_CHARS);
-  const lastBreak = cut.lastIndexOf('\n');
-  return { markdown: (lastBreak > README_MAX_CHARS / 2 ? cut.slice(0, lastBreak) : cut).trimEnd(), truncated: true };
+  return { markdown: md };
 }
 
 const UNSUPPORTED_EXT = ['rst', 'adoc', 'asciidoc', 'org', 'textile', 'rdoc', 'pod'];

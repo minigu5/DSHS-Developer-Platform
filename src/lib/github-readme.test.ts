@@ -1,7 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  README_MAX_CHARS,
   decodeBase64Utf8,
   isSupportedReadmeName,
   parseGithubRepo,
@@ -80,12 +79,10 @@ test('prepareReadme: 꺾쇠 자동 링크와 제네릭 표기는 지우지 않�
   assert.equal(prepareReadme(md, repo, 'README.md').markdown, md)
 })
 
-test('prepareReadme: 너무 길면 줄 단위로 자르고 truncated', () => {
+test('prepareReadme: 길어도 자르지 않고 전부 가져온다', () => {
   const line = 'a'.repeat(99) + '\n'
-  const out = prepareReadme(line.repeat(500), repo, 'README.md')
-  assert.equal(out.truncated, true)
-  assert.ok(out.markdown.length <= README_MAX_CHARS)
-  assert.ok(!out.markdown.endsWith('\n'))
+  const out = prepareReadme(line.repeat(5000), repo, 'README.md')
+  assert.equal(out.markdown, line.repeat(5000).trim())
 })
 
 test('isSupportedReadmeName', () => {

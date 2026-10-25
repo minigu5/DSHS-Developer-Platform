@@ -83,8 +83,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
   const [readmeNote, setReadmeNote] = useState("");
   const [showReadmeDialog, setShowReadmeDialog] = useState(false);
   const [readmeSync, setReadmeSync] = useState<boolean>(initialData?.readme_sync ?? false);
-  // 동기화 켜기 = 첫 가져오기 성공 후에만 켜진다. 취소·실패하면 꺼 둔 채로 둔다.
-  const syncAfterImport = useRef(false);
+  // 동기화는 README 가져오기가 성공하면 (오픈소스일 때) 자동으로 켜진다. 취소·실패하면 꺼 둔 채로 둔다.
 
   // 작성자 정보
   const [authorRole, setAuthorRole] = useState<AuthorRole>(
@@ -161,24 +160,23 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
     setReadmeNote("");
     try {
       const res = await fetch(`/api/github-readme?url=${encodeURIComponent(repoUrl.trim())}`);
-      const data = (await res.json()) as { markdown?: string; truncated?: boolean; error?: string };
+      const data = (await res.json()) as { markdown?: string; error?: string };
       if (!res.ok || !data.markdown) {
         setReadmeError(data.error ?? "README를 가져오지 못했어요.");
         return;
       }
       setDescription(data.markdown);
-      if (syncAfterImport.current) setReadmeSync(true);
+      // 오픈소스면 가져오기와 함께 자동 동기화를 기본으로 켠다
+      const syncOn = sourceType === "open";
+      if (syncOn) setReadmeSync(true);
       setReadmeNote(
-        data.truncated
-          ? "README가 너무 길어 앞부분만 가져왔어요. 필요한 부분을 고쳐 주세요."
-          : readmeSync || syncAfterImport.current
-            ? "README를 가져왔어요. 저장하면 매일 밤 README로 다시 채워져요."
-            : "README를 가져왔어요. 아래 칸에서 자유롭게 고칠 수 있어요.",
+        syncOn
+          ? "README를 가져왔어요. 저장하면 매일 밤 README로 다시 채워져요."
+          : "README를 가져왔어요. 아래 칸에서 자유롭게 고칠 수 있어요.",
       );
     } catch {
       setReadmeError("README를 가져오지 못했어요. 네트워크를 확인하고 다시 시도해 주세요.");
     } finally {
-      syncAfterImport.current = false;
       setReadmeLoading(false);
     }
   };
@@ -189,7 +187,6 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
     setReadmeError("");
     setReadmeNote("");
     if (!parseGithubRepo(repoUrl)) {
-      syncAfterImport.current = false;
       setReadmeError("GitHub 저장소 링크를 입력해 주세요. 예: https://github.com/username/repo");
       return;
     }
@@ -201,7 +198,6 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
   };
 
   const cancelReadmeDialog = () => {
-    syncAfterImport.current = false;
     setShowReadmeDialog(false);
   };
 
@@ -210,7 +206,6 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
       setReadmeSync(false);
       return;
     }
-    syncAfterImport.current = true;
     requestReadme();
   };
 
