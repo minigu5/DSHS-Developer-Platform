@@ -93,6 +93,12 @@ BEGIN
   log := log || 'broken=' || st || '/' || (SELECT (broken_since IS NOT NULL)::text FROM public.subdomains WHERE id = a) || ';';
   st := public.subdomain_record_check(a, true, now());
 
+  -- 연결됐던 주소를 다시 연결(pending)한 뒤 확인이 실패하면 끊김으로 — 매일 점검이 7일 뒤 반납할 수 있게
+  PERFORM public.subdomain_connect(u, a, 'vercel', 'abcdef12.vercel-dns-017.com', '[]', ARRAY['rec1', 'rec2']);
+  st := public.subdomain_record_check(a, false, now());
+  log := log || 'reconnect_fail=' || st || '/' || (SELECT (broken_since IS NOT NULL)::text FROM public.subdomains WHERE id = a) || ';';
+  st := public.subdomain_record_check(a, true, now());
+
   -- 방문 주소 바꾸기 (active 만)
   PERFORM public.subdomain_set_url(u, a);
   log := log || 'url=' || (SELECT url FROM public.projects WHERE id = p[1]) || ';';
@@ -104,6 +110,8 @@ BEGIN
   EXCEPTION WHEN raise_exception THEN log := log || 'release_other=' || SQLERRM || ';'; END;
   ids := public.subdomain_release(u, a, 'owner');
   log := log || 'released=' || array_to_string(ids, ',') || '/' || (SELECT status FROM public.subdomains WHERE id = a) || ';';
+  -- 반납하면 방문 주소를 받기 전 주소로 되돌린다(같은 이름을 다른 학생이 받을 수 있어서)
+  log := log || 'url_restored=' || (SELECT url FROM public.projects WHERE id = p[1]) || ';';
   d := public.subdomain_reserve(u, p[4], 'zz-verify-a');
   log := log || 'reuse=' || (d IS NOT NULL)::text || ';';
   DELETE FROM public.projects WHERE id = p[1];
@@ -149,9 +157,9 @@ BEGIN
     'fourth=limit;taken=name_taken;same_project=project_has_subdomain;reserved=name_reserved;invalid=name_invalid;'
     'app=not_website;nourl=not_website;other=not_owner;delete=project_has_subdomain;'
     'bad_target=target_invalid;bad_txt=txt_invalid;connect_other=not_owner;connected=pending/vercel/2;'
-    'pending_fail=pending;ok=active/true;broken=broken/true;'
+    'pending_fail=pending;ok=active/true;broken=broken/true;reconnect_fail=broken/true;'
     'url=https://zz-verify-a.dshs.dev;url_reserved=not_active;'
-    'release_other=not_owner;released=rec1,rec2/released;reuse=true;delete_after_release=true;history_kept=true;'
+    'release_other=not_owner;released=rec1,rec2/released;url_restored=https://zz-verify-1.vercel.app;reuse=true;delete_after_release=true;history_kept=true;'
     'service_release=released/never_connected_7d;'
     'revoke_user=not_admin;revoked_name=name_taken;unblocked=true;'
     'fn_anon=false;fn_auth=false;fn_service=true;'

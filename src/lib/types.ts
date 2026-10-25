@@ -510,6 +510,8 @@ export type Database = {
           released_reason: string | null;
           revoked_reason: string | null;
           revoked_by: string | null;
+          /** "방문 주소 바꾸기" 전 프로젝트 url — 반납·회수 때 되돌린다 */
+          previous_url: string | null;
           created_at: string;
           updated_at: string;
         };
