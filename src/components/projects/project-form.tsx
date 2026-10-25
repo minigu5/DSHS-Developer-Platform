@@ -48,6 +48,12 @@ type TeamMemberProfile = {
   avatar_url: string | null;
 };
 
+// 같은 저장소인지 비교하는 키. GitHub 저장소 링크가 아니면 빈 문자열.
+function repoKey(input: string): string {
+  const target = parseGithubRepo(input);
+  return target ? `${target.owner}/${target.repo}`.toLowerCase() : "";
+}
+
 interface ProjectFormProps {
   initialData?: ProjectRow;
   isEdit?: boolean;
@@ -127,6 +133,50 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
   const [hasCustomLicense, setHasCustomLicense] = useState(!!initialData?.license_custom);
   const [licenseCustom, setLicenseCustom] = useState<string>(initialData?.license_custom ?? "");
 
+  // GitHub 라이선스 가져오기 — 저장소 링크 입력칸을 벗어날 때, 또는 README를 가져온 뒤 저장소마다 한 번.
+  // origin 이 'user' 면(처음부터 값이 있었거나 칩을 직접 건드림) 덮어쓰지 않는다. 'auto' 는 우리가 채운 값이라
+  // 다른 저장소로 바뀌면 다시 채운다. 수정 화면에서는 원래 저장소를 다시 가져오지 않는다.
+  const [licenseLoading, setLicenseLoading] = useState(false);
+  const [licenseError, setLicenseError] = useState("");
+  const [licenseNote, setLicenseNote] = useState("");
+  const licenseRepoRef = useRef(repoKey(initialData?.repo_url ?? ""));
+  const licenseOriginRef = useRef<"none" | "auto" | "user">(
+    initialData?.license_features?.length || initialData?.license_custom ? "user" : "none",
+  );
+
+  // await 뒤에 다시 읽는 값이라 TS 가 앞선 검사로 좁혀 둔 타입을 쓰지 않게 함수로 읽는다.
+  const touchedByUser = () => licenseOriginRef.current === "user";
+
+  const fillLicenseFromRepo = async (input: string) => {
+    const key = repoKey(input);
+    if (sourceType !== "open" || !key || key === licenseRepoRef.current) return;
+    if (touchedByUser()) return;
+    licenseRepoRef.current = key;
+    setLicenseLoading(true);
+    setLicenseError("");
+    setLicenseNote("");
+    try {
+      const res = await fetch(`/api/github-license?url=${encodeURIComponent(input.trim())}`);
+      const data = (await res.json()) as { name?: string; features?: string[]; error?: string };
+      if (licenseRepoRef.current !== key) return;
+      if (!res.ok || !data.features) {
+        // 한도·서버 오류는 다시 시도할 수 있게 열어 둔다
+        if (res.status === 429 || res.status >= 500) licenseRepoRef.current = "";
+        setLicenseError(data.error ?? "라이선스를 가져오지 못했어요. 직접 골라 주세요.");
+        return;
+      }
+      if (touchedByUser()) return; // 불러오는 사이 칩을 직접 골랐다
+      licenseOriginRef.current = "auto";
+      setLicenseFeatures(data.features);
+      setLicenseNote(`${data.name ?? "라이선스"}: GitHub 정보로 채웠어요. 다르면 직접 바꿔 주세요.`);
+    } catch {
+      if (licenseRepoRef.current === key) licenseRepoRef.current = "";
+      setLicenseError("라이선스를 가져오지 못했어요. 직접 골라 주세요.");
+    } finally {
+      if (licenseRepoRef.current === key || licenseRepoRef.current === "") setLicenseLoading(false);
+    }
+  };
+
   const handleDescKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (readmeSync && sourceType === "open") return;
     if (e.key === "Tab") {
@@ -175,6 +225,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
           ? "README를 가져왔어요. 저장하면 매일 밤 README로 다시 채워져요."
           : "README를 가져왔어요. 아래 칸에서 자유롭게 고칠 수 있어요.",
       );
+      void fillLicenseFromRepo(repoUrl);
     } catch {
       setReadmeError("README를 가져오지 못했어요. 네트워크를 확인하고 다시 시도해 주세요.");
     } finally {
@@ -275,6 +326,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
   };
 
   const handleLicenseFeatureChange = (val: string, checked: boolean) => {
+    licenseOriginRef.current = "user";
     setLicenseFeatures(prev => checked ? [...prev, val] : prev.filter(p => p !== val));
   };
 
@@ -333,6 +385,10 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
       setLicenseFeatures([]);
       setHasCustomLicense(false);
       setLicenseCustom("");
+      licenseOriginRef.current = "none";
+      licenseRepoRef.current = "";
+      setLicenseError("");
+      setLicenseNote("");
     }
   }, [sourceType]);
 
@@ -854,7 +910,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
               <Label htmlFor="repo_url" className={labelClass}>저장소 링크{req}</Label>
               <div className="relative">
                 <Code2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" aria-hidden />
-                <Input id="repo_url" value={repoUrl} onChange={e => setRepoUrl(e.target.value)} placeholder="https://github.com/username/repo" className="h-11 rounded-xl pl-9" />
+                <Input id="repo_url" value={repoUrl} onChange={e => setRepoUrl(e.target.value)} onBlur={() => void fillLicenseFromRepo(repoUrl)} placeholder="https://github.com/username/repo" className="h-11 rounded-xl pl-9" />
               </div>
             </div>
           )}
@@ -870,13 +926,20 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true }: P
                   label={lf.label}
                 />
               ))}
-              <ToggleChip pressed={hasCustomLicense} onToggle={() => setHasCustomLicense(!hasCustomLicense)} label="기타 (직접 입력)" />
+              <ToggleChip pressed={hasCustomLicense} onToggle={() => { licenseOriginRef.current = "user"; setHasCustomLicense(!hasCustomLicense); }} label="기타 (직접 입력)" />
             </div>
             <p className={hintClass}>
               {sourceType === "closed"
                 ? "소스코드를 비공개로 두면 라이선스 항목을 고를 수 없어요."
                 : "체크하지 않은 항목은 상세 페이지에 \"제한\"으로 표시돼요."}
             </p>
+            {licenseLoading ? (
+              <p className={hintClass} aria-live="polite">GitHub에서 라이선스를 확인하고 있어요…</p>
+            ) : licenseError ? (
+              <p role="alert" className="text-xs font-medium text-rose-600 dark:text-rose-400">{licenseError}</p>
+            ) : licenseNote ? (
+              <p className={hintClass} aria-live="polite">{licenseNote}</p>
+            ) : null}
             {hasCustomLicense && (
               <div className="animate-in fade-in slide-in-from-top-2">
                 <Input value={licenseCustom} onChange={e => setLicenseCustom(e.target.value)} placeholder="기타 라이선스 조건" className="h-11 rounded-xl" />
