@@ -1,0 +1,36 @@
+// 매일 점검(scripts/check-subdomains.mts)의 판단 — 네트워크·DB 없이 node:test 로 검증한다.
+//   - 소유 확인 토큰이 보이면 정상
+//   - 연결됐던 주소가 7일 넘게 끊겨 있으면 반납(주인이 떠난 주소를 남이 가로채지 못하게)
+//   - 한 번도 연결되지 않은 채 7일이 지나면 반납(이름만 묶어 두기 방지)
+
+import { RECORD_COMMENT_PREFIX } from './cloudflare.ts'
+import type { CheckResult } from './verify.ts'
+
+export const RELEASE_AFTER_DAYS = 7
+const DAY_MS = 86_400_000
+
+export type CheckRow = {
+  status: 'reserved' | 'pending' | 'active' | 'broken'
+  created_at: string
+  broken_since: string | null
+  ever_active: boolean
+}
+
+export type Decision = { ok: boolean; release: null | 'broken_7d' | 'never_connected_7d' }
+
+const olderThan = (iso: string, now: Date) => now.getTime() - new Date(iso).getTime() > RELEASE_AFTER_DAYS * DAY_MS
+
+/** result 가 null 이면 확인하지 않은 것(예약만 된 주소) */
+export function decide(row: CheckRow, result: CheckResult | null, now: Date): Decision {
+  if (result?.kind === 'ok') return { ok: true, release: null }
+  if (!row.ever_active) {
+    return { ok: false, release: olderThan(row.created_at, now) ? 'never_connected_7d' : null }
+  }
+  const since = row.broken_since ?? now.toISOString()
+  return { ok: false, release: olderThan(since, now) ? 'broken_7d' : null }
+}
+
+/** Cloudflare 레코드 comment("dshs-subdomain:<행 id>")에서 행 id */
+export function managedRowId(comment: string): string | null {
+  return comment.startsWith(RECORD_COMMENT_PREFIX) ? comment.slice(RECORD_COMMENT_PREFIX.length) || null : null
+}
