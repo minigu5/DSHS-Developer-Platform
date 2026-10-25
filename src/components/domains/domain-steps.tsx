@@ -11,6 +11,7 @@ import {
   releaseSubdomain,
   reserveSubdomain,
 } from "@/lib/domains/actions";
+import { buildVerifyPrompt } from "@/lib/domains/ai-prompt";
 import { HOST_PRESETS } from "@/lib/domains/hosts";
 import { normalizeName } from "@/lib/domains/name";
 import type { DomainProjectRow, DomainView } from "@/lib/domains/read";
@@ -135,21 +136,25 @@ function NameStep({ projectId }: { projectId: string }) {
   );
 }
 
-function CopyButton({ text, label }: { text: string; label: string }) {
-  const [copied, setCopied] = useState(false);
+function CopyButton({ text, label, idle = "복사", className = SECONDARY }: { text: string; label: string; idle?: string; className?: string }) {
+  const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
   return (
     <button
       type="button"
       onClick={async () => {
-        await navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
+        try {
+          await navigator.clipboard.writeText(text);
+          setState("copied");
+        } catch {
+          setState("failed");
+        }
+        setTimeout(() => setState("idle"), 2500);
       }}
-      className={SECONDARY}
+      className={className}
       aria-label={label}
     >
-      {copied ? <Check className="h-4 w-4" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}
-      {copied ? "복사했어요" : "복사"}
+      {state === "copied" ? <Check className="h-4 w-4" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}
+      {state === "copied" ? "복사했어요" : state === "failed" ? "복사하지 못했어요 — 아래 글을 직접 복사해요" : idle}
     </button>
   );
 }
@@ -163,18 +168,31 @@ const RESULT_TEXT: Record<string, string> = {
 // ③ 확인 코드 + 연결 확인 (결과는 DomainList 의 useDomainChecks 가 쥐고 있다 — 접혀 있어도 자동으로 확인하므로)
 function VerifyStep({ domain, check, auto, onCheck }: { domain: DomainView; check: CheckState; auto: AutoState; onCheck: () => void }) {
   const meta = `<meta name="${VERIFY_META_NAME}" content="${domain.verifyToken}">`;
+  const prompt = buildVerifyPrompt({ name: domain.name, token: domain.verifyToken, host: domain.host });
 
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        이 주소가 내 사이트인지 확인하는 코드예요. AI에게 &ldquo;이 줄을 사이트 &lt;head&gt;에 넣어 줘&rdquo;라고 하고 다시 배포해요. 배포가 끝나면 이 화면이 알아서 확인해요.
+        이 주소가 내 사이트인지 확인하는 코드예요. 아래 글을 AI에게 그대로 보내면 코드를 넣고 다시 배포해 줘요. 배포가 끝나면 이 화면이 알아서 확인해요.
       </p>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-xl bg-zinc-100 px-3 py-2 font-mono text-xs text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
-          {meta}
-        </code>
-        <CopyButton text={meta} label="확인 코드 복사" />
+      <div>
+        <CopyButton text={prompt} label="AI에게 보낼 글 복사" idle="AI에게 보낼 글 복사" className={PRIMARY} />
       </div>
+      <details className="text-xs text-zinc-500 dark:text-zinc-400">
+        <summary className="cursor-pointer">보낼 글 미리 보기</summary>
+        <pre className="mt-1.5 max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-zinc-100 px-3 py-2 font-mono text-xs text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
+          {prompt}
+        </pre>
+      </details>
+      <details className="text-xs text-zinc-500 dark:text-zinc-400">
+        <summary className="cursor-pointer">코드 한 줄만 직접 넣고 싶다면</summary>
+        <div className="mt-1.5 flex flex-col gap-2 sm:flex-row sm:items-center">
+          <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-xl bg-zinc-100 px-3 py-2 font-mono text-xs text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
+            {meta}
+          </code>
+          <CopyButton text={meta} label="확인 코드 복사" />
+        </div>
+      </details>
       <details className="text-xs text-zinc-500 dark:text-zinc-400">
         <summary className="cursor-pointer">HTML 페이지가 아닌 사이트라면</summary>
         <p className="mt-1.5">
