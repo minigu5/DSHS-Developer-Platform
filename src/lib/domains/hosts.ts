@@ -1,13 +1,13 @@
 // 호스트별 연결 절차(프리셋). 호스트를 늘리려면 여기 하나 추가 + DB host CHECK·subdomain_target_ok() 에 키 추가(새 migration).
 //
+// Cloudflare Pages: 다른 계정의 Pages 프로젝트에 DNS only CNAME 으로 붙는 것 확인(2026-10-25, 인증서 약 2분 30초).
 // 제외(2026-10-25): Firebase Hosting(CNAME 대신 A 레코드 요구),
-// Cloudflare Pages(학생 계정이 우리 계정과 다르면 DNS only CNAME 이 되는지 미확인 — 시험 후 추가),
 // Cloudflare Workers(커스텀 도메인은 존이 같은 계정에 있어야 함), Surge(모두 같은 CNAME 대상이라 가로채기 쉬움).
 // GitHub Pages 의 `_github-pages-challenge-*` TXT 는 dshs.dev 전체를 그 사용자 것으로 확인하므로 받지 않는다.
 
 import { ROOT_DOMAIN } from './name.ts'
 
-export type HostKey = 'vercel' | 'netlify' | 'github-pages' | 'gitlab-pages' | 'render' | 'railway'
+export type HostKey = 'vercel' | 'netlify' | 'cloudflare-pages' | 'github-pages' | 'gitlab-pages' | 'render' | 'railway'
 
 export type HostPreset = {
   key: HostKey
@@ -60,6 +60,24 @@ export const HOST_PRESETS: Record<HostKey, HostPreset> = {
       '아래 CNAME 값에 내 사이트 주소(이름.netlify.app)가 맞는지 확인해요.',
     ],
     notFound: (status, _headers, body) => status === 404 && body.includes('Not Found - Request ID'),
+  },
+  'cloudflare-pages': {
+    key: 'cloudflare-pages',
+    label: 'Cloudflare Pages',
+    detect: /\.pages\.dev$/,
+    // 프로젝트 주소(이름.pages.dev)만 — 배포마다 생기는 미리보기 주소(abc123.이름.pages.dev)는 안 됨
+    cnameTarget: /^[a-z0-9-]+\.pages\.dev$/,
+    prefillFromUrl: true,
+    targetPlaceholder: '이름.pages.dev',
+    txt: null,
+    settingsUrl: 'https://dash.cloudflare.com/?to=/:account/workers-and-pages',
+    steps: [
+      'Cloudflare에서 Workers & Pages → 내 Pages 프로젝트 → Custom domains → Set up a custom domain을 눌러 이 주소를 넣어요: {fqdn}',
+      'DNS 레코드를 직접 추가하라고 나오면 그건 우리가 해요. 아래 CNAME 값에 내 프로젝트 주소(이름.pages.dev)가 맞는지만 확인해요.',
+      '몇 분 뒤 Cloudflare 화면에서 Active가 되면 다음 단계로 가요. Workers로 올린 사이트(workers.dev)는 아직 연결할 수 없어요.',
+    ],
+    // 모르는 주소는 Cloudflare 오류(530)·인증서 없음이라 호스트 "사이트 없음" 페이지로 가릴 수 없다 → "연결 안 됨"으로 보인다
+    notFound: () => false,
   },
   'github-pages': {
     key: 'github-pages',
@@ -142,7 +160,7 @@ export function detectHost(projectUrl: string): { host: HostKey; prefill: string
   const hostname = hostnameOf(projectUrl)
   if (!hostname) return null
   for (const p of Object.values(HOST_PRESETS)) {
-    if (p.detect.test(hostname)) return { host: p.key, prefill: p.prefillFromUrl ? hostname : null }
+    if (p.detect.test(hostname)) return { host: p.key, prefill: p.prefillFromUrl && p.cnameTarget.test(hostname) ? hostname : null }
   }
   return null
 }

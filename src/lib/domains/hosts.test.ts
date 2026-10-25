@@ -7,6 +7,9 @@ test('프로젝트 주소로 호스트를 미리 고른다', () => {
   assert.deepEqual(detectHost('https://brave-curie-12345.netlify.app/menu'), { host: 'netlify', prefill: 'brave-curie-12345.netlify.app' })
   assert.deepEqual(detectHost('https://octo.github.io/meal/'), { host: 'github-pages', prefill: 'octo.github.io' })
   assert.deepEqual(detectHost('https://meal.onrender.com'), { host: 'render', prefill: 'meal.onrender.com' })
+  assert.deepEqual(detectHost('https://meal.pages.dev/'), { host: 'cloudflare-pages', prefill: 'meal.pages.dev' })
+  // 미리보기 주소는 호스트만 고르고 CNAME 값은 비워 둔다
+  assert.deepEqual(detectHost('https://73bc7fc3.meal.pages.dev/'), { host: 'cloudflare-pages', prefill: null })
   assert.deepEqual(detectHost('https://octo.gitlab.io/meal/'), { host: 'gitlab-pages', prefill: 'octo.gitlab.io' })
   assert.deepEqual(detectHost('https://meal-production.up.railway.app'), { host: 'railway', prefill: null })
   assert.equal(detectHost('https://example.com'), null)
@@ -22,6 +25,9 @@ test('CNAME 값은 호스트 소유 도메인만, 소문자·끝 점 정리', ()
   assert.equal(validateTarget('github-pages', '1.2.3.4'), null)
   assert.equal(validateTarget('github-pages', 'octo.github.io'), 'octo.github.io')
   assert.equal(validateTarget('render', ' meal.onrender.com '), 'meal.onrender.com')
+  assert.equal(validateTarget('cloudflare-pages', 'Meal.pages.dev.'), 'meal.pages.dev')
+  assert.equal(validateTarget('cloudflare-pages', '73bc7fc3.meal.pages.dev'), null)
+  assert.equal(validateTarget('cloudflare-pages', 'meal.workers.dev'), null)
   assert.equal(validateTarget('gitlab-pages', 'octo.gitlab.io'), 'octo.gitlab.io')
   assert.equal(validateTarget('gitlab-pages', 'octo.gitlab.io.evil.com'), null)
   assert.equal(validateTarget('railway', 'G05NS7.up.railway.app.'), 'g05ns7.up.railway.app')
@@ -74,8 +80,8 @@ test('TXT 이름은 내 이름 아래만', () => {
   assert.equal(validateTxt('render', 'meal', { name: '_acme.meal.dshs.dev', value: 'x'.repeat(256) }), null)
 })
 
-test('프리셋 6개, 설정 링크와 안내가 있다', () => {
-  assert.deepEqual(Object.keys(HOST_PRESETS).sort(), ['github-pages', 'gitlab-pages', 'netlify', 'railway', 'render', 'vercel'])
+test('프리셋 7개, 설정 링크와 안내가 있다', () => {
+  assert.deepEqual(Object.keys(HOST_PRESETS).sort(), ['cloudflare-pages', 'github-pages', 'gitlab-pages', 'netlify', 'railway', 'render', 'vercel'])
   for (const p of Object.values(HOST_PRESETS)) {
     assert.ok(p.settingsUrl.startsWith('https://'))
     assert.ok(p.steps.length >= 2)

@@ -10,7 +10,7 @@ import type { DomainView } from "@/lib/domains/read";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { cn } from "@/lib/utils";
 
-const HOST_ORDER: HostKey[] = ["vercel", "netlify", "github-pages", "gitlab-pages", "render", "railway"];
+const HOST_ORDER: HostKey[] = ["vercel", "netlify", "cloudflare-pages", "github-pages", "gitlab-pages", "render", "railway"];
 const INPUT =
   "w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 font-mono text-sm outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-950";
 
@@ -52,7 +52,7 @@ export function HostPicker({ domain, projectUrl, onDone }: { domain: DomainView;
 
   return (
     <div className="flex flex-col gap-3">
-      <div role="group" aria-label="호스트 고르기" className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <div role="group" aria-label="호스트 고르기" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {HOST_ORDER.map((key) => {
           const selected = host === key;
           return (
@@ -74,7 +74,7 @@ export function HostPicker({ domain, projectUrl, onDone }: { domain: DomainView;
           );
         })}
       </div>
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">다른 곳에 올렸다면 아직 지원하지 않아요. 위 여섯 곳 중 하나로 올려 주세요.</p>
+      <p className="text-xs text-zinc-500 dark:text-zinc-400">다른 곳에 올렸다면 아직 지원하지 않아요. 위 일곱 곳 중 하나로 올려 주세요.</p>
 
       {preset && (
         <form

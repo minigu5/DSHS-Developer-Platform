@@ -34,7 +34,7 @@ CREATE TABLE public.subdomains (
   -- 프로젝트가 지워져도 기록은 남긴다. 살아 있는 주소가 있으면 프로젝트 삭제는 트리거가 막는다.
   project_id      uuid REFERENCES public.projects(id) ON DELETE SET NULL,
   owner_id        uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  host            text CHECK (host IN ('vercel', 'netlify', 'github-pages', 'gitlab-pages', 'render', 'railway')),
+  host            text CHECK (host IN ('vercel', 'netlify', 'cloudflare-pages', 'github-pages', 'gitlab-pages', 'render', 'railway')),
   target          text,
   txt_records     jsonb NOT NULL DEFAULT '[]'::jsonb,   -- [{name, value}]
   cf_record_ids   text[] NOT NULL DEFAULT '{}',         -- Cloudflare 레코드 id (삭제용)
@@ -113,6 +113,7 @@ LANGUAGE sql IMMUTABLE AS $$
   SELECT CASE p_host
     WHEN 'vercel' THEN p_target ~ '^(cname\.vercel-dns\.com|cname\.vercel-dns-[0-9]{1,4}\.com|[a-z0-9]{8,32}\.vercel-dns-[0-9]{1,4}\.com)$'
     WHEN 'netlify' THEN p_target ~ '^[a-z0-9-]+\.netlify\.app$'
+    WHEN 'cloudflare-pages' THEN p_target ~ '^[a-z0-9-]+\.pages\.dev$'
     WHEN 'github-pages' THEN p_target ~ '^[a-z0-9-]+\.github\.io$'
     WHEN 'gitlab-pages' THEN p_target ~ '^[a-z0-9-]+\.gitlab\.io$'
     WHEN 'render' THEN p_target ~ '^[a-z0-9-]+\.onrender\.com$'
