@@ -68,6 +68,11 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
   const { data: developer, error: userError } = await supabase.from("users").select("*").eq("id", id).single();
   if (userError || !developer) notFound();
 
+  // 직접 등록한 프로젝트 + 팀원(team_members 이메일)으로 들어간 프로젝트
+  const teamFilter = developer.email
+    ? `author_id.eq.${id},team_members.cs.{"${developer.email}"}`
+    : `author_id.eq.${id}`;
+
   const [{ data: projects }, { data: tipRows }, { data: ideaRows }] = await Promise.all([
     supabase
       .from("projects")
@@ -75,7 +80,7 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
         `id, title, short_description, types, platforms, author_role, team_name, icon_url, features, author_id, visibility,
          users (*), reviews(rating)`,
       )
-      .eq("author_id", id)
+      .or(teamFilter)
       .order("created_at", { ascending: false })
       .returns<ProjectCardData[]>(),
     supabase
