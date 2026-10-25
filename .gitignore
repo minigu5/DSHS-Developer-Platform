@@ -50,3 +50,6 @@ next-env.d.ts
 
 # 빌드 때 생성 (scripts/gen-guide-fragments.mjs)
 /src/content/guides/fragments.generated.ts
+
+# 브레인스토밍 시안 (superpowers visual companion)
+.superpowers/
