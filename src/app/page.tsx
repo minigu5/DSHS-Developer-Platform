@@ -7,6 +7,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { projectTypeLabels } from "@/lib/constants";
 import { SiteHeader } from "@/components/shared/site-header";
+import { MobileNav } from "@/components/shared/page-nav";
 import { createClient } from "@/lib/supabase/server";
 import { AnnouncementTicker, type TickerItem } from "@/components/shared/announcement-ticker";
 import type { ProjectCardData } from "@/components/projects/project-card";
@@ -175,7 +176,7 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-zinc-950">
-      <SiteHeader variant="transparent" maxWidth="md" />
+      <SiteHeader variant="transparent" maxWidth="md" showNav />
       <RevealObserver />
 
       {hasTicker && (
@@ -303,7 +304,10 @@ export default async function HomePage() {
         </section>
       </main>
 
-      <SiteFooter />
+      <div className="pb-16 sm:pb-0">
+        <SiteFooter />
+      </div>
+      <MobileNav />
     </div>
   );
 }

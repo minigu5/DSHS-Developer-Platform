@@ -375,7 +375,7 @@
 - `<link rel="dns-prefetch" />` — preconnect 미지원 구형 브라우저 대응.
 
 ### 홈 페이지 CTA 프리패치 — `src/app/page.tsx`
-- 홈 페이지는 PageNav가 없어 `/explore`(force-dynamic) 등 동적 페이지가 자동 프리패치되지 않음.
+- 홈은 2026-10-25부터 `PageNav`·`MobileNav`가 있지만(아래 「적용 방법」), CTA 링크의 `prefetch={true}`는 그대로 둔다 — `/explore`(force-dynamic)를 히어로에서 바로 미리 받기 위해.
 - **홈 구성** (2026-10-24 리뉴얼, 같은 날 세로 길이 보강): 히어로(모눈종이 배경 `.paper-grid`, **가운데 정렬 세로 스택** — 큰 2줄 제목 "발견하고, 공유하고, / 만들어요."(2줄째만 단색 blue-600) → 설명 → 알약형 CTA 2개 → **아이콘 나열**) → "최근 올라온 프로젝트"(공개 6개, `HomeProjectCard`) → "이렇게 써요"(zinc-50 띠, `HowItWorks`) → "요즘 올라온 글"(`RecentPosts`) → "직접 만들어 보고 싶다면"(zinc-50 띠, `GuideTeaser` + 아래 `DomainTeaser`) → "다음 아이콘은 내 프로젝트로."(`ClosingCta`) → 푸터(`SiteFooter`, `(nav)` 페이지 전체와 공통). 가운데 정렬 단일 컬럼이라 모바일에서도 구조가 같다 — 데스크탑 좌우 분할(텍스트 | 장식)은 모바일에서 장식이 쪼그라들어 사용자가 거부함(2026-10-23). 헤드라인에 프로젝트 개수는 넣지 않는다(수가 적을 때 빈약해 보임). 그라디언트 글자·블롭·환영 배지는 옛 히어로 구조를 되살릴 때도 쓰지 않는다. 통계 띠("프로젝트 N개")·리뷰 인용 섹션은 콘텐츠가 적어 보류, "프로젝트 말고도" 4열 메뉴 카드는 2026-10-24 제거(사용자 결정 — 역할을 "요즘 올라온 글"·푸터가 대신함). 홈은 모바일 좌우 여백 `px-6`(24px).
 - **홈 섹션 공통 머리** (`src/components/home/section-header.tsx`): 제목(`font-heading`) + 한 줄 설명 + 오른쪽 "전체 보기"(선택). 새 홈 섹션은 모두 이 패턴.
 - **홈 전용 프로젝트 카드** (`src/components/home/home-project-card.tsx`): 홈의 다른 섹션 카드와 같은 20px 모서리·테두리·그림자 없음·hover 테두리 진해짐. 카드 전체가 링크라 작성자는 링크 없이 표시. 탐색·프로필의 `ProjectCard`(24px, shadow-sm)와 별개 — 사용자가 홈만 통일하기로 함(2026-10-24).
@@ -422,7 +422,7 @@
 - `(nav)/layout.tsx`에서 콘텐츠를 `<div className="pb-16 sm:pb-0">` 로 감싸 탭바(56px)에 가려지지 않도록 여백 확보.
 
 ### 적용 방법
-- `SiteHeader`에 `showNav` prop → `<SiteHeader showNav />`. 홈(`/`)·로그인(`/login`) 페이지는 미적용.
+- `SiteHeader`에 `showNav` prop → `<SiteHeader showNav />`. 로그인 계열(`AuthShell`)은 미적용. **홈(`/`)도 2026-10-25 사용자 요청으로 적용**: `<SiteHeader variant="transparent" maxWidth="md" showNav />` + 푸터를 `pb-16 sm:pb-0` 래퍼로 감싸고 맨 아래에 `<MobileNav />`(홈은 `(nav)` 레이아웃 밖이라 직접 둠). 홈에서는 활성 항목이 없어 슬라이딩 알약이 숨고 아이콘만 보인다. 이유: 모바일 홈에 메뉴가 전혀 없었고 메뉴가 5칸으로 늘어 가이드·도메인 마련하기·커뮤니티가 푸터까지 내려가야 보였음.
 - `(nav)/layout.tsx`: `<SiteHeader showNav />` + 콘텐츠 래퍼 + `<SiteFooter />`(`pb-16 sm:pb-0` 래퍼) + `<MobileNav />` 순서로 배치.
 
 ---
