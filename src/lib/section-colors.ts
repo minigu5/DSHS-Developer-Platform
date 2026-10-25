@@ -7,7 +7,7 @@
  * - 흰 글자 배경은 WCAG AA(4.5:1)를 넘는 단계만: blue-600, emerald-700, purple-600, tip-600, orange-700, sky-700.
  * - 개발 팁은 `tip-*` 커스텀 토큰(globals.css @theme). Tailwind pink-600은 oklch라 승인된 색과 달라 쓰지 않는다.
  */
-export type SectionKey = "explore" | "new" | "guide" | "tips" | "haejwo" | "announcements";
+export type SectionKey = "explore" | "new" | "guide" | "tips" | "haejwo" | "announcements" | "privacy";
 
 export type SectionColor = {
   /** 진한 배경 — PageNav 활성 알약·MobileNav 원 */
@@ -72,5 +72,14 @@ export const SECTION_COLORS: Record<SectionKey, SectionColor> = {
     chip: "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300",
     text: "text-sky-700 dark:text-sky-300",
     border: "border-sky-700 dark:border-sky-400",
+  },
+  // 개인정보 처리방침은 내비 칸이 없는 안내 페이지라 무채색(zinc-900 반전).
+  privacy: {
+    pill: "bg-zinc-900 dark:bg-white",
+    tile: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200",
+    button: "bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200",
+    chip: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200",
+    text: "text-zinc-700 dark:text-zinc-200",
+    border: "border-zinc-900 dark:border-white",
   },
 };

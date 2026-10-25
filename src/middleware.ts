@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 import { isAllowedEmail } from '@/lib/constants';
+import { PRIVACY_COOKIE, PRIVACY_COOKIE_OPTIONS, PRIVACY_POLICY_VERSION } from '@/lib/privacy/config';
 import { updateSession } from '@/lib/supabase/middleware';
 
 // 로그인이 강제되는 경로 prefix. 메인/탐색/상세는 비로그인도 열람 가능.
@@ -65,6 +66,20 @@ export async function middleware(request: NextRequest) {
     url.pathname = '/';
     url.search = '';
     return redirectWithSession(url);
+  }
+
+  // 처리방침 동의 확인 결과를 쿠키로 캐시. 동의했으면 DB 조회 없이 쿠키만 본다.
+  // 동의 전이면 쿠키를 안 심는다 — 팝업(PrivacyGate)은 화면 쪽 몫이라 여기서 막지는 않는다.
+  if (user && request.cookies.get(PRIVACY_COOKIE)?.value !== PRIVACY_POLICY_VERSION) {
+    const { data: consent } = await supabase
+      .from('privacy_consents')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('policy_version', PRIVACY_POLICY_VERSION)
+      .maybeSingle();
+    if (consent) {
+      supabaseResponse.cookies.set(PRIVACY_COOKIE, PRIVACY_POLICY_VERSION, PRIVACY_COOKIE_OPTIONS);
+    }
   }
 
   // 4차: 로그인 됐고 닉네임이 없는데 /onboarding이 아닌 곳에 있으면 → /onboarding으로

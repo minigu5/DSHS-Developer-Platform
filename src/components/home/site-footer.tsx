@@ -27,6 +27,7 @@ const COLUMNS = [
       { href: REPO_URL, label: "GitHub 저장소", external: true },
       { href: `${REPO_URL}/issues`, label: "버그 · 의견 보내기", external: true },
       { href: "/me", label: "마이페이지" },
+      { href: "/privacy", label: "개인정보 처리방침" },
     ],
   },
 ] as const;

@@ -2,6 +2,7 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono, IBM_Plex_Sans_KR } from 'next/font/google';
 
+import { PrivacyGate } from '@/components/privacy/privacy-gate';
 import { ThemeProvider } from '@/components/shared/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 
@@ -54,6 +55,7 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {children}
+          <PrivacyGate />
           <Toaster richColors closeButton position="top-center" />
         </ThemeProvider>
       </body>

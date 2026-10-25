@@ -466,6 +466,28 @@ export type Database = {
           },
         ];
       };
+      privacy_consents: {
+        Row: {
+          id: string;
+          user_id: string;
+          policy_version: string;
+          consented_at: string;
+        };
+        // 직접 쓰기는 RLS 로 막혀 있고 서버 액션(service_role)으로만 저장한다.
+        Insert: {
+          user_id: string;
+          policy_version: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [
+          {
+            foreignKeyName: 'privacy_consents_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -484,6 +506,10 @@ export type Database = {
           p_seed: Json | null;
         };
         Returns: number;
+      };
+      withdraw_account: {
+        Args: { p_user_id: string };
+        Returns: string[];
       };
       track_project_click: {
         Args: {

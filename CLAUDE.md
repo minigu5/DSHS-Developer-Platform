@@ -270,6 +270,18 @@
 
 ---
 
+## 🔏 개인정보 처리방침·동의·철회 (`/privacy`, 2026-10-25)
+- **페이지** `/privacy`(`src/app/(nav)/privacy/page.tsx`, 비로그인 열람 가능): `PageHero`(section=`privacy`, 무채색 zinc) → 로그인했으면 "내 동의 기록" 카드(동의 일시 KST·버전·지난 기록 + "동의 철회하고 탈퇴") → `ReadingSurface`에 본문. 푸터 "이 사이트" 칸·로그인 화면에 링크. 사용자 요청: 팝업 동의, 거부 시 로그아웃, 동의 일시 기록, 철회 가능.
+- **본문** `src/lib/privacy/policy.ts`(마크다운 문자열, `Markdown`으로 렌더): **실제 코드가 하는 일을 그대로 적는다** — 수집 항목·공개 범위·위탁(Supabase/Cloudflare/Cloudinary/Google)·국외 이전·쿠키·파기·구제기관. 로그인하지 않은 방문의 `project_clicks.ip_hash`(IP+UA의 SHA-256, 소금 없음)도 항목에 적혀 있다 — 새 수집·위탁이 생기면 여기도 고치고 **`PRIVACY_POLICY_VERSION`(`src/lib/privacy/config.ts`, `YYYY-MM-DD`)을 올릴 것**(전원 재동의). 문의처 `PRIVACY_CONTACT_EMAIL`은 개발자 계정(`ts250024@ts.hs.kr`) — 사용자 확인 전 제안값. 법률 검토를 받은 문서가 아니라 초안.
+- **동의 기록** `public.privacy_consents`(`user_id`, `policy_version`, `consented_at timestamptz`, UNIQUE(user_id, policy_version)): 버전마다 한 줄, 처음 동의한 시각을 유지(upsert ignoreDuplicates). RLS SELECT 본인만, 쓰기 정책 없음 — 서버 액션이 `getUser()` 확인 후 `createAdminClient()`로만 기록(시각을 브라우저가 못 바꿈). IP·User-Agent는 저장하지 않는다. `docs/21-supabase-privacy-consents.sql` = `supabase/migrations/20261025090000_privacy_consents.sql`(운영 적용 완료).
+- **팝업** `PrivacyGate`(`src/components/privacy/privacy-gate.tsx`, 클라이언트, **루트 레이아웃**): 로그인했는데 현재 버전 동의가 없으면 shadcn `Dialog`가 뜬다. 닫을 수 없다(`open` 제어 + `onOpenChange` 무시, X 없음). "동의하고 계속"(`acceptPrivacyPolicy`) / "동의하지 않고 로그아웃"(`declinePrivacyPolicy`). `/privacy`에서는 읽을 수 있게 안 띄움. 온보딩 화면에서도 뜬다(루트 레이아웃). 서버에서 쿠키를 읽지 않으므로 홈·목록 ISR을 깨지 않는다 — 판정은 브라우저 supabase 클라이언트로 `privacy_consents`를 조회(AuthButtons와 같은 방식). **UI에서만 막는다**: 서버 액션·API는 동의 여부를 검사하지 않음.
+- **쿠키 캐시** `ds_privacy=<버전>`(1년, **httpOnly 아님** — 클라이언트가 읽고 조회를 건너뜀): `src/middleware.ts`가 로그인 사용자의 쿠키가 현재 버전과 다르면 DB를 보고 동의했을 때만 심는다(`ds_onboarded`와 같은 방식). 버전을 올리면 자동 무효. 동의 전 사용자는 쿠키가 없어 페이지마다 조회가 한 번 더 간다(일시적).
+- **거부** `declinePrivacyPolicy`: `signOut` + `ds_privacy`·`ds_onboarded` 쿠키 삭제. 한 번도 동의한 적 없고 닉네임도 없는 **새 계정은 함께 삭제**(쓴 글이 없고 개인정보를 쥘 이유가 없음). 이미 쓰던 계정은 남긴다.
+- **철회 = 탈퇴** `withdrawAccount(confirmText)`(`src/lib/privacy/actions.ts`, 라우트 그룹 밖): 확인 칸에 "탈퇴"를 직접 입력해야 한다(`WithdrawButton`). DB 쪽은 `public.withdraw_account(uuid)`(SECURITY DEFINER, **EXECUTE는 `service_role` 전용**) 한 트랜잭션: 다른 사람 프로젝트의 `team_members`·`allowed_users`에서 내 이메일 제거 → `guide_revisions.author_email`을 `withdrawn-<무작위>`로 바꿈(내용은 위키라 남김) → `project_clicks`의 내 행 삭제(`user_or_ip_required` CHECK 때문에 `user_id` SET NULL이 실패함) → `auth.users` 삭제(users·프로젝트·팁·리뷰·댓글·좋아요·해줘·공지·동의 기록 CASCADE). 반환된 이미지 URL(아바타·프로젝트 아이콘·팁 커버)은 `cloudinaryPublicId`(`src/lib/privacy/format.ts`, 우리 계정의 `dshs/` 폴더만)로 public_id를 뽑아 Cloudinary에서 최선 노력으로 삭제. 팀 프로젝트의 소유자가 탈퇴하면 프로젝트가 팀원에게도 사라진다(다이얼로그가 경고). 함수 수정은 새 migration으로 — 롤백되는 트랜잭션 시험은 `supabase db query --linked -f`로(운영에서 확인함).
+- 순수 로직(`format.ts`·`config.ts`·`policy.ts`)은 상대 `.ts` import만 쓰고 `npm test`로 검증(`format.test.ts`).
+
+---
+
 ## 🌏 인프라 및 배포 설정
 
 | 항목 | 설정값 |
@@ -353,7 +365,7 @@
 - **요즘 올라온 글** (`recent-posts.tsx`): 개발 팁(최근 3, `tips_author_id_fkey`) · 해줘!(최근 3, `ideas_author_id_fkey`) · 공지(티커용 10개 중 앞 4개, 고정 우선) 세 칸. 비면 "첫 글 쓰기" 안내가 칸 하단 점선 위에. 공지 카테고리 색은 티커와 동일.
 - **직접 만들어 보고 싶다면** (`guide-teaser.tsx`): 가이드 위저드 첫 질문(`GUIDE_STEPS[0]`, 옵션 4개: 웹사이트·앱·확장프로그램·그 밖의 도구)을 홈에 그대로 노출. 옵션 클릭 시 `/guide?type=<value>` — `GuideWizard`가 `initialType` prop으로 첫 질문을 미리 답한 상태로 시작, `/guide/page.tsx`가 `searchParams.type`을 넘김.
 - **마무리 CTA** (`closing-cta.tsx`): 어두운 단색 카드(라이트 zinc-900 / 다크는 반전 zinc-100) + 아이콘 나열 상위 3개 미니 타일 + "내 프로젝트 등록하기"(blue-600)·"만드는 법부터 보기".
-- **푸터** (`site-footer.tsx`): 소개 한 줄 + 메뉴 3열(둘러보기/만들기/이 사이트: GitHub 저장소·이슈·마이페이지) + 저작권·로그인 안내. 홈(`src/app/page.tsx`)과 `(nav)/layout.tsx`(콘텐츠 아래, 모바일 탭바에 안 가리게 `pb-16 sm:pb-0` 래퍼 안)에서 같은 컴포넌트를 쓴다 — 모든 `(nav)` 페이지에 동일하게 나옴(2026-10-24 사용자 요청). 로그인 계열(`AuthShell`) 독립 화면에는 없음.
+- **푸터** (`site-footer.tsx`): 소개 한 줄 + 메뉴 3열(둘러보기/만들기/이 사이트: GitHub 저장소·이슈·마이페이지·개인정보 처리방침) + 저작권·로그인 안내. 홈(`src/app/page.tsx`)과 `(nav)/layout.tsx`(콘텐츠 아래, 모바일 탭바에 안 가리게 `pb-16 sm:pb-0` 래퍼 안)에서 같은 컴포넌트를 쓴다 — 모든 `(nav)` 페이지에 동일하게 나옴(2026-10-24 사용자 요청). 로그인 계열(`AuthShell`) 독립 화면에는 없음.
 - **아이콘 나열** (`src/components/home/icon-shelf.tsx`): 사이트의 개성을 담당하는 장식 요소. 공개 프로젝트를 **많이 찾는 순**(`click_count` desc, 동률이면 최신 등록) `SHELF_LIMIT`(11)개 + "내 앱 올리기" 칸을 72px(sm 80px) `rounded-[22%]` 아이콘 스티커로 가운데 flex-wrap. 흰 `ring-[3px]`(다크 zinc-950) + 중립 그림자. 이름은 안 보이고 `aria-label`·`title`로만. 모바일(72px, 간격 14px)에서 4칸씩 3줄.
 - **로딩 시퀀스** (`globals.css`): 페이지 로드 때 한 번만. 제목·설명·버튼 `.rise`(`--rise-delay` 0/90/180ms) → 아이콘 `.tile-pop`(`--pop-delay` 260ms부터 65ms 간격) → "내 앱 올리기" 칸 `.tile-invite`가 파란 테두리·배경으로 3번 깜빡임(다크는 `tile-invite-dark`). 동작 줄이기 설정이면 전역 규칙이 duration과 **delay**를 0으로 만들어 즉시 표시(delay를 안 지우면 `fill: both` 요소가 지연 동안 안 보이는 버그가 있었음).
 - **스크롤 리빌** (`src/components/home/reveal-observer.tsx` + `globals.css` `.reveal`, 2026-10-24 사용자 요청): 히어로 아래 모든 섹션(`SectionHeader`·카드·`GuideTeaser`·`ClosingCta`)이 뷰포트에 15% 들어오면 한 번 올라오며 나타남(opacity 0→1, translate 28px, scale .97, 600ms). `RevealObserver`(클라이언트, UI 없음)가 마운트 시 `<html>`에 `reveal-ready`를 붙이고 IntersectionObserver로 `.is-in`을 추가 — `reveal-ready` 전에는 숨기지 않아 JS가 없어도 내용이 보임. 같은 줄 카드는 `revealOrder(n)`(`--reveal-delay` n×90ms)로 차례. 동작 줄이기면 관찰 없이 전부 `.is-in`. 처음엔 CSS `animation-timeline: view()`로 했으나 로드 때 이미 보이는 섹션은 안 움직이고 Safari/Firefox 지원이 갈려 교체함.
@@ -492,12 +504,13 @@ src/
 │   ├── explore/          # explore-client, mobile-filter-bar
 │   ├── guide/            # guide-wizard, guide-viewer(스테퍼), guide-step-body(단계 렌더러), guide-chapter-tools
 │   ├── guide-wiki/       # 가이드 위키 편집: editor/(카드 편집기·reducer), history-list, revert-dialog, step-diff-view, doc-render, stale-banner
+│   ├── privacy/          # privacy-gate(동의 팝업, 루트 레이아웃), withdraw-button(동의 철회·탈퇴)
 │   ├── tips/             # tip-card, tip-editor, tip-like-button, tip-comments 등
 │   ├── haejwo/           # haejwo-wizard, haejwo-card, haejwo-status-tabs, haejwo-owner-actions, haejwo-complete-button
 │   ├── announcements/    # announcement-card, announcement-editor, announcement-owner-actions, announcement-pin-button
 │   └── ui/               # shadcn 컴포넌트
 ├── content/guides/       # 가이드 조각 18개 (<key>.md, 작성법 README.md)
-├── lib/                  # 유틸리티 및 설정 (supabase, constants, types, utils, guide, guide-markup, guide-content, guide-wiki, haejwo, announcements, cloudinary, section-colors, type-icons, announcement-colors)
+├── lib/                  # 유틸리티 및 설정 (supabase, constants, types, utils, guide, guide-markup, guide-content, guide-wiki, haejwo, announcements, privacy, cloudinary, section-colors, type-icons, announcement-colors)
 └── middleware.ts         # 세션 관리 및 도메인 검증
 ```
 

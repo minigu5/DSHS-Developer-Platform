@@ -68,6 +68,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         계정은 막혀 있어요. 졸업생도 학교 계정이 살아 있으면 그대로 써요.
       </AuthNote>
 
+      <p className="rise mt-3 text-[13px] text-zinc-600 dark:text-zinc-400" style={riseDelay(260)}>
+        로그인하면{" "}
+        <Link href="/privacy" className="rounded-sm underline underline-offset-4 hover:text-zinc-900 dark:hover:text-white">
+          개인정보 처리방침
+        </Link>{" "}
+        동의 창이 떠요.
+      </p>
+
       <Link
         href="/explore"
         className="rise mt-[26px] inline-flex items-center gap-1 rounded-sm text-[13px] text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
