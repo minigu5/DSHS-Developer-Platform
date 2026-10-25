@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 
@@ -10,6 +10,7 @@ import { SECTION_COLORS } from "@/lib/section-colors";
 import { cn } from "@/lib/utils";
 
 import { DomainSteps } from "./domain-steps";
+import { IDLE_CHECK, useDomainChecks } from "./use-domain-checks";
 
 const AUTO_RELEASE_DAYS = 7;
 
@@ -42,6 +43,9 @@ function isLive(d: DomainView | null): d is DomainView {
 
 export function DomainList({ rows, limitReached }: { rows: DomainProjectRow[]; limitReached: boolean }) {
   const [open, setOpen] = useState<string | null>(null);
+  // 패널이 접혀 있어도 호스트 연결을 마친 주소는 여기서 자동으로 확인한다
+  const liveDomains = useMemo(() => rows.flatMap((r) => (isLive(r.domain) ? [r.domain] : [])), [rows]);
+  const checks = useDomainChecks(liveDomains);
 
   return (
     <ul className="flex flex-col gap-3">
@@ -110,7 +114,13 @@ export function DomainList({ rows, limitReached }: { rows: DomainProjectRow[]; l
 
             {expanded && (
               <div id={panelId} className="border-t border-zinc-100 px-4 pb-4 pt-3 dark:border-zinc-800">
-                <DomainSteps project={project} domain={live ? domain : null} />
+                <DomainSteps
+                  project={project}
+                  domain={live ? domain : null}
+                  check={live ? checks.stateOf(domain.id) : IDLE_CHECK}
+                  auto={live ? checks.autoOf(domain.id) : "off"}
+                  onCheck={() => live && void checks.check(domain.id)}
+                />
               </div>
             )}
           </li>

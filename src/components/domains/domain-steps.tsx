@@ -10,7 +10,6 @@ import {
   checkNameAvailable,
   releaseSubdomain,
   reserveSubdomain,
-  verifySubdomain,
 } from "@/lib/domains/actions";
 import { HOST_PRESETS } from "@/lib/domains/hosts";
 import { normalizeName } from "@/lib/domains/name";
@@ -20,6 +19,7 @@ import { SECTION_COLORS } from "@/lib/section-colors";
 import { cn } from "@/lib/utils";
 
 import { HostPicker } from "./host-picker";
+import { AUTO_INTERVAL_MS, AUTO_MAX_ROUNDS, type AutoState, type CheckState } from "./use-domain-checks";
 
 const PRIMARY = cn("inline-flex h-9 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-semibold transition-colors disabled:opacity-50", SECTION_COLORS.domains.button);
 const SECONDARY =
@@ -159,18 +159,14 @@ const RESULT_TEXT: Record<string, string> = {
   no_token: "사이트는 열리는데 확인 코드가 안 보여요. 코드를 넣고 다시 배포해요.",
 };
 
-// ③ 확인 코드 + 연결 확인
-function VerifyStep({ domain }: { domain: DomainView }) {
-  const router = useRouter();
-  const [result, setResult] = useState<string | null>(null);
-  const [error, setError] = useState("");
-  const [pending, start] = useTransition();
+// ③ 확인 코드 + 연결 확인 (결과는 DomainList 의 useDomainChecks 가 쥐고 있다 — 접혀 있어도 자동으로 확인하므로)
+function VerifyStep({ domain, check, auto, onCheck }: { domain: DomainView; check: CheckState; auto: AutoState; onCheck: () => void }) {
   const meta = `<meta name="${VERIFY_META_NAME}" content="${domain.verifyToken}">`;
 
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        이 주소가 내 사이트인지 확인하는 코드예요. AI에게 &ldquo;이 줄을 사이트 &lt;head&gt;에 넣어 줘&rdquo;라고 하고 다시 배포해요.
+        이 주소가 내 사이트인지 확인하는 코드예요. AI에게 &ldquo;이 줄을 사이트 &lt;head&gt;에 넣어 줘&rdquo;라고 하고 다시 배포해요. 배포가 끝나면 이 화면이 알아서 확인해요.
       </p>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-xl bg-zinc-100 px-3 py-2 font-mono text-xs text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
@@ -185,29 +181,28 @@ function VerifyStep({ domain }: { domain: DomainView }) {
           <code className="font-mono">{domain.verifyToken}</code> 한 줄만 넣어도 돼요.
         </p>
       </details>
-      <div>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() =>
-            start(async () => {
-              setError("");
-              setResult(null);
-              const r = await verifySubdomain(domain.id);
-              if (!r.ok) return setError(r.error);
-              setResult(r.data.result);
-              router.refresh();
-            })
-          }
-          className={PRIMARY}
-        >
-          {pending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
-          {pending ? "확인하는 중…" : "확인하기"}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        <button type="button" disabled={check.checking} onClick={onCheck} className={PRIMARY}>
+          {check.checking && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
+          {check.checking ? "확인하는 중…" : "지금 확인하기"}
         </button>
+        {auto === "on" && (
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">이 화면을 열어 두면 {AUTO_INTERVAL_MS / 1000}초마다 자동으로 확인해요.</p>
+        )}
+        {auto === "stopped" && (
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            자동 확인을 멈췄어요({Math.round((AUTO_INTERVAL_MS * AUTO_MAX_ROUNDS) / 60_000)}분). 준비가 끝났다면 확인하기를 눌러요.
+          </p>
+        )}
       </div>
       <div aria-live="polite">
-        {result && result !== "ok" && <p className="text-sm text-amber-700 dark:text-amber-400">{RESULT_TEXT[result]}</p>}
-        {error && <ErrorText>{error}</ErrorText>}
+        {check.result && check.result !== "ok" && (
+          <>
+            <p className="text-sm text-amber-700 dark:text-amber-400">{RESULT_TEXT[check.result]}</p>
+            {check.detail && <p className="mt-1 font-mono text-xs text-zinc-500 dark:text-zinc-400">자세한 이유: {check.detail}</p>}
+          </>
+        )}
+        {check.error && <ErrorText>{check.error}</ErrorText>}
       </div>
     </div>
   );
@@ -287,7 +282,19 @@ function UrlSuggestion({ domain }: { domain: DomainView }) {
   );
 }
 
-export function DomainSteps({ project, domain }: { project: DomainProjectRow["project"]; domain: DomainView | null }) {
+export function DomainSteps({
+  project,
+  domain,
+  check,
+  auto,
+  onCheck,
+}: {
+  project: DomainProjectRow["project"];
+  domain: DomainView | null;
+  check: CheckState;
+  auto: AutoState;
+  onCheck: () => void;
+}) {
   const [reconnect, setReconnect] = useState(false);
   const fqdn = domain ? `${domain.name}.dshs.dev` : null;
   const connected = domain !== null && domain.status !== "reserved";
@@ -323,7 +330,7 @@ export function DomainSteps({ project, domain }: { project: DomainProjectRow["pr
           state={!connected ? "todo" : domain.status === "active" ? "done" : "current"}
           title={domain?.status === "active" ? "연결 확인됨 — 내 사이트가 이 주소로 열려요" : "연결 확인"}
         >
-          {connected && domain.status !== "active" && <VerifyStep domain={domain} />}
+          {connected && domain.status !== "active" && <VerifyStep domain={domain} check={check} auto={auto} onCheck={onCheck} />}
           {connected && domain.status === "active" && (
             <a href={`https://${fqdn}`} target="_blank" rel="noopener noreferrer" className={cn(SECONDARY, "h-8")}>
               {fqdn} 열기

@@ -162,7 +162,10 @@ export async function connectHost(id: string, host: HostKey, rawTarget: string, 
   return { ok: true, data: null }
 }
 
-export async function verifySubdomain(id: string): Promise<ActionResult<{ result: CheckResult['kind']; status: SubdomainStatus }>> {
+// result 가 unreachable 일 때만 detail(예: "status 404", "redirect to another host") — 왜 안 열리는지 화면에 보여 주려고
+export async function verifySubdomain(
+  id: string,
+): Promise<ActionResult<{ result: CheckResult['kind']; detail: string | null; status: SubdomainStatus }>> {
   const user = await currentUser()
   if (!user) return LOGIN_REQUIRED
   const row = await loadRow(id)
@@ -182,8 +185,12 @@ export async function verifySubdomain(id: string): Promise<ActionResult<{ result
     p_now: new Date().toISOString(),
   })
   if (error) return rpcError('subdomain_record_check', error)
-  done()
-  return { ok: true, data: { result: result.kind, status: data } }
+  // 화면이 자동으로 반복 확인하므로, 상태가 그대로면 페이지를 다시 그리게 하지 않는다
+  if (data !== row.status) done()
+  return {
+    ok: true,
+    data: { result: result.kind, detail: result.kind === 'unreachable' ? result.detail.slice(0, 120) : null, status: data },
+  }
 }
 
 export async function applyProjectUrl(id: string): Promise<ActionResult> {
