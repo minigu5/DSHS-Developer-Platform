@@ -10,7 +10,7 @@
 --     서버 액션(src/lib/domains/actions.ts)이 getUser() 로 사용자를 확인한 뒤 서비스 키로 부른다.
 --   - 함수 안에서 소유자·관리자를 다시 확인한다. 3개 제한·프로젝트당 1개·이름 중복은 DB 가 강제한다.
 -- 새 migration 전용 — DROP 이 없고, 다시 실행하면 실패한다. 수정은 새 migration 으로.
--- 검증: docs/21-supabase-subdomains-verify.sql (항상 롤백)
+-- 검증: docs/22-supabase-subdomains-verify.sql (항상 롤백)
 
 
 -- 1. 예약어 — src/lib/domains/name.ts RESERVED_NAMES 와 같은 목록

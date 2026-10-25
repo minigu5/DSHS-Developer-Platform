@@ -1,7 +1,7 @@
 -- ============================================================
 -- subdomains 함수·트리거·권한 검증 (운영 DB에서 돌려도 안전)
 -- ============================================================
--- 실행: supabase db query --linked -f docs/21-supabase-subdomains-verify.sql
+-- 실행: supabase db query --linked -f docs/22-supabase-subdomains-verify.sql
 --
 -- 하나의 DO 블록(= 하나의 트랜잭션) 안에서 테스트 프로젝트·주소(zz-verify-*)를 만들고,
 -- 마지막에 항상 RAISE EXCEPTION 으로 끝나 전부 롤백된다. 아무것도 남지 않는다.
@@ -152,6 +152,13 @@ BEGIN
   END;
   EXECUTE 'RESET ROLE';
 
+  -- 탈퇴(동의 철회): 살아 있는 주소가 있어도 막히지 않는다 — 주소를 먼저 반납하고 계정을 지운다
+  BEGIN
+    PERFORM public.withdraw_account(u);
+    log := log || 'withdraw=ok/' || (NOT EXISTS (SELECT 1 FROM public.users WHERE id = u))::text || ';';
+  EXCEPTION WHEN raise_exception THEN log := log || 'withdraw=' || SQLERRM || ';';
+  END;
+
   expect :=
     'name_norm=zz-verify-a;status=reserved;owner=true;token_len=32;'
     'fourth=limit;taken=name_taken;same_project=project_has_subdomain;reserved=name_reserved;invalid=name_invalid;'
@@ -163,7 +170,8 @@ BEGIN
     'service_release=released/never_connected_7d;'
     'revoke_user=not_admin;revoked_name=name_taken;unblocked=true;'
     'fn_anon=false;fn_auth=false;fn_service=true;'
-    'rls_other_rows=0;rls_insert=denied;';
+    'rls_other_rows=0;rls_insert=denied;'
+    'withdraw=ok/true;';
 
   IF log = expect THEN
     RAISE EXCEPTION 'VERIFY OK';

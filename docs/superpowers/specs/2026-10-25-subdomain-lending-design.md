@@ -95,7 +95,7 @@ type HostPreset = {
 
 ## 6. 데이터 (Supabase)
 
-새 테이블 `public.subdomains`(이름은 빌더 재량). SQL은 `docs/21-supabase-subdomains.sql` + `supabase/migrations/…`로 남기고, 운영 적용은 **내가 `supabase db push`로** 한다(사용자 지침).
+새 테이블 `public.subdomains`(이름은 빌더 재량). SQL은 `docs/22-supabase-subdomains.sql` + `supabase/migrations/…`로 남기고, 운영 적용은 **내가 `supabase db push`로** 한다(사용자 지침).
 
 | 컬럼 | 설명 |
 |---|---|

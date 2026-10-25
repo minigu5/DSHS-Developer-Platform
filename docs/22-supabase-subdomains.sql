@@ -13,7 +13,7 @@
 --     서버 액션(src/lib/domains/actions.ts)이 getUser() 로 사용자를 확인한 뒤 서비스 키로 부른다.
 --   - 함수 안에서 소유자·관리자를 다시 확인한다. 3개 제한·프로젝트당 1개·이름 중복은 DB 가 강제한다.
 -- 새 migration 전용 — DROP 이 없고, 다시 실행하면 실패한다. 수정은 새 migration 으로.
--- 검증: docs/21-supabase-subdomains-verify.sql (항상 롤백)
+-- 검증: docs/22-supabase-subdomains-verify.sql (항상 롤백)
 
 
 -- 1. 예약어 — src/lib/domains/name.ts RESERVED_NAMES 와 같은 목록
@@ -447,3 +447,9 @@ BEGIN
   WHERE id = p_id;
   RETURN v_row.cf_record_ids;
 END $$;
+
+
+-- ============================================================
+-- 추가: supabase/migrations/20261025130000_withdraw_releases_subdomains.sql (2026-10-25 db push 완료)
+-- 탈퇴(withdraw_account)가 살아 있는 주소를 먼저 반납 — 전문은 그 migration 파일 참고
+-- ============================================================

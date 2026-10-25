@@ -23,7 +23,7 @@
 - 공개 저장소 Actions 로그: 프로젝트 제목·이메일 금지, 이름(공개 DNS)만.
 - 섹션 키 `domains`, 색 teal-700(`bg-teal-700` 흰 글자), 아이콘 lucide `Globe`, 제목 "주소 받기", 설명 "내 웹사이트에 이름.dshs.dev 주소를 붙여요".
 - 카피 해요체, 로딩 `…`. 「하위 페이지 공통 톤」·「키보드 접근성 규칙」·`transition-all` 금지 준수.
-- 운영 DB 반영은 `supabase db push`(내가 직접). `docs/21-supabase-subdomains.sql`은 사람이 읽는 사본.
+- 운영 DB 반영은 `supabase db push`(내가 직접). `docs/22-supabase-subdomains.sql`은 사람이 읽는 사본.
 
 ## Review Focus
 
@@ -84,7 +84,7 @@
 ### Task 3: DB — `subdomains` 테이블·함수·RLS
 
 **Files:**
-- Create: `supabase/migrations/20261025100000_subdomains.sql`, `docs/21-supabase-subdomains.sql`(같은 내용 + 머리 주석 "운영 재실행 금지"), `docs/21-supabase-subdomains-verify.sql`(BEGIN … ROLLBACK)
+- Create: `supabase/migrations/20261025100000_subdomains.sql`, `docs/22-supabase-subdomains.sql`(같은 내용 + 머리 주석 "운영 재실행 금지"), `docs/22-supabase-subdomains-verify.sql`(BEGIN … ROLLBACK)
 - Modify: `src/lib/types.ts`(Tables `subdomains`, Functions 아래 시그니처)
 
 **Interfaces (SQL):**
@@ -106,7 +106,7 @@
 
 - [ ] Step 1: migration 작성(재실행 안전 X — 새 migration 전용, `docs/21` 머리에 "DROP 없음, 운영 재실행 금지" 명시).
 - [ ] Step 2: verify SQL — `BEGIN; set local role service_role;` 가짜 user·website 프로젝트 4개 만들고 reserve 3번 성공·4번째 `limit`; 같은 이름 `name_taken`; `www` `name_reserved`; 남의 프로젝트 `not_owner`; 살아 있는 주소 있는 프로젝트 DELETE → `project_has_subdomain`; release 후 같은 이름 재예약 성공; revoke 후 재예약 `name_taken`; `set local role authenticated` + `request.jwt.claims`로 남의 행 SELECT 0행, INSERT 거부. `ROLLBACK;`
-- [ ] Step 3: `supabase db push` (원격에 로컬에 없는 migration이 있으면 멈추고 보고) → `supabase db query --linked -f docs/21-supabase-subdomains-verify.sql`(또는 psql)로 검증, 모두 기대대로.
+- [ ] Step 3: `supabase db push` (원격에 로컬에 없는 migration이 있으면 멈추고 보고) → `supabase db query --linked -f docs/22-supabase-subdomains-verify.sql`(또는 psql)로 검증, 모두 기대대로.
 - [ ] Step 4: `types.ts`에 행·함수 타입 추가, `tsc` 0 오류. 커밋 `feat(db): subdomains 테이블·service_role 전용 함수`.
 
 ### Task 4: Cloudflare DNS 클라이언트
