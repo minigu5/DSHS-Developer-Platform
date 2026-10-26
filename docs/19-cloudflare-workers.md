@@ -72,4 +72,14 @@ npm run upload    # 빌드 후 새 버전만 올리기(배포 안 함)
 2. 권한 **Zone · DNS · Edit** 하나만, Zone Resources는 **Specific zone · dshs.dev**만. (계정 토큰은 `cfat_`로 시작하고, 확인은 `/accounts/<계정 id>/tokens/verify`로 한다 — `/user/tokens/verify`는 "Invalid API Token"이 정상.)
 3. 넣는 곳: 로컬 `.env.local`(`CLOUDFLARE_DNS_API_TOKEN`, `CLOUDFLARE_ZONE_ID`), Workers `npx wrangler secret put CLOUDFLARE_DNS_API_TOKEN` + `wrangler.jsonc` `vars.CLOUDFLARE_ZONE_ID`, GitHub 저장소 Secrets 두 개(매일 점검용).
 4. 개발 서버는 토큰이 있어도 가짜 DNS를 쓴다(`DOMAINS_REAL_DNS=1`일 때만 진짜).
-5. 학생 레코드는 모두 DNS only(회색 구름). 프록시를 켜면 학생 호스트가 인증서를 못 받는다.
+5. 학생 CNAME·TXT 레코드는 DNS only(회색 구름). 프록시를 켜면 학생 호스트가 인증서를 못 받는다. 예외: 바로가기 주소의 AAAA(`100::`)는 proxied(아래).
+
+## 도메인 마련하기 바로가기(Bulk Redirects) — 2026-10-26
+
+Cloudflare Workers·Firebase Hosting 학생 사이트로 `<이름>.dshs.dev`를 302로 보낸다. 설계 `docs/superpowers/specs/2026-10-26-subdomain-redirects-design.md`.
+
+1. 토큰: Manage Account → Account API Tokens → Create Token → Custom token. 권한 **Account · Account Filter Lists · Edit** 하나만, Account Resources는 dshs.dev가 있는 계정. 이름 `dshs-redirects`. DNS 토큰과 따로 둔다.
+2. `.env.local`에 `CLOUDFLARE_LISTS_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` → `node scripts/create-redirect-list.mts` → 나온 `CLOUDFLARE_REDIRECT_LIST_ID`도 넣는다.
+3. 대시보드 → Bulk Redirects → Create Bulk Redirect Rule → 목록 `dshs_subdomain_redirects` 선택 → Save and Deploy. (목록 토큰엔 규칙 권한이 없어서 한 번만 손으로 만든다.) **배포 전에** 만들어야 한다.
+4. 운영: `npx wrangler secret put CLOUDFLARE_LISTS_API_TOKEN` + `wrangler.jsonc` `vars`에 `CLOUDFLARE_ACCOUNT_ID`·`CLOUDFLARE_REDIRECT_LIST_ID`. GitHub 저장소 Secrets에도 세 개(매일 점검용).
+5. 개발 서버는 가짜 목록을 쓴다(`DOMAINS_REAL_DNS=1`일 때만 진짜).
