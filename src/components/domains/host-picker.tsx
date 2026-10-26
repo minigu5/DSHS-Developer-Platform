@@ -10,11 +10,22 @@ import type { DomainView } from "@/lib/domains/read";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { cn } from "@/lib/utils";
 
-const HOST_ORDER: HostKey[] = ["vercel", "netlify", "cloudflare-pages", "github-pages", "gitlab-pages", "render", "railway"];
+const HOST_ORDER: HostKey[] = [
+  "vercel",
+  "netlify",
+  "cloudflare-pages",
+  "github-pages",
+  "gitlab-pages",
+  "render",
+  "railway",
+  "cloudflare-workers",
+  "firebase",
+];
 const INPUT =
   "w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 font-mono text-sm outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-950";
 
-// ② 어디에 올렸어요? — 호스트 카드 + 그 호스트의 안내 + CNAME(필요하면 TXT) 입력
+// ② 어디에 올렸어요? — 호스트 카드 + 그 호스트의 안내 + CNAME(필요하면 TXT) 입력.
+// 바로가기 호스트(Workers·Firebase)는 보낼 곳 주소 한 칸만 — 호스트 쪽 설정이 없다.
 export function HostPicker({ domain, projectUrl, onDone }: { domain: DomainView; projectUrl: string; onDone: () => void }) {
   const router = useRouter();
   const detected = detectHost(projectUrl);
@@ -30,6 +41,7 @@ export function HostPicker({ domain, projectUrl, onDone }: { domain: DomainView;
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
   const preset = host ? HOST_PRESETS[host] : null;
+  const redirect = preset?.mode === "redirect";
 
   const pick = (key: HostKey) => {
     setHost(key);
@@ -44,7 +56,7 @@ export function HostPicker({ domain, projectUrl, onDone }: { domain: DomainView;
     start(async () => {
       if (!host) return;
       setError("");
-      const r = await connectHost(domain.id, host, target, txt.value.trim() ? [txt] : []);
+      const r = await connectHost(domain.id, host, target, !redirect && txt.value.trim() ? [txt] : []);
       if (!r.ok) return setError(r.error);
       onDone();
       router.refresh();
@@ -74,7 +86,7 @@ export function HostPicker({ domain, projectUrl, onDone }: { domain: DomainView;
           );
         })}
       </div>
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">다른 곳에 올렸다면 아직 지원하지 않아요. 위 일곱 곳 중 하나로 올려 주세요.</p>
+      <p className="text-xs text-zinc-500 dark:text-zinc-400">다른 곳에 올렸다면 아직 지원하지 않아요. 위 아홉 곳 중 하나로 올려 주세요.</p>
 
       {preset && (
         <form
@@ -89,18 +101,20 @@ export function HostPicker({ domain, projectUrl, onDone }: { domain: DomainView;
               <li key={s}>{s.replaceAll("{fqdn}", fqdn)}</li>
             ))}
           </ol>
-          <a
-            href={preset.settingsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex w-fit items-center gap-1 text-sm font-medium text-teal-700 underline-offset-2 hover:underline dark:text-teal-300"
-          >
-            {preset.label} 설정 열기
-            <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-          </a>
+          {!redirect && (
+            <a
+              href={preset.settingsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex w-fit items-center gap-1 text-sm font-medium text-teal-700 underline-offset-2 hover:underline dark:text-teal-300"
+            >
+              {preset.label} 설정 열기
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+            </a>
+          )}
 
           <label className="flex flex-col gap-1.5 text-sm">
-            <span className="font-medium text-zinc-800 dark:text-zinc-200">CNAME 값</span>
+            <span className="font-medium text-zinc-800 dark:text-zinc-200">{redirect ? "보낼 곳 주소" : "CNAME 값"}</span>
             <input
               value={target}
               onChange={(e) => setTarget(e.target.value)}
@@ -110,9 +124,15 @@ export function HostPicker({ domain, projectUrl, onDone }: { domain: DomainView;
               className={INPUT}
               required
             />
+            {redirect && (
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                들어오면 주소창이 보낼 곳 주소로 바뀌어요. 진짜 내 도메인 연결이 아니라 바로가기예요.
+              </span>
+            )}
           </label>
 
-          {preset.txt &&
+          {!redirect &&
+            preset.txt &&
             (() => {
               const fields = (
                 <div className="grid gap-2 sm:grid-cols-2">
@@ -163,7 +183,8 @@ export function HostPicker({ domain, projectUrl, onDone }: { domain: DomainView;
                 SECTION_COLORS.domains.button,
               )}
             >
-              {pending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}연결하기
+              {pending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
+              {redirect ? "바로가기 만들기" : "연결하기"}
             </button>
           </div>
           {error && (

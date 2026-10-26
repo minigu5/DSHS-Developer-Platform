@@ -77,7 +77,10 @@ test('우리가 만든 레코드 목록은 페이지를 넘겨 모은다', async
       json: {
         success: true,
         errors: [],
-        result: page === 1 ? [{ id: 'a', name: 'meal.dshs.dev', comment: 'dshs-subdomain:r1' }] : [{ id: 'b', name: 'bus.dshs.dev', comment: 'dshs-subdomain:r2' }],
+        result:
+          page === 1
+            ? [{ id: 'a', name: 'meal.dshs.dev', comment: 'dshs-subdomain:r1', created_on: '2026-10-01T00:00:00Z' }]
+            : [{ id: 'b', name: 'bus.dshs.dev', comment: 'dshs-subdomain:r2', created_on: '2026-10-02T00:00:00Z' }],
         result_info: { page, total_pages: 2 },
       },
     }
@@ -85,7 +88,15 @@ test('우리가 만든 레코드 목록은 페이지를 넘겨 모은다', async
   const dns = createDnsClient({ token: 't', zoneId: 'zone1', fetch: f })
   const rows = await dns.listManaged()
   assert.deepEqual(rows.map((r) => r.id), ['a', 'b'])
+  assert.deepEqual(rows.map((r) => r.createdOn), ['2026-10-01T00:00:00Z', '2026-10-02T00:00:00Z'])
   const u = new URL(calls[0].url)
   assert.equal(u.searchParams.get('comment.startswith'), 'dshs-subdomain:')
   assert.equal(u.searchParams.get('per_page'), '100')
+})
+
+test('바로가기 AAAA 는 proxied 로 만든다(Bulk Redirects 는 proxied 레코드에만 동작)', async () => {
+  const { f, calls } = fakeFetch(() => ok({ id: 'rec1' }))
+  const dns = createDnsClient({ token: 't', zoneId: 'zone1', fetch: f })
+  await dns.create([{ type: 'AAAA', name: 'meal.dshs.dev', content: '100::' }], 'row-1')
+  assert.deepEqual(calls[0].body, { type: 'AAAA', name: 'meal.dshs.dev', content: '100::', ttl: 1, proxied: true, comment: 'dshs-subdomain:row-1' })
 })

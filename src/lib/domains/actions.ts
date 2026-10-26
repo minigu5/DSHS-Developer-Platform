@@ -12,11 +12,14 @@ import { assertSafePublicUrl } from '@/lib/ssrf-guard'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 import type { SubdomainStatus } from '@/lib/types'
 
+import { activateRedirect, needsActivation } from './activate'
 import { getDnsClient } from './cloudflare'
+import { removeCloudflare } from './cleanup'
 import { buildRecords, runConnect } from './connect'
 import { createSiteFetcher } from './fetch-site'
-import { HOST_PRESETS, validateTarget, validateTxt, type HostKey, type TxtInput } from './hosts'
-import { normalizeName, ROOT_DOMAIN, validateName } from './name'
+import { HOST_PRESETS, isRedirectHost, siteHostFor, validateTarget, validateTxt, type HostKey, type TxtInput } from './hosts'
+import { normalizeName, validateName } from './name'
+import { getRedirectClient, redirectConfigured } from './redirects'
 import { checkSite, type CheckResult } from './verify'
 
 export type ActionResult<T = null> = { ok: true; data: T } | { ok: false; error: string }
@@ -34,6 +37,7 @@ const RPC_ERRORS: Record<string, string> = {
   limit: '주소는 한 사람당 3개까지 받을 수 있어요.',
   not_live: '이미 반납되었거나 회수된 주소예요.',
   target_invalid: 'CNAME 값이 고른 호스트의 주소가 아니에요. 호스트가 보여 준 값을 그대로 붙여 넣어요.',
+  redirect_target_invalid: '보낼 곳 주소가 고른 호스트의 기본 주소가 아니에요. 예: 이름.web.app',
   txt_invalid: 'TXT 확인값이 이 주소의 것이 아니에요. 호스트가 보여 준 값을 그대로 붙여 넣어요.',
   txt_missing: '이 호스트는 TXT 확인값이 있어야 연결돼요. 호스트가 보여 준 값을 붙여 넣어요.',
   not_active: '연결이 확인된 주소만 방문 주소로 바꿀 수 있어요.',
@@ -41,7 +45,12 @@ const RPC_ERRORS: Record<string, string> = {
   reason_invalid: '회수 이유를 1~200자로 적어 주세요.',
   not_revoked: '회수된 주소가 아니에요.',
   not_found: '주소를 찾지 못했어요.',
+  not_redirect: '바로가기 호스트의 주소가 아니에요.',
+  records_exist: '이미 바로가기가 만들어졌어요.',
 }
+
+const REDIRECT_FAILED = '바로가기를 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.'
+const REDIRECT_NOT_READY = '바로가기는 아직 준비 중이에요. 잠시 뒤 다시 시도해 주세요.'
 
 const NAME_REASONS: Record<'length' | 'chars' | 'reserved' | 'idn', string> = {
   length: '이름은 3~30자로 적어요.',
@@ -71,7 +80,7 @@ const LOGIN_REQUIRED = { ok: false as const, error: '학교 계정으로 로그�
 async function loadRow(id: string) {
   const { data } = await createAdminClient()
     .from('subdomains')
-    .select('id, name, owner_id, project_id, status, host, verify_token, cf_record_ids')
+    .select('id, name, owner_id, project_id, status, host, target, verify_token, cf_record_ids')
     .eq('id', id)
     .maybeSingle()
   return data
@@ -122,14 +131,16 @@ export async function connectHost(id: string, host: HostKey, rawTarget: string, 
   const user = await currentUser()
   if (!user) return LOGIN_REQUIRED
   if (!Object.hasOwn(HOST_PRESETS, host)) return { ok: false, error: RPC_ERRORS.target_invalid }
+  if (isRedirectHost(host) && !redirectConfigured()) return { ok: false, error: REDIRECT_NOT_READY }
 
   const row = await loadRow(id)
   if (!row || row.owner_id !== user.id) return { ok: false, error: RPC_ERRORS.not_owner }
   if (!['reserved', 'pending', 'active', 'broken'].includes(row.status)) return { ok: false, error: RPC_ERRORS.not_live }
 
   const target = validateTarget(host, rawTarget)
-  if (!target) return { ok: false, error: RPC_ERRORS.target_invalid }
-  const filled = rawTxt.filter((t) => t.name.trim() || t.value.trim())
+  if (!target) return { ok: false, error: isRedirectHost(host) ? RPC_ERRORS.redirect_target_invalid : RPC_ERRORS.target_invalid }
+  // 바로가기 호스트는 TXT 를 받지 않는다
+  const filled = isRedirectHost(host) ? [] : rawTxt.filter((t) => t.name.trim() || t.value.trim())
   if (filled.length > 2) return { ok: false, error: RPC_ERRORS.txt_invalid }
   const txt: TxtInput[] = []
   for (const t of filled) {
@@ -140,11 +151,26 @@ export async function connectHost(id: string, host: HostKey, rawTarget: string, 
   if (HOST_PRESETS[host].txt?.required && txt.length === 0) return { ok: false, error: RPC_ERRORS.txt_missing }
 
   try {
-    const dns = getDnsClient()
-    // 다시 연결하는 경우 옛 레코드부터 지운다(같은 이름의 CNAME 은 하나만 둘 수 있다)
-    if (row.cf_record_ids.length) await dns.remove(row.cf_record_ids)
+    // 다시 연결하는 경우 옛 레코드부터 지운다(같은 이름의 CNAME 은 하나만 둘 수 있다). 바로가기였다면 목록 항목도
+    if (row.cf_record_ids.length) await removeCloudflare(row.cf_record_ids)
 
     const admin = createAdminClient()
+    // 바로가기는 여기서 아무것도 만들지 않는다 — 소유 확인이 처음 성공할 때 verifySubdomain 이 켠다
+    if (isRedirectHost(host)) {
+      const { error } = await admin.rpc('subdomain_connect', {
+        p_user: user.id,
+        p_id: id,
+        p_host: host,
+        p_target: target,
+        p_txt: [],
+        p_record_ids: [],
+      })
+      if (error) throw error
+      done()
+      return { ok: true, data: null }
+    }
+
+    const dns = getDnsClient()
     await runConnect(
       {
         dns,
@@ -184,12 +210,37 @@ export async function verifySubdomain(
   if (!row || row.owner_id !== user.id) return { ok: false, error: RPC_ERRORS.not_owner }
   if (!row.host) return { ok: false, error: '먼저 2단계에서 호스트에 연결해요.' }
 
-  const fqdn = `${row.name}.${ROOT_DOMAIN}`
-  // 대상은 우리 주소지만 CNAME 이 바깥을 가리킨다 — 사설 IP 로 풀리면 요청하지 않는다
-  const safe = await assertSafePublicUrl(`https://${fqdn}/`)
+  // 연결은 우리 주소(CNAME 이 바깥을 가리킴), 바로가기는 보낼 곳 사이트 — 사설 IP 로 풀리면 요청하지 않는다
+  const site = siteHostFor({ name: row.name, host: row.host, target: row.target })
+  const safe = await assertSafePublicUrl(`https://${site}/`)
   const result: CheckResult = safe.ok
-    ? await checkSite(fqdn, row.verify_token, row.host, createSiteFetcher())
+    ? await checkSite(site, row.verify_token, row.host, createSiteFetcher())
     : { kind: 'unreachable', detail: safe.reason }
+
+  if (result.kind === 'ok' && row.target && needsActivation(row)) {
+    const target = row.target
+    try {
+      const admin = createAdminClient()
+      await activateRedirect(
+        {
+          dns: getDnsClient(),
+          redirects: getRedirectClient,
+          setRecords: async (ids) => {
+            const { error } = await admin.rpc('subdomain_set_redirect_records', { p_id: id, p_record_ids: ids })
+            if (error) throw error
+          },
+        },
+        { id, name: row.name, target },
+      )
+    } catch (e) {
+      // 자동 확인과 버튼이 동시에 켰으면 다른 쪽이 이미 기록했다 — 다음 확인에서 연결됨이 된다
+      if (e && typeof e === 'object' && 'message' in e && e.message === 'records_exist') {
+        return { ok: true, data: { result: 'ok', detail: null, status: row.status } }
+      }
+      console.error('[domains] 바로가기 만들기 실패', e)
+      return { ok: false, error: REDIRECT_FAILED }
+    }
+  }
 
   const { data, error } = await createAdminClient().rpc('subdomain_record_check', {
     p_id: id,
@@ -219,10 +270,10 @@ export async function applyProjectUrl(id: string): Promise<ActionResult> {
 async function removeRecords(ids: string[], tag: string) {
   if (!ids.length) return
   try {
-    await getDnsClient().remove(ids)
+    await removeCloudflare(ids)
   } catch (e) {
-    // DB 는 이미 반납 상태 — 남은 레코드는 매일 점검이 comment 로 찾아 지운다
-    console.error(`[domains] ${tag}: DNS 레코드 삭제 실패, 매일 점검이 정리`, e)
+    // DB 는 이미 반납 상태 — 남은 레코드·목록 항목은 매일 점검이 comment 로 찾아 지운다
+    console.error(`[domains] ${tag}: Cloudflare 레코드 삭제 실패, 매일 점검이 정리`, e)
   }
 }
 

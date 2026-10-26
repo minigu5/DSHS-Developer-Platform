@@ -5,12 +5,13 @@ import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 
 import { ProjectIcon } from "@/components/projects/project-icon";
-import { customDomainOf } from "@/lib/domains/hosts";
+import { customDomainOf, isRedirectHost } from "@/lib/domains/hosts";
 import type { DomainProjectRow, DomainView } from "@/lib/domains/read";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { cn } from "@/lib/utils";
 
 import { DomainSteps } from "./domain-steps";
+import { RedirectPill } from "./redirect-pill";
 import { IDLE_CHECK, useDomainChecks } from "./use-domain-checks";
 
 const AUTO_RELEASE_DAYS = 7;
@@ -111,6 +112,7 @@ export function DomainList({
                 </p>
               </div>
               {domain && <StatusPill domain={domain} />}
+              {domain && isLive(domain) && isRedirectHost(domain.host) && <RedirectPill className="hidden sm:inline" />}
               {ownDomain && <OwnDomainPill host={ownDomain} />}
               {privateBlocked ? (
                 <Link

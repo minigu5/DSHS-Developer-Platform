@@ -7,7 +7,7 @@
 import { revalidatePath } from 'next/cache'
 
 import { isAllowedEmail, isDeveloper } from '@/lib/constants'
-import { getDnsClient } from '@/lib/domains/cloudflare'
+import { removeCloudflare } from '@/lib/domains/cleanup'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 
 export type ProjectActionResult = { ok: true } | { ok: false; error: string }
@@ -15,7 +15,7 @@ export type DeleteProjectResult = ProjectActionResult
 
 const FAILED = '삭제하지 못했어요. 잠시 뒤 다시 시도해 주세요.'
 
-/** 프로젝트에 살아 있는 주소가 있으면 반납하고 DNS 레코드를 지운다. 없으면 true, DB 반납이 실패하면 false. */
+/** 프로젝트에 살아 있는 주소가 있으면 반납하고 Cloudflare 레코드(바로가기 항목 포함)를 지운다. 없으면 true, DB 반납이 실패하면 false. */
 async function releaseLiveDomain(
   admin: ReturnType<typeof createAdminClient>,
   actorId: string,
@@ -41,7 +41,7 @@ async function releaseLiveDomain(
   }
   if (ids?.length) {
     // 실패해도 DB 는 반납 상태 — 남은 레코드는 매일 점검이 정리
-    await getDnsClient().remove(ids).catch((e) => console.error('[projects] DNS 레코드 삭제 실패', e))
+    await removeCloudflare(ids).catch((e) => console.error('[projects] Cloudflare 레코드 삭제 실패', e))
   }
   return true
 }

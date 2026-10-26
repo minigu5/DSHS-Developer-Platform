@@ -21,7 +21,16 @@ export type GuideRevisionKind = 'seed' | 'edit' | 'revert' | 'sync';
 
 // 도메인 마련하기(서브도메인) — supabase/migrations/20261025100000_subdomains.sql
 export type SubdomainStatus = 'reserved' | 'pending' | 'active' | 'broken' | 'released' | 'revoked';
-export type SubdomainHost = 'vercel' | 'netlify' | 'cloudflare-pages' | 'github-pages' | 'gitlab-pages' | 'render' | 'railway';
+export type SubdomainHost =
+  | 'vercel'
+  | 'netlify'
+  | 'cloudflare-pages'
+  | 'github-pages'
+  | 'gitlab-pages'
+  | 'render'
+  | 'railway'
+  | 'cloudflare-workers'
+  | 'firebase';
 
 export type Database = {
   public: {
@@ -580,6 +589,11 @@ export type Database = {
       subdomain_record_check: {
         Args: { p_id: string; p_ok: boolean; p_now: string };
         Returns: SubdomainStatus;
+      };
+      // 바로가기 호스트: 소유 확인 뒤 만든 Cloudflare id(AAAA id, 'redirect:<목록 항목 id>') 기록
+      subdomain_set_redirect_records: {
+        Args: { p_id: string; p_record_ids: string[] };
+        Returns: undefined;
       };
       subdomain_release: {
         // p_actor null = 서비스 경로(매일 점검·프로젝트 삭제)

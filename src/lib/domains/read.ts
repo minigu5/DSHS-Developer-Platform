@@ -3,7 +3,7 @@ import 'server-only'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 import type { Json, SubdomainHost, SubdomainStatus } from '@/lib/types'
 
-import type { TxtInput } from './hosts'
+import { isRedirectHost, type TxtInput } from './hosts'
 
 /** 화면에 넘기는 주소 정보 — Cloudflare 레코드 id 같은 내부 값은 빼고 */
 export type DomainView = {
@@ -135,16 +135,16 @@ export async function listAllSubdomains(): Promise<AdminDomainRow[]> {
   }))
 }
 
-/** 프로젝트에 연결된(active) 주소 이름 — 상세 정보 카드·삭제 확인창용. 비공개 프로젝트도 있어 서비스 키로 읽는다. */
-export async function getLiveDomainName(projectId: string, onlyActive = false): Promise<string | null> {
+/** 프로젝트에 연결된(active) 주소 — 상세 정보 카드·삭제 확인창용. 비공개 프로젝트도 있어 서비스 키로 읽는다. */
+export async function getLiveDomain(projectId: string, onlyActive = false): Promise<{ name: string; redirect: boolean } | null> {
   const admin = createAdminClient()
   const { data } = await admin
     .from('subdomains')
-    .select('name')
+    .select('name, host')
     .eq('project_id', projectId)
     .in('status', onlyActive ? ['active'] : LIVE)
     .maybeSingle()
-  return data?.name ?? null
+  return data ? { name: data.name, redirect: isRedirectHost(data.host) } : null
 }
 
 /** 홈 소개 카드용 — 연결이 확인된(active) 공개 프로젝트의 주소 수와 최근 주소. 비공개 프로젝트는 숫자에도 안 센다. */

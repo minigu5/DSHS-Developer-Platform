@@ -19,6 +19,7 @@ DECLARE
   b      uuid;
   c      uuid;
   d      uuid;
+  f      uuid;
   ids    text[];
   st     text;
   n      int;
@@ -152,6 +153,31 @@ BEGIN
   END;
   EXECUTE 'RESET ROLE';
 
+  -- 바로가기 호스트(Workers·Firebase, 2026-10-26): 보낼 곳 규칙, TXT 없음, 확인 뒤 레코드 기록 함수
+  log := log || 'rd_target=' || public.subdomain_target_ok('cloudflare-workers', 'a.b.workers.dev')::text || '/'
+    || public.subdomain_target_ok('cloudflare-workers', 'b.workers.dev')::text || '/'
+    || public.subdomain_target_ok('firebase', 's.web.app')::text || '/'
+    || public.subdomain_target_ok('firebase', 's.firebaseapp.com')::text || '/'
+    || public.subdomain_target_ok('firebase', 's--c.web.app')::text || ';';
+  log := log || 'rd_txt=' || public.subdomain_txt_ok('firebase', 'zz-verify-f', '[{"name":"x.zz-verify-f.dshs.dev","value":"v"}]')::text || '/'
+    || public.subdomain_txt_ok('firebase', 'zz-verify-f', '[]')::text || ';';
+  f := public.subdomain_reserve(u2, p[7], 'zz-verify-f');
+  BEGIN PERFORM public.subdomain_set_redirect_records(f, ARRAY['r1']); log := log || 'rd_reserved=ok;';
+  EXCEPTION WHEN raise_exception THEN log := log || 'rd_reserved=' || SQLERRM || ';'; END;
+  BEGIN PERFORM public.subdomain_connect(u2, f, 'firebase', 'zz-verify.web.app', '[{"name":"x.zz-verify-f.dshs.dev","value":"v"}]', '{}');
+    log := log || 'rd_connect_txt=ok;';
+  EXCEPTION WHEN raise_exception THEN log := log || 'rd_connect_txt=' || SQLERRM || ';'; END;
+  PERFORM public.subdomain_connect(u2, f, 'firebase', 'zz-verify.web.app', '[]', '{}');
+  PERFORM public.subdomain_set_redirect_records(f, ARRAY['r1', 'redirect:i1']);
+  log := log || 'rd_set=' || (SELECT array_to_string(cf_record_ids, ',') FROM public.subdomains WHERE id = f) || ';';
+  BEGIN PERFORM public.subdomain_set_redirect_records(f, ARRAY['r2']); log := log || 'rd_twice=ok;';
+  EXCEPTION WHEN raise_exception THEN log := log || 'rd_twice=' || SQLERRM || ';'; END;
+  PERFORM public.subdomain_connect(u2, f, 'vercel', 'abcdef12.vercel-dns-017.com', '[]', '{}');
+  BEGIN PERFORM public.subdomain_set_redirect_records(f, ARRAY['r3']); log := log || 'rd_cname=ok;';
+  EXCEPTION WHEN raise_exception THEN log := log || 'rd_cname=' || SQLERRM || ';'; END;
+  log := log || 'rd_fn_auth=' || has_function_privilege('authenticated', 'public.subdomain_set_redirect_records(uuid, text[])', 'EXECUTE')::text || ';';
+  PERFORM public.subdomain_release(u2, f, 'owner');
+
   -- 탈퇴(동의 철회): 살아 있는 주소가 있어도 막히지 않는다 — 주소를 먼저 반납하고 계정을 지운다
   BEGIN
     PERFORM public.withdraw_account(u);
@@ -171,6 +197,8 @@ BEGIN
     'revoke_user=not_admin;revoked_name=name_taken;unblocked=true;'
     'fn_anon=false;fn_auth=false;fn_service=true;'
     'rls_other_rows=0;rls_insert=denied;'
+    'rd_target=true/false/true/true/false;rd_txt=false/true;rd_reserved=not_live;rd_connect_txt=txt_invalid;'
+    'rd_set=r1,redirect:i1;rd_twice=records_exist;rd_cname=not_redirect;rd_fn_auth=false;'
     'withdraw=ok/true;';
 
   IF log = expect THEN
