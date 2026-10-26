@@ -90,8 +90,8 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   );
   // 살아 있는 주소가 있는 프로젝트를 비공개로 바꾸는 저장 — 저장하면 주소도 반납돼요
   const closesDomain = isEdit && Boolean(subdomainName) && visibility === "private" && initialData?.visibility !== "private";
-  // 이미 비공개로 저장됐는데 주소가 살아 있음 — 비공개 전환 때 반납이 실패한 뒤 새로 고쳤거나, 비공개인 채로 주소를 받은 경우.
-  // 비공개 프로젝트의 주소를 막지는 않으므로 걷어 가지 않고, 닫을 수 있는 길만 보여 준다.
+  // 이미 비공개로 저장됐는데 주소가 살아 있음 — 비공개 전환 때 반납이 실패한 뒤 새로 고쳤거나, 폼을 거치지 않고 비공개로 바뀐 경우.
+  // (비공개 프로젝트는 새로 주소를 받을 수 없으니 이 상태는 의도치 않은 것) 저장 없이 주소만 닫는 길을 보여 준다.
   const strandedDomain = isEdit && Boolean(subdomainName) && initialData?.visibility === "private" && visibility === "private";
 
   // 설명
