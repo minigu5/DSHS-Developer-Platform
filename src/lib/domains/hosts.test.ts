@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { customDomainOf, detectHost, validateTarget, validateTxt, HOST_PRESETS } from './hosts.ts'
+import { customDomainOf, detectHost, isRedirectHost, siteHostFor, validateTarget, validateTxt, HOST_PRESETS } from './hosts.ts'
 
 test('프로젝트 주소로 호스트를 미리 고른다', () => {
   assert.deepEqual(detectHost('https://meal-alarm.vercel.app/'), { host: 'vercel', prefill: null })
@@ -91,8 +91,11 @@ test('TXT 이름은 내 이름 아래만', () => {
   assert.equal(validateTxt('render', 'meal', { name: '_acme.meal.dshs.dev', value: 'x'.repeat(256) }), null)
 })
 
-test('프리셋 7개, 설정 링크와 안내가 있다', () => {
-  assert.deepEqual(Object.keys(HOST_PRESETS).sort(), ['cloudflare-pages', 'github-pages', 'gitlab-pages', 'netlify', 'railway', 'render', 'vercel'])
+test('프리셋 9개(연결 7 + 바로가기 2), 설정 링크와 안내가 있다', () => {
+  assert.deepEqual(Object.keys(HOST_PRESETS).sort(), [
+    'cloudflare-pages', 'cloudflare-workers', 'firebase', 'github-pages', 'gitlab-pages', 'netlify', 'railway', 'render', 'vercel',
+  ])
+  assert.deepEqual(Object.values(HOST_PRESETS).filter((p) => p.mode === 'redirect').map((p) => p.key).sort(), ['cloudflare-workers', 'firebase'])
   for (const p of Object.values(HOST_PRESETS)) {
     assert.ok(p.settingsUrl.startsWith('https://'))
     assert.ok(p.steps.length >= 2)
@@ -113,4 +116,33 @@ test('호스트 기본 주소가 아니면 내 도메인을 쓰는 것으로 본
   assert.equal(customDomainOf('http://127.0.0.1:3000'), null)
   assert.equal(customDomainOf('http://[::1]:3000'), null)
   assert.equal(customDomainOf('not a url'), null)
+})
+
+test('바로가기 호스트: 기본 주소만 받는다', () => {
+  assert.equal(validateTarget('cloudflare-workers', 'Hello.Acct.workers.dev.'), 'hello.acct.workers.dev')
+  assert.equal(validateTarget('cloudflare-workers', 'acct.workers.dev'), null) // 워커 이름 없음
+  assert.equal(validateTarget('cloudflare-workers', 'evil.com'), null)
+  assert.equal(validateTarget('firebase', 'my-site.web.app'), 'my-site.web.app')
+  assert.equal(validateTarget('firebase', 'my-site.firebaseapp.com'), 'my-site.firebaseapp.com')
+  assert.equal(validateTarget('firebase', 'my-site--pr12-abc.web.app'), null) // 미리보기 채널
+})
+
+test('workers.dev·web.app 프로젝트는 바로가기 호스트로 미리 고르고 호스트 이름만 채운다', () => {
+  assert.deepEqual(detectHost('https://foo.acct.workers.dev/app?x=1'), { host: 'cloudflare-workers', prefill: 'foo.acct.workers.dev' })
+  assert.deepEqual(detectHost('https://site.web.app'), { host: 'firebase', prefill: 'site.web.app' })
+  assert.deepEqual(detectHost('https://site--ch-1.web.app'), { host: 'firebase', prefill: null })
+})
+
+test('isRedirectHost / siteHostFor', () => {
+  assert.equal(isRedirectHost('firebase'), true)
+  assert.equal(isRedirectHost('cloudflare-workers'), true)
+  assert.equal(isRedirectHost('vercel'), false)
+  assert.equal(isRedirectHost(null), false)
+  assert.equal(siteHostFor({ name: 'meal', host: 'firebase', target: 'site.web.app' }), 'site.web.app')
+  assert.equal(siteHostFor({ name: 'meal', host: 'vercel', target: 'x.vercel-dns-017.com' }), 'meal.dshs.dev')
+})
+
+test('바로가기 호스트는 TXT 를 받지 않는다', () => {
+  assert.equal(HOST_PRESETS['cloudflare-workers'].txt, null)
+  assert.equal(HOST_PRESETS.firebase.txt, null)
 })

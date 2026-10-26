@@ -1,20 +1,33 @@
 // 호스트별 연결 절차(프리셋). 호스트를 늘리려면 여기 하나 추가 + DB host CHECK·subdomain_target_ok() 에 키 추가(새 migration).
 //
 // Cloudflare Pages: 다른 계정의 Pages 프로젝트에 DNS only CNAME 으로 붙는 것 확인(2026-10-25, 인증서 약 2분 30초).
-// 제외(2026-10-25): Firebase Hosting(CNAME 대신 A 레코드 요구),
-// Cloudflare Workers(커스텀 도메인은 존이 같은 계정에 있어야 함), Surge(모두 같은 CNAME 대상이라 가로채기 쉬움).
+// 바로가기(mode 'redirect', 2026-10-26): Cloudflare Workers(커스텀 도메인은 존이 같은 계정에 있어야 함)·
+// Firebase Hosting(CNAME 대신 A 레코드 요구)은 연결 대신 <이름>.dshs.dev → 학생 사이트 302 로 보낸다.
+// 설계 docs/superpowers/specs/2026-10-26-subdomain-redirects-design.md
+// 제외: Surge(모두 같은 CNAME 대상이라 가로채기 쉬움).
 // GitHub Pages 의 `_github-pages-challenge-*` TXT 는 dshs.dev 전체를 그 사용자 것으로 확인하므로 받지 않는다.
 
 import { ROOT_DOMAIN } from './name.ts'
 
-export type HostKey = 'vercel' | 'netlify' | 'cloudflare-pages' | 'github-pages' | 'gitlab-pages' | 'render' | 'railway'
+export type HostKey =
+  | 'vercel'
+  | 'netlify'
+  | 'cloudflare-pages'
+  | 'github-pages'
+  | 'gitlab-pages'
+  | 'render'
+  | 'railway'
+  | 'cloudflare-workers'
+  | 'firebase'
 
 export type HostPreset = {
   key: HostKey
   label: string
+  /** cname: 학생 호스트에 CNAME 으로 연결 / redirect: 우리가 학생 사이트로 302 바로가기(target 이 곧 학생 사이트) */
+  mode: 'cname' | 'redirect'
   /** 프로젝트 url 의 호스트로 미리 고르기 */
   detect: RegExp
-  /** 학생이 붙여 넣는 CNAME 값 — 호스트 소유 도메인만 */
+  /** 학생이 붙여 넣는 CNAME 값(바로가기는 보낼 곳 주소) — 호스트 소유 도메인만 */
   cnameTarget: RegExp
   /** 프로젝트 url 호스트가 곧 CNAME 값인 호스트 */
   prefillFromUrl: boolean
@@ -32,6 +45,7 @@ export type HostPreset = {
 export const HOST_PRESETS: Record<HostKey, HostPreset> = {
   vercel: {
     key: 'vercel',
+    mode: 'cname',
     label: 'Vercel',
     detect: /\.vercel\.app$/,
     cnameTarget: /^(cname\.vercel-dns\.com|cname\.vercel-dns-\d{1,4}\.com|[a-z0-9]{8,32}\.vercel-dns-\d{1,4}\.com)$/,
@@ -48,6 +62,7 @@ export const HOST_PRESETS: Record<HostKey, HostPreset> = {
   },
   netlify: {
     key: 'netlify',
+    mode: 'cname',
     label: 'Netlify',
     detect: /\.netlify\.app$/,
     cnameTarget: /^[a-z0-9-]+\.netlify\.app$/,
@@ -65,6 +80,7 @@ export const HOST_PRESETS: Record<HostKey, HostPreset> = {
   },
   'cloudflare-pages': {
     key: 'cloudflare-pages',
+    mode: 'cname',
     label: 'Cloudflare Pages',
     detect: /\.pages\.dev$/,
     // 프로젝트 주소(이름.pages.dev)만 — 배포마다 생기는 미리보기 주소(abc123.이름.pages.dev)는 안 됨
@@ -76,13 +92,14 @@ export const HOST_PRESETS: Record<HostKey, HostPreset> = {
     steps: [
       'Cloudflare에서 Workers & Pages → 내 Pages 프로젝트 → Custom domains → Set up a custom domain을 눌러 이 주소를 넣어요: {fqdn}',
       'DNS 레코드를 직접 추가하라고 나오면 그건 우리가 해요. 아래 CNAME 값에 내 프로젝트 주소(이름.pages.dev)가 맞는지만 확인해요.',
-      '몇 분 뒤 Cloudflare 화면에서 Active가 되면 다음 단계로 가요. Workers로 올린 사이트(workers.dev)는 아직 연결할 수 없어요.',
+      '몇 분 뒤 Cloudflare 화면에서 Active가 되면 다음 단계로 가요. Workers로 올렸다면 위에서 Cloudflare Workers를 골라요.',
     ],
     // 모르는 주소는 Cloudflare 오류(530)·인증서 없음이라 호스트 "사이트 없음" 페이지로 가릴 수 없다 → "연결 안 됨"으로 보인다
     notFound: () => false,
   },
   'github-pages': {
     key: 'github-pages',
+    mode: 'cname',
     label: 'GitHub Pages',
     detect: /\.github\.io$/,
     cnameTarget: /^[a-z0-9-]+\.github\.io$/,
@@ -100,6 +117,7 @@ export const HOST_PRESETS: Record<HostKey, HostPreset> = {
   },
   'gitlab-pages': {
     key: 'gitlab-pages',
+    mode: 'cname',
     label: 'GitLab Pages',
     detect: /\.gitlab\.io$/,
     cnameTarget: /^[a-z0-9-]+\.gitlab\.io$/,
@@ -118,6 +136,7 @@ export const HOST_PRESETS: Record<HostKey, HostPreset> = {
   },
   render: {
     key: 'render',
+    mode: 'cname',
     label: 'Render',
     detect: /\.onrender\.com$/,
     cnameTarget: /^[a-z0-9-]+\.onrender\.com$/,
@@ -133,6 +152,7 @@ export const HOST_PRESETS: Record<HostKey, HostPreset> = {
   },
   railway: {
     key: 'railway',
+    mode: 'cname',
     label: 'Railway',
     detect: /\.up\.railway\.app$/,
     // 서비스 주소가 아니라 도메인마다 따로 주는 값(예: g05ns7.up.railway.app)
@@ -148,6 +168,51 @@ export const HOST_PRESETS: Record<HostKey, HostPreset> = {
     ],
     notFound: (status, headers) => status === 404 && headers.get('x-railway-fallback') === 'true',
   },
+  'cloudflare-workers': {
+    key: 'cloudflare-workers',
+    mode: 'redirect',
+    label: 'Cloudflare Workers',
+    detect: /\.workers\.dev$/,
+    // 워커이름.계정서브도메인.workers.dev — 버전 미리보기 주소는 모양으로 못 가려서 안내만 한다
+    cnameTarget: /^[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev$/,
+    prefillFromUrl: true,
+    targetPlaceholder: '워커이름.아이디.workers.dev',
+    txt: null,
+    settingsUrl: 'https://dash.cloudflare.com/?to=/:account/workers-and-pages',
+    steps: [
+      '호스트 쪽에서 따로 할 일은 없어요. 아래 "보낼 곳 주소"가 내 Worker 기본 주소(워커이름.아이디.workers.dev)인지 확인해요.',
+      '버전마다 생기는 미리보기 주소(앞에 글자가 더 붙은 주소)는 곧 사라지니 넣지 말아요.',
+      '{fqdn}으로 들어오면 이 주소로 넘어가요. 주소창에는 workers.dev 주소가 보여요.',
+    ],
+    notFound: () => false,
+  },
+  firebase: {
+    key: 'firebase',
+    mode: 'redirect',
+    label: 'Firebase Hosting',
+    detect: /\.(web\.app|firebaseapp\.com)$/,
+    // 미리보기 채널(사이트--채널.web.app)은 기한이 지나면 사라진다 → `--` 가 든 이름은 안 받는다
+    cnameTarget: /^(?!.*--)[a-z0-9-]+\.(web\.app|firebaseapp\.com)$/,
+    prefillFromUrl: true,
+    targetPlaceholder: '이름.web.app',
+    txt: null,
+    settingsUrl: 'https://console.firebase.google.com/',
+    steps: [
+      '호스트 쪽에서 따로 할 일은 없어요. 아래 "보낼 곳 주소"가 내 사이트 주소(이름.web.app)인지 확인해요.',
+      '미리보기 채널 주소(이름--채널.web.app)는 넣을 수 없어요.',
+      '{fqdn}으로 들어오면 이 주소로 넘어가요. 주소창에는 web.app 주소가 보여요.',
+    ],
+    notFound: () => false,
+  },
+}
+
+export function isRedirectHost(host: HostKey | null): boolean {
+  return host !== null && HOST_PRESETS[host].mode === 'redirect'
+}
+
+/** 소유 확인 토큰을 찾아볼 사이트 — 바로가기는 보낼 곳(target), 연결은 우리 주소 */
+export function siteHostFor(row: { name: string; host: HostKey; target: string | null }): string {
+  return isRedirectHost(row.host) && row.target ? row.target : `${row.name}.${ROOT_DOMAIN}`
 }
 
 function hostnameOf(raw: string): string | null {

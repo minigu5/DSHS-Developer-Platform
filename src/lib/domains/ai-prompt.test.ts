@@ -27,3 +27,19 @@ test('자바스크립트로 붙이면 안 된다는 조건이 들어 있다', ()
   const p = buildVerifyPrompt({ name: 'meal', token: TOKEN, host: 'netlify' })
   assert.ok(p.includes('자바스크립트로 나중에 붙이면 안 돼.'))
 })
+
+test('바로가기(Workers)는 받은 주소를 바로가기라고 하고 보낼 곳에서 확인하게 한다', () => {
+  const p = buildVerifyPrompt({ name: 'meal', token: 't0k', host: 'cloudflare-workers', target: 'meal.acct.workers.dev' })
+  assert.match(p.split('\n')[0], /meal\.dshs\.dev 바로가기 주소/)
+  assert.ok(p.includes('https://meal.acct.workers.dev'))
+  assert.ok(p.includes('<meta name="dshs-verify" content="t0k">'))
+  assert.ok(p.includes('wrangler deploy'))
+  assert.ok(!p.includes('로 변경했어'))
+})
+
+test('바로가기(Firebase)는 firebase deploy 와 public/index.html', () => {
+  const p = buildVerifyPrompt({ name: 'meal', token: 't0k', host: 'firebase', target: 'meal.web.app' })
+  assert.ok(p.includes('firebase deploy'))
+  assert.ok(p.includes('public/index.html'))
+  assert.ok(p.includes('https://meal.web.app'))
+})
