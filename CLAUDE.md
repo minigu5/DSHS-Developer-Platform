@@ -212,6 +212,7 @@
 - **매일 점검** `.github/workflows/check-subdomains.yml`(03:30 KST, `workflow_dispatch` + `dry_run`) → `scripts/check-subdomains.mts`: 토큰 확인 → `subdomain_record_check`, 끊긴 지 7일·연결 없이 7일이면 반납(`check.ts` `decide`), comment의 행이 살아 있지 않은 Cloudflare 레코드 삭제. 실패 있으면 exit 1. 로그엔 주소 이름만(공개 저장소). 로컬 `node scripts/check-subdomains.mts --dry-run`.
 - **연결점**: 내비 5번째 칸(가이드 다음), 홈 `DomainTeaser` 카드·푸터 "만들기" 열, 프로젝트 상세 정보 카드 "주소" 행(연결된 것만), 수정 폼 삭제 확인창 "주소도 반납돼요", 가이드 `register.md` 끝 `[!only type=website]` 안내.
 - **`/domains?project=<id>`**(2026-10-26): 등록 직후 권유 창에서 들어오는 주소. 그 프로젝트가 내 목록에 있고 방문 주소가 있으며 아직 주소가 없고 3개 미만이면 `DomainList initialOpen`으로 그 줄을 펼친 채 시작 → 줄로 스크롤 + ① 이름 칸(`name-<id>`)에 포커스. 조건이 안 맞으면 그냥 목록.
+- **비공개로 바꾸면 주소도 닫힘**(2026-10-26 사용자 요청): 수정 폼에서 살아 있는 주소(`subdomainName`, 소유자만 받음)가 있는 프로젝트를 공개 → 비공개로 저장하려 하면 ① 공개 범위 칸에 rose 안내 띠 ② 저장 누르면 `Dialog` "비공개로 바꾸면 주소도 닫혀요"(이 주소로 안 열림·이름이 풀려 남이 가져갈 수 있음·방문 주소 되돌림·다시 공개해도 안 돌아옴)가 뜬다. 확인하면 먼저 `projects`를 비공개로 저장한 **뒤** 서버 액션 `closeDomainOfPrivateProject`(`src/lib/projects/actions.ts`)가 `subdomain_release`(사유 `project_private`) + DNS 레코드 삭제 — 저장 때 방문 주소가 이 주소로 같이 쓰이므로 그 뒤에 반납해야 `previous_url`로 되돌아간다. 액션은 DB에 저장된 공개 범위가 비공개일 때만 닫고(공개 프로젝트 주소는 이 경로로 못 닫음), 작성자·개발자 계정만. 반납이 실패하면 비공개 저장은 된 채 오류를 보이고, 다시 저장하면 재시도(수정 폼의 처음 값이 아직 공개라 같은 흐름). 삭제용 반납 로직은 `releaseLiveDomain` 한 함수로 같이 쓴다. **한계**: 팀원은 주소를 못 닫고(`subdomainName`이 소유자에게만 넘어감), 폼을 거치지 않고 API로 비공개로 바꾸면 주소가 남는다 — 매일 점검이 비공개 프로젝트의 주소를 걷어 가진 않는다. 비공개 프로젝트에 새로 주소를 받는 것도 막지 않는다.
 
 ## 🗄️ 데이터베이스 스키마 (Supabase PostgreSQL)
 
