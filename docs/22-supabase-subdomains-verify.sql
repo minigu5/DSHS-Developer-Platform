@@ -73,6 +73,30 @@ BEGIN
   BEGIN DELETE FROM public.projects WHERE id = p[1]; log := log || 'delete=ok;';
   EXCEPTION WHEN raise_exception THEN log := log || 'delete=' || SQLERRM || ';'; END;
 
+  -- 확인 전 자리표시(2026-10-26): 예약만 된 행에 한 번만
+  PERFORM public.subdomain_set_placeholder_records(b, ARRAY['p1', 'redirect:p2']);
+  log := log || 'ph=' || (SELECT array_to_string(cf_record_ids, ',') FROM public.subdomains WHERE id = b) || ';';
+  BEGIN PERFORM public.subdomain_set_placeholder_records(b, ARRAY['p3']); log := log || 'ph_twice=ok;';
+  EXCEPTION WHEN raise_exception THEN log := log || 'ph_twice=' || SQLERRM || ';'; END;
+
+  -- 확인 먼저(2026-10-26): ② 원래 주소 확인 전에는 연결할 수 없다
+  BEGIN PERFORM public.subdomain_connect(u, a, 'vercel', 'abcdef12.vercel-dns-017.com', '[]', '{}'); log := log || 'unverified=ok;';
+  EXCEPTION WHEN raise_exception THEN log := log || 'unverified=' || SQLERRM || ';'; END;
+  BEGIN PERFORM public.subdomain_set_site(u, a, 'http://zz-verify-1.vercel.app/', 'vercel'); log := log || 'site_http=ok;';
+  EXCEPTION WHEN raise_exception THEN log := log || 'site_http=' || SQLERRM || ';'; END;
+  BEGIN PERFORM public.subdomain_set_site(u, a, 'https://a.b.netlify.app/', 'netlify'); log := log || 'site_shape=ok;';
+  EXCEPTION WHEN raise_exception THEN log := log || 'site_shape=' || SQLERRM || ';'; END;
+  BEGIN PERFORM public.subdomain_set_site(u2, a, 'https://zz-verify-1.vercel.app/', 'vercel'); log := log || 'site_other=ok;';
+  EXCEPTION WHEN raise_exception THEN log := log || 'site_other=' || SQLERRM || ';'; END;
+  PERFORM public.subdomain_set_site(u, a, 'https://zz-verify-1.vercel.app/', 'vercel');
+  BEGIN PERFORM public.subdomain_verify_site(u, a, 'https://other.vercel.app/'); log := log || 'site_changed=ok;';
+  EXCEPTION WHEN raise_exception THEN log := log || 'site_changed=' || SQLERRM || ';'; END;
+  PERFORM public.subdomain_verify_site(u, a, 'https://zz-verify-1.vercel.app/');
+  PERFORM public.subdomain_set_site(u, a, 'https://zz-verify-1.vercel.app/', 'vercel');
+  log := log || 'site_same_keeps=' || (SELECT (site_verified_at IS NOT NULL)::text FROM public.subdomains WHERE id = a) || ';';
+  BEGIN PERFORM public.subdomain_connect(u, a, 'netlify', 'zz-verify-1.netlify.app', '[]', '{}'); log := log || 'host_mismatch=ok;';
+  EXCEPTION WHEN raise_exception THEN log := log || 'host_mismatch=' || SQLERRM || ';'; END;
+
   -- 연결: 호스트·대상·TXT 검사
   BEGIN PERFORM public.subdomain_connect(u, a, 'vercel', 'evil.com', '[]', '{}'); log := log || 'bad_target=ok;';
   EXCEPTION WHEN raise_exception THEN log := log || 'bad_target=' || SQLERRM || ';'; END;
@@ -83,7 +107,9 @@ BEGIN
   EXCEPTION WHEN raise_exception THEN log := log || 'connect_other=' || SQLERRM || ';'; END;
   PERFORM public.subdomain_connect(u, a, 'vercel', 'abcdef12.vercel-dns-017.com',
     '[{"name":"_vercel.dshs.dev","value":"vc-domain-verify=zz-verify-a.dshs.dev,abc"}]', ARRAY['rec1', 'rec2']);
-  log := log || 'connected=' || (SELECT status || '/' || host || '/' || array_length(cf_record_ids, 1) FROM public.subdomains WHERE id = a) || ';';
+  log := log || 'connected=' || (SELECT status || '/' || host || '/' || array_length(cf_record_ids, 1) || '/' || (connected_at IS NOT NULL)::text FROM public.subdomains WHERE id = a) || ';';
+  BEGIN PERFORM public.subdomain_set_placeholder_records(a, ARRAY['p9']); log := log || 'ph_connected=ok;';
+  EXCEPTION WHEN raise_exception THEN log := log || 'ph_connected=' || SQLERRM || ';'; END;
 
   -- 확인 결과 기록
   st := public.subdomain_record_check(a, false, now());
@@ -162,6 +188,10 @@ BEGIN
   log := log || 'rd_txt=' || public.subdomain_txt_ok('firebase', 'zz-verify-f', '[{"name":"x.zz-verify-f.dshs.dev","value":"v"}]')::text || '/'
     || public.subdomain_txt_ok('firebase', 'zz-verify-f', '[]')::text || ';';
   f := public.subdomain_reserve(u2, p[7], 'zz-verify-f');
+  PERFORM public.subdomain_set_site(u2, f, 'https://zz-verify.web.app/', 'firebase');
+  PERFORM public.subdomain_verify_site(u2, f, 'https://zz-verify.web.app/');
+  BEGIN PERFORM public.subdomain_connect(u2, f, 'firebase', 'someone-else.web.app', '[]', '{}'); log := log || 'rd_target_mismatch=ok;';
+  EXCEPTION WHEN raise_exception THEN log := log || 'rd_target_mismatch=' || SQLERRM || ';'; END;
   BEGIN PERFORM public.subdomain_set_redirect_records(f, ARRAY['r1']); log := log || 'rd_reserved=ok;';
   EXCEPTION WHEN raise_exception THEN log := log || 'rd_reserved=' || SQLERRM || ';'; END;
   BEGIN PERFORM public.subdomain_connect(u2, f, 'firebase', 'zz-verify.web.app', '[{"name":"x.zz-verify-f.dshs.dev","value":"v"}]', '{}');
@@ -172,9 +202,16 @@ BEGIN
   log := log || 'rd_set=' || (SELECT array_to_string(cf_record_ids, ',') FROM public.subdomains WHERE id = f) || ';';
   BEGIN PERFORM public.subdomain_set_redirect_records(f, ARRAY['r2']); log := log || 'rd_twice=ok;';
   EXCEPTION WHEN raise_exception THEN log := log || 'rd_twice=' || SQLERRM || ';'; END;
+  PERFORM public.subdomain_set_site(u2, f, 'https://zz-verify-7.vercel.app/', 'vercel');
+  log := log || 'site_reset=' || (SELECT (site_verified_at IS NULL)::text FROM public.subdomains WHERE id = f) || ';';
+  PERFORM public.subdomain_verify_site(u2, f, 'https://zz-verify-7.vercel.app/');
   PERFORM public.subdomain_connect(u2, f, 'vercel', 'abcdef12.vercel-dns-017.com', '[]', '{}');
   BEGIN PERFORM public.subdomain_set_redirect_records(f, ARRAY['r3']); log := log || 'rd_cname=ok;';
   EXCEPTION WHEN raise_exception THEN log := log || 'rd_cname=' || SQLERRM || ';'; END;
+  log := log || 'new_fn_auth=' || has_function_privilege('authenticated', 'public.subdomain_set_site(uuid,uuid,text,text)', 'EXECUTE')::text || '/'
+    || has_function_privilege('authenticated', 'public.subdomain_verify_site(uuid,uuid,text)', 'EXECUTE')::text || '/'
+    || has_function_privilege('authenticated', 'public.subdomain_set_placeholder_records(uuid,text[])', 'EXECUTE')::text || '/'
+    || has_function_privilege('service_role', 'public.subdomain_set_site(uuid,uuid,text,text)', 'EXECUTE')::text || ';';
   log := log || 'rd_fn_auth=' || has_function_privilege('authenticated', 'public.subdomain_set_redirect_records(uuid, text[])', 'EXECUTE')::text || ';';
   PERFORM public.subdomain_release(u2, f, 'owner');
 
@@ -189,7 +226,10 @@ BEGIN
     'name_norm=zz-verify-a;status=reserved;owner=true;token_len=32;'
     'fourth=limit;taken=name_taken;same_project=project_has_subdomain;reserved=name_reserved;invalid=name_invalid;'
     'app=not_website;nourl=not_website;other=not_owner;delete=project_has_subdomain;'
-    'bad_target=target_invalid;bad_txt=txt_invalid;connect_other=not_owner;connected=pending/vercel/2;'
+    'ph=p1,redirect:p2;ph_twice=records_exist;'
+    'unverified=not_verified;site_http=site_invalid;site_shape=site_invalid;site_other=not_owner;site_changed=site_changed;'
+    'site_same_keeps=true;host_mismatch=host_mismatch;'
+    'bad_target=target_invalid;bad_txt=txt_invalid;connect_other=not_owner;connected=pending/vercel/2/true;ph_connected=records_exist;'
     'pending_fail=pending;ok=active/true;broken=broken/true;reconnect_fail=broken/true;'
     'url=https://zz-verify-a.dshs.dev;url_reserved=not_active;'
     'release_other=not_owner;released=rec1,rec2/released;url_restored=https://zz-verify-1.vercel.app;reuse=true;delete_after_release=true;history_kept=true;'
@@ -197,8 +237,8 @@ BEGIN
     'revoke_user=not_admin;revoked_name=name_taken;unblocked=true;'
     'fn_anon=false;fn_auth=false;fn_service=true;'
     'rls_other_rows=0;rls_insert=denied;'
-    'rd_target=true/false/true/true/false;rd_txt=false/true;rd_reserved=not_live;rd_connect_txt=txt_invalid;'
-    'rd_set=r1,redirect:i1;rd_twice=records_exist;rd_cname=not_redirect;rd_fn_auth=false;'
+    'rd_target=true/false/true/true/false;rd_txt=false/true;rd_target_mismatch=target_mismatch;rd_reserved=not_live;rd_connect_txt=txt_invalid;'
+    'rd_set=r1,redirect:i1;rd_twice=records_exist;site_reset=true;rd_cname=not_redirect;new_fn_auth=false/false/false/true;rd_fn_auth=false;'
     'withdraw=ok/true;';
 
   IF log = expect THEN

@@ -521,6 +521,13 @@ export type Database = {
           revoked_by: string | null;
           /** "방문 주소 바꾸기" 전 프로젝트 url — 반납·회수 때 되돌린다 */
           previous_url: string | null;
+          /** ② 소유 확인에 쓴 학생 사이트 원래 주소(https://…/) — 20261026120000_subdomains_verify_first.sql */
+          site_url: string | null;
+          site_host: SubdomainHost | null;
+          /** 원래 주소에서 토큰이 확인된 시각. 없으면 ③ 연결 불가 */
+          site_verified_at: string | null;
+          /** 마지막으로 호스트에 연결한 시각 — 연결 안 된 주소의 7일 반납을 여기서부터 센다 */
+          connected_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -592,6 +599,18 @@ export type Database = {
       };
       // 바로가기 호스트: 소유 확인 뒤 만든 Cloudflare id(AAAA id, 'redirect:<목록 항목 id>') 기록
       subdomain_set_redirect_records: {
+        Args: { p_id: string; p_record_ids: string[] };
+        Returns: undefined;
+      };
+      subdomain_set_site: {
+        Args: { p_user: string; p_id: string; p_site_url: string; p_site_host: SubdomainHost };
+        Returns: undefined;
+      };
+      subdomain_verify_site: {
+        Args: { p_user: string; p_id: string; p_site_url: string };
+        Returns: undefined;
+      };
+      subdomain_set_placeholder_records: {
         Args: { p_id: string; p_record_ids: string[] };
         Returns: undefined;
       };
