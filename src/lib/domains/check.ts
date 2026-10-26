@@ -30,6 +30,33 @@ export function decide(row: CheckRow, result: CheckResult | null, now: Date): De
   return { ok: false, release: olderThan(since, now) ? 'broken_7d' : null }
 }
 
+// 막 만드는 중인 레코드(활성화·연결은 몇 초)를 지우지 않으려고, 살아 있는 행의 기록되지 않은 레코드는 이만큼 지난 것만 찌꺼기로 본다
+export const STRAY_GRACE_MS = 60 * 60_000
+
+/**
+ * 지울 Cloudflare 레코드·목록 항목 id — comment 의 행이 살아 있지 않거나,
+ * 살아 있는 행인데 그 행의 cf_record_ids 에 없고 STRAY_GRACE_MS 보다 오래된 것(시간 초과·탭 닫힘으로 남은 찌꺼기 —
+ * 남겨 두면 같은 이름의 AAAA·목록 항목이 겹쳐 다시 만들기가 영영 실패한다).
+ * recordedId: Cloudflare id → cf_record_ids 에 적히는 모양(목록 항목은 'redirect:' 접두어)
+ */
+export function strayIds(
+  live: { id: string; cf_record_ids: string[] }[],
+  managed: { id: string; comment: string; createdOn: string }[],
+  recordedId: (id: string) => string,
+  now: Date,
+): string[] {
+  const byRow = new Map(live.map((r) => [r.id, new Set(r.cf_record_ids)]))
+  return managed
+    .filter((m) => {
+      const rowId = managedRowId(m.comment)
+      const recorded = rowId ? byRow.get(rowId) : undefined
+      if (!recorded) return true
+      if (recorded.has(recordedId(m.id))) return false
+      return now.getTime() - new Date(m.createdOn).getTime() > STRAY_GRACE_MS
+    })
+    .map((m) => m.id)
+}
+
 /** Cloudflare 레코드 comment("dshs-subdomain:<행 id>")에서 행 id */
 export function managedRowId(comment: string): string | null {
   return comment.startsWith(RECORD_COMMENT_PREFIX) ? comment.slice(RECORD_COMMENT_PREFIX.length) || null : null

@@ -105,15 +105,15 @@ test('remove 빈 배열이면 요청하지 않는다', async () => {
 test('listManaged 는 cursor 를 따라가고 우리 항목만', async () => {
   const { f, calls } = fakeFetch((c, i) =>
     i === 0
-      ? ok([{ id: 'a', comment: 'dshs-subdomain:r1', redirect: { source_url: 'a.dshs.dev/' } }, { id: 'x', redirect: { source_url: 'x.example.com/' } }], {
+      ? ok([{ id: 'a', comment: 'dshs-subdomain:r1', created_on: 'T1', redirect: { source_url: 'a.dshs.dev/' } }, { id: 'x', redirect: { source_url: 'x.example.com/' } }], {
           result_info: { cursors: { after: 'cur1' } },
         })
-      : ok([{ id: 'b', comment: 'dshs-subdomain:r2', redirect: { source_url: 'b.dshs.dev/' } }], { result_info: { cursors: {} } }),
+      : ok([{ id: 'b', comment: 'dshs-subdomain:r2', created_on: 'T2', redirect: { source_url: 'b.dshs.dev/' } }], { result_info: { cursors: {} } }),
   )
   const items = await createRedirectClient({ ...opts, fetch: f }).listManaged()
   assert.deepEqual(items, [
-    { id: 'a', source: 'a.dshs.dev/', comment: 'dshs-subdomain:r1' },
-    { id: 'b', source: 'b.dshs.dev/', comment: 'dshs-subdomain:r2' },
+    { id: 'a', source: 'a.dshs.dev/', comment: 'dshs-subdomain:r1', createdOn: 'T1' },
+    { id: 'b', source: 'b.dshs.dev/', comment: 'dshs-subdomain:r2', createdOn: 'T2' },
   ])
   assert.equal(calls[0].url, `${BASE}/list1/items?per_page=500`)
   assert.equal(calls[1].url, `${BASE}/list1/items?per_page=500&cursor=cur1`)

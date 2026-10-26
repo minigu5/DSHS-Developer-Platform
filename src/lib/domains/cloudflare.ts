@@ -8,7 +8,7 @@ const API = 'https://api.cloudflare.com/client/v4'
 export const RECORD_COMMENT_PREFIX = 'dshs-subdomain:'
 
 export type DnsRecordInput = { type: 'CNAME' | 'TXT' | 'AAAA'; name: string; content: string }
-export type ManagedRecord = { id: string; name: string; comment: string }
+export type ManagedRecord = { id: string; name: string; comment: string; createdOn: string }
 
 export type DnsClient = {
   /** 모두 만들거나, 하나라도 실패하면 만든 것을 지우고 DnsError */
@@ -89,9 +89,9 @@ export function createDnsClient(opts: { token: string; zoneId: string; fetch?: t
       const out: ManagedRecord[] = []
       for (let page = 1; ; page++) {
         const q = new URLSearchParams({ 'comment.startswith': RECORD_COMMENT_PREFIX, per_page: '100', page: String(page) })
-        const { status, data } = await call<ManagedRecord[]>('GET', `${base}?${q}`)
+        const { status, data } = await call<{ id: string; name: string; comment?: string; created_on?: string }[]>('GET', `${base}?${q}`)
         if (!data?.success) throw new DnsError(describe(status, data))
-        for (const r of data.result) out.push({ id: r.id, name: r.name, comment: r.comment ?? '' })
+        for (const r of data.result) out.push({ id: r.id, name: r.name, comment: r.comment ?? '', createdOn: r.created_on ?? '' })
         if (!data.result_info || page >= data.result_info.total_pages) break
       }
       return out
@@ -108,7 +108,7 @@ function createFakeDnsClient(): DnsClient {
     async create(rows, rowId) {
       return rows.map((r) => {
         const id = `fake-${++seq}`
-        records.set(id, { id, name: r.name, comment: RECORD_COMMENT_PREFIX + rowId })
+        records.set(id, { id, name: r.name, comment: RECORD_COMMENT_PREFIX + rowId, createdOn: new Date().toISOString() })
         console.log(`[dns:fake] create ${r.type} ${r.name} -> ${r.content} (${id})`)
         return id
       })

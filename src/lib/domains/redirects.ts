@@ -10,7 +10,7 @@ import { RECORD_COMMENT_PREFIX } from './cloudflare.ts'
 const API = 'https://api.cloudflare.com/client/v4'
 const ATTEMPTS = 3
 
-export type RedirectItem = { id: string; source: string; comment: string }
+export type RedirectItem = { id: string; source: string; comment: string; createdOn: string }
 
 export type RedirectClient = {
   /** 항목을 넣고 작업이 끝나면 그 항목 id */
@@ -33,7 +33,7 @@ type CfResponse<T> = {
   result_info?: { cursors?: { after?: string } }
 }
 
-type ApiItem = { id: string; comment?: string; redirect?: { source_url?: string } }
+type ApiItem = { id: string; comment?: string; created_on?: string; redirect?: { source_url?: string } }
 
 /** 목록 POST 배열의 원소 하나. 302 — 301 은 브라우저가 오래 기억해서 보낼 곳을 바꿔도 안 바뀐다 */
 export function redirectItemBody(source: string, target: string, rowId: string) {
@@ -132,7 +132,7 @@ export function createRedirectClient(opts: {
         const { status, data } = await call<ApiItem[]>('GET', `${items}?${q}`)
         if (!data?.success) throw new RedirectError(describe(status, data))
         for (const r of data.result) {
-          if (r.comment?.startsWith(RECORD_COMMENT_PREFIX)) out.push({ id: r.id, source: r.redirect?.source_url ?? '', comment: r.comment })
+          if (r.comment?.startsWith(RECORD_COMMENT_PREFIX)) out.push({ id: r.id, source: r.redirect?.source_url ?? '', comment: r.comment, createdOn: r.created_on ?? '' })
         }
         cursor = data.result_info?.cursors?.after
       } while (cursor)
@@ -148,7 +148,7 @@ function createFakeRedirectClient(): RedirectClient {
   return {
     async add(item, rowId) {
       const id = `fake-redirect-${++seq}`
-      store.set(id, { id, source: item.source, comment: RECORD_COMMENT_PREFIX + rowId })
+      store.set(id, { id, source: item.source, comment: RECORD_COMMENT_PREFIX + rowId, createdOn: new Date().toISOString() })
       console.log(`[redirect:fake] add ${item.source} -> ${item.target} (${id})`)
       return id
     },

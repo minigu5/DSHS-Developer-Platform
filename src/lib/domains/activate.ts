@@ -34,7 +34,7 @@ export async function activateRedirect(deps: ActivateDeps, row: { id: string; na
     made.push(REDIRECT_ID_PREFIX + itemId)
     await deps.setRecords(made)
   } catch (e) {
-    // 남은 것은 매일 점검이 comment 로 찾아 지운다
+    // 지우기마저 실패해 남은 것은 매일 점검이 찌꺼기(strayIds)로 찾아 지운다
     await removeCloudflareWith(made, deps).catch(() => {})
     throw e
   }

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { decide, managedRowId, redirectWorks } from './check.ts'
+import { decide, managedRowId, redirectWorks, strayIds } from './check.ts'
 
 const NOW = new Date('2026-11-01T18:30:00Z')
 const daysAgo = (n: number) => new Date(NOW.getTime() - n * 86_400_000).toISOString()
@@ -58,4 +58,26 @@ test('redirectWorks: 302 로 보낼 곳 https 주소로 보내야 바로가기 �
   assert.equal(redirectWorks(page(302, 'https://a.acct.workers.dev.evil.com/'), 'a.acct.workers.dev'), false)
   assert.equal(redirectWorks(page(302, null), 'a.acct.workers.dev'), false)
   assert.equal(redirectWorks(page(200, null), 'a.acct.workers.dev'), false)
+})
+
+test('strayIds: 죽은 행의 것, 그리고 살아 있는 행인데 기록에 없고 1시간 넘은 것만 지운다', () => {
+  const live = [
+    { id: 'row-a', cf_record_ids: ['rec1', 'redirect:it1'] },
+    { id: 'row-b', cf_record_ids: [] },
+  ]
+  const old = daysAgo(1)
+  const fresh = new Date(NOW.getTime() - 5 * 60_000).toISOString()
+  const dnsRecords = [
+    { id: 'rec1', comment: 'dshs-subdomain:row-a', createdOn: old },   // 기록됨 → 둠
+    { id: 'rec9', comment: 'dshs-subdomain:row-a', createdOn: old },   // 살아 있는 행의 찌꺼기 → 지움
+    { id: 'rec8', comment: 'dshs-subdomain:row-b', createdOn: fresh }, // 막 만드는 중일 수 있음 → 둠
+    { id: 'rec7', comment: 'dshs-subdomain:row-dead', createdOn: fresh }, // 죽은 행 → 지움
+    { id: 'rec6', comment: 'dshs-subdomain:', createdOn: old },       // 행 id 없음 → 지움
+  ]
+  assert.deepEqual(strayIds(live, dnsRecords, (id) => id, NOW), ['rec9', 'rec7', 'rec6'])
+  const items = [
+    { id: 'it1', comment: 'dshs-subdomain:row-a', createdOn: old },
+    { id: 'it2', comment: 'dshs-subdomain:row-a', createdOn: old },
+  ]
+  assert.deepEqual(strayIds(live, items, (id) => `redirect:${id}`, NOW), ['it2'])
 })

@@ -17,7 +17,7 @@ import { createClient } from '@supabase/supabase-js';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { activateRedirect, needsActivation } from '../src/lib/domains/activate.ts';
-import { decide, managedRowId, redirectWorks, type CheckRow } from '../src/lib/domains/check.ts';
+import { decide, redirectWorks, strayIds, type CheckRow } from '../src/lib/domains/check.ts';
 import { REDIRECT_ID_PREFIX, removeCloudflareWith } from '../src/lib/domains/cleanup.ts';
 import { createDnsClient } from '../src/lib/domains/cloudflare.ts';
 import { createSiteFetcher } from '../src/lib/domains/fetch-site.ts';
@@ -145,20 +145,19 @@ for (const row of rows as Row[]) {
   }
 }
 
-// 고아 레코드: comment 의 행이 살아 있지 않으면(반납·회수·없음) 지운다.
-// 살아 있는 행의 레코드는 건드리지 않는다 — 학생이 막 연결하는 중일 수 있다.
+// 고아·찌꺼기 정리: comment 의 행이 살아 있지 않거나, 살아 있는 행인데 그 행의 기록(cf_record_ids)에 없고 1시간 넘은
+// DNS 레코드·바로가기 목록 항목을 지운다(strayIds). 막 연결·활성화 중인 것은 1시간 여유로 건드리지 않는다.
+let liveRows: { id: string; name: string; target: string | null; cf_record_ids: string[] }[] = [];
 try {
-  const { data: live, error: e } = await supabase.from('subdomains').select('id').in('status', LIVE);
+  const { data: live, error: e } = await supabase.from('subdomains').select('id, name, target, cf_record_ids').in('status', LIVE).order('name');
   if (e) throw new Error(e.message);
-  const liveIds = new Set((live ?? []).map((r) => r.id as string));
-  const orphans = (await dns.listManaged()).filter((r) => {
-    const id = managedRowId(r.comment);
-    return !id || !liveIds.has(id);
-  });
-  for (const r of orphans) {
+  liveRows = (live ?? []) as typeof liveRows;
+  const records = await dns.listManaged();
+  const strayDns = new Set(strayIds(liveRows, records, (id) => id, now));
+  for (const r of records.filter((x) => strayDns.has(x.id))) {
     console.log(`  🧹  고아 레코드 ${r.name}${DRY_RUN ? ' (dry-run, 그대로 둠)' : ' 삭제'}`);
   }
-  if (!DRY_RUN && orphans.length) await dns.remove(orphans.map((r) => r.id));
+  if (!DRY_RUN && strayDns.size) await dns.remove([...strayDns]);
 } catch (e) {
   failures++;
   console.error(`  ❌  고아 레코드 정리 실패: ${e instanceof Error ? e.message : String(e)}`);
@@ -167,16 +166,12 @@ try {
 // 바로가기: 고아 목록 항목 정리 + 규칙이 실제로 동작하는지 하나만 열어 본다
 if (redirectClient) {
   try {
-    const { data: live, error: e } = await supabase.from('subdomains').select('id, name, target, cf_record_ids').in('status', LIVE).order('name');
-    if (e) throw new Error(e.message);
-    const liveRows = (live ?? []) as { id: string; name: string; target: string | null; cf_record_ids: string[] }[];
-    const liveIds = new Set(liveRows.map((r) => r.id));
-    const orphans = (await redirectClient.listManaged()).filter((r) => {
-      const id = managedRowId(r.comment);
-      return !id || !liveIds.has(id);
-    });
-    for (const r of orphans) console.log(`  🧹  고아 바로가기 ${r.source}${DRY_RUN ? ' (dry-run, 그대로 둠)' : ' 삭제'}`);
-    if (!DRY_RUN && orphans.length) await redirectClient.remove(orphans.map((r) => r.id));
+    const items = await redirectClient.listManaged();
+    const strayItems = new Set(strayIds(liveRows, items, (id) => REDIRECT_ID_PREFIX + id, now));
+    for (const r of items.filter((x) => strayItems.has(x.id))) {
+      console.log(`  🧹  고아 바로가기 ${r.source}${DRY_RUN ? ' (dry-run, 그대로 둠)' : ' 삭제'}`);
+    }
+    if (!DRY_RUN && strayItems.size) await redirectClient.remove([...strayItems]);
 
     const sample = liveRows.find((r) => r.target && r.cf_record_ids.some((id) => id.startsWith(REDIRECT_ID_PREFIX)));
     if (sample?.target) {
