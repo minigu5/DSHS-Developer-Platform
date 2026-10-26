@@ -30,7 +30,7 @@ export default async function DomainsPage({ searchParams }: { searchParams: Prom
   const rows = await listMyDomainProjects(user.id);
   const used = rows.filter((r) => r.domain && LIVE_STATUSES.includes(r.domain.status)).length;
   // 등록 직후 "도메인 마련하기"로 왔을 때(?project=) 그 줄을 펼친다 — 내 목록에 있고 아직 주소가 없을 때만
-  const openRow = rows.find((r) => r.project.id === requested && r.project.url && !r.domain && used < MAX_DOMAINS);
+  const openRow = rows.find((r) => r.project.id === requested && r.project.url && !r.project.isPrivate && !r.domain && used < MAX_DOMAINS);
 
   return (
     <div className="flex min-h-screen flex-col bg-white dark:bg-zinc-950">

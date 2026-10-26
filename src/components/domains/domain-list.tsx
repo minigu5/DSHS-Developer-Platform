@@ -83,8 +83,10 @@ export function DomainList({
         const disabled = !project.url;
         const expanded = open === project.id;
         const panelId = `domain-panel-${project.id}`;
-        // 새 주소를 받을 수 없는 줄: 방문 주소 없음, 또는 3개를 다 쓴 상태에서 아직 주소가 없는 프로젝트
-        const blocked = disabled || (!live && limitReached);
+        // 비공개 프로젝트는 새 주소를 못 받는다(이미 받은 주소는 관리할 수 있게 둔다)
+        const privateBlocked = project.isPrivate && !live;
+        // 새 주소를 받을 수 없는 줄: 방문 주소 없음, 비공개, 또는 3개를 다 쓴 상태에서 아직 주소가 없는 프로젝트
+        const blocked = disabled || privateBlocked || (!live && limitReached);
         const ownDomain = !live && project.url ? customDomainOf(project.url) : null;
 
         let action: string;
@@ -110,7 +112,14 @@ export function DomainList({
               </div>
               {domain && <StatusPill domain={domain} />}
               {ownDomain && <OwnDomainPill host={ownDomain} />}
-              {disabled ? (
+              {privateBlocked ? (
+                <Link
+                  href={`/projects/${project.id}/edit`}
+                  className="text-xs text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400"
+                >
+                  비공개 프로젝트는 도메인을 마련할 수 없어요
+                </Link>
+              ) : disabled ? (
                 <Link
                   href={`/projects/${project.id}/edit`}
                   className="text-xs text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400"

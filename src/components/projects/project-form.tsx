@@ -655,7 +655,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         const { data, error } = await supabase.from('projects').insert([{ ...commonFields, author_id: session.user.id }]).select().single();
         if (error) throw error;
         allowLeave();
-        const offer = isWebsite ? await domainOfferFor(url, session.user.id) : null;
+        const offer = isWebsite && visibility === 'public' ? await domainOfferFor(url, session.user.id) : null;
         if (offer) {
           setDomainOffer({ projectId: data.id, ...offer });
           return;

@@ -21,7 +21,7 @@ export type DomainView = {
 }
 
 export type DomainProjectRow = {
-  project: { id: string; title: string; url: string | null; iconUrl: string | null }
+  project: { id: string; title: string; url: string | null; iconUrl: string | null; isPrivate: boolean }
   /** 살아 있는 주소, 없으면 가장 최근 회수된 주소(이유를 보여 주려고), 그것도 없으면 null */
   domain: DomainView | null
 }
@@ -78,7 +78,7 @@ export async function listMyDomainProjects(userId: string): Promise<DomainProjec
   const [{ data: projects }, { data: domains }] = await Promise.all([
     supabase
       .from('projects')
-      .select('id, title, url, icon_url, types')
+      .select('id, title, url, icon_url, types, visibility')
       .eq('author_id', userId)
       .contains('types', ['website'])
       .order('created_at', { ascending: false })
@@ -102,7 +102,7 @@ export async function listMyDomainProjects(userId: string): Promise<DomainProjec
   return (projects ?? []).map((p) => {
     const d = byProject.get(p.id)
     return {
-      project: { id: p.id, title: p.title, url: p.url, iconUrl: p.icon_url },
+      project: { id: p.id, title: p.title, url: p.url, iconUrl: p.icon_url, isPrivate: p.visibility === 'private' },
       domain: d ? toView(d) : null,
     }
   })

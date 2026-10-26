@@ -103,6 +103,15 @@ export async function reserveSubdomain(projectId: string, rawName: string): Prom
   const v = validateName(name)
   if (!v.ok) return { ok: false, error: NAME_REASONS[v.reason] }
 
+  // 비공개 프로젝트는 주소를 못 받는다. 내 프로젝트만 읽어서(남의 공개 범위는 알려 주지 않음), 아니면 아래 RPC 가 not_owner 로 거른다.
+  const { data: project } = await createAdminClient()
+    .from('projects')
+    .select('visibility')
+    .eq('id', projectId)
+    .eq('author_id', user.id)
+    .maybeSingle()
+  if (project?.visibility === 'private') return { ok: false, error: '비공개 프로젝트는 도메인을 마련할 수 없어요.' }
+
   const { data, error } = await createAdminClient().rpc('subdomain_reserve', { p_user: user.id, p_project: projectId, p_name: name })
   if (error) return rpcError('subdomain_reserve', error)
   done()
