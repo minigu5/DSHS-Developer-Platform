@@ -78,8 +78,8 @@ npm run upload    # 빌드 후 새 버전만 올리기(배포 안 함)
 
 Cloudflare Workers·Firebase Hosting 학생 사이트로 `<이름>.dshs.dev`를 302로 보낸다. 설계 `docs/superpowers/specs/2026-10-26-subdomain-redirects-design.md`.
 
-1. 토큰: Manage Account → Account API Tokens → Create Token → Custom token. 권한 **Account · Account Filter Lists · Edit** 하나만, Account Resources는 dshs.dev가 있는 계정. 이름 `dshs-redirects`. DNS 토큰과 따로 둔다.
+1. 토큰: Manage Account → Account API Tokens → Create Token → Custom token. 권한 **Account Filter Lists(= Account Rule Lists) · Edit** + **Mass URL Redirects(= Bulk URL Redirects) · Write**, 리소스 범위 **Entire Account**(목록·Bulk Redirects는 계정 리소스라 도메인 범위로는 안 됨 — 그래도 토큰이 할 수 있는 건 위 두 권한뿐). 이름 `dshs-redirects`. DNS 토큰과 따로 둔다. Zone 권한 "Dynamic URL Redirects"는 단일 리다이렉트(무료 10개)라 다른 것.
 2. `.env.local`에 `CLOUDFLARE_LISTS_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` → `node scripts/create-redirect-list.mts` → 나온 `CLOUDFLARE_REDIRECT_LIST_ID`도 넣는다.
-3. 대시보드 → Bulk Redirects → Create Bulk Redirect Rule → 목록 `dshs_subdomain_redirects` 선택 → Save and Deploy. (목록 토큰엔 규칙 권한이 없어서 한 번만 손으로 만든다.) **배포 전에** 만들어야 한다.
+3. 같은 스크립트가 목록을 쓰는 Bulk Redirect 규칙도 만든다(Mass URL Redirects 권한이 없으면 대시보드 → Bulk Redirects → Create Bulk Redirect Rule에서 손으로). **배포 전에** 있어야 한다. 2026-10-26 둘 다 생성 완료.
 4. 운영: `npx wrangler secret put CLOUDFLARE_LISTS_API_TOKEN` + `wrangler.jsonc` `vars`에 `CLOUDFLARE_ACCOUNT_ID`·`CLOUDFLARE_REDIRECT_LIST_ID`. GitHub 저장소 Secrets에도 세 개(매일 점검용).
 5. 개발 서버는 가짜 목록을 쓴다(`DOMAINS_REAL_DNS=1`일 때만 진짜).

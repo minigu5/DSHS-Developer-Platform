@@ -1,6 +1,8 @@
 // 바로가기 켜기: 소유 확인 토큰이 보낼 곳 사이트에서 처음 확인됐을 때만 부른다(연결 확인 서버 액션·매일 점검).
 // 확인 전에 켜 두면 남의 workers.dev·web.app 사이트로 보내는 주소를 누구나 만들 수 있어서다.
 // 순서: proxied AAAA → 목록 항목 → DB 기록. 어디서든 실패하면 이번에 만든 것을 지우고 원래 오류를 던진다.
+// AAAA 가 먼저인 이유: 목록은 같은 source 를 덮어쓰지만, 같은 AAAA 는 Cloudflare 가 거절한다(81058, 2026-10-26 실측) —
+// 그래서 동시에 두 번 켜도 늦은 쪽은 AAAA 에서 멈추고 앞선 쪽의 목록 항목을 건드리지 않는다.
 // 설계: docs/superpowers/specs/2026-10-26-subdomain-redirects-design.md 4.5
 
 import type { DnsClient } from './cloudflare.ts'

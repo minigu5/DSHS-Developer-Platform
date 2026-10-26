@@ -1,8 +1,9 @@
 // Cloudflare Bulk Redirects 목록 — 바로가기 주소(<이름>.dshs.dev → 학생 사이트 302)를 넣고 뺀다.
-// 토큰은 계정의 "Account Filter Lists: Edit" 만 있는 별도 토큰(CLOUDFLARE_LISTS_API_TOKEN). DNS 토큰과 나눠 둔다.
-// 목록(dshs_subdomain_redirects)을 쓰는 Bulk Redirect 규칙은 대시보드에서 한 번만 만든다(이 토큰엔 규칙 권한이 없다).
+// 토큰은 계정의 "Account Filter Lists: Edit"(+ 규칙을 만들 때 "Mass URL Redirects: Write")만 있는 별도 토큰(CLOUDFLARE_LISTS_API_TOKEN). DNS 토큰과 나눠 둔다.
+// 목록(dshs_subdomain_redirects)과 그 목록을 쓰는 Bulk Redirect 규칙은 scripts/create-redirect-list.mts 가 한 번 만든다.
 // 추가·삭제는 비동기 작업이라 끝날 때까지 기다린다. 목록 전체를 바꾸는 PUT 은 동시 작업을 지울 수 있어 쓰지 않는다.
 // 우리 항목은 comment "dshs-subdomain:<행 id>" 로 구분한다(DNS 레코드와 같은 표시 — 매일 점검이 고아를 찾을 때).
+// 같은 source_url 을 다시 넣으면 새 항목이 아니라 기존 항목을 덮어쓴다(같은 id, 2026-10-26 실측).
 // 설계: docs/superpowers/specs/2026-10-26-subdomain-redirects-design.md 4.4
 
 import { RECORD_COMMENT_PREFIX } from './cloudflare.ts'
