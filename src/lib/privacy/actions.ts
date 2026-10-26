@@ -5,7 +5,7 @@ import { cookies } from 'next/headers'
 
 import { cloudinary } from '@/lib/cloudinary'
 import { isAllowedEmail } from '@/lib/constants'
-import { getDnsClient } from '@/lib/domains/cloudflare'
+import { removeCloudflare } from '@/lib/domains/cleanup'
 import { PRIVACY_COOKIE, PRIVACY_COOKIE_OPTIONS, WITHDRAW_CONFIRM_TEXT } from '@/lib/privacy/config'
 import { cloudinaryPublicId } from '@/lib/privacy/format'
 import { PRIVACY_POLICY_VERSION } from '@/lib/privacy/version'
@@ -50,7 +50,7 @@ async function deleteCloudinaryImages(urls: string[]) {
 }
 
 // withdraw_account() 가 한 트랜잭션으로 계정·글·팀원 표시를 정리한다. 이 함수는 service_role 전용.
-// 도메인 마련하기(서브도메인)는 withdraw_account() 가 반납하고, DNS 레코드는 여기서 바로 지운다(놓치면 매일 점검이 정리).
+// 도메인 마련하기(서브도메인)는 withdraw_account() 가 반납하고, DNS 레코드·바로가기 항목은 여기서 바로 지운다(놓치면 매일 점검이 정리).
 async function eraseAccount(userId: string): Promise<boolean> {
   const admin = createAdminClient()
   const { data: domains } = await admin
@@ -62,9 +62,9 @@ async function eraseAccount(userId: string): Promise<boolean> {
   if (error) return false
   const recordIds = (domains ?? []).flatMap((d) => d.cf_record_ids)
   if (recordIds.length) {
-    await getDnsClient()
-      .remove(recordIds)
-      .catch((e) => console.error('[privacy] 탈퇴한 계정의 DNS 레코드 삭제 실패, 매일 점검이 정리', e))
+    await removeCloudflare(recordIds).catch((e) =>
+      console.error('[privacy] 탈퇴한 계정의 Cloudflare 레코드 삭제 실패, 매일 점검이 정리', e),
+    )
   }
   await deleteCloudinaryImages(urls ?? [])
   return true

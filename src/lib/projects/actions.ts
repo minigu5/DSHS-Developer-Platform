@@ -7,7 +7,7 @@
 import { revalidatePath } from 'next/cache'
 
 import { isAllowedEmail } from '@/lib/constants'
-import { getDnsClient } from '@/lib/domains/cloudflare'
+import { removeCloudflare } from '@/lib/domains/cleanup'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 
 export type DeleteProjectResult = { ok: true } | { ok: false; error: string }
@@ -43,7 +43,7 @@ export async function deleteProject(projectId: string): Promise<DeleteProjectRes
     }
     if (ids?.length) {
       // 실패해도 DB 는 반납 상태 — 남은 레코드는 매일 점검이 정리
-      await getDnsClient().remove(ids).catch((e) => console.error('[projects] DNS 레코드 삭제 실패', e))
+      await removeCloudflare(ids).catch((e) => console.error('[projects] Cloudflare 레코드 삭제 실패', e))
     }
   }
 

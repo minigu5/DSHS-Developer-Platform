@@ -13,6 +13,7 @@ import { createAdminClient, createClient } from '@/lib/supabase/server'
 import type { SubdomainStatus } from '@/lib/types'
 
 import { getDnsClient } from './cloudflare'
+import { removeCloudflare } from './cleanup'
 import { buildRecords, runConnect } from './connect'
 import { createSiteFetcher } from './fetch-site'
 import { HOST_PRESETS, validateTarget, validateTxt, type HostKey, type TxtInput } from './hosts'
@@ -132,8 +133,8 @@ export async function connectHost(id: string, host: HostKey, rawTarget: string, 
 
   try {
     const dns = getDnsClient()
-    // 다시 연결하는 경우 옛 레코드부터 지운다(같은 이름의 CNAME 은 하나만 둘 수 있다)
-    if (row.cf_record_ids.length) await dns.remove(row.cf_record_ids)
+    // 다시 연결하는 경우 옛 레코드부터 지운다(같은 이름의 CNAME 은 하나만 둘 수 있다). 바로가기였다면 목록 항목도
+    if (row.cf_record_ids.length) await removeCloudflare(row.cf_record_ids)
 
     const admin = createAdminClient()
     await runConnect(
@@ -210,10 +211,10 @@ export async function applyProjectUrl(id: string): Promise<ActionResult> {
 async function removeRecords(ids: string[], tag: string) {
   if (!ids.length) return
   try {
-    await getDnsClient().remove(ids)
+    await removeCloudflare(ids)
   } catch (e) {
-    // DB 는 이미 반납 상태 — 남은 레코드는 매일 점검이 comment 로 찾아 지운다
-    console.error(`[domains] ${tag}: DNS 레코드 삭제 실패, 매일 점검이 정리`, e)
+    // DB 는 이미 반납 상태 — 남은 레코드·목록 항목은 매일 점검이 comment 로 찾아 지운다
+    console.error(`[domains] ${tag}: Cloudflare 레코드 삭제 실패, 매일 점검이 정리`, e)
   }
 }
 

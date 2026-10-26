@@ -1,12 +1,13 @@
 // Cloudflare DNS API(v4) — dshs.dev 존에 학생 주소 레코드를 만들고 지운다.
 // 토큰은 dshs.dev 존 DNS 편집만 되는 계정 토큰(CLOUDFLARE_DNS_API_TOKEN), 존은 CLOUDFLARE_ZONE_ID.
-// 모든 레코드는 DNS only(proxied:false) — 프록시를 켜면 학생 호스트가 인증서를 못 받는다.
+// CNAME·TXT 는 DNS only(proxied:false) — 프록시를 켜면 학생 호스트가 인증서를 못 받는다.
+// 바로가기 주소의 AAAA(100::)만 proxied — Bulk Redirects 는 Cloudflare 를 거치는 레코드에만 동작한다(redirects.ts).
 // 우리가 만든 레코드는 comment "dshs-subdomain:<행 id>" 로 구분한다(매일 점검이 고아 레코드를 찾을 때).
 
 const API = 'https://api.cloudflare.com/client/v4'
 export const RECORD_COMMENT_PREFIX = 'dshs-subdomain:'
 
-export type DnsRecordInput = { type: 'CNAME' | 'TXT'; name: string; content: string }
+export type DnsRecordInput = { type: 'CNAME' | 'TXT' | 'AAAA'; name: string; content: string }
 export type ManagedRecord = { id: string; name: string; comment: string }
 
 export type DnsClient = {
@@ -55,10 +56,11 @@ export function createDnsClient(opts: { token: string; zoneId: string; fetch?: t
     async create(rows, rowId) {
       const ids: string[] = []
       for (const row of rows) {
+        const comment = RECORD_COMMENT_PREFIX + rowId
         const body =
-          row.type === 'CNAME'
-            ? { type: 'CNAME', name: row.name, content: row.content, ttl: 1, proxied: false, comment: RECORD_COMMENT_PREFIX + rowId }
-            : { type: 'TXT', name: row.name, content: `"${row.content}"`, ttl: 1, comment: RECORD_COMMENT_PREFIX + rowId }
+          row.type === 'TXT'
+            ? { type: 'TXT', name: row.name, content: `"${row.content}"`, ttl: 1, comment }
+            : { type: row.type, name: row.name, content: row.content, ttl: 1, proxied: row.type === 'AAAA', comment }
         let failure: string | null = null
         try {
           const { status, data } = await call<{ id: string }>('POST', base, body)

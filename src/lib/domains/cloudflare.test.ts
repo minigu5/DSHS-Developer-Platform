@@ -89,3 +89,10 @@ test('우리가 만든 레코드 목록은 페이지를 넘겨 모은다', async
   assert.equal(u.searchParams.get('comment.startswith'), 'dshs-subdomain:')
   assert.equal(u.searchParams.get('per_page'), '100')
 })
+
+test('바로가기 AAAA 는 proxied 로 만든다(Bulk Redirects 는 proxied 레코드에만 동작)', async () => {
+  const { f, calls } = fakeFetch(() => ok({ id: 'rec1' }))
+  const dns = createDnsClient({ token: 't', zoneId: 'zone1', fetch: f })
+  await dns.create([{ type: 'AAAA', name: 'meal.dshs.dev', content: '100::' }], 'row-1')
+  assert.deepEqual(calls[0].body, { type: 'AAAA', name: 'meal.dshs.dev', content: '100::', ttl: 1, proxied: true, comment: 'dshs-subdomain:row-1' })
+})
