@@ -1,0 +1,39 @@
+// 바로가기 켜기: 소유 확인 토큰이 보낼 곳 사이트에서 처음 확인됐을 때만 부른다(연결 확인 서버 액션·매일 점검).
+// 확인 전에 켜 두면 남의 workers.dev·web.app 사이트로 보내는 주소를 누구나 만들 수 있어서다.
+// 순서: proxied AAAA → 목록 항목 → DB 기록. 어디서든 실패하면 이번에 만든 것을 지우고 원래 오류를 던진다.
+// 설계: docs/superpowers/specs/2026-10-26-subdomain-redirects-design.md 4.5
+
+import type { DnsClient } from './cloudflare.ts'
+import { REDIRECT_ID_PREFIX, removeCloudflareWith } from './cleanup.ts'
+import { isRedirectHost, type HostKey } from './hosts.ts'
+import { ROOT_DOMAIN } from './name.ts'
+import type { RedirectClient } from './redirects.ts'
+
+// 바로가기 전용 자리표시 주소 — 요청은 Cloudflare 가 바로가기로 응답해 여기까지 오지 않는다
+const REDIRECT_PLACEHOLDER_AAAA = '100::'
+
+export type ActivateDeps = {
+  dns: DnsClient
+  redirects: () => RedirectClient
+  /** subdomain_set_redirect_records — 이미 기록이 있으면 records_exist 로 실패한다 */
+  setRecords: (ids: string[]) => Promise<void>
+}
+
+export function needsActivation(row: { host: HostKey | null; cf_record_ids: string[] }): boolean {
+  return isRedirectHost(row.host) && !row.cf_record_ids.some((id) => id.startsWith(REDIRECT_ID_PREFIX))
+}
+
+export async function activateRedirect(deps: ActivateDeps, row: { id: string; name: string; target: string }): Promise<void> {
+  const fqdn = `${row.name}.${ROOT_DOMAIN}`
+  const made: string[] = []
+  try {
+    made.push(...(await deps.dns.create([{ type: 'AAAA', name: fqdn, content: REDIRECT_PLACEHOLDER_AAAA }], row.id)))
+    const itemId = await deps.redirects().add({ source: `${fqdn}/`, target: `https://${row.target}/` }, row.id)
+    made.push(REDIRECT_ID_PREFIX + itemId)
+    await deps.setRecords(made)
+  } catch (e) {
+    // 남은 것은 매일 점검이 comment 로 찾아 지운다
+    await removeCloudflareWith(made, deps).catch(() => {})
+    throw e
+  }
+}
