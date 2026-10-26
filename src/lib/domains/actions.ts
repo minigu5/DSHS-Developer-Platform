@@ -19,7 +19,7 @@ import { buildRecords, runConnect } from './connect'
 import { createSiteFetcher } from './fetch-site'
 import { HOST_PRESETS, isRedirectHost, siteHostFor, validateTarget, validateTxt, type HostKey, type TxtInput } from './hosts'
 import { normalizeName, validateName } from './name'
-import { getRedirectClient } from './redirects'
+import { getRedirectClient, redirectConfigured } from './redirects'
 import { checkSite, type CheckResult } from './verify'
 
 export type ActionResult<T = null> = { ok: true; data: T } | { ok: false; error: string }
@@ -50,6 +50,7 @@ const RPC_ERRORS: Record<string, string> = {
 }
 
 const REDIRECT_FAILED = '바로가기를 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.'
+const REDIRECT_NOT_READY = '바로가기는 아직 준비 중이에요. 잠시 뒤 다시 시도해 주세요.'
 
 const NAME_REASONS: Record<'length' | 'chars' | 'reserved' | 'idn', string> = {
   length: '이름은 3~30자로 적어요.',
@@ -121,6 +122,7 @@ export async function connectHost(id: string, host: HostKey, rawTarget: string, 
   const user = await currentUser()
   if (!user) return LOGIN_REQUIRED
   if (!Object.hasOwn(HOST_PRESETS, host)) return { ok: false, error: RPC_ERRORS.target_invalid }
+  if (isRedirectHost(host) && !redirectConfigured()) return { ok: false, error: REDIRECT_NOT_READY }
 
   const row = await loadRow(id)
   if (!row || row.owner_id !== user.id) return { ok: false, error: RPC_ERRORS.not_owner }

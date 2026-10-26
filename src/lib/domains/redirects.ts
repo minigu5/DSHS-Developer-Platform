@@ -164,10 +164,17 @@ function createFakeRedirectClient(): RedirectClient {
 
 let fakeClient: RedirectClient | undefined
 
+const isReal = () => process.env.NODE_ENV === 'production' || process.env.DOMAINS_REAL_DNS === '1'
+
+/** 바로가기를 만들 수 있는가 — 운영에 목록 env 가 없으면 연결하기에서 미리 막는다 */
+export function redirectConfigured(): boolean {
+  if (!isReal()) return true
+  return Boolean(process.env.CLOUDFLARE_LISTS_API_TOKEN && process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_REDIRECT_LIST_ID)
+}
+
 // getDnsClient 와 같은 규칙: 운영은 진짜, 개발(next dev)은 가짜. 개발에서 진짜로 해 보려면 DOMAINS_REAL_DNS=1.
 export function getRedirectClient(): RedirectClient {
-  const real = process.env.NODE_ENV === 'production' || process.env.DOMAINS_REAL_DNS === '1'
-  if (!real) {
+  if (!isReal()) {
     fakeClient ??= createFakeRedirectClient()
     return fakeClient
   }

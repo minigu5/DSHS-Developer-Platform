@@ -25,10 +25,12 @@ export function needsActivation(row: { host: HostKey | null; cf_record_ids: stri
 
 export async function activateRedirect(deps: ActivateDeps, row: { id: string; name: string; target: string }): Promise<void> {
   const fqdn = `${row.name}.${ROOT_DOMAIN}`
+  // 목록 설정이 없으면 DNS 를 만들었다 지우는 일 없이 바로 실패한다
+  const redirects = deps.redirects()
   const made: string[] = []
   try {
     made.push(...(await deps.dns.create([{ type: 'AAAA', name: fqdn, content: REDIRECT_PLACEHOLDER_AAAA }], row.id)))
-    const itemId = await deps.redirects().add({ source: `${fqdn}/`, target: `https://${row.target}/` }, row.id)
+    const itemId = await redirects.add({ source: `${fqdn}/`, target: `https://${row.target}/` }, row.id)
     made.push(REDIRECT_ID_PREFIX + itemId)
     await deps.setRecords(made)
   } catch (e) {

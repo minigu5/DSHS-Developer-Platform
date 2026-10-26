@@ -79,3 +79,15 @@ test('needsActivation: 바로가기 호스트이고 목록 항목이 아직 없�
   assert.equal(needsActivation({ host: 'vercel', cf_record_ids: [] }), false)
   assert.equal(needsActivation({ host: null, cf_record_ids: [] }), false)
 })
+
+test('목록 설정이 없으면 DNS 를 건드리기 전에 실패한다', async () => {
+  const h = harness()
+  const deps = {
+    ...h.deps,
+    redirects: () => {
+      throw new Error('no list env')
+    },
+  }
+  await assert.rejects(activateRedirect(deps, ROW), /no list env/)
+  assert.deepEqual(h.log, [])
+})

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createRedirectClient, getRedirectClient, redirectItemBody, RedirectError } from './redirects.ts'
+import { createRedirectClient, getRedirectClient, redirectConfigured, redirectItemBody, RedirectError } from './redirects.ts'
 
 type Call = { method: string; url: string; body: unknown }
 
@@ -129,5 +129,25 @@ test('진짜 모드인데 목록 환경변수가 없으면 알아볼 수 있는 
     if (saved.real === undefined) delete process.env.DOMAINS_REAL_DNS
     else process.env.DOMAINS_REAL_DNS = saved.real
     if (saved.token !== undefined) process.env.CLOUDFLARE_LISTS_API_TOKEN = saved.token
+  }
+})
+
+test('redirectConfigured: 개발(가짜)이면 true, 진짜 모드는 env 셋이 다 있어야 true', () => {
+  const keys = ['DOMAINS_REAL_DNS', 'CLOUDFLARE_LISTS_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_REDIRECT_LIST_ID'] as const
+  const saved = Object.fromEntries(keys.map((k) => [k, process.env[k]]))
+  try {
+    for (const k of keys) delete process.env[k]
+    assert.equal(redirectConfigured(), true)
+    process.env.DOMAINS_REAL_DNS = '1'
+    assert.equal(redirectConfigured(), false)
+    process.env.CLOUDFLARE_LISTS_API_TOKEN = 't'
+    process.env.CLOUDFLARE_ACCOUNT_ID = 'a'
+    process.env.CLOUDFLARE_REDIRECT_LIST_ID = 'l'
+    assert.equal(redirectConfigured(), true)
+  } finally {
+    for (const k of keys) {
+      if (saved[k] === undefined) delete process.env[k]
+      else process.env[k] = saved[k]
+    }
   }
 })
