@@ -54,15 +54,25 @@ async function fetchSameHost(start: string, fetcher: Fetcher): Promise<FetchedPa
   return { error: 'too many redirects' }
 }
 
-export async function checkSite(fqdn: string, token: string, host: HostKey, fetcher: Fetcher): Promise<CheckResult> {
-  const root = await fetchSameHost(`https://${fqdn}/`, fetcher)
+/**
+ * base: 확인할 사이트의 기준 주소(https://…/, 끝이 /). 연결된 주소는 https://<이름>.dshs.dev/,
+ * ② 소유 확인은 학생 사이트 원래 주소(GitHub Pages 프로젝트 사이트처럼 경로가 있을 수 있음).
+ * meta 는 base 에서, 파일은 base 아래 → (경로가 있으면) 호스트 루트 순서로 본다.
+ */
+export async function checkSite(base: string, token: string, host: HostKey, fetcher: Fetcher): Promise<CheckResult> {
+  const root = await fetchSameHost(base, fetcher)
   if ('error' in root) return { kind: 'unreachable', detail: root.error }
 
   const ok2xx = root.status >= 200 && root.status < 300
   if (ok2xx && extractToken(root.body) === token) return { kind: 'ok' }
 
-  const file = await fetchSameHost(`https://${fqdn}${VERIFY_FILE_PATH}`, fetcher)
-  if (!('error' in file) && file.status >= 200 && file.status < 300 && file.body.trim() === token) return { kind: 'ok' }
+  const origin = new URL(base).origin
+  const fileUrls = [new URL(VERIFY_FILE_PATH.slice(1), base).toString()]
+  if (new URL(base).pathname !== '/') fileUrls.push(`${origin}${VERIFY_FILE_PATH}`)
+  for (const url of fileUrls) {
+    const file = await fetchSameHost(url, fetcher)
+    if (!('error' in file) && file.status >= 200 && file.status < 300 && file.body.trim() === token) return { kind: 'ok' }
+  }
 
   if (HOST_PRESETS[host].notFound(root.status, root.headers, root.body)) return { kind: 'not_found_page' }
   if (ok2xx) return { kind: 'no_token' }

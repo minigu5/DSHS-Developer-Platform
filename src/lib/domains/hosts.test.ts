@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { customDomainOf, detectHost, dshsAddressOf, isRedirectHost, siteHostFor, validateTarget, validateTxt, HOST_PRESETS } from './hosts.ts'
+import { customDomainOf, detectHost, dshsAddressOf, isRedirectHost, siteAddressFor, siteHostFor, targetBoundToSite, validateTarget, validateTxt, HOST_PRESETS } from './hosts.ts'
 
 test('프로젝트 주소로 호스트를 미리 고른다', () => {
   assert.deepEqual(detectHost('https://meal-alarm.vercel.app/'), { host: 'vercel', prefill: null })
@@ -163,4 +163,38 @@ test('Firebase "사이트 없음" 페이지를 알아본다(2026-10-26 실측: 4
   assert.equal(nf(404, new Headers(), '<html><head><title>Site Not Found</title></head></html>'), true)
   assert.equal(nf(404, new Headers(), '<html><head><title>My 404</title></head></html>'), false)
   assert.equal(nf(200, new Headers(), '<title>Site Not Found</title>'), false)
+})
+
+test('siteAddressFor: 호스트 기본 주소만 받고 쿼리·해시는 버린다', () => {
+  assert.deepEqual(siteAddressFor('https://omm.vercel.app/x?y=1#z'), { host: 'vercel', hostname: 'omm.vercel.app', url: 'https://omm.vercel.app/' })
+  assert.deepEqual(siteAddressFor(' https://Meal.Netlify.app '), { host: 'netlify', hostname: 'meal.netlify.app', url: 'https://meal.netlify.app/' })
+  // Pages 프로젝트 사이트는 경로까지
+  assert.deepEqual(siteAddressFor('https://me.github.io/repo'), { host: 'github-pages', hostname: 'me.github.io', url: 'https://me.github.io/repo/' })
+  assert.deepEqual(siteAddressFor('https://me.gitlab.io/repo/'), { host: 'gitlab-pages', hostname: 'me.gitlab.io', url: 'https://me.gitlab.io/repo/' })
+  assert.deepEqual(siteAddressFor('https://w.me.workers.dev/app'), { host: 'cloudflare-workers', hostname: 'w.me.workers.dev', url: 'https://w.me.workers.dev/' })
+  assert.deepEqual(siteAddressFor('https://g05.up.railway.app'), { host: 'railway', hostname: 'g05.up.railway.app', url: 'https://g05.up.railway.app/' })
+})
+
+test('siteAddressFor: http·우리 주소·내 도메인·미리보기 주소는 거절', () => {
+  for (const raw of [
+    'http://omm.vercel.app',
+    'https://omm.dshs.dev',
+    'https://example.com',
+    'https://a--b.web.app',
+    'https://abc.proj.pages.dev',
+    'https://x.y.vercel.app',
+    'https://x.y.netlify.app',
+    'not a url',
+    '',
+  ]) {
+    assert.equal(siteAddressFor(raw), null, raw)
+  }
+})
+
+test('targetBoundToSite: CNAME 값을 원래 주소에서 알 수 있는 호스트만', () => {
+  assert.equal(targetBoundToSite('vercel'), false)
+  assert.equal(targetBoundToSite('railway'), false)
+  for (const h of ['netlify', 'cloudflare-pages', 'github-pages', 'gitlab-pages', 'render', 'cloudflare-workers', 'firebase'] as const) {
+    assert.equal(targetBoundToSite(h), true, h)
+  }
 })

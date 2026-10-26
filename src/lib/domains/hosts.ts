@@ -233,6 +233,43 @@ export function detectHost(projectUrl: string): { host: HostKey; prefill: string
   return null
 }
 
+// CNAME 값을 호스트가 따로 주는 호스트(Vercel·Railway)의 사이트 기본 주소 모양 — 한 단계 이름만(미리보기·팀 주소 제외 못 함)
+const SITE_ONLY_PATTERN: Partial<Record<HostKey, RegExp>> = {
+  vercel: /^[a-z0-9-]+\.vercel\.app$/,
+  railway: /^[a-z0-9-]+\.up\.railway\.app$/,
+}
+
+/** CNAME 값(바로가기는 보낼 곳)을 원래 주소의 호스트 이름으로 정할 수 있는 호스트 — 연결 대상을 확인한 사이트에 묶는다 */
+export function targetBoundToSite(host: HostKey): boolean {
+  const p = HOST_PRESETS[host]
+  return p.mode === 'redirect' || p.prefillFromUrl
+}
+
+/**
+ * ② 소유 확인에 쓰는 "내 사이트 원래 주소". 프리셋 9곳의 기본 주소만 받는다(③ 연결이 같은 판정을 쓰므로
+ * 여기서 통과하면 ③에서 막히지 않는다). url 은 쿼리·해시를 버리고 끝을 / 로 맞춘다.
+ * 경로는 GitHub/GitLab Pages 프로젝트 사이트(내아이디.github.io/저장소/)만 남긴다.
+ */
+export function siteAddressFor(raw: string): { host: HostKey; hostname: string; url: string } | null {
+  let u: URL
+  try {
+    u = new URL(raw.trim())
+  } catch {
+    return null
+  }
+  if (u.protocol !== 'https:' || u.port) return null
+  const hostname = u.hostname.toLowerCase()
+  for (const p of Object.values(HOST_PRESETS)) {
+    if (!p.detect.test(hostname)) continue
+    const shape = targetBoundToSite(p.key) ? p.cnameTarget : SITE_ONLY_PATTERN[p.key]
+    if (!shape?.test(hostname)) return null
+    const keepPath = p.key === 'github-pages' || p.key === 'gitlab-pages'
+    const path = keepPath ? u.pathname.replace(/\/*$/, '/') : '/'
+    return { host: p.key, hostname, url: `https://${hostname}${path}` }
+  }
+  return null
+}
+
 // 프리셋에는 없지만 호스트가 기본으로 나눠 주는 주소들 — 내 도메인으로 보지 않는다
 const OTHER_DEFAULT_HOST_SUFFIXES = [
   'workers.dev', 'web.app', 'firebaseapp.com', 'surge.sh', 'herokuapp.com', 'fly.dev', 'run.app',

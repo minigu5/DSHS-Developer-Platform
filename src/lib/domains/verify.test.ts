@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { extractToken, checkSite, type Fetcher } from './verify.ts'
 
 const TOKEN = '0123456789abcdef0123456789abcdef'
-const FQDN = 'meal.dshs.dev'
+const BASE = 'https://meal.dshs.dev/'
 
 type Page = { status: number; headers?: Record<string, string>; body?: string; location?: string }
 const fake = (pages: Record<string, Page | 'throw'>): Fetcher => async (url) => {
@@ -21,12 +21,12 @@ test('meta 태그 속성 순서·따옴표와 상관없이 토큰을 꺼낸다',
 })
 
 test('토큰이 맞으면 ok', async () => {
-  const r = await checkSite(FQDN, TOKEN, 'vercel', fake({ 'https://meal.dshs.dev/': { status: 200, body: html(`<meta name="dshs-verify" content="${TOKEN}">`) } }))
+  const r = await checkSite(BASE, TOKEN, 'vercel', fake({ 'https://meal.dshs.dev/': { status: 200, body: html(`<meta name="dshs-verify" content="${TOKEN}">`) } }))
   assert.deepEqual(r, { kind: 'ok' })
 })
 
 test('다른 토큰이면 no_token', async () => {
-  const r = await checkSite(FQDN, TOKEN, 'vercel', fake({
+  const r = await checkSite(BASE, TOKEN, 'vercel', fake({
     'https://meal.dshs.dev/': { status: 200, body: html('<meta name="dshs-verify" content="ffff">') },
     'https://meal.dshs.dev/.well-known/dshs-verify.txt': { status: 404 },
   }))
@@ -34,7 +34,7 @@ test('다른 토큰이면 no_token', async () => {
 })
 
 test('.well-known 파일로도 인정', async () => {
-  const r = await checkSite(FQDN, TOKEN, 'netlify', fake({
+  const r = await checkSite(BASE, TOKEN, 'netlify', fake({
     'https://meal.dshs.dev/': { status: 200, body: '{}' },
     'https://meal.dshs.dev/.well-known/dshs-verify.txt': { status: 200, body: `${TOKEN}\n` },
   }))
@@ -42,7 +42,7 @@ test('.well-known 파일로도 인정', async () => {
 })
 
 test('다른 호스트로 리다이렉트하면 토큰이 있어도 unreachable', async () => {
-  const r = await checkSite(FQDN, TOKEN, 'vercel', fake({
+  const r = await checkSite(BASE, TOKEN, 'vercel', fake({
     'https://meal.dshs.dev/': { status: 301, location: 'https://evil.vercel.app/' },
     'https://evil.vercel.app/': { status: 200, body: html(`<meta name="dshs-verify" content="${TOKEN}">`) },
   }))
@@ -50,7 +50,7 @@ test('다른 호스트로 리다이렉트하면 토큰이 있어도 unreachable'
 })
 
 test('같은 호스트 안 리다이렉트(상대 경로 포함)는 따라간다', async () => {
-  const r = await checkSite(FQDN, TOKEN, 'vercel', fake({
+  const r = await checkSite(BASE, TOKEN, 'vercel', fake({
     'https://meal.dshs.dev/': { status: 307, location: '/ko' },
     'https://meal.dshs.dev/ko': { status: 200, body: html(`<meta name="dshs-verify" content="${TOKEN}">`) },
   }))
@@ -58,7 +58,7 @@ test('같은 호스트 안 리다이렉트(상대 경로 포함)는 따라간다
 })
 
 test('리다이렉트는 3번까지', async () => {
-  const r = await checkSite(FQDN, TOKEN, 'vercel', fake({
+  const r = await checkSite(BASE, TOKEN, 'vercel', fake({
     'https://meal.dshs.dev/': { status: 302, location: '/a' },
     'https://meal.dshs.dev/a': { status: 302, location: '/b' },
     'https://meal.dshs.dev/b': { status: 302, location: '/c' },
@@ -69,13 +69,29 @@ test('리다이렉트는 3번까지', async () => {
 })
 
 test('호스트의 "사이트 없음" 페이지는 not_found_page', async () => {
-  const r = await checkSite(FQDN, TOKEN, 'vercel', fake({
+  const r = await checkSite(BASE, TOKEN, 'vercel', fake({
     'https://meal.dshs.dev/': { status: 404, headers: { 'x-vercel-error': 'DEPLOYMENT_NOT_FOUND' } },
   }))
   assert.deepEqual(r, { kind: 'not_found_page' })
 })
 
 test('네트워크 오류는 unreachable', async () => {
-  const r = await checkSite(FQDN, TOKEN, 'vercel', fake({ 'https://meal.dshs.dev/': 'throw' }))
+  const r = await checkSite(BASE, TOKEN, 'vercel', fake({ 'https://meal.dshs.dev/': 'throw' }))
   assert.equal(r.kind, 'unreachable')
+})
+
+test('경로가 있는 기준 주소(GitHub Pages 프로젝트 사이트)에서 meta 를 찾는다', async () => {
+  const r = await checkSite('https://me.github.io/repo/', TOKEN, 'github-pages', fake({
+    'https://me.github.io/repo/': { status: 200, body: html(`<meta name="dshs-verify" content="${TOKEN}">`) },
+  }))
+  assert.deepEqual(r, { kind: 'ok' })
+})
+
+test('경로가 있으면 파일은 그 경로 아래 → 호스트 루트 순서로 본다', async () => {
+  const r = await checkSite('https://me.github.io/repo/', TOKEN, 'github-pages', fake({
+    'https://me.github.io/repo/': { status: 200, body: '{}' },
+    'https://me.github.io/repo/.well-known/dshs-verify.txt': { status: 404 },
+    'https://me.github.io/.well-known/dshs-verify.txt': { status: 200, body: TOKEN },
+  }))
+  assert.deepEqual(r, { kind: 'ok' })
 })

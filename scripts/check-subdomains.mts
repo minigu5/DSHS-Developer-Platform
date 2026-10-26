@@ -98,7 +98,7 @@ for (const row of rows as Row[]) {
     const result: CheckResult | null =
       row.status === 'reserved' || !row.host
         ? null
-        : await checkSite(siteHostFor({ name: row.name, host: row.host, target: row.target }), row.verify_token, row.host, fetcher);
+        : await checkSite(`https://${siteHostFor({ name: row.name, host: row.host, target: row.target })}/`, row.verify_token, row.host, fetcher);
     const decision = decide(row, result, now);
 
     // 바로가기: 처음 확인됐으면 켠다. 켜지 못하면 상태를 바꾸지 않고(다음 점검에서 다시) 실패로 센다

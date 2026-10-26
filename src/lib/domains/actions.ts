@@ -214,7 +214,7 @@ export async function verifySubdomain(
   const site = siteHostFor({ name: row.name, host: row.host, target: row.target })
   const safe = await assertSafePublicUrl(`https://${site}/`)
   const result: CheckResult = safe.ok
-    ? await checkSite(site, row.verify_token, row.host, createSiteFetcher())
+    ? await checkSite(`https://${site}/`, row.verify_token, row.host, createSiteFetcher())
     : { kind: 'unreachable', detail: safe.reason }
 
   if (result.kind === 'ok' && row.target && needsActivation(row)) {
