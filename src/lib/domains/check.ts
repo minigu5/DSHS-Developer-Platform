@@ -71,6 +71,11 @@ export function redirectWorks(page: FetchedPage, target: string): boolean {
   return page.status === 302 && (page.location ?? '').startsWith(`https://${target}/`)
 }
 
+/** Cloudflare 가 이 요청을 보안 확인("Just a moment…")으로 막았나 — 점검하는 서버(GitHub Actions 의 데이터센터 IP)가 막힌 것이라 규칙이 죽었는지는 알 수 없다 */
+export function blockedByChallenge(page: FetchedPage): boolean {
+  return page.status === 403 && page.headers.get('cf-mitigated') === 'challenge'
+}
+
 /** 자리표시 동작 점검: 확인 전 <이름>.dshs.dev 가 302 로 경고 페이지에 보내는가 */
 export function placeholderWorks(page: FetchedPage, name: string): boolean {
   return page.status === 302 && page.location === placeholderTarget(name)

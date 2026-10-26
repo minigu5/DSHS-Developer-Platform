@@ -18,7 +18,7 @@ import { createClient } from '@supabase/supabase-js';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { connectionLive } from '../src/lib/domains/activate.ts';
-import { decide, placeholderWorks, redirectWorks, strayIds, type CheckRow } from '../src/lib/domains/check.ts';
+import { blockedByChallenge, decide, placeholderWorks, redirectWorks, strayIds, type CheckRow } from '../src/lib/domains/check.ts';
 import { REDIRECT_ID_PREFIX, removeCloudflareWith } from '../src/lib/domains/cleanup.ts';
 import { createDnsClient } from '../src/lib/domains/cloudflare.ts';
 import { createSiteFetcher } from '../src/lib/domains/fetch-site.ts';
@@ -167,10 +167,14 @@ if (redirectClient) {
         return null;
       }
     };
+    // 점검 서버(Actions 의 데이터센터 IP)가 Cloudflare 보안 확인에 막히면 규칙은 알 수 없으니 건너뛴다
+    const skipChallenged = (name: string) => console.log(`  ⚠️  ${name}.dshs.dev 가 Cloudflare 보안 확인에 막혀 점검을 건너뜀`);
     if (sample?.target) {
       const page = await tryFetch(sample.name);
       if (!page) {
         // 건너뜀
+      } else if (blockedByChallenge(page)) {
+        skipChallenged(sample.name);
       } else if (redirectWorks(page, sample.target)) {
         console.log(`  ↪️  바로가기 규칙 동작 확인(${sample.name}.dshs.dev)`);
       } else {
@@ -187,6 +191,8 @@ if (redirectClient) {
       const page = await tryFetch(waiting.name);
       if (!page) {
         // 건너뜀
+      } else if (blockedByChallenge(page)) {
+        skipChallenged(waiting.name);
       } else if (placeholderWorks(page, waiting.name)) {
         console.log(`  ↪️  자리표시 동작 확인(${waiting.name}.dshs.dev)`);
       } else {

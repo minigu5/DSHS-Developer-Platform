@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { decide, managedRowId, placeholderWorks, redirectWorks, strayIds } from './check.ts'
+import { blockedByChallenge, decide, managedRowId, placeholderWorks, redirectWorks, strayIds } from './check.ts'
 
 const NOW = new Date('2026-11-01T18:30:00Z')
 const daysAgo = (n: number) => new Date(NOW.getTime() - n * 86_400_000).toISOString()
@@ -70,6 +70,19 @@ test('redirectWorks: 302 로 보낼 곳 https 주소로 보내야 바로가기 �
   assert.equal(redirectWorks(page(302, 'https://a.acct.workers.dev.evil.com/'), 'a.acct.workers.dev'), false)
   assert.equal(redirectWorks(page(302, null), 'a.acct.workers.dev'), false)
   assert.equal(redirectWorks(page(200, null), 'a.acct.workers.dev'), false)
+})
+
+test('blockedByChallenge: cf-mitigated=challenge 인 403 만 막힌 것으로 본다', () => {
+  const page = (status: number, mitigated: string | null) => ({
+    status,
+    headers: new Headers(mitigated ? { 'cf-mitigated': mitigated } : {}),
+    body: '',
+    location: null,
+  })
+  assert.equal(blockedByChallenge(page(403, 'challenge')), true)
+  assert.equal(blockedByChallenge(page(403, null)), false)
+  assert.equal(blockedByChallenge(page(200, 'challenge')), false)
+  assert.equal(blockedByChallenge(page(302, null)), false)
 })
 
 test('strayIds: 죽은 행의 것, 그리고 살아 있는 행인데 기록에 없고 1시간 넘은 것만 지운다', () => {
