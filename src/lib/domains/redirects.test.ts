@@ -35,6 +35,13 @@ test('목록 항목은 302·경로·쿼리 보존·우리 표시로 만든다', 
   })
 })
 
+test('keepPath=false 면 경로·쿼리를 붙이지 않는다(자리표시 — 어떤 경로든 같은 경고 페이지)', () => {
+  const r = redirectItemBody('meal.dshs.dev/', 'https://dshs.dev/pending-domain/meal', 'row-1', false).redirect
+  assert.equal(r.subpath_matching, true)
+  assert.equal(r.preserve_path_suffix, false)
+  assert.equal(r.preserve_query_string, false)
+})
+
 test('add 는 작업이 끝날 때까지 기다린 뒤 항목 id 를 돌려준다', async () => {
   const { f, calls } = fakeFetch((c, i) => {
     if (i === 0) return ok({ operation_id: 'op1' })

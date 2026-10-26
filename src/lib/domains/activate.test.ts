@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import type { DnsClient, DnsRecordInput } from './cloudflare.ts'
 import type { RedirectClient } from './redirects.ts'
-import { activateRedirect, needsActivation } from './activate.ts'
+import { activateRedirect, connectionLive, createPlaceholder, placeholderTarget } from './activate.ts'
 
 function harness(opts: { addFails?: boolean; setFails?: Error } = {}) {
   const log: string[] = []
@@ -20,7 +20,7 @@ function harness(opts: { addFails?: boolean; setFails?: Error } = {}) {
       return []
     },
   }
-  const added: { source: string; target: string; rowId: string }[] = []
+  const added: { source: string; target: string; keepPath?: boolean; rowId: string }[] = []
   const redirects: RedirectClient = {
     async add(item, rowId) {
       added.push({ ...item, rowId })
@@ -72,12 +72,27 @@ test('기록이 records_exist 로 실패하면(동시 활성화) 만든 것을 �
   assert.deepEqual(h.log, ['dns.create', 'redirect.add', 'setRecords', 'dns.remove:rec1', 'redirect.remove:it1'])
 })
 
-test('needsActivation: 바로가기 호스트이고 목록 항목이 아직 없을 때만', () => {
-  assert.equal(needsActivation({ host: 'firebase', cf_record_ids: [] }), true)
-  assert.equal(needsActivation({ host: 'cloudflare-workers', cf_record_ids: ['rec1'] }), true)
-  assert.equal(needsActivation({ host: 'firebase', cf_record_ids: ['rec1', 'redirect:it1'] }), false)
-  assert.equal(needsActivation({ host: 'vercel', cf_record_ids: [] }), false)
-  assert.equal(needsActivation({ host: null, cf_record_ids: [] }), false)
+test('connectionLive: 바로가기 행은 목록 항목이 있어야 살아 있는 연결', () => {
+  assert.equal(connectionLive({ host: 'firebase', cf_record_ids: [] }), false)
+  assert.equal(connectionLive({ host: 'cloudflare-workers', cf_record_ids: ['rec1'] }), false)
+  assert.equal(connectionLive({ host: 'firebase', cf_record_ids: ['rec1', 'redirect:it1'] }), true)
+  assert.equal(connectionLive({ host: 'vercel', cf_record_ids: ['rec1'] }), true)
+  assert.equal(connectionLive({ host: null, cf_record_ids: [] }), false)
+})
+
+test('자리표시: AAAA → 경로를 붙이지 않는 경고 페이지 바로가기 → 기록', async () => {
+  const h = harness()
+  await createPlaceholder(h.deps, { id: 'row-1', name: 'meal' })
+  assert.equal(placeholderTarget('meal'), 'https://dshs.dev/pending-domain/meal')
+  assert.deepEqual(h.created, [[{ type: 'AAAA', name: 'meal.dshs.dev', content: '100::' }]])
+  assert.deepEqual(h.added, [{ source: 'meal.dshs.dev/', target: 'https://dshs.dev/pending-domain/meal', keepPath: false, rowId: 'row-1' }])
+  assert.deepEqual(h.recorded, [['rec1', 'redirect:it1']])
+})
+
+test('자리표시 목록 추가가 실패하면 AAAA 를 지우고 던진다', async () => {
+  const h = harness({ addFails: true })
+  await assert.rejects(createPlaceholder(h.deps, { id: 'row-1', name: 'meal' }), /list down/)
+  assert.deepEqual(h.log, ['dns.create', 'redirect.add', 'dns.remove:rec1'])
 })
 
 test('목록 설정이 없으면 DNS 를 건드리기 전에 실패한다', async () => {

@@ -1,9 +1,11 @@
 // 매일 점검(scripts/check-subdomains.mts)의 판단 — 네트워크·DB 없이 node:test 로 검증한다.
 //   - 소유 확인 토큰이 보이면 정상
 //   - 연결됐던 주소가 7일 넘게 끊겨 있으면 반납(주인이 떠난 주소를 남이 가로채지 못하게)
-//   - 한 번도 연결되지 않은 채 7일이 지나면 반납(이름만 묶어 두기 방지)
+//   - 한 번도 연결되지 않은 채 7일이 지나면 반납(이름만 묶어 두기 방지). 호스트에 연결했다면 그 시각(connected_at)부터 센다
+//     — 6일째 확인하고 7일째 연결한 주소가 연결 직후 반납되지 않게
 
 import { RECORD_COMMENT_PREFIX } from './cloudflare.ts'
+import { placeholderTarget } from './activate.ts'
 import type { CheckResult, FetchedPage } from './verify.ts'
 
 export const RELEASE_AFTER_DAYS = 7
@@ -13,6 +15,7 @@ export type CheckRow = {
   status: 'reserved' | 'pending' | 'active' | 'broken'
   created_at: string
   broken_since: string | null
+  connected_at: string | null
   ever_active: boolean
 }
 
@@ -24,7 +27,8 @@ const olderThan = (iso: string, now: Date) => now.getTime() - new Date(iso).getT
 export function decide(row: CheckRow, result: CheckResult | null, now: Date): Decision {
   if (result?.kind === 'ok') return { ok: true, release: null }
   if (!row.ever_active) {
-    return { ok: false, release: olderThan(row.created_at, now) ? 'never_connected_7d' : null }
+    const since = row.connected_at && new Date(row.connected_at) > new Date(row.created_at) ? row.connected_at : row.created_at
+    return { ok: false, release: olderThan(since, now) ? 'never_connected_7d' : null }
   }
   const since = row.broken_since ?? now.toISOString()
   return { ok: false, release: olderThan(since, now) ? 'broken_7d' : null }
@@ -65,4 +69,9 @@ export function managedRowId(comment: string): string | null {
 /** 바로가기 동작 점검: <이름>.dshs.dev 가 302 로 https://<target>/ 에 보내는가(계정에 하나뿐인 Bulk Redirect 규칙이 살아 있는가) */
 export function redirectWorks(page: FetchedPage, target: string): boolean {
   return page.status === 302 && (page.location ?? '').startsWith(`https://${target}/`)
+}
+
+/** 자리표시 동작 점검: 확인 전 <이름>.dshs.dev 가 302 로 경고 페이지에 보내는가 */
+export function placeholderWorks(page: FetchedPage, name: string): boolean {
+  return page.status === 302 && page.location === placeholderTarget(name)
 }

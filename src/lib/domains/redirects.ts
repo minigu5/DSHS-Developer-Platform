@@ -15,7 +15,8 @@ export type RedirectItem = { id: string; source: string; comment: string; create
 
 export type RedirectClient = {
   /** 항목을 넣고 작업이 끝나면 그 항목 id */
-  add(item: { source: string; target: string }, rowId: string): Promise<string>
+  /** keepPath=false: 경로·쿼리를 붙이지 않는다(자리표시 — 어떤 경로든 같은 경고 페이지로) */
+  add(item: { source: string; target: string; keepPath?: boolean }, rowId: string): Promise<string>
   remove(ids: string[]): Promise<void>
   listManaged(): Promise<RedirectItem[]>
 }
@@ -37,15 +38,15 @@ type CfResponse<T> = {
 type ApiItem = { id: string; comment?: string; created_on?: string; redirect?: { source_url?: string } }
 
 /** 목록 POST 배열의 원소 하나. 302 — 301 은 브라우저가 오래 기억해서 보낼 곳을 바꿔도 안 바뀐다 */
-export function redirectItemBody(source: string, target: string, rowId: string) {
+export function redirectItemBody(source: string, target: string, rowId: string, keepPath = true) {
   return {
     redirect: {
       source_url: source,
       target_url: target,
       status_code: 302,
       subpath_matching: true,
-      preserve_path_suffix: true,
-      preserve_query_string: true,
+      preserve_path_suffix: keepPath,
+      preserve_query_string: keepPath,
       include_subdomains: false,
     },
     comment: RECORD_COMMENT_PREFIX + rowId,
@@ -110,7 +111,7 @@ export function createRedirectClient(opts: {
 
   return {
     async add(item, rowId) {
-      const op = await startOperation('POST', [redirectItemBody(item.source, item.target, rowId)])
+      const op = await startOperation('POST', [redirectItemBody(item.source, item.target, rowId, item.keepPath ?? true)])
       await waitFor(op)
       const { status, data } = await call<ApiItem[]>('GET', `${items}?search=${encodeURIComponent(item.source)}`)
       if (!data?.success) throw new RedirectError(describe(status, data))
