@@ -53,3 +53,6 @@ next-env.d.ts
 
 # 브레인스토밍 시안 (superpowers visual companion)
 .superpowers/
+
+# Claude Code 워크트리 (각자 .git·.env.local을 가짐)
+.claude/worktrees/

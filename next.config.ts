@@ -1,6 +1,20 @@
 import type { NextConfig } from "next";
 
+// 모든 응답에 붙는 보안 헤더. 다른 사이트가 우리 화면을 iframe에 넣어 클릭을 유도하는 것(클릭재킹)을 막는다.
+// HSTS는 .dev 도메인이 브라우저 HSTS preload 목록에 통째로 들어 있어서 따로 두지 않는다.
+const SECURITY_HEADERS = [
+  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+];
+
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
+  async headers() {
+    return [{ source: '/:path*', headers: SECURITY_HEADERS }];
+  },
   experimental: {
     staleTimes: {
       dynamic: 30,

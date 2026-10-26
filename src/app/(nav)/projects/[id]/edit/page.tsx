@@ -11,13 +11,13 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const supabase = await createClient();
 
-  // Check auth
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
+  // Check auth — getSession()은 쿠키 값을 검증 없이 돌려주므로, 서비스 키 사용 여부를 정하는 여기서는 getUser()로 확인한다
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
     redirect("/login");
   }
 
-  const userIsDeveloper = isDeveloper(session.user.email);
+  const userIsDeveloper = isDeveloper(user.email);
 
   // 개발자 계정은 비공개 프로젝트도 조회할 수 있도록 어드민 클라이언트 사용
   const queryClient = userIsDeveloper ? createAdminClient() : supabase;
@@ -34,12 +34,12 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
   }
 
   // Check ownership — 개발자 계정·팀원도 수정 가능
-  const isTeamMember = project.team_members?.includes(session.user.email ?? "") ?? false;
-  if (!userIsDeveloper && project.author_id !== session.user.id && !isTeamMember) {
+  const isTeamMember = project.team_members?.includes(user.email ?? "") ?? false;
+  if (!userIsDeveloper && project.author_id !== user.id && !isTeamMember) {
     redirect(`/projects/${id}`);
   }
 
-  const isAuthor = project.author_id === session.user.id || userIsDeveloper;
+  const isAuthor = project.author_id === user.id || userIsDeveloper;
   const subdomainName = isAuthor ? await getLiveDomainName(project.id) : null;
 
   return (

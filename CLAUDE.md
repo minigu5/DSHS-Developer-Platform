@@ -503,7 +503,8 @@
 ## ⚠️ 보안 및 주의사항
 - **학생 주소(`*.dshs.dev`)와 같은 사이트(same-site)**: 학생 사이트 JS가 `.dshs.dev` 쿠키를 심을 수 있다. 그래서 운영 세션 쿠키는 `__Host-sb-auth`·`__Host-ds_onboarded`(`src/lib/supabase/cookie-options.ts`, 세 Supabase 클라이언트 공통 — 개발은 `sb-dev-auth`). **본 사이트는 `Domain=.dshs.dev` 쿠키를 절대 쓰지 않는다.** SameSite=Lax가 막아 주지 않으므로 쿠키로 인증하는 상태 변경 Route Handler는 `isSameOrigin()`(`src/lib/same-origin.ts`) 검사 필수(`/api/upload` 적용). 서버 액션은 Next가 Origin을 검사. 학생 JS가 큰 쿠키를 심어 `dshs.dev`를 431로 막는 "쿠키 폭탄"은 서버에서 못 막는다 — 관리자 회수로 대응.
 - **실명 파생**: `student_mappings` 테이블은 삭제됨. 이제 `users.full_name`은 로그인 시 이메일(입학연도)과 구글 계정명(숫자4자리+이름)에서 자동 파생 — `src/app/auth/callback/route.ts` 참고.
-- **Supabase Client**: 서버 사이드에서는 `createServerClient`, 클라이언트에서는 `createBrowserClient` 사용. 민감한 작업은 항상 `getUser()`로 검증.
+- **Supabase Client**: 서버 사이드에서는 `createServerClient`, 클라이언트에서는 `createBrowserClient` 사용. 민감한 작업은 항상 `getUser()`로 검증. 서버에서 `getSession()`은 쿠키 값을 검증 없이 돌려주므로 권한 판단(특히 `createAdminClient()` 사용 여부)에 쓰지 않는다(2026-10-26 프로젝트 수정 페이지를 `getUser()`로 교체).
+- **보안 헤더**(2026-10-26): `next.config.ts` `headers()`가 모든 응답에 `X-Frame-Options: DENY`·CSP `frame-ancestors 'none'`(클릭재킹 차단)·`nosniff`·`Referrer-Policy`·`Permissions-Policy`(카메라·마이크·위치 끔)를 붙이고 `poweredByHeader: false`. OpenNext에서도 적용됨을 `wrangler dev`로 확인. 우리 화면을 iframe에 넣는 기능이 생기면 여기를 고칠 것. HSTS는 `.dev`가 브라우저 preload 목록이라 안 둠. 스크립트 CSP는 아직 없음.
 
 ---
 
