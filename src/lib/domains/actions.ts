@@ -55,6 +55,7 @@ const RPC_ERRORS: Record<string, string> = {
   site_changed: '확인하는 사이에 사이트 주소가 바뀌었어요. 다시 확인해요.',
 }
 
+const RESERVES_PER_DAY = 10
 const REDIRECT_FAILED = '바로가기를 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.'
 const REDIRECT_NOT_READY = '바로가기는 아직 준비 중이에요. 잠시 뒤 다시 시도해 주세요.'
 
@@ -128,6 +129,14 @@ export async function reserveSubdomain(projectId: string, rawName: string): Prom
   if (project?.visibility === 'private') return { ok: false, error: '비공개 프로젝트는 도메인을 마련할 수 없어요.' }
 
   const admin = createAdminClient()
+  // 예약마다 Cloudflare 를 부르므로(자리표시) 받고 반납하기를 되풀이해 계정 전체 API 한도를 쓰지 못하게 하루 횟수를 묶는다
+  const { count: recent } = await admin
+    .from('subdomains')
+    .select('id', { count: 'exact', head: true })
+    .eq('owner_id', user.id)
+    .gte('created_at', new Date(Date.now() - 86_400_000).toISOString())
+  if ((recent ?? 0) >= RESERVES_PER_DAY) return { ok: false, error: '오늘은 주소를 너무 많이 받았어요. 내일 다시 시도해 주세요.' }
+
   const { data, error } = await admin.rpc('subdomain_reserve', { p_user: user.id, p_project: projectId, p_name: name })
   if (error) return rpcError('subdomain_reserve', error)
 

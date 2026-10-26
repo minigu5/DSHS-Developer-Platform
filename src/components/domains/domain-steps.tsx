@@ -13,7 +13,7 @@ import {
   setSiteAddress,
 } from "@/lib/domains/actions";
 import { buildVerifyPrompt } from "@/lib/domains/ai-prompt";
-import { HOST_PRESETS, isRedirectHost, siteAddressFor } from "@/lib/domains/hosts";
+import { HOST_PRESETS, isRedirectHost, siteAddressFor, targetBoundToSite } from "@/lib/domains/hosts";
 import { normalizeName } from "@/lib/domains/name";
 import type { DomainProjectRow, DomainView } from "@/lib/domains/read";
 import { VERIFY_FILE_PATH, VERIFY_META_NAME } from "@/lib/domains/verify";
@@ -442,12 +442,17 @@ export function DomainSteps({
   const connected = domain !== null && domain.status !== "reserved";
   const verified = domain !== null && domain.siteVerified;
   const showSite = domain !== null && (!verified || changeSite);
-  const showHost = verified && !showSite && (!connected || reconnect);
+  const siteHostname = domain?.siteUrl ? new URL(domain.siteUrl).hostname : null;
+  // ②에서 다른 사이트를 확인했는데 지금 연결은 옛 사이트를 가리키는 경우 — 다시 연결해야 새 사이트로 열린다
+  const staleConnection =
+    connected &&
+    verified &&
+    (domain.host !== domain.siteHost || (domain.siteHost !== null && targetBoundToSite(domain.siteHost) && domain.target !== siteHostname));
+  const showHost = verified && !showSite && (!connected || reconnect || staleConnection);
   const urlIsDomain = fqdn !== null && project.url?.replace(/\/+$/, "") === `https://${fqdn}`;
   // 바로가기는 사이트가 원래 주소에서 그대로 돌아서 DB·로그인 설정을 바꿀 일이 없다 → 안내 창 없음
   const redirect = isRedirectHost(domain?.host ?? null);
   const hostLabel = domain?.host ? HOST_PRESETS[domain.host].label : "호스트";
-  const siteHostname = domain?.siteUrl ? new URL(domain.siteUrl).hostname : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -503,10 +508,22 @@ export function DomainSteps({
                 ? redirect
                   ? `${hostLabel} 바로가기 확인 중`
                   : `${hostLabel}에 연결함 — 확인 중`
-                : "호스트에 연결하기"
+                : staleConnection
+                  ? "새 사이트로 다시 연결하기"
+                  : "호스트에 연결하기"
           }
         >
+          {domain && showHost && staleConnection && (
+            <p className="mb-2 text-sm text-amber-700 dark:text-amber-400">
+              지금 주소는 아직 예전 사이트({hostLabel})로 연결돼 있어요. 아래에서 다시 연결해야 새 사이트로 열려요.
+            </p>
+          )}
           {domain && showHost && <HostPicker domain={domain} onDone={() => setReconnect(false)} />}
+          {domain && showHost && reconnect && !staleConnection && (
+            <button type="button" onClick={() => setReconnect(false)} className="mt-2 text-xs text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
+              다시 연결하지 않을게요
+            </button>
+          )}
           {domain && connected && !showHost && !showSite && domain.status !== "active" && (
             <ConnectStatus domain={domain} check={check} auto={auto} onCheck={onCheck} />
           )}

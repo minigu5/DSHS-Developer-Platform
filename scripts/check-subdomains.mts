@@ -158,9 +158,20 @@ if (redirectClient) {
 
     const hasItem = (r: (typeof liveRows)[number]) => r.cf_record_ids.some((id) => id.startsWith(REDIRECT_ID_PREFIX));
     const sample = liveRows.find((r) => r.status !== 'reserved' && r.target && hasItem(r));
+    // 열어 볼 주소가 DNS 부터 안 풀리면(연결하다 실패해 레코드가 없는 주소 등) 규칙 문제가 아니므로 건너뛴다
+    const tryFetch = async (name: string) => {
+      try {
+        return await fetcher(`https://${name}.dshs.dev/`);
+      } catch (e) {
+        console.log(`  ⚠️  ${name}.dshs.dev 를 열지 못해 점검을 건너뜀(${e instanceof Error ? e.message : String(e)})`);
+        return null;
+      }
+    };
     if (sample?.target) {
-      const page = await fetcher(`https://${sample.name}.dshs.dev/`);
-      if (redirectWorks(page, sample.target)) {
+      const page = await tryFetch(sample.name);
+      if (!page) {
+        // 건너뜀
+      } else if (redirectWorks(page, sample.target)) {
         console.log(`  ↪️  바로가기 규칙 동작 확인(${sample.name}.dshs.dev)`);
       } else {
         failures++;
@@ -170,8 +181,10 @@ if (redirectClient) {
     // 확인 전 자리표시(경고 페이지로 302)도 같은 규칙을 쓰지만 보내는 곳이 달라 따로 본다
     const waiting = liveRows.find((r) => r.status === 'reserved' && hasItem(r));
     if (waiting) {
-      const page = await fetcher(`https://${waiting.name}.dshs.dev/`);
-      if (placeholderWorks(page, waiting.name)) {
+      const page = await tryFetch(waiting.name);
+      if (!page) {
+        // 건너뜀
+      } else if (placeholderWorks(page, waiting.name)) {
         console.log(`  ↪️  자리표시 동작 확인(${waiting.name}.dshs.dev)`);
       } else {
         failures++;

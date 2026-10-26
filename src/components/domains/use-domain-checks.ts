@@ -39,11 +39,12 @@ export function useDomainChecks(domains: DomainView[]) {
     known.current = Object.fromEntries(domains.map((d) => [d.id, d]));
   }, [domains]);
 
+  // 상태·원래 주소도 키에 넣는다 — ②에서 ③으로 넘어가거나 원래 주소를 고치면 자동 확인을 처음부터 다시 돌린다
   const pollKey = useMemo(
     () =>
       domains
         .filter((d) => d.status === "pending" || d.status === "broken" || (d.status === "reserved" && d.siteUrl !== null && !d.siteVerified))
-        .map((d) => d.id)
+        .map((d) => `${d.id}|${d.status}|${d.siteUrl ?? ""}`)
         .sort()
         .join(","),
     [domains],
@@ -83,7 +84,7 @@ export function useDomainChecks(domains: DomainView[]) {
 
   useEffect(() => {
     if (!pollKey) return;
-    const ids = pollKey.split(",");
+    const ids = pollKey.split(",").map((k) => k.split("|")[0]);
     const poller = startPoller({
       intervalMs: AUTO_INTERVAL_MS,
       maxRounds: AUTO_MAX_ROUNDS,
@@ -108,7 +109,7 @@ export function useDomainChecks(domains: DomainView[]) {
   }, [pollKey, check]);
 
   const autoOf = (id: string): AutoState => {
-    if (!pollKey.split(",").includes(id)) return "off";
+    if (!pollKey.split(",").some((k) => k.startsWith(`${id}|`))) return "off";
     return stoppedKey === pollKey ? "stopped" : "on";
   };
 

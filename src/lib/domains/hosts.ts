@@ -264,7 +264,9 @@ export function siteAddressFor(raw: string): { host: HostKey; hostname: string; 
     const shape = targetBoundToSite(p.key) ? p.cnameTarget : SITE_ONLY_PATTERN[p.key]
     if (!shape?.test(hostname)) return null
     const keepPath = p.key === 'github-pages' || p.key === 'gitlab-pages'
-    const path = keepPath ? u.pathname.replace(/\/*$/, '/') : '/'
+    // 끝의 파일 이름(index.html 등)은 떼고 폴더까지만 — 확인은 그 폴더 주소에서 한다
+    const path = keepPath ? u.pathname.replace(/\/[^/]*\.[^/]*$/, '/').replace(/\/*$/, '/') : '/'
+    if (path.length > 200) return null
     return { host: p.key, hostname, url: `https://${hostname}${path}` }
   }
   return null

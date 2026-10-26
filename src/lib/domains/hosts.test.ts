@@ -170,6 +170,8 @@ test('siteAddressFor: 호스트 기본 주소만 받고 쿼리·해시는 버린
   assert.deepEqual(siteAddressFor(' https://Meal.Netlify.app '), { host: 'netlify', hostname: 'meal.netlify.app', url: 'https://meal.netlify.app/' })
   // Pages 프로젝트 사이트는 경로까지
   assert.deepEqual(siteAddressFor('https://me.github.io/repo'), { host: 'github-pages', hostname: 'me.github.io', url: 'https://me.github.io/repo/' })
+  assert.deepEqual(siteAddressFor('https://me.github.io/repo/index.html'), { host: 'github-pages', hostname: 'me.github.io', url: 'https://me.github.io/repo/' })
+  assert.equal(siteAddressFor(`https://me.github.io/${'a'.repeat(250)}/`), null)
   assert.deepEqual(siteAddressFor('https://me.gitlab.io/repo/'), { host: 'gitlab-pages', hostname: 'me.gitlab.io', url: 'https://me.gitlab.io/repo/' })
   assert.deepEqual(siteAddressFor('https://w.me.workers.dev/app'), { host: 'cloudflare-workers', hostname: 'w.me.workers.dev', url: 'https://w.me.workers.dev/' })
   assert.deepEqual(siteAddressFor('https://g05.up.railway.app'), { host: 'railway', hostname: 'g05.up.railway.app', url: 'https://g05.up.railway.app/' })
