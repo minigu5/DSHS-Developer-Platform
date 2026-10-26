@@ -18,6 +18,11 @@ export type DomainView = {
   brokenSince: string | null
   revokedReason: string | null
   createdAt: string
+  /** ② 소유 확인에 쓰는 학생 사이트 원래 주소 */
+  siteUrl: string | null
+  siteHost: SubdomainHost | null
+  siteVerified: boolean
+  connectedAt: string | null
 }
 
 export type DomainProjectRow = {
@@ -28,7 +33,7 @@ export type DomainProjectRow = {
 
 const LIVE: SubdomainStatus[] = ['reserved', 'pending', 'active', 'broken']
 const DOMAIN_COLUMNS =
-  'id, name, status, host, target, txt_records, verify_token, ever_active, broken_since, revoked_reason, created_at, project_id'
+  'id, name, status, host, target, txt_records, verify_token, ever_active, broken_since, revoked_reason, created_at, project_id, site_url, site_host, site_verified_at, connected_at'
 
 type DomainRow = {
   id: string
@@ -43,6 +48,10 @@ type DomainRow = {
   revoked_reason: string | null
   created_at: string
   project_id: string | null
+  site_url: string | null
+  site_host: SubdomainHost | null
+  site_verified_at: string | null
+  connected_at: string | null
 }
 
 function toTxt(raw: Json): TxtInput[] {
@@ -67,6 +76,10 @@ function toView(r: DomainRow): DomainView {
     brokenSince: r.broken_since,
     revokedReason: r.revoked_reason,
     createdAt: r.created_at,
+    siteUrl: r.site_url,
+    siteHost: r.site_host,
+    siteVerified: r.site_verified_at !== null,
+    connectedAt: r.connected_at,
   }
 }
 

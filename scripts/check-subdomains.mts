@@ -1,7 +1,8 @@
 // 도메인 마련하기 매일 점검: 학생 주소마다 소유 확인 토큰이 보이는지 확인하고, 오래 끊긴·연결 안 된 주소를 반납하고,
 // DB 가 모르는(반납·회수된 주소의) Cloudflare 레코드·바로가기 목록 항목을 지운다.
-// 바로가기 주소(Workers·Firebase)는 보낼 곳 사이트에서 토큰을 확인하고, 처음 확인되면 바로가기를 켠다.
-// 끝에 바로가기 하나를 실제로 열어 302 가 오는지 본다(계정에 하나뿐인 Bulk Redirect 규칙이 꺼지면 알아채려고).
+// 바로가기 주소(Workers·Firebase)는 보낼 곳 사이트에서 토큰을 확인한다(바로가기는 ③ 연결하기에서 이미 만들어진다).
+// 예약만 된 주소(② 확인 전)는 확인하지 않고 7일 규칙만 본다.
+// 끝에 바로가기 하나·확인 전 자리표시 하나를 실제로 열어 302 가 오는지 본다(계정에 하나뿐인 Bulk Redirect 규칙이 꺼지면 알아채려고).
 //
 // 매일 밤 GitHub Actions(.github/workflows/check-subdomains.yml)가 실행한다.
 // 로컬 실행:
@@ -16,8 +17,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { activateRedirect, needsActivation } from '../src/lib/domains/activate.ts';
-import { decide, redirectWorks, strayIds, type CheckRow } from '../src/lib/domains/check.ts';
+import { connectionLive } from '../src/lib/domains/activate.ts';
+import { decide, placeholderWorks, redirectWorks, strayIds, type CheckRow } from '../src/lib/domains/check.ts';
 import { REDIRECT_ID_PREFIX, removeCloudflareWith } from '../src/lib/domains/cleanup.ts';
 import { createDnsClient } from '../src/lib/domains/cloudflare.ts';
 import { createSiteFetcher } from '../src/lib/domains/fetch-site.ts';
@@ -79,7 +80,7 @@ if (DRY_RUN) console.log('🔎  dry-run: DB·DNS 를 바꾸지 않아요');
 
 const { data: rows, error } = await supabase
   .from('subdomains')
-  .select('id, name, status, host, target, verify_token, cf_record_ids, created_at, broken_since, ever_active')
+  .select('id, name, status, host, target, verify_token, cf_record_ids, created_at, broken_since, connected_at, ever_active')
   .in('status', LIVE)
   .order('name');
 if (error) {
@@ -101,29 +102,11 @@ for (const row of rows as Row[]) {
         : await checkSite(`https://${siteHostFor({ name: row.name, host: row.host, target: row.target })}/`, row.verify_token, row.host, fetcher);
     const decision = decide(row, result, now);
 
-    // 바로가기: 처음 확인됐으면 켠다. 켜지 못하면 상태를 바꾸지 않고(다음 점검에서 다시) 실패로 센다
-    if (result?.kind === 'ok' && row.target && needsActivation(row)) {
-      if (DRY_RUN) {
-        console.log(`  ${fqdn}: 바로가기 켜기 (dry-run, 그대로 둠)`);
-      } else {
-        const target = row.target;
-        await activateRedirect(
-          {
-            ...cleanupDeps,
-            setRecords: async (ids) => {
-              const { error: e } = await supabase.rpc('subdomain_set_redirect_records', { p_id: row.id, p_record_ids: ids });
-              if (e) throw new Error(e.message);
-            },
-          },
-          { id: row.id, name: row.name, target },
-        );
-        console.log(`  ${fqdn}: 바로가기 켬`);
-      }
-    }
-
     let status: string = row.status;
     if (result && !DRY_RUN) {
-      const { data, error: e } = await supabase.rpc('subdomain_record_check', { p_id: row.id, p_ok: decision.ok, p_now: now.toISOString() });
+      // 바로가기 행인데 목록 항목이 없으면 토큰이 보여도 실제로는 안 넘어간다 → 연결됨으로 치지 않는다
+      const ok = decision.ok && connectionLive(row);
+      const { data, error: e } = await supabase.rpc('subdomain_record_check', { p_id: row.id, p_ok: ok, p_now: now.toISOString() });
       if (e) throw new Error(`record_check ${e.message}`);
       status = data as string;
     }
@@ -147,9 +130,9 @@ for (const row of rows as Row[]) {
 
 // 고아·찌꺼기 정리: comment 의 행이 살아 있지 않거나, 살아 있는 행인데 그 행의 기록(cf_record_ids)에 없고 1시간 넘은
 // DNS 레코드·바로가기 목록 항목을 지운다(strayIds). 막 연결·활성화 중인 것은 1시간 여유로 건드리지 않는다.
-let liveRows: { id: string; name: string; target: string | null; cf_record_ids: string[] }[] = [];
+let liveRows: { id: string; name: string; status: string; target: string | null; cf_record_ids: string[] }[] = [];
 try {
-  const { data: live, error: e } = await supabase.from('subdomains').select('id, name, target, cf_record_ids').in('status', LIVE).order('name');
+  const { data: live, error: e } = await supabase.from('subdomains').select('id, name, status, target, cf_record_ids').in('status', LIVE).order('name');
   if (e) throw new Error(e.message);
   liveRows = (live ?? []) as typeof liveRows;
   const records = await dns.listManaged();
@@ -173,7 +156,8 @@ if (redirectClient) {
     }
     if (!DRY_RUN && strayItems.size) await redirectClient.remove([...strayItems]);
 
-    const sample = liveRows.find((r) => r.target && r.cf_record_ids.some((id) => id.startsWith(REDIRECT_ID_PREFIX)));
+    const hasItem = (r: (typeof liveRows)[number]) => r.cf_record_ids.some((id) => id.startsWith(REDIRECT_ID_PREFIX));
+    const sample = liveRows.find((r) => r.status !== 'reserved' && r.target && hasItem(r));
     if (sample?.target) {
       const page = await fetcher(`https://${sample.name}.dshs.dev/`);
       if (redirectWorks(page, sample.target)) {
@@ -181,6 +165,17 @@ if (redirectClient) {
       } else {
         failures++;
         console.error(`  ❌  바로가기 규칙이 동작하지 않아요(${sample.name}.dshs.dev, status ${page.status})`);
+      }
+    }
+    // 확인 전 자리표시(경고 페이지로 302)도 같은 규칙을 쓰지만 보내는 곳이 달라 따로 본다
+    const waiting = liveRows.find((r) => r.status === 'reserved' && hasItem(r));
+    if (waiting) {
+      const page = await fetcher(`https://${waiting.name}.dshs.dev/`);
+      if (placeholderWorks(page, waiting.name)) {
+        console.log(`  ↪️  자리표시 동작 확인(${waiting.name}.dshs.dev)`);
+      } else {
+        failures++;
+        console.error(`  ❌  자리표시가 경고 페이지로 보내지 않아요(${waiting.name}.dshs.dev, status ${page.status})`);
       }
     }
   } catch (e) {

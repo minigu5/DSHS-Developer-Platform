@@ -3,7 +3,8 @@
 // 도메인 마련하기 서버 액션. (nav) 밖에 둔다 — Turbopack client→server action 바인딩 문제.
 // 순서는 항상: getUser() → 학교 계정 확인 → 입력 검사 → 서비스 키로 subdomain_* 함수(안에서 소유자·관리자 재확인)
 // → Cloudflare. DB 함수가 마지막 방어선이고, 여기의 검사는 빠른 실패·친절한 문구를 위한 것.
-// 설계: docs/superpowers/specs/2026-10-25-subdomain-lending-design.md
+// 흐름(2026-10-26 확인 먼저): ① 예약 + 경고 페이지 자리표시 → ② 학생 사이트 원래 주소에서 토큰 확인 → ③ 연결.
+// 설계: docs/superpowers/specs/2026-10-25-subdomain-lending-design.md, docs/superpowers/specs/2026-10-26-domain-verify-first-design.md
 
 import { revalidatePath } from 'next/cache'
 
@@ -12,12 +13,12 @@ import { assertSafePublicUrl } from '@/lib/ssrf-guard'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 import type { SubdomainStatus } from '@/lib/types'
 
-import { activateRedirect, needsActivation } from './activate'
+import { activateRedirect, connectionLive, createPlaceholder } from './activate'
 import { getDnsClient } from './cloudflare'
 import { removeCloudflare } from './cleanup'
 import { buildRecords, runConnect } from './connect'
 import { createSiteFetcher } from './fetch-site'
-import { HOST_PRESETS, isRedirectHost, siteHostFor, validateTarget, validateTxt, type HostKey, type TxtInput } from './hosts'
+import { HOST_PRESETS, isRedirectHost, siteAddressFor, siteHostFor, targetBoundToSite, validateTarget, validateTxt, type HostKey, type TxtInput } from './hosts'
 import { normalizeName, validateName } from './name'
 import { getRedirectClient, redirectConfigured } from './redirects'
 import { checkSite, type CheckResult } from './verify'
@@ -47,6 +48,11 @@ const RPC_ERRORS: Record<string, string> = {
   not_found: '주소를 찾지 못했어요.',
   not_redirect: '바로가기 호스트의 주소가 아니에요.',
   records_exist: '이미 바로가기가 만들어졌어요.',
+  not_verified: '먼저 ②에서 내 사이트를 확인해요.',
+  host_mismatch: '②에서 확인한 사이트의 호스트로만 연결할 수 있어요.',
+  target_mismatch: 'CNAME 값이 ②에서 확인한 사이트 주소와 달라요.',
+  site_invalid: '호스트의 기본 주소(예: 이름.vercel.app)를 넣어요.',
+  site_changed: '확인하는 사이에 사이트 주소가 바뀌었어요. 다시 확인해요.',
 }
 
 const REDIRECT_FAILED = '바로가기를 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.'
@@ -80,7 +86,7 @@ const LOGIN_REQUIRED = { ok: false as const, error: '학교 계정으로 로그�
 async function loadRow(id: string) {
   const { data } = await createAdminClient()
     .from('subdomains')
-    .select('id, name, owner_id, project_id, status, host, target, verify_token, cf_record_ids')
+    .select('id, name, owner_id, project_id, status, host, target, verify_token, cf_record_ids, site_url, site_host, site_verified_at')
     .eq('id', id)
     .maybeSingle()
   return data
@@ -121,10 +127,48 @@ export async function reserveSubdomain(projectId: string, rawName: string): Prom
     .maybeSingle()
   if (project?.visibility === 'private') return { ok: false, error: '비공개 프로젝트는 도메인을 마련할 수 없어요.' }
 
-  const { data, error } = await createAdminClient().rpc('subdomain_reserve', { p_user: user.id, p_project: projectId, p_name: name })
+  const admin = createAdminClient()
+  const { data, error } = await admin.rpc('subdomain_reserve', { p_user: user.id, p_project: projectId, p_name: name })
   if (error) return rpcError('subdomain_reserve', error)
+
+  // 확인 전에 들어오면 경고 페이지로 — 최선 노력. 못 만들면 주소가 DNS 부터 안 풀려 그래도 열리지 않는다
+  if (redirectConfigured()) {
+    try {
+      await createPlaceholder(
+        {
+          dns: getDnsClient(),
+          redirects: getRedirectClient,
+          setRecords: async (ids) => {
+            const { error: e } = await admin.rpc('subdomain_set_placeholder_records', { p_id: data, p_record_ids: ids })
+            if (e) throw e
+          },
+        },
+        { id: data, name },
+      )
+    } catch (e) {
+      console.error('[domains] 자리표시 만들기 실패(예약은 그대로)', e)
+    }
+  }
   done()
   return { ok: true, data: { id: data } }
+}
+
+// ② 내 사이트 원래 주소 저장. 바뀌면 확인 기록이 지워진다(이미 연결된 DNS 는 그대로)
+export async function setSiteAddress(id: string, raw: string): Promise<ActionResult<{ siteUrl: string; host: HostKey }>> {
+  const user = await currentUser()
+  if (!user) return LOGIN_REQUIRED
+  const site = siteAddressFor(raw)
+  if (!site) return { ok: false, error: RPC_ERRORS.site_invalid }
+  if (isRedirectHost(site.host) && !redirectConfigured()) return { ok: false, error: REDIRECT_NOT_READY }
+  const { error } = await createAdminClient().rpc('subdomain_set_site', {
+    p_user: user.id,
+    p_id: id,
+    p_site_url: site.url,
+    p_site_host: site.host,
+  })
+  if (error) return rpcError('subdomain_set_site', error)
+  done()
+  return { ok: true, data: { siteUrl: site.url, host: site.host } }
 }
 
 export async function connectHost(id: string, host: HostKey, rawTarget: string, rawTxt: TxtInput[]): Promise<ActionResult> {
@@ -136,8 +180,13 @@ export async function connectHost(id: string, host: HostKey, rawTarget: string, 
   const row = await loadRow(id)
   if (!row || row.owner_id !== user.id) return { ok: false, error: RPC_ERRORS.not_owner }
   if (!['reserved', 'pending', 'active', 'broken'].includes(row.status)) return { ok: false, error: RPC_ERRORS.not_live }
+  if (!row.site_verified_at) return { ok: false, error: RPC_ERRORS.not_verified }
+  if (row.site_host !== host) return { ok: false, error: RPC_ERRORS.host_mismatch }
 
-  const target = validateTarget(host, rawTarget)
+  // 대상이 곧 사이트인 호스트는 확인한 원래 주소의 호스트 이름으로 정한다(바로가기는 입력을 받지 않는다)
+  const siteHostname = row.site_url ? new URL(row.site_url).hostname : null
+  const target = validateTarget(host, isRedirectHost(host) ? (siteHostname ?? '') : rawTarget)
+  if (target && targetBoundToSite(host) && target !== siteHostname) return { ok: false, error: RPC_ERRORS.target_mismatch }
   if (!target) return { ok: false, error: isRedirectHost(host) ? RPC_ERRORS.redirect_target_invalid : RPC_ERRORS.target_invalid }
   // 바로가기 호스트는 TXT 를 받지 않는다
   const filled = isRedirectHost(host) ? [] : rawTxt.filter((t) => t.name.trim() || t.value.trim())
@@ -155,17 +204,26 @@ export async function connectHost(id: string, host: HostKey, rawTarget: string, 
     if (row.cf_record_ids.length) await removeCloudflare(row.cf_record_ids)
 
     const admin = createAdminClient()
-    // 바로가기는 여기서 아무것도 만들지 않는다 — 소유 확인이 처음 성공할 때 verifySubdomain 이 켠다
+    // 바로가기: ②에서 이미 확인했으므로 바로 AAAA + 목록 항목을 만들고 subdomain_connect 로 기록한다
     if (isRedirectHost(host)) {
-      const { error } = await admin.rpc('subdomain_connect', {
-        p_user: user.id,
-        p_id: id,
-        p_host: host,
-        p_target: target,
-        p_txt: [],
-        p_record_ids: [],
-      })
-      if (error) throw error
+      await activateRedirect(
+        {
+          dns: getDnsClient(),
+          redirects: getRedirectClient,
+          setRecords: async (ids) => {
+            const { error } = await admin.rpc('subdomain_connect', {
+              p_user: user.id,
+              p_id: id,
+              p_host: host,
+              p_target: target,
+              p_txt: [],
+              p_record_ids: ids,
+            })
+            if (error) throw error
+          },
+        },
+        { id, name: row.name, target },
+      )
       done()
       return { ok: true, data: null }
     }
@@ -194,66 +252,53 @@ export async function connectHost(id: string, host: HostKey, rawTarget: string, 
       return { ok: false, error: RPC_ERRORS[e.message.trim()] }
     }
     console.error('[domains] connectHost 실패', e)
-    return { ok: false, error: 'DNS 레코드를 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.' }
+    return { ok: false, error: isRedirectHost(host) ? REDIRECT_FAILED : 'DNS 레코드를 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.' }
   }
   done()
   return { ok: true, data: null }
 }
 
-// result 가 unreachable 일 때만 detail(예: "status 404", "redirect to another host") — 왜 안 열리는지 화면에 보여 주려고
+// result 가 unreachable 일 때만 detail(예: "status 404", "redirect to another host") — 왜 안 열리는지 화면에 보여 주려고.
+// ② 확인 전(원래 주소가 있고 아직 확인 안 됨)이면 원래 주소를, 그 뒤 호스트에 연결했으면 실제로 열리는 곳을 확인한다.
 export async function verifySubdomain(
   id: string,
-): Promise<ActionResult<{ result: CheckResult['kind']; detail: string | null; status: SubdomainStatus }>> {
+): Promise<ActionResult<{ result: CheckResult['kind']; detail: string | null; status: SubdomainStatus; siteVerified: boolean }>> {
   const user = await currentUser()
   if (!user) return LOGIN_REQUIRED
   const row = await loadRow(id)
   if (!row || row.owner_id !== user.id) return { ok: false, error: RPC_ERRORS.not_owner }
-  if (!row.host) return { ok: false, error: '먼저 2단계에서 호스트에 연결해요.' }
 
-  // 연결은 우리 주소(CNAME 이 바깥을 가리킴), 바로가기는 보낼 곳 사이트 — 사설 IP 로 풀리면 요청하지 않는다
-  const site = siteHostFor({ name: row.name, host: row.host, target: row.target })
-  const safe = await assertSafePublicUrl(`https://${site}/`)
+  const siteStep = !row.site_verified_at && row.site_url && row.site_host
+  if (!siteStep && !row.host) return { ok: false, error: '먼저 ②에서 내 사이트 주소를 넣어요.' }
+
+  // 확인할 곳 — 사설 IP 로 풀리면 요청하지 않는다
+  const base = siteStep ? row.site_url! : `https://${siteHostFor({ name: row.name, host: row.host!, target: row.target })}/`
+  const presetHost = siteStep ? row.site_host! : row.host!
+  const safe = await assertSafePublicUrl(base)
   const result: CheckResult = safe.ok
-    ? await checkSite(`https://${site}/`, row.verify_token, row.host, createSiteFetcher())
+    ? await checkSite(base, row.verify_token, presetHost, createSiteFetcher())
     : { kind: 'unreachable', detail: safe.reason }
+  const detail = result.kind === 'unreachable' ? result.detail.slice(0, 120) : null
 
-  if (result.kind === 'ok' && row.target && needsActivation(row)) {
-    const target = row.target
-    try {
-      const admin = createAdminClient()
-      await activateRedirect(
-        {
-          dns: getDnsClient(),
-          redirects: getRedirectClient,
-          setRecords: async (ids) => {
-            const { error } = await admin.rpc('subdomain_set_redirect_records', { p_id: id, p_record_ids: ids })
-            if (error) throw error
-          },
-        },
-        { id, name: row.name, target },
-      )
-    } catch (e) {
-      // 자동 확인과 버튼이 동시에 켰으면 다른 쪽이 이미 기록했다 — 다음 확인에서 연결됨이 된다
-      if (e && typeof e === 'object' && 'message' in e && e.message === 'records_exist') {
-        return { ok: true, data: { result: 'ok', detail: null, status: row.status } }
-      }
-      console.error('[domains] 바로가기 만들기 실패', e)
-      return { ok: false, error: REDIRECT_FAILED }
+  if (siteStep) {
+    if (result.kind === 'ok') {
+      const { error } = await createAdminClient().rpc('subdomain_verify_site', { p_user: user.id, p_id: id, p_site_url: row.site_url! })
+      if (error) return rpcError('subdomain_verify_site', error)
+      done()
     }
+    return { ok: true, data: { result: result.kind, detail, status: row.status, siteVerified: result.kind === 'ok' } }
   }
 
+  // 바로가기 행인데 목록 항목이 없으면 토큰이 보여도 실제로는 안 넘어간다 → 연결됨으로 치지 않는다
   const { data, error } = await createAdminClient().rpc('subdomain_record_check', {
     p_id: id,
-    p_ok: result.kind === 'ok',
+    p_ok: result.kind === 'ok' && connectionLive(row),
     p_now: new Date().toISOString(),
   })
   if (error) return rpcError('subdomain_record_check', error)
   // 화면이 자동으로 반복 확인하므로, 상태가 그대로면 페이지를 다시 그리게 하지 않는다
   if (data !== row.status) done()
-  return {
-    ok: true,
-    data: { result: result.kind, detail: result.kind === 'unreachable' ? result.detail.slice(0, 120) : null, status: data },
-  }
+  return { ok: true, data: { result: result.kind, detail, status: data, siteVerified: Boolean(row.site_verified_at) } }
 }
 
 export async function applyProjectUrl(id: string): Promise<ActionResult> {
