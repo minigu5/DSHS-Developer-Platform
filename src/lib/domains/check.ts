@@ -4,7 +4,7 @@
 //   - 한 번도 연결되지 않은 채 7일이 지나면 반납(이름만 묶어 두기 방지)
 
 import { RECORD_COMMENT_PREFIX } from './cloudflare.ts'
-import type { CheckResult } from './verify.ts'
+import type { CheckResult, FetchedPage } from './verify.ts'
 
 export const RELEASE_AFTER_DAYS = 7
 const DAY_MS = 86_400_000
@@ -33,4 +33,9 @@ export function decide(row: CheckRow, result: CheckResult | null, now: Date): De
 /** Cloudflare 레코드 comment("dshs-subdomain:<행 id>")에서 행 id */
 export function managedRowId(comment: string): string | null {
   return comment.startsWith(RECORD_COMMENT_PREFIX) ? comment.slice(RECORD_COMMENT_PREFIX.length) || null : null
+}
+
+/** 바로가기 동작 점검: <이름>.dshs.dev 가 302 로 https://<target>/ 에 보내는가(계정에 하나뿐인 Bulk Redirect 규칙이 살아 있는가) */
+export function redirectWorks(page: FetchedPage, target: string): boolean {
+  return page.status === 302 && (page.location ?? '').startsWith(`https://${target}/`)
 }

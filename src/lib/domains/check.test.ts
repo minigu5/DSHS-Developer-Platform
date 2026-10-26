@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { decide, managedRowId } from './check.ts'
+import { decide, managedRowId, redirectWorks } from './check.ts'
 
 const NOW = new Date('2026-11-01T18:30:00Z')
 const daysAgo = (n: number) => new Date(NOW.getTime() - n * 86_400_000).toISOString()
@@ -49,4 +49,13 @@ test('예약 3일째는 그대로', () => {
 test('레코드 comment 에서 행 id 를 꺼낸다', () => {
   assert.equal(managedRowId('dshs-subdomain:3f1c'), '3f1c')
   assert.equal(managedRowId('someone else'), null)
+})
+
+test('redirectWorks: 302 로 보낼 곳 https 주소로 보내야 바로가기 규칙이 동작하는 것', () => {
+  const page = (status: number, location: string | null) => ({ status, headers: new Headers(), body: '', location })
+  assert.equal(redirectWorks(page(302, 'https://a.acct.workers.dev/'), 'a.acct.workers.dev'), true)
+  assert.equal(redirectWorks(page(301, 'https://a.acct.workers.dev/'), 'a.acct.workers.dev'), false)
+  assert.equal(redirectWorks(page(302, 'https://a.acct.workers.dev.evil.com/'), 'a.acct.workers.dev'), false)
+  assert.equal(redirectWorks(page(302, null), 'a.acct.workers.dev'), false)
+  assert.equal(redirectWorks(page(200, null), 'a.acct.workers.dev'), false)
 })
