@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { customDomainOf, detectHost, isRedirectHost, siteHostFor, validateTarget, validateTxt, HOST_PRESETS } from './hosts.ts'
+import { customDomainOf, detectHost, dshsAddressOf, isRedirectHost, siteHostFor, validateTarget, validateTxt, HOST_PRESETS } from './hosts.ts'
 
 test('프로젝트 주소로 호스트를 미리 고른다', () => {
   assert.deepEqual(detectHost('https://meal-alarm.vercel.app/'), { host: 'vercel', prefill: null })
@@ -116,6 +116,17 @@ test('호스트 기본 주소가 아니면 내 도메인을 쓰는 것으로 본
   assert.equal(customDomainOf('http://127.0.0.1:3000'), null)
   assert.equal(customDomainOf('http://[::1]:3000'), null)
   assert.equal(customDomainOf('not a url'), null)
+})
+
+test('방문 주소가 이미 *.dshs.dev면 그 호스트 이름', () => {
+  assert.equal(dshsAddressOf('https://xn--9d0bw1i8usvmp.dshs.dev'), 'xn--9d0bw1i8usvmp.dshs.dev')
+  assert.equal(dshsAddressOf('https://Omm.dshs.dev/menu?x=1'), 'omm.dshs.dev')
+  // 루트·다른 도메인·비슷한 이름·잘못된 주소
+  assert.equal(dshsAddressOf('https://dshs.dev'), null)
+  assert.equal(dshsAddressOf('https://meal.vercel.app'), null)
+  assert.equal(dshsAddressOf('https://evildshs.dev'), null)
+  assert.equal(dshsAddressOf('https://omm.dshs.dev.evil.com'), null)
+  assert.equal(dshsAddressOf('not a url'), null)
 })
 
 test('바로가기 호스트: 기본 주소만 받는다', () => {

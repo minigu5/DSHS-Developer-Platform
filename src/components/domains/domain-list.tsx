@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 
 import { ProjectIcon } from "@/components/projects/project-icon";
-import { customDomainOf, isRedirectHost } from "@/lib/domains/hosts";
+import { customDomainOf, dshsAddressOf, isRedirectHost } from "@/lib/domains/hosts";
 import type { DomainProjectRow, DomainView } from "@/lib/domains/read";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { cn } from "@/lib/utils";
@@ -88,7 +88,8 @@ export function DomainList({
         const privateBlocked = project.isPrivate && !live;
         // 새 주소를 받을 수 없는 줄: 방문 주소 없음, 비공개, 또는 3개를 다 쓴 상태에서 아직 주소가 없는 프로젝트
         const blocked = disabled || privateBlocked || (!live && limitReached);
-        const ownDomain = !live && project.url ? customDomainOf(project.url) : null;
+        // 이미 내 도메인이나 직접 만든 `*.dshs.dev`를 쓰는 줄은 새 주소를 받을 이유가 없어 버튼 대신 알약만 둔다
+        const ownDomain = !live && project.url ? (customDomainOf(project.url) ?? dshsAddressOf(project.url)) : null;
 
         let action: string;
         if (live) action = domain.status === "active" ? "관리" : "설정 이어서 하기";
@@ -128,7 +129,7 @@ export function DomainList({
                 >
                   방문 주소가 있어야 받을 수 있어요
                 </Link>
-              ) : blocked && !live ? (
+              ) : ownDomain ? null : blocked && !live ? (
                 <span className="text-xs text-zinc-500 dark:text-zinc-400">주소 3개를 다 썼어요</span>
               ) : (
                 <button
