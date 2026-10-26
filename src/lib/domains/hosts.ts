@@ -253,6 +253,15 @@ export function customDomainOf(projectUrl: string): string | null {
   return hostname
 }
 
+/**
+ * 프로젝트 방문 주소가 이미 `*.dshs.dev`이면 그 호스트 이름(도메인 마련하기로 받은 게 아니어도 — 직접 DNS를 만든 경우 등).
+ * 이미 쓰는 주소라 새로 받을 이유가 없다는 표시에만 쓴다. 그 외 주소는 null.
+ */
+export function dshsAddressOf(projectUrl: string): string | null {
+  const hostname = hostnameOf(projectUrl)
+  return hostname && hostname.endsWith(`.${ROOT_DOMAIN}`) ? hostname : null
+}
+
 export function validateTarget(host: HostKey, target: string): string | null {
   const v = target.trim().toLowerCase().replace(/\.$/, '')
   return HOST_PRESETS[host].cnameTarget.test(v) ? v : null

@@ -33,10 +33,11 @@ import { SECTION_COLORS } from "@/lib/section-colors";
 import { Markdown } from "@/components/shared/markdown";
 import { parseGithubRepo } from "@/lib/github-readme";
 import { closeDomainOfPrivateProject, deleteProject } from "@/lib/projects/actions";
+import { addGithubToProfile } from "@/lib/profile/actions";
 import { detectHost, HOST_PRESETS } from "@/lib/domains/hosts";
 import { createClient } from "@/lib/supabase/client";
 import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
-import type { ProjectRow } from "@/lib/types";
+import type { ProjectRow, UserContact } from "@/lib/types";
 
 type Visibility = 'public' | 'private';
 type SourceType = 'open' | 'closed';
@@ -192,6 +193,57 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
     }
   };
 
+  // 개인 프로젝트 등록 중 GitHub 저장소 링크를 넣으면, 프로필에 GitHub 연락처가 없을 때 그 자리에서 넣을지 묻는다.
+  // 저장소 칸을 벗어나거나 README를 가져온 뒤에 묻는다(입력 중에는 안 뜨게). "괜찮아요"를 누르면 이 화면에선 다시 안 묻는다.
+  const [profileGithub, setProfileGithub] = useState<"unknown" | "none" | "has">("unknown");
+  const [githubOfferOwner, setGithubOfferOwner] = useState<string | null>(null);
+  const [githubOffer, setGithubOffer] = useState<"idle" | "saving" | "done" | "dismissed">("idle");
+  const [githubOfferError, setGithubOfferError] = useState("");
+
+  useEffect(() => {
+    if (isEdit) return;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase
+        .from('users')
+        .select('contacts')
+        .eq('id', user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          const contacts = (data?.contacts ?? []) as UserContact[];
+          setProfileGithub(contacts.some(c => c.type === 'github' && c.value.trim()) ? "has" : "none");
+        });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEdit]);
+
+  const offerGithubFor = (input: string) => {
+    setGithubOfferOwner(parseGithubRepo(input)?.owner ?? null);
+  };
+
+  const addGithub = async () => {
+    if (githubOffer === "saving") return;
+    setGithubOffer("saving");
+    setGithubOfferError("");
+    const res = await addGithubToProfile(repoUrl);
+    if (res.ok) {
+      setGithubOfferOwner(res.username);
+      setGithubOffer("done");
+    } else {
+      setGithubOffer("idle");
+      setGithubOfferError(res.error);
+    }
+  };
+
+  const showGithubOffer =
+    !isEdit &&
+    authorRole === "individual" &&
+    sourceType === "open" &&
+    profileGithub === "none" &&
+    (githubOffer === "idle" || githubOffer === "saving") &&
+    githubOfferOwner !== null &&
+    parseGithubRepo(repoUrl)?.owner === githubOfferOwner;
+
   const handleDescKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (readmeSync && sourceType === "open") return;
     if (e.key === "Tab") {
@@ -241,6 +293,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
           : "README를 가져왔어요. 아래 칸에서 자유롭게 고칠 수 있어요.",
       );
       void fillLicenseFromRepo(repoUrl);
+      offerGithubFor(repoUrl);
     } catch {
       setReadmeError("README를 가져오지 못했어요. 네트워크를 확인하고 다시 시도해 주세요.");
     } finally {
@@ -673,7 +726,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         const { data, error } = await supabase.from('projects').insert([{ ...commonFields, author_id: session.user.id }]).select().single();
         if (error) throw error;
         allowLeave();
-        const offer = isWebsite ? await domainOfferFor(url, session.user.id) : null;
+        const offer = isWebsite && visibility === 'public' ? await domainOfferFor(url, session.user.id) : null;
         if (offer) {
           setDomainOffer({ projectId: data.id, ...offer });
           return;
@@ -972,8 +1025,41 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
               <Label htmlFor="repo_url" className={labelClass}>저장소 링크{req}</Label>
               <div className="relative">
                 <Code2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" aria-hidden />
-                <Input id="repo_url" value={repoUrl} onChange={e => setRepoUrl(e.target.value)} onBlur={() => void fillLicenseFromRepo(repoUrl)} placeholder="https://github.com/username/repo" className="h-11 rounded-xl pl-9" />
+                <Input id="repo_url" value={repoUrl} onChange={e => setRepoUrl(e.target.value)} onBlur={() => { void fillLicenseFromRepo(repoUrl); offerGithubFor(repoUrl); }} placeholder="https://github.com/username/repo" className="h-11 rounded-xl pl-9" />
               </div>
+              {showGithubOffer && (
+                <div className="mt-1 flex flex-col gap-3 rounded-xl border border-zinc-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800">
+                  <div className="grid gap-0.5">
+                    <p className="text-sm font-medium text-zinc-900 dark:text-white">프로필에도 GitHub를 추가할까요?</p>
+                    <p className={hintClass}>github.com/{githubOfferOwner} · 내 프로필 연락처에 바로 들어가요</p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setGithubOffer("dismissed")}
+                      disabled={githubOffer === "saving"}
+                      className={buttonVariants({ variant: "ghost", className: "h-9 rounded-full px-4" })}
+                    >
+                      괜찮아요
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void addGithub()}
+                      disabled={githubOffer === "saving"}
+                      className={buttonVariants({ className: "h-9 rounded-full px-4" })}
+                    >
+                      {githubOffer === "saving" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
+                      추가하기
+                    </button>
+                  </div>
+                </div>
+              )}
+              {githubOfferError && showGithubOffer && (
+                <p role="alert" className="text-xs font-medium text-rose-600 dark:text-rose-400">{githubOfferError}</p>
+              )}
+              {githubOffer === "done" && (
+                <p className={hintClass} aria-live="polite">프로필에 GitHub를 추가했어요 · github.com/{githubOfferOwner}</p>
+              )}
             </div>
           )}
 
