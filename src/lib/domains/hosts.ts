@@ -184,6 +184,7 @@ export const HOST_PRESETS: Record<HostKey, HostPreset> = {
       '버전마다 생기는 미리보기 주소(앞에 글자가 더 붙은 주소)는 곧 사라지니 넣지 말아요.',
       '{fqdn}으로 들어오면 이 주소로 넘어가요. 주소창에는 workers.dev 주소가 보여요.',
     ],
+    // 없는 계정 서브도메인은 DNS 부터 안 풀려 "연결 안 됨"으로 보인다(2026-10-26 실측) — 가릴 페이지가 없다
     notFound: () => false,
   },
   firebase: {
@@ -202,7 +203,7 @@ export const HOST_PRESETS: Record<HostKey, HostPreset> = {
       '미리보기 채널 주소(이름--채널.web.app)는 넣을 수 없어요.',
       '{fqdn}으로 들어오면 이 주소로 넘어가요. 주소창에는 web.app 주소가 보여요.',
     ],
-    notFound: () => false,
+    notFound: (status, _headers, body) => status === 404 && body.includes('<title>Site Not Found</title>'),
   },
 }
 

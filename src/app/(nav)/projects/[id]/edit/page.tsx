@@ -5,7 +5,7 @@ import { Rocket } from "lucide-react";
 import { PageHero } from "@/components/shared/page-hero";
 import { ProjectForm } from "@/components/projects/project-form";
 import { isDeveloper } from "@/lib/constants";
-import { getLiveDomainName } from "@/lib/domains/read";
+import { getLiveDomain } from "@/lib/domains/read";
 
 export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -40,7 +40,7 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
   }
 
   const isAuthor = project.author_id === user.id || userIsDeveloper;
-  const subdomainName = isAuthor ? await getLiveDomainName(project.id) : null;
+  const subdomainName = isAuthor ? ((await getLiveDomain(project.id))?.name ?? null) : null;
 
   return (
     <div className="flex min-h-screen flex-col bg-white dark:bg-zinc-950">

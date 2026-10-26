@@ -12,7 +12,7 @@ import {
   reserveSubdomain,
 } from "@/lib/domains/actions";
 import { buildVerifyPrompt } from "@/lib/domains/ai-prompt";
-import { HOST_PRESETS } from "@/lib/domains/hosts";
+import { HOST_PRESETS, isRedirectHost } from "@/lib/domains/hosts";
 import { normalizeName } from "@/lib/domains/name";
 import type { DomainProjectRow, DomainView } from "@/lib/domains/read";
 import { VERIFY_FILE_PATH, VERIFY_META_NAME } from "@/lib/domains/verify";
@@ -164,11 +164,18 @@ const RESULT_TEXT: Record<string, string> = {
   not_found_page: "호스트가 이 주소의 사이트를 찾지 못해요. 호스트 설정에 주소를 추가했는지 확인해요.",
   no_token: "사이트는 열리는데 확인 코드가 안 보여요. 코드를 넣고 다시 배포해요.",
 };
+// 바로가기는 보낼 곳 사이트를 확인한다 — 호스트 쪽 주소 등록이 없다
+const REDIRECT_RESULT_TEXT: Record<string, string> = {
+  ...RESULT_TEXT,
+  unreachable: "보낼 곳 사이트가 아직 열리지 않아요. 주소가 맞는지, 배포가 끝났는지 확인해요.",
+  not_found_page: "보낼 곳 사이트를 찾지 못해요. 주소가 맞는지, 배포가 끝났는지 확인해요.",
+};
 
 // ③ 확인 코드 + 연결 확인 (결과는 DomainList 의 useDomainChecks 가 쥐고 있다 — 접혀 있어도 자동으로 확인하므로)
 function VerifyStep({ domain, check, auto, onCheck }: { domain: DomainView; check: CheckState; auto: AutoState; onCheck: () => void }) {
   const meta = `<meta name="${VERIFY_META_NAME}" content="${domain.verifyToken}">`;
-  const prompt = buildVerifyPrompt({ name: domain.name, token: domain.verifyToken, host: domain.host });
+  const prompt = buildVerifyPrompt({ name: domain.name, token: domain.verifyToken, host: domain.host, target: domain.target });
+  const resultText = isRedirectHost(domain.host) ? REDIRECT_RESULT_TEXT : RESULT_TEXT;
 
   return (
     <div className="flex flex-col gap-3">
@@ -217,7 +224,7 @@ function VerifyStep({ domain, check, auto, onCheck }: { domain: DomainView; chec
       <div aria-live="polite">
         {check.result && check.result !== "ok" && (
           <>
-            <p className="text-sm text-amber-700 dark:text-amber-400">{RESULT_TEXT[check.result]}</p>
+            <p className="text-sm text-amber-700 dark:text-amber-400">{resultText[check.result]}</p>
             {check.detail && <p className="mt-1 font-mono text-xs text-zinc-500 dark:text-zinc-400">자세한 이유: {check.detail}</p>}
           </>
         )}
@@ -322,13 +329,16 @@ export function DomainSteps({
   const connected = domain !== null && domain.status !== "reserved";
   const showHost = domain !== null && (!connected || reconnect);
   const urlIsDomain = fqdn !== null && project.url?.replace(/\/+$/, "") === `https://${fqdn}`;
+  // 바로가기는 사이트가 원래 주소에서 그대로 돌아서 DB·로그인 설정을 바꿀 일이 없다 → 안내 창 없음
+  const redirect = isRedirectHost(domain?.host ?? null);
+  const hostLabel = domain?.host ? HOST_PRESETS[domain.host].label : "호스트";
 
   return (
     <div className="flex flex-col gap-4">
       {domain?.status === "active" && !urlIsDomain && (
-        <UrlSuggestion domain={domain} onApplied={() => setUrlChange({ from: project.url?.trim() || null, open: true })} />
+        <UrlSuggestion domain={domain} onApplied={() => !redirect && setUrlChange({ from: project.url?.trim() || null, open: true })} />
       )}
-      {fqdn && (
+      {fqdn && !redirect && (
         <UrlChangedDialog open={urlChange?.open ?? false} onClose={() => setUrlChange((c) => c && { ...c, open: false })} oldUrl={urlChange?.from ?? null} newUrl={`https://${fqdn}`} />
       )}
 
@@ -340,7 +350,7 @@ export function DomainSteps({
         <Step
           n={2}
           state={!domain ? "todo" : showHost ? "current" : "done"}
-          title={connected && !showHost ? `${domain.host ? HOST_PRESETS[domain.host].label : "호스트"}에 연결함` : "어디에 올렸어요?"}
+          title={connected && !showHost ? (redirect ? `${hostLabel} 바로가기` : `${hostLabel}에 연결함`) : "어디에 올렸어요?"}
         >
           {domain && showHost && (
             <HostPicker domain={domain} projectUrl={project.url ?? ""} onDone={() => setReconnect(false)} />
@@ -355,7 +365,13 @@ export function DomainSteps({
         <Step
           n={3}
           state={!connected ? "todo" : domain.status === "active" ? "done" : "current"}
-          title={domain?.status === "active" ? "연결 확인됨 — 내 사이트가 이 주소로 열려요" : "연결 확인"}
+          title={
+            domain?.status === "active"
+              ? redirect
+                ? "확인됨 — 이 주소로 들어오면 내 사이트로 넘어가요"
+                : "연결 확인됨 — 내 사이트가 이 주소로 열려요"
+              : "연결 확인"
+          }
         >
           {connected && domain.status !== "active" && <VerifyStep domain={domain} check={check} auto={auto} onCheck={onCheck} />}
           {connected && domain.status === "active" && (

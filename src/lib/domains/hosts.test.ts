@@ -146,3 +146,10 @@ test('바로가기 호스트는 TXT 를 받지 않는다', () => {
   assert.equal(HOST_PRESETS['cloudflare-workers'].txt, null)
   assert.equal(HOST_PRESETS.firebase.txt, null)
 })
+
+test('Firebase "사이트 없음" 페이지를 알아본다(2026-10-26 실측: 404 + <title>Site Not Found</title>)', () => {
+  const nf = HOST_PRESETS.firebase.notFound
+  assert.equal(nf(404, new Headers(), '<html><head><title>Site Not Found</title></head></html>'), true)
+  assert.equal(nf(404, new Headers(), '<html><head><title>My 404</title></head></html>'), false)
+  assert.equal(nf(200, new Headers(), '<title>Site Not Found</title>'), false)
+})
