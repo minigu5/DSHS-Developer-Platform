@@ -119,6 +119,7 @@
 - DB `public.subdomains` — RLS SELECT만, 쓰기는 `service_role` 전용 `subdomain_*` 함수(`supabase/migrations/20261025100000_subdomains.sql`). 서버 액션 `src/lib/domains/actions.ts`, 순수 로직 `src/lib/domains/*.ts`(테스트 `node --test`), 매일 점검 `.github/workflows/check-subdomains.yml`.
 - 보안: 운영 세션 쿠키는 `__Host-` 접두사, `Domain=.dshs.dev` 쿠키 금지, 쿠키 인증 Route Handler는 `isSameOrigin()` 필수. 자세한 내용은 `CLAUDE.md` 「🌐 도메인 마련하기」.
 - 바로가기 주소(2026-10-26): Cloudflare Workers·Firebase Hosting은 CNAME 대신 `<이름>.dshs.dev` → 학생 사이트 302(Cloudflare Bulk Redirects). 소유 확인 토큰이 보낼 곳 사이트에서 확인된 뒤에만 만든다(`src/lib/domains/activate.ts`). 설계 `docs/superpowers/specs/2026-10-26-subdomain-redirects-design.md`.
+- 확인 먼저(2026-10-26): ① 이름(예약 직후 경고 페이지 `/pending-domain/<이름>`로 보내는 자리표시) → ② 학생 사이트 원래 주소에서 토큰 확인 → ③ 그 뒤에만 CNAME·TXT/바로가기 생성. DB `subdomain_connect`가 확인 없는 연결을 막는다. 설계 `docs/superpowers/specs/2026-10-26-domain-verify-first-design.md`.
 - 환경변수: `CLOUDFLARE_DNS_API_TOKEN`(dshs.dev DNS 편집 전용), `CLOUDFLARE_ZONE_ID`, 바로가기용 `CLOUDFLARE_LISTS_API_TOKEN`(Account Filter Lists 편집 전용)·`CLOUDFLARE_ACCOUNT_ID`·`CLOUDFLARE_REDIRECT_LIST_ID`.
 - 프로젝트 새 등록 직후 방문 주소가 연결 가능한 호스트 무료 주소(`detectHost`)면 "도메인 마련하기" 권유 창 → `/domains?project=<id>`가 그 줄을 펼치고 이름 칸에 포커스. 주소 3개를 다 썼으면 묻지 않음.
 
