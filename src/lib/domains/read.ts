@@ -146,3 +146,32 @@ export async function getLiveDomainName(projectId: string, onlyActive = false): 
     .maybeSingle()
   return data?.name ?? null
 }
+
+/** 홈 소개 카드용 — 연결이 확인된(active) 공개 프로젝트의 주소 수와 최근 주소. 비공개 프로젝트는 숫자에도 안 센다. */
+export type DomainShowcase = {
+  total: number
+  items: { name: string; projectId: string; title: string }[]
+}
+
+/** 로그인과 상관없이 보여 주는 값이라 서비스 키로 읽는다. 실패해도 홈이 깨지지 않게 null. */
+export async function getDomainShowcase(limit = 6): Promise<DomainShowcase | null> {
+  try {
+    const admin = createAdminClient()
+    const { data, count, error } = await admin
+      .from('subdomains')
+      .select('name, projects!subdomains_project_id_fkey!inner(id, title, visibility)', { count: 'exact' })
+      .eq('status', 'active')
+      .eq('projects.visibility', 'public')
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    if (error) return null
+
+    type Joined = { name: string; projects: { id: string; title: string } | null }
+    const items = ((data ?? []) as unknown as Joined[]).flatMap((r) =>
+      r.projects ? [{ name: r.name, projectId: r.projects.id, title: r.projects.title }] : [],
+    )
+    return { total: count ?? items.length, items }
+  } catch {
+    return null
+  }
+}

@@ -9,6 +9,7 @@ import { projectTypeLabels } from "@/lib/constants";
 import { SiteHeader } from "@/components/shared/site-header";
 import { MobileNav } from "@/components/shared/page-nav";
 import { createClient } from "@/lib/supabase/server";
+import { getDomainShowcase } from "@/lib/domains/read";
 import { AnnouncementTicker, type TickerItem } from "@/components/shared/announcement-ticker";
 import type { ProjectCardData } from "@/components/projects/project-card";
 import { IconShelf, SHELF_LIMIT, type ShelfProject } from "@/components/home/icon-shelf";
@@ -66,6 +67,7 @@ export default async function HomePage() {
     { data: tipsRaw },
     { data: ideasRaw },
     { data: reviewRaw },
+    domainShowcase,
   ] = await Promise.all([
     supabase
       .from("announcements")
@@ -124,6 +126,8 @@ export default async function HomePage() {
       .order("created_at", { ascending: false })
       .limit(1)
       .returns<ReviewJoined[]>(),
+    // 도메인 마련하기 소개 카드의 "벌써 N개" — 실패하면 null 이라 카드만 조용히 줄어든다
+    getDomainShowcase(),
   ]);
 
   const tickerItems: TickerItem[] = announcementsRaw ?? [];
@@ -291,7 +295,7 @@ export default async function HomePage() {
             <h2 id="guide-teaser" className="sr-only">직접 만들어 보고 싶다면</h2>
             <div className="grid gap-4 sm:gap-5">
               <GuideTeaser />
-              <DomainTeaser />
+              <DomainTeaser showcase={domainShowcase} />
             </div>
           </div>
         </section>
