@@ -167,6 +167,26 @@ export function detectHost(projectUrl: string): { host: HostKey; prefill: string
   return null
 }
 
+// 프리셋에는 없지만 호스트가 기본으로 나눠 주는 주소들 — 내 도메인으로 보지 않는다
+const OTHER_DEFAULT_HOST_SUFFIXES = [
+  'workers.dev', 'web.app', 'firebaseapp.com', 'surge.sh', 'herokuapp.com', 'fly.dev', 'run.app',
+  'glitch.me', 'repl.co', 'replit.app', 'streamlit.app', 'hf.space', 'deno.dev',
+]
+
+/**
+ * 프로젝트 방문 주소가 호스트 기본 주소(.vercel.app 등)가 아니라 내가 가진 도메인(예: dshs.dev)이면 그 호스트 이름.
+ * 호스트 기본 주소·localhost·IP·우리가 빌려준 `*.dshs.dev`는 null. 모르는 무료 호스트는 내 도메인으로 잘못 볼 수 있다.
+ */
+export function customDomainOf(projectUrl: string): string | null {
+  const hostname = hostnameOf(projectUrl)
+  if (!hostname || !hostname.includes('.')) return null
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname) || /(^|\.)(localhost|local)$/.test(hostname)) return null
+  if (hostname.endsWith(`.${ROOT_DOMAIN}`)) return null
+  if (detectHost(projectUrl)) return null
+  if (OTHER_DEFAULT_HOST_SUFFIXES.some((suffix) => hostname === suffix || hostname.endsWith(`.${suffix}`))) return null
+  return hostname
+}
+
 export function validateTarget(host: HostKey, target: string): string | null {
   const v = target.trim().toLowerCase().replace(/\.$/, '')
   return HOST_PRESETS[host].cnameTarget.test(v) ? v : null

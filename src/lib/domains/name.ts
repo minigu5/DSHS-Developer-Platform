@@ -10,7 +10,7 @@ export const RESERVED_NAMES: readonly string[] = [
   'support', 'help', 'security',
 ]
 
-export type NameCheck = { ok: true } | { ok: false; reason: 'length' | 'chars' | 'reserved' }
+export type NameCheck = { ok: true } | { ok: false; reason: 'length' | 'chars' | 'reserved' | 'idn' }
 
 export function normalizeName(raw: string): string {
   return raw.trim().toLowerCase()
@@ -19,6 +19,8 @@ export function normalizeName(raw: string): string {
 export function validateName(name: string): NameCheck {
   if (name.length < 3 || name.length > 30) return { ok: false, reason: 'length' }
   if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(name)) return { ok: false, reason: 'chars' }
-  if (name.startsWith('xn--') || RESERVED_NAMES.includes(name)) return { ok: false, reason: 'reserved' }
+  // 한글 같은 이름을 바꾼 punycode — 모양이 비슷한 글자로 공식 주소를 흉내 낼 수 있어 막는다
+  if (name.startsWith('xn--')) return { ok: false, reason: 'idn' }
+  if (RESERVED_NAMES.includes(name)) return { ok: false, reason: 'reserved' }
   return { ok: true }
 }

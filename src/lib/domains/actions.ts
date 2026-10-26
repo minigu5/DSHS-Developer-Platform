@@ -28,7 +28,7 @@ const RPC_ERRORS: Record<string, string> = {
   not_owner: '내 프로젝트의 주소만 다룰 수 있어요.',
   not_website: '방문 주소가 있는 웹사이트 프로젝트만 주소를 받을 수 있어요.',
   name_invalid: '이름은 3~30자의 영어 소문자·숫자·하이픈(-)으로 적어요. 하이픈으로 시작하거나 끝날 수 없어요.',
-  name_reserved: '이 이름은 사이트에서 쓰려고 남겨 둔 이름이에요. 다른 이름을 골라요.',
+  name_reserved: '이 이름은 쓸 수 없어요. 사이트에서 쓰려고 남겨 둔 이름이거나 xn--로 시작하는 이름이에요. 다른 이름을 골라요.',
   name_taken: '이미 누가 쓰고 있는 이름이에요.',
   project_has_subdomain: '이 프로젝트에는 이미 주소가 있어요.',
   limit: '주소는 한 사람당 3개까지 받을 수 있어요.',
@@ -43,10 +43,11 @@ const RPC_ERRORS: Record<string, string> = {
   not_found: '주소를 찾지 못했어요.',
 }
 
-const NAME_REASONS: Record<'length' | 'chars' | 'reserved', string> = {
+const NAME_REASONS: Record<'length' | 'chars' | 'reserved' | 'idn', string> = {
   length: '이름은 3~30자로 적어요.',
   chars: '영어 소문자·숫자·하이픈(-)만 쓸 수 있고, 하이픈으로 시작하거나 끝날 수 없어요.',
   reserved: '사이트에서 쓰려고 남겨 둔 이름이에요.',
+  idn: '한글 같은 영어가 아닌 이름(xn--로 시작)은 아직 쓸 수 없어요. 영어 소문자·숫자·하이픈(-)으로 된 이름을 골라요.',
 }
 
 function rpcError(tag: string, error: { message: string }): { ok: false; error: string } {

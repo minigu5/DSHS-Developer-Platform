@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { detectHost, validateTarget, validateTxt, HOST_PRESETS } from './hosts.ts'
+import { customDomainOf, detectHost, validateTarget, validateTxt, HOST_PRESETS } from './hosts.ts'
 
 test('프로젝트 주소로 호스트를 미리 고른다', () => {
   assert.deepEqual(detectHost('https://meal-alarm.vercel.app/'), { host: 'vercel', prefill: null })
@@ -97,4 +97,20 @@ test('프리셋 7개, 설정 링크와 안내가 있다', () => {
     assert.ok(p.settingsUrl.startsWith('https://'))
     assert.ok(p.steps.length >= 2)
   }
+})
+
+test('호스트 기본 주소가 아니면 내 도메인을 쓰는 것으로 본다', () => {
+  assert.equal(customDomainOf('https://dshs.dev'), 'dshs.dev')
+  assert.equal(customDomainOf('https://Meal.Example.com/menu?x=1'), 'meal.example.com')
+  assert.equal(customDomainOf('https://meal-alarm.vercel.app'), null)
+  assert.equal(customDomainOf('https://octo.github.io/meal/'), null)
+  assert.equal(customDomainOf('https://meal.pages.dev'), null)
+  assert.equal(customDomainOf('https://meal.web.app'), null)
+  assert.equal(customDomainOf('https://meal.workers.dev'), null)
+  // 우리가 빌려준 주소·로컬·IP·잘못된 주소
+  assert.equal(customDomainOf('https://omm.dshs.dev'), null)
+  assert.equal(customDomainOf('http://localhost:3000'), null)
+  assert.equal(customDomainOf('http://127.0.0.1:3000'), null)
+  assert.equal(customDomainOf('http://[::1]:3000'), null)
+  assert.equal(customDomainOf('not a url'), null)
 })

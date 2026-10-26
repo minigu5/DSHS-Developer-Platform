@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 
 import { ProjectIcon } from "@/components/projects/project-icon";
+import { customDomainOf } from "@/lib/domains/hosts";
 import type { DomainProjectRow, DomainView } from "@/lib/domains/read";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,18 @@ function StatusPill({ domain }: { domain: DomainView }) {
   }
 }
 
+// 도메인 마련하기로 받은 게 아니어도 방문 주소가 이미 내 도메인(예: dshs.dev)이면 따로 알려 준다
+function OwnDomainPill({ host }: { host: string }) {
+  return (
+    <span
+      title={`${host} 도메인을 이미 쓰고 있어요`}
+      className="rounded-full bg-teal-100 px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap text-teal-800 dark:bg-teal-950 dark:text-teal-300"
+    >
+      내 도메인 사용 중
+    </span>
+  );
+}
+
 function isLive(d: DomainView | null): d is DomainView {
   return d !== null && d.status !== "revoked";
 }
@@ -56,6 +69,7 @@ export function DomainList({ rows, limitReached }: { rows: DomainProjectRow[]; l
         const panelId = `domain-panel-${project.id}`;
         // 새 주소를 받을 수 없는 줄: 방문 주소 없음, 또는 3개를 다 쓴 상태에서 아직 주소가 없는 프로젝트
         const blocked = disabled || (!live && limitReached);
+        const ownDomain = !live && project.url ? customDomainOf(project.url) : null;
 
         let action: string;
         if (live) action = domain.status === "active" ? "관리" : "설정 이어서 하기";
@@ -78,6 +92,7 @@ export function DomainList({ rows, limitReached }: { rows: DomainProjectRow[]; l
                 </p>
               </div>
               {domain && <StatusPill domain={domain} />}
+              {ownDomain && <OwnDomainPill host={ownDomain} />}
               {disabled ? (
                 <Link
                   href={`/projects/${project.id}/edit`}
