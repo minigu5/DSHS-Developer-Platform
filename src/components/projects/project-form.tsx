@@ -73,6 +73,8 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   const [deleteError, setDeleteError] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showPrivateDialog, setShowPrivateDialog] = useState(false);
+  // 저장 없이 주소만 닫기(이미 비공개인데 주소가 남은 경우) — 같은 확인 창을 쓴다
+  const [closeOnly, setCloseOnly] = useState(false);
   // 등록 직후 방문 주소가 호스트 무료 주소(.vercel.app 등)면 도메인 마련하기를 권한다
   const [domainOffer, setDomainOffer] = useState<{ projectId: string; host: string; hostname: string } | null>(null);
 
@@ -87,6 +89,9 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   );
   // 살아 있는 주소가 있는 프로젝트를 비공개로 바꾸는 저장 — 저장하면 주소도 반납돼요
   const closesDomain = isEdit && Boolean(subdomainName) && visibility === "private" && initialData?.visibility !== "private";
+  // 이미 비공개로 저장됐는데 주소가 살아 있음 — 비공개 전환 때 반납이 실패한 뒤 새로 고쳤거나, 비공개인 채로 주소를 받은 경우.
+  // 비공개 프로젝트의 주소를 막지는 않으므로 걷어 가지 않고, 닫을 수 있는 길만 보여 준다.
+  const strandedDomain = isEdit && Boolean(subdomainName) && initialData?.visibility === "private" && visibility === "private";
 
   // 설명
   const [shortDesc, setShortDesc] = useState<string>(initialData?.short_description ?? "");
@@ -586,6 +591,19 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
     await saveProject();
   };
 
+  const closeDomainNow = async () => {
+    if (!initialData?.id) return;
+    setIsLoading(true);
+    setErrorMsg("");
+    const closed = await closeDomainOfPrivateProject(initialData.id);
+    setIsLoading(false);
+    if (!closed.ok) {
+      setErrorMsg(closed.error);
+      return;
+    }
+    router.refresh();
+  };
+
   const saveProject = async () => {
     setIsLoading(true);
 
@@ -1016,6 +1034,25 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
             </div>
           )}
 
+          {strandedDomain && (
+            <div role="status" className="flex flex-col gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 sm:flex-row sm:items-center dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
+              <p className="flex-1">
+                비공개 프로젝트지만 주소가 아직 열려 있어요: <span className="font-mono font-semibold">{subdomainName}.dshs.dev</span>
+              </p>
+              <button
+                type="button"
+                disabled={isLoading}
+                onClick={() => {
+                  setCloseOnly(true);
+                  setShowPrivateDialog(true);
+                }}
+                className="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-rose-300 bg-white px-4 text-sm font-semibold text-rose-700 transition-colors hover:bg-rose-100 disabled:opacity-50 dark:border-rose-800 dark:bg-zinc-900 dark:text-rose-300 dark:hover:bg-rose-950"
+              >
+                주소 닫기
+              </button>
+            </div>
+          )}
+
           {visibility === "private" && (
             <div className="animate-in fade-in slide-in-from-top-2">
               <div className="space-y-2">
@@ -1191,10 +1228,16 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showPrivateDialog} onOpenChange={setShowPrivateDialog}>
+      <Dialog
+        open={showPrivateDialog}
+        onOpenChange={(open) => {
+          setShowPrivateDialog(open);
+          if (!open) setCloseOnly(false);
+        }}
+      >
         <DialogContent showCloseButton={false} className="rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="text-lg">비공개로 바꾸면 주소도 닫혀요</DialogTitle>
+            <DialogTitle className="text-lg">{closeOnly ? "이 주소를 닫을까요?" : "비공개로 바꾸면 주소도 닫혀요"}</DialogTitle>
             <DialogDescription>
               <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-200">{subdomainName}.dshs.dev</span> 주소를 반납해요.
             </DialogDescription>
@@ -1208,17 +1251,25 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
           <DialogFooter>
             <button
               type="button"
-              onClick={() => setShowPrivateDialog(false)}
+              onClick={() => { setShowPrivateDialog(false); setCloseOnly(false); }}
               className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}
             >
               취소
             </button>
             <button
               type="button"
-              onClick={() => { setShowPrivateDialog(false); void saveProject(); }}
+              onClick={() => {
+                setShowPrivateDialog(false);
+                if (closeOnly) {
+                  setCloseOnly(false);
+                  void closeDomainNow();
+                } else {
+                  void saveProject();
+                }
+              }}
               className={cn(buttonVariants(), "rounded-xl bg-red-600 text-white hover:bg-red-700")}
             >
-              비공개로 바꾸고 주소 반납
+              {closeOnly ? "주소 반납" : "비공개로 바꾸고 주소 반납"}
             </button>
           </DialogFooter>
         </DialogContent>
