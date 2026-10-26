@@ -32,7 +32,7 @@ import { TYPE_ICONS, PLATFORM_ICONS, CATEGORY_ICONS } from "@/lib/type-icons";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { Markdown } from "@/components/shared/markdown";
 import { parseGithubRepo } from "@/lib/github-readme";
-import { deleteProject } from "@/lib/projects/actions";
+import { closeDomainOfPrivateProject, deleteProject } from "@/lib/projects/actions";
 import { detectHost, HOST_PRESETS } from "@/lib/domains/hosts";
 import { createClient } from "@/lib/supabase/client";
 import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
@@ -72,6 +72,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showPrivateDialog, setShowPrivateDialog] = useState(false);
   // 등록 직후 방문 주소가 호스트 무료 주소(.vercel.app 등)면 도메인 마련하기를 권한다
   const [domainOffer, setDomainOffer] = useState<{ projectId: string; host: string; hostname: string } | null>(null);
 
@@ -84,7 +85,9 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   const [visibility, setVisibility] = useState<Visibility>(
     initialData?.visibility ?? "public",
   );
-  
+  // 살아 있는 주소가 있는 프로젝트를 비공개로 바꾸는 저장 — 저장하면 주소도 반납돼요
+  const closesDomain = isEdit && Boolean(subdomainName) && visibility === "private" && initialData?.visibility !== "private";
+
   // 설명
   const [shortDesc, setShortDesc] = useState<string>(initialData?.short_description ?? "");
   const [description, setDescription] = useState<string>(initialData?.description ?? "");
@@ -576,6 +579,14 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
       return;
     }
 
+    if (closesDomain) {
+      setShowPrivateDialog(true);
+      return;
+    }
+    await saveProject();
+  };
+
+  const saveProject = async () => {
     setIsLoading(true);
 
     try {
@@ -633,6 +644,11 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         // 수정 시 author_id 는 포함하지 않음 — 원작자 변경 방지 (개발자 계정 포함)
         const { error } = await supabase.from('projects').update(commonFields).eq('id', initialData.id);
         if (error) throw error;
+        if (closesDomain) {
+          // 방문 주소가 이 주소로 저장된 뒤에 반납해야 이전 방문 주소로 되돌아간다. 실패해도 비공개 저장은 끝난 상태 — 다시 저장하면 반납을 다시 시도한다.
+          const closed = await closeDomainOfPrivateProject(initialData.id);
+          if (!closed.ok) throw new Error(`비공개로는 저장했지만 주소는 아직 닫히지 않았어요. ${closed.error}`);
+        }
         allowLeave();
         router.push(`/projects/${initialData.id}`);
       } else {
@@ -994,6 +1010,12 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
             </div>
           </div>
 
+          {closesDomain && (
+            <div role="status" className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
+              비공개로 저장하면 이 프로젝트의 주소 <span className="font-mono font-semibold">{subdomainName}.dshs.dev</span>도 반납돼요. 저장할 때 한 번 더 물어봐요.
+            </div>
+          )}
+
           {visibility === "private" && (
             <div className="animate-in fade-in slide-in-from-top-2">
               <div className="space-y-2">
@@ -1164,6 +1186,39 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
             </button>
             <button type="button" onClick={() => finishDomainOffer(true)} className={cn(buttonVariants(), "rounded-xl", SECTION_COLORS.domains.button)}>
               도메인 마련하기
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showPrivateDialog} onOpenChange={setShowPrivateDialog}>
+        <DialogContent showCloseButton={false} className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg">비공개로 바꾸면 주소도 닫혀요</DialogTitle>
+            <DialogDescription>
+              <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-200">{subdomainName}.dshs.dev</span> 주소를 반납해요.
+            </DialogDescription>
+          </DialogHeader>
+          <ul className="list-disc space-y-1.5 pl-5 text-sm text-zinc-600 dark:text-zinc-400">
+            <li>이 주소로는 더 이상 사이트가 열리지 않아요.</li>
+            <li>이름이 풀려서 다른 사람이 바로 가져갈 수 있어요.</li>
+            <li>방문 주소가 이 주소였다면 도메인을 받기 전 주소로 돌아가요. 기억된 주소가 없으면 비워져요.</li>
+            <li>다시 공개로 바꿔도 주소는 돌아오지 않아요. 도메인 마련하기에서 새로 받아야 해요.</li>
+          </ul>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setShowPrivateDialog(false)}
+              className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowPrivateDialog(false); void saveProject(); }}
+              className={cn(buttonVariants(), "rounded-xl bg-red-600 text-white hover:bg-red-700")}
+            >
+              비공개로 바꾸고 주소 반납
             </button>
           </DialogFooter>
         </DialogContent>
