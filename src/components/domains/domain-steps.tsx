@@ -10,9 +10,10 @@ import {
   checkNameAvailable,
   releaseSubdomain,
   reserveSubdomain,
+  setSiteAddress,
 } from "@/lib/domains/actions";
 import { buildVerifyPrompt } from "@/lib/domains/ai-prompt";
-import { HOST_PRESETS, isRedirectHost } from "@/lib/domains/hosts";
+import { HOST_PRESETS, isRedirectHost, siteAddressFor } from "@/lib/domains/hosts";
 import { normalizeName } from "@/lib/domains/name";
 import type { DomainProjectRow, DomainView } from "@/lib/domains/read";
 import { VERIFY_FILE_PATH, VERIFY_META_NAME } from "@/lib/domains/verify";
@@ -159,54 +160,28 @@ function CopyButton({ text, label, idle = "복사", className = SECONDARY }: { t
   );
 }
 
-const RESULT_TEXT: Record<string, string> = {
+// ② 원래 주소 확인 결과
+const SITE_RESULT_TEXT: Record<string, string> = {
+  unreachable: "내 사이트가 아직 열리지 않아요. 주소가 맞는지, 배포가 끝났는지 확인해요.",
+  not_found_page: "호스트가 이 주소의 사이트를 찾지 못해요. 주소가 맞는지, 배포가 끝났는지 확인해요.",
+  no_token: "사이트는 열리는데 확인 코드가 안 보여요. 코드를 넣고 다시 배포해요.",
+};
+// ③ 연결 뒤 실제 주소 확인 결과
+const CONNECT_RESULT_TEXT: Record<string, string> = {
   unreachable: "아직 열리지 않아요. 호스트에 주소를 등록했는지 확인하고, 인증서 발급에 몇 분 걸릴 수 있어요.",
   not_found_page: "호스트가 이 주소의 사이트를 찾지 못해요. 호스트 설정에 주소를 추가했는지 확인해요.",
-  no_token: "사이트는 열리는데 확인 코드가 안 보여요. 코드를 넣고 다시 배포해요.",
+  no_token: "주소는 열리는데 확인 코드가 안 보여요. ②에서 확인한 사이트에 연결했는지 확인해요.",
 };
 // 바로가기는 보낼 곳 사이트를 확인한다 — 호스트 쪽 주소 등록이 없다
 const REDIRECT_RESULT_TEXT: Record<string, string> = {
-  ...RESULT_TEXT,
-  unreachable: "보낼 곳 사이트가 아직 열리지 않아요. 주소가 맞는지, 배포가 끝났는지 확인해요.",
-  not_found_page: "보낼 곳 사이트를 찾지 못해요. 주소가 맞는지, 배포가 끝났는지 확인해요.",
+  ...CONNECT_RESULT_TEXT,
+  unreachable: "보낼 곳 사이트가 아직 열리지 않아요. 배포가 끝났는지 확인해요.",
+  not_found_page: "보낼 곳 사이트를 찾지 못해요. 배포가 끝났는지 확인해요.",
 };
 
-// ③ 확인 코드 + 연결 확인 (결과는 DomainList 의 useDomainChecks 가 쥐고 있다 — 접혀 있어도 자동으로 확인하므로)
-function VerifyStep({ domain, check, auto, onCheck }: { domain: DomainView; check: CheckState; auto: AutoState; onCheck: () => void }) {
-  const meta = `<meta name="${VERIFY_META_NAME}" content="${domain.verifyToken}">`;
-  const prompt = buildVerifyPrompt({ name: domain.name, token: domain.verifyToken, host: domain.host, target: domain.target });
-  const resultText = isRedirectHost(domain.host) ? REDIRECT_RESULT_TEXT : RESULT_TEXT;
-
+function CheckControls({ check, auto, onCheck, texts }: { check: CheckState; auto: AutoState; onCheck: () => void; texts: Record<string, string> }) {
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
-        이 주소가 내 사이트인지 확인하는 코드예요. 아래 글을 AI에게 그대로 보내면 코드를 넣고 다시 배포해 줘요. 배포가 끝나면 이 화면이 알아서 확인해요.
-      </p>
-      <div>
-        <CopyButton text={prompt} label="AI에게 보낼 글 복사" idle="AI에게 보낼 글 복사" className={PRIMARY} />
-      </div>
-      <details className="text-xs text-zinc-500 dark:text-zinc-400">
-        <summary className="cursor-pointer">보낼 글 미리 보기</summary>
-        <pre className="mt-1.5 max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-zinc-100 px-3 py-2 font-mono text-xs text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
-          {prompt}
-        </pre>
-      </details>
-      <details className="text-xs text-zinc-500 dark:text-zinc-400">
-        <summary className="cursor-pointer">코드 한 줄만 직접 넣고 싶다면</summary>
-        <div className="mt-1.5 flex flex-col gap-2 sm:flex-row sm:items-center">
-          <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-xl bg-zinc-100 px-3 py-2 font-mono text-xs text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
-            {meta}
-          </code>
-          <CopyButton text={meta} label="확인 코드 복사" />
-        </div>
-      </details>
-      <details className="text-xs text-zinc-500 dark:text-zinc-400">
-        <summary className="cursor-pointer">HTML 페이지가 아닌 사이트라면</summary>
-        <p className="mt-1.5">
-          <code className="font-mono">{VERIFY_FILE_PATH}</code> 파일을 만들고 내용으로{" "}
-          <code className="font-mono">{domain.verifyToken}</code> 한 줄만 넣어도 돼요.
-        </p>
-      </details>
+    <>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <button type="button" disabled={check.checking} onClick={onCheck} className={PRIMARY}>
           {check.checking && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
@@ -224,12 +199,149 @@ function VerifyStep({ domain, check, auto, onCheck }: { domain: DomainView; chec
       <div aria-live="polite">
         {check.result && check.result !== "ok" && (
           <>
-            <p className="text-sm text-amber-700 dark:text-amber-400">{resultText[check.result]}</p>
+            <p className="text-sm text-amber-700 dark:text-amber-400">{texts[check.result]}</p>
             {check.detail && <p className="mt-1 font-mono text-xs text-zinc-500 dark:text-zinc-400">자세한 이유: {check.detail}</p>}
           </>
         )}
         {check.error && <ErrorText>{check.error}</ErrorText>}
       </div>
+    </>
+  );
+}
+
+const INPUT =
+  "min-w-0 flex-1 rounded-xl border border-zinc-300 bg-white px-3 py-2 font-mono text-sm outline-none focus:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-950";
+
+// ② 내 사이트 원래 주소 + 확인 코드. 확인 전에는 주소를 붙이지 않으므로 이 주소(예: omm.vercel.app)에서 확인한다.
+// 결과는 DomainList 의 useDomainChecks 가 쥐고 있다 — 접혀 있어도 자동으로 확인하므로.
+function SiteStep({
+  domain,
+  projectUrl,
+  check,
+  auto,
+  onCheck,
+  onSaved,
+}: {
+  domain: DomainView;
+  projectUrl: string;
+  check: CheckState;
+  auto: AutoState;
+  onCheck: () => void;
+  onSaved: () => void;
+}) {
+  const router = useRouter();
+  const [raw, setRaw] = useState(domain.siteUrl ?? siteAddressFor(projectUrl)?.url ?? "");
+  const [error, setError] = useState("");
+  const [pending, start] = useTransition();
+  const parsed = siteAddressFor(raw);
+  // 저장된 주소와 같고 아직 확인 전이면 확인 코드 안내를 보여 준다
+  const saved = domain.siteUrl !== null && parsed?.url === domain.siteUrl && !domain.siteVerified;
+
+  const save = () =>
+    start(async () => {
+      setError("");
+      const r = await setSiteAddress(domain.id, raw);
+      if (!r.ok) return setError(r.error);
+      setRaw(r.data.siteUrl);
+      onSaved();
+      router.refresh();
+    });
+
+  const siteUrl = domain.siteUrl ?? "";
+  const meta = `<meta name="${VERIFY_META_NAME}" content="${domain.verifyToken}">`;
+  const prompt = buildVerifyPrompt({ name: domain.name, token: domain.verifyToken, host: domain.siteHost, siteUrl });
+
+  return (
+    <div className="flex flex-col gap-3">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (parsed && !saved) save();
+        }}
+        className="flex flex-col gap-1.5"
+      >
+        <label htmlFor={`site-${domain.id}`} className="text-sm text-zinc-600 dark:text-zinc-400">
+          호스트가 처음 준 내 사이트 주소를 넣어요. 이 주소에서 내 사이트가 맞는지 확인해요.
+        </label>
+        <div className="flex max-w-xl flex-col gap-2 sm:flex-row">
+          <input
+            id={`site-${domain.id}`}
+            value={raw}
+            onChange={(e) => setRaw(e.target.value)}
+            placeholder="https://이름.vercel.app"
+            autoComplete="off"
+            spellCheck={false}
+            aria-describedby={`site-hint-${domain.id}`}
+            className={INPUT}
+          />
+          {!saved && (
+            <button type="submit" disabled={!parsed || pending} className={PRIMARY}>
+              {pending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}이 주소로 확인할게요
+            </button>
+          )}
+        </div>
+        <p id={`site-hint-${domain.id}`} aria-live="polite" className="text-xs">
+          {!raw.trim() || parsed ? (
+            <span className="text-zinc-500 dark:text-zinc-400">
+              {parsed ? `${HOST_PRESETS[parsed.host].label} 주소예요.` : "예: 이름.vercel.app · 이름.netlify.app · 아이디.github.io/저장소"}
+            </span>
+          ) : (
+            <span className="text-red-600 dark:text-red-400">
+              Vercel·Netlify·Cloudflare·GitHub·GitLab·Render·Railway·Firebase가 준 기본 주소(https://…)만 넣을 수 있어요.
+            </span>
+          )}
+        </p>
+        {error && <ErrorText>{error}</ErrorText>}
+      </form>
+
+      {saved && (
+        <>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            아래 글을 AI에게 그대로 보내면 확인 코드를 넣고 다시 배포해 줘요. 배포가 끝나면 이 화면이 알아서 확인해요.
+          </p>
+          <div>
+            <CopyButton text={prompt} label="AI에게 보낼 글 복사" idle="AI에게 보낼 글 복사" className={PRIMARY} />
+          </div>
+          <details className="text-xs text-zinc-500 dark:text-zinc-400">
+            <summary className="cursor-pointer">보낼 글 미리 보기</summary>
+            <pre className="mt-1.5 max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-zinc-100 px-3 py-2 font-mono text-xs text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
+              {prompt}
+            </pre>
+          </details>
+          <details className="text-xs text-zinc-500 dark:text-zinc-400">
+            <summary className="cursor-pointer">코드 한 줄만 직접 넣고 싶다면</summary>
+            <div className="mt-1.5 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-xl bg-zinc-100 px-3 py-2 font-mono text-xs text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
+                {meta}
+              </code>
+              <CopyButton text={meta} label="확인 코드 복사" />
+            </div>
+          </details>
+          <details className="text-xs text-zinc-500 dark:text-zinc-400">
+            <summary className="cursor-pointer">HTML 페이지가 아닌 사이트라면</summary>
+            <p className="mt-1.5">
+              <code className="font-mono">{VERIFY_FILE_PATH}</code> 파일을 만들고 내용으로{" "}
+              <code className="font-mono">{domain.verifyToken}</code> 한 줄만 넣어도 돼요.
+            </p>
+          </details>
+          <CheckControls check={check} auto={auto} onCheck={onCheck} texts={SITE_RESULT_TEXT} />
+        </>
+      )}
+    </div>
+  );
+}
+
+// ③ 연결 뒤 — 실제 주소가 열리는지(코드는 ②에서 이미 넣었다)
+function ConnectStatus({ domain, check, auto, onCheck }: { domain: DomainView; check: CheckState; auto: AutoState; onCheck: () => void }) {
+  const redirect = isRedirectHost(domain.host);
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        {redirect
+          ? "바로가기를 만들었어요. 내 사이트에서 확인 코드가 보이면 연결됨으로 바뀌어요."
+          : "호스트 설정을 마치면 이 화면이 알아서 확인해요. 호스트가 인증서를 받는 데 몇 분 걸려요."}
+      </p>
+      <CheckControls check={check} auto={auto} onCheck={onCheck} texts={redirect ? REDIRECT_RESULT_TEXT : CONNECT_RESULT_TEXT} />
     </div>
   );
 }
@@ -323,15 +435,19 @@ export function DomainSteps({
   onCheck: () => void;
 }) {
   const [reconnect, setReconnect] = useState(false);
+  const [changeSite, setChangeSite] = useState(false);
   // "바꾸기" 직후 project.url 이 새 주소로 바뀌므로, 안내에 쓸 옛 주소는 누르는 순간에 붙잡아 둔다
   const [urlChange, setUrlChange] = useState<{ from: string | null; open: boolean } | null>(null);
   const fqdn = domain ? `${domain.name}.dshs.dev` : null;
   const connected = domain !== null && domain.status !== "reserved";
-  const showHost = domain !== null && (!connected || reconnect);
+  const verified = domain !== null && domain.siteVerified;
+  const showSite = domain !== null && (!verified || changeSite);
+  const showHost = verified && !showSite && (!connected || reconnect);
   const urlIsDomain = fqdn !== null && project.url?.replace(/\/+$/, "") === `https://${fqdn}`;
   // 바로가기는 사이트가 원래 주소에서 그대로 돌아서 DB·로그인 설정을 바꿀 일이 없다 → 안내 창 없음
   const redirect = isRedirectHost(domain?.host ?? null);
   const hostLabel = domain?.host ? HOST_PRESETS[domain.host].label : "호스트";
+  const siteHostname = domain?.siteUrl ? new URL(domain.siteUrl).hostname : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -349,35 +465,60 @@ export function DomainSteps({
 
         <Step
           n={2}
-          state={!domain ? "todo" : showHost ? "current" : "done"}
-          title={connected && !showHost ? (redirect ? `${hostLabel} 바로가기` : `${hostLabel}에 연결함`) : "어디에 올렸어요?"}
+          state={!domain ? "todo" : showSite ? "current" : "done"}
+          title={
+            verified && !showSite ? (
+              <>
+                내 사이트 확인됨{siteHostname && <> · <span className="font-mono">{siteHostname}</span></>}
+              </>
+            ) : (
+              "내 사이트에 확인 코드 넣기"
+            )
+          }
         >
-          {domain && showHost && (
-            <HostPicker domain={domain} projectUrl={project.url ?? ""} onDone={() => setReconnect(false)} />
+          {domain && showSite && (
+            <SiteStep domain={domain} projectUrl={project.url ?? ""} check={check} auto={auto} onCheck={onCheck} onSaved={() => setChangeSite(false)} />
           )}
-          {domain && connected && !showHost && (
-            <button type="button" onClick={() => setReconnect(true)} className="text-xs text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
-              호스트를 바꿨다면 다시 연결하기
+          {domain && verified && changeSite && (
+            <button type="button" onClick={() => setChangeSite(false)} className="mt-2 text-xs text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
+              바꾸지 않을게요
+            </button>
+          )}
+          {domain && verified && !showSite && (
+            <button type="button" onClick={() => setChangeSite(true)} className="text-xs text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
+              다른 사이트로 바꿨다면 다시 확인하기
             </button>
           )}
         </Step>
 
         <Step
           n={3}
-          state={!connected ? "todo" : domain.status === "active" ? "done" : "current"}
+          state={!verified || showSite ? "todo" : domain.status === "active" && !showHost ? "done" : "current"}
           title={
-            domain?.status === "active"
+            domain?.status === "active" && !showHost
               ? redirect
-                ? "확인됨 — 이 주소로 들어오면 내 사이트로 넘어가요"
-                : "연결 확인됨 — 내 사이트가 이 주소로 열려요"
-              : "연결 확인"
+                ? "연결됨 — 이 주소로 들어오면 내 사이트로 넘어가요"
+                : "연결됨 — 내 사이트가 이 주소로 열려요"
+              : connected && !showHost
+                ? redirect
+                  ? `${hostLabel} 바로가기 확인 중`
+                  : `${hostLabel}에 연결함 — 확인 중`
+                : "호스트에 연결하기"
           }
         >
-          {connected && domain.status !== "active" && <VerifyStep domain={domain} check={check} auto={auto} onCheck={onCheck} />}
-          {connected && domain.status === "active" && (
+          {domain && showHost && <HostPicker domain={domain} onDone={() => setReconnect(false)} />}
+          {domain && connected && !showHost && !showSite && domain.status !== "active" && (
+            <ConnectStatus domain={domain} check={check} auto={auto} onCheck={onCheck} />
+          )}
+          {domain && connected && !showHost && !showSite && domain.status === "active" && (
             <a href={`https://${fqdn}`} target="_blank" rel="noopener noreferrer" className={cn(SECONDARY, "h-8")}>
               {fqdn} 열기
             </a>
+          )}
+          {domain && connected && !showHost && !showSite && (
+            <button type="button" onClick={() => setReconnect(true)} className="mt-2 block text-xs text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
+              호스트 설정을 바꿨다면 다시 연결하기
+            </button>
           )}
         </Step>
       </ol>

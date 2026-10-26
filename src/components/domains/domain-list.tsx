@@ -23,6 +23,12 @@ function daysLeft(since: string): number {
 
 function StatusPill({ domain }: { domain: DomainView }) {
   const base = "rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap";
+  const waiting = cn(base, "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300");
+  // 연결된 적 없는 주소는 7일 뒤 자동 반납 — 모르고 쓰다가 끊기지 않게 남은 날을 늘 보여 준다(호스트에 연결했으면 그때부터)
+  const neverLeft = () => {
+    const since = domain.connectedAt && new Date(domain.connectedAt) > new Date(domain.createdAt) ? domain.connectedAt : domain.createdAt;
+    return `${daysLeft(since)}일 뒤 자동 반납`;
+  };
   switch (domain.status) {
     case "active":
       return <span className={cn(base, "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300")}>연결됨</span>;
@@ -34,8 +40,10 @@ function StatusPill({ domain }: { domain: DomainView }) {
       );
     case "revoked":
       return <span className={cn(base, "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300")}>회수됨</span>;
+    case "reserved":
+      return <span className={waiting}>{domain.siteVerified ? "연결 기다림" : "확인 기다림"} · {neverLeft()}</span>;
     default:
-      return <span className={cn(base, "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300")}>설정 중</span>;
+      return <span className={waiting}>설정 중{domain.everActive ? "" : ` · ${neverLeft()}`}</span>;
   }
 }
 

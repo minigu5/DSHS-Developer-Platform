@@ -9,8 +9,9 @@ import { startPoller } from "@/lib/domains/poller";
 import type { DomainView } from "@/lib/domains/read";
 import type { CheckResult } from "@/lib/domains/verify";
 
-// 호스트 연결까지 끝낸(설정 중·끊김) 주소는 화면을 열어 두는 동안 알아서 확인한다.
-// 인증서 발급·배포에 몇 분 걸려서, 학생이 확인하기를 눌러 가며 기다리지 않게 하려는 것.
+// 화면을 열어 두는 동안 알아서 확인한다: ② 원래 주소를 넣고 아직 확인 전인 주소(원래 주소에서),
+// 호스트 연결까지 끝낸(설정 중·끊김) 주소(실제 주소에서). 배포·인증서 발급에 몇 분 걸려서,
+// 학생이 확인하기를 눌러 가며 기다리지 않게 하려는 것.
 export const AUTO_INTERVAL_MS = 20_000;
 export const AUTO_MAX_ROUNDS = 30; // 20초 × 30 = 10분
 const WAKE_MIN_GAP_MS = 5_000;
@@ -41,7 +42,7 @@ export function useDomainChecks(domains: DomainView[]) {
   const pollKey = useMemo(
     () =>
       domains
-        .filter((d) => d.status === "pending" || d.status === "broken")
+        .filter((d) => d.status === "pending" || d.status === "broken" || (d.status === "reserved" && d.siteUrl !== null && !d.siteVerified))
         .map((d) => d.id)
         .sort()
         .join(","),
@@ -61,7 +62,10 @@ export function useDomainChecks(domains: DomainView[]) {
         }
         setStates((s) => ({ ...s, [id]: { checking: false, result: r.data.result, detail: r.data.detail, error: "" } }));
         const before = known.current[id];
-        if (before && before.status !== r.data.status) {
+        if (before && !before.siteVerified && r.data.siteVerified) {
+          toast.success("내 사이트가 확인됐어요. 이제 호스트에 연결해요");
+          router.refresh();
+        } else if (before && before.status !== r.data.status) {
           if (r.data.status === "active") toast.success(`${before.name}.dshs.dev 연결이 확인됐어요`);
           router.refresh();
         }

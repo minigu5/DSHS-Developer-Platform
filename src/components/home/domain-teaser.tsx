@@ -8,8 +8,8 @@ import type { DomainShowcase } from "@/lib/domains/read";
 
 const STEPS = [
   { title: "이름 정하기", body: "원하는 이름을 먼저 차지해요. 선착순이에요." },
-  { title: "호스트에 등록", body: "Vercel·Netlify·GitHub Pages·Render 설정에 주소를 넣어요." },
-  { title: "연결 확인", body: "확인 코드를 사이트에 붙이고 \"확인하기\"를 눌러요." },
+  { title: "확인 코드 넣기", body: "AI에게 글을 보내 내 사이트에 확인 코드를 넣어요." },
+  { title: "호스트에 연결", body: "Vercel·Netlify·GitHub Pages·Render 설정에 주소를 넣어요." },
 ] as const;
 
 // 이보다 적으면 "벌써 N개"가 오히려 휑해 보여서 숨긴다
