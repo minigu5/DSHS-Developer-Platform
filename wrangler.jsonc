@@ -28,7 +28,10 @@
   "vars": {
     "ALLOWED_EMAIL_DOMAIN": "ts.hs.kr",
     // 도메인 마련하기(서브도메인) — dshs.dev 존. 토큰은 secret CLOUDFLARE_DNS_API_TOKEN
-    "CLOUDFLARE_ZONE_ID": "c9fac6d72c704d4836b837590f18e144"
+    "CLOUDFLARE_ZONE_ID": "c9fac6d72c704d4836b837590f18e144",
+    // 바로가기 주소(Workers·Firebase) — 계정의 Bulk Redirect 목록. 토큰은 secret CLOUDFLARE_LISTS_API_TOKEN
+    "CLOUDFLARE_ACCOUNT_ID": "370e521d89a70d895de8448a36449b93",
+    "CLOUDFLARE_REDIRECT_LIST_ID": "f31dbc9f2bbb42deb5aea342330b41b5"
   }
 
   // dshs.dev 영역이 이 계정에 추가된 뒤 주석 해제 (위 "vars" 블록 끝에 쉼표 추가)
