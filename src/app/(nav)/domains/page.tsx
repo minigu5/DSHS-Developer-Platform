@@ -19,15 +19,18 @@ export const metadata = {
 
 const MAX_DOMAINS = 3;
 
-export default async function DomainsPage() {
+export default async function DomainsPage({ searchParams }: { searchParams: Promise<{ project?: string }> }) {
+  const { project: requested } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/domains");
+  if (!user) redirect(`/login?next=${encodeURIComponent(requested ? `/domains?project=${requested}` : "/domains")}`);
 
   const rows = await listMyDomainProjects(user.id);
   const used = rows.filter((r) => r.domain && LIVE_STATUSES.includes(r.domain.status)).length;
+  // 등록 직후 "도메인 마련하기"로 왔을 때(?project=) 그 줄을 펼친다 — 내 목록에 있고 아직 주소가 없을 때만
+  const openRow = rows.find((r) => r.project.id === requested && r.project.url && !r.domain && used < MAX_DOMAINS);
 
   return (
     <div className="flex min-h-screen flex-col bg-white dark:bg-zinc-950">
@@ -63,7 +66,7 @@ export default async function DomainsPage() {
             </Link>
           </div>
         ) : (
-          <DomainList rows={rows} limitReached={used >= MAX_DOMAINS} />
+          <DomainList rows={rows} limitReached={used >= MAX_DOMAINS} initialOpen={openRow?.project.id ?? null} />
         )}
 
         <p className="mt-8 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">

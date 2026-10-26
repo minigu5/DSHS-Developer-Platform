@@ -119,6 +119,7 @@
 - DB `public.subdomains` — RLS SELECT만, 쓰기는 `service_role` 전용 `subdomain_*` 함수(`supabase/migrations/20261025100000_subdomains.sql`). 서버 액션 `src/lib/domains/actions.ts`, 순수 로직 `src/lib/domains/*.ts`(테스트 `node --test`), 매일 점검 `.github/workflows/check-subdomains.yml`.
 - 보안: 운영 세션 쿠키는 `__Host-` 접두사, `Domain=.dshs.dev` 쿠키 금지, 쿠키 인증 Route Handler는 `isSameOrigin()` 필수. 자세한 내용은 `CLAUDE.md` 「🌐 도메인 마련하기」.
 - 환경변수: `CLOUDFLARE_DNS_API_TOKEN`(dshs.dev DNS 편집 전용), `CLOUDFLARE_ZONE_ID`.
+- 프로젝트 새 등록 직후 방문 주소가 연결 가능한 호스트 무료 주소(`detectHost`)면 "도메인 마련하기" 권유 창 → `/domains?project=<id>`가 그 줄을 펼치고 이름 칸에 포커스. 주소 3개를 다 썼으면 묻지 않음.
 
 ## 🌐 외부 서비스 정보
 
@@ -225,3 +226,13 @@ src/
 - [`docs/05-supabase-alter-2.sql`](./docs/05-supabase-alter-2.sql) — 접근 권한 및 커스텀 기능 관련 컬럼 추가
 - [`docs/06-supabase-alter-users.sql`](./docs/06-supabase-alter-users.sql) — users 테이블 닉네임, 자기소개 컬럼 추가
 - [`.env.local.example`](./.env.local.example) — 환경 변수 템플릿
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

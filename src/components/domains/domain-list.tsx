@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 
@@ -54,11 +54,27 @@ function isLive(d: DomainView | null): d is DomainView {
   return d !== null && d.status !== "revoked";
 }
 
-export function DomainList({ rows, limitReached }: { rows: DomainProjectRow[]; limitReached: boolean }) {
-  const [open, setOpen] = useState<string | null>(null);
+export function DomainList({
+  rows,
+  limitReached,
+  initialOpen = null,
+}: {
+  rows: DomainProjectRow[];
+  limitReached: boolean;
+  /** 프로젝트 등록 직후 "도메인 마련하기"로 들어오면 그 줄을 펼친 채로 시작 */
+  initialOpen?: string | null;
+}) {
+  const [open, setOpen] = useState<string | null>(initialOpen);
   // 패널이 접혀 있어도 호스트 연결을 마친 주소는 여기서 자동으로 확인한다
   const liveDomains = useMemo(() => rows.flatMap((r) => (isLive(r.domain) ? [r.domain] : [])), [rows]);
   const checks = useDomainChecks(liveDomains);
+
+  // 펼친 채로 들어왔으면 그 줄로 스크롤하고 이름 칸에 바로 쓸 수 있게
+  useEffect(() => {
+    if (!initialOpen) return;
+    document.getElementById(`domain-row-${initialOpen}`)?.scrollIntoView({ block: "center" });
+    document.getElementById(`name-${initialOpen}`)?.focus({ preventScroll: true });
+  }, [initialOpen]);
 
   return (
     <ul className="flex flex-col gap-3">
@@ -78,6 +94,7 @@ export function DomainList({ rows, limitReached }: { rows: DomainProjectRow[]; l
         return (
           <li
             key={project.id}
+            id={`domain-row-${project.id}`}
             className={cn(
               "rounded-2xl border bg-white dark:bg-zinc-900",
               expanded ? "border-zinc-400 dark:border-zinc-600" : "border-zinc-200 dark:border-zinc-800",

@@ -33,6 +33,7 @@ import { SECTION_COLORS } from "@/lib/section-colors";
 import { Markdown } from "@/components/shared/markdown";
 import { parseGithubRepo } from "@/lib/github-readme";
 import { deleteProject } from "@/lib/projects/actions";
+import { detectHost, HOST_PRESETS } from "@/lib/domains/hosts";
 import { createClient } from "@/lib/supabase/client";
 import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 import type { ProjectRow } from "@/lib/types";
@@ -71,6 +72,8 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  // 등록 직후 방문 주소가 호스트 무료 주소(.vercel.app 등)면 도메인 마련하기를 권한다
+  const [domainOffer, setDomainOffer] = useState<{ projectId: string; host: string; hostname: string } | null>(null);
 
   const [title, setTitle] = useState<string>(initialData?.title ?? "");
   const [types, setTypes] = useState<string[]>(initialData?.types ?? []);
@@ -464,6 +467,28 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
     router.refresh();
   };
 
+  // 도메인 마련하기로 연결할 수 있는 호스트 주소이고, 주소를 아직 3개 다 쓰지 않았을 때만
+  const domainOfferFor = async (rawUrl: string, userId: string) => {
+    const trimmed = rawUrl.trim();
+    const full = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    const detected = detectHost(full);
+    if (!detected) return null;
+    const { count, error } = await supabase
+      .from('subdomains')
+      .select('id', { count: 'exact', head: true })
+      .eq('owner_id', userId)
+      .in('status', ['reserved', 'pending', 'active', 'broken']);
+    if (!error && (count ?? 0) >= 3) return null;
+    return { host: HOST_PRESETS[detected.host].label, hostname: new URL(full).hostname };
+  };
+
+  // 권유 창을 닫으면 원래대로 프로젝트 페이지로
+  const finishDomainOffer = (takeDomain: boolean) => {
+    if (!domainOffer) return;
+    router.push(takeDomain ? `/domains?project=${domainOffer.projectId}` : `/projects/${domainOffer.projectId}`);
+    router.refresh();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
@@ -614,6 +639,11 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         const { data, error } = await supabase.from('projects').insert([{ ...commonFields, author_id: session.user.id }]).select().single();
         if (error) throw error;
         allowLeave();
+        const offer = isWebsite ? await domainOfferFor(url, session.user.id) : null;
+        if (offer) {
+          setDomainOffer({ projectId: data.id, ...offer });
+          return;
+        }
         router.push(`/projects/${data.id}`);
       }
       
@@ -1118,6 +1148,26 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
       </form>
 
       <FormRail sections={railSections} requiredDone={requiredDone} requiredTotal={requiredFlags.length} className="sticky top-24 hidden w-[200px] shrink-0 lg:grid" />
+
+      <Dialog open={domainOffer !== null} onOpenChange={(open) => { if (!open) finishDomainOffer(false); }}>
+        <DialogContent showCloseButton={false} className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg">등록했어요! 짧은 주소도 받을까요?</DialogTitle>
+            <DialogDescription>
+              지금 방문 주소는 {domainOffer?.host} 무료 주소(<span className="font-mono">{domainOffer?.hostname}</span>)예요.
+              도메인 마련하기로 <span className="font-mono">이름.dshs.dev</span> 같은 주소를 붙일 수 있어요.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button type="button" onClick={() => finishDomainOffer(false)} className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}>
+              나중에
+            </button>
+            <button type="button" onClick={() => finishDomainOffer(true)} className={cn(buttonVariants(), "rounded-xl", SECTION_COLORS.domains.button)}>
+              도메인 마련하기
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showReadmeDialog} onOpenChange={(open) => { if (!open) cancelReadmeDialog(); }}>
         <DialogContent showCloseButton={false} className="rounded-2xl">
