@@ -175,7 +175,10 @@ if (redirectClient) {
         console.log(`  ↪️  바로가기 규칙 동작 확인(${sample.name}.dshs.dev)`);
       } else {
         failures++;
-        console.error(`  ❌  바로가기 규칙이 동작하지 않아요(${sample.name}.dshs.dev, status ${page.status})`);
+        // Cloudflare 가 이 서버(데이터센터 IP)를 막는 것인지 가리려고 응답 머리와 본문 앞부분을 남긴다(공개 로그라 그 정도만)
+        const hint = ['cf-mitigated', 'cf-ray', 'server', 'content-type'].map((h) => `${h}=${page.headers.get(h) ?? '-'}`).join(' ');
+        const snippet = page.status === 403 ? ` body="${page.body.replace(/\s+/g, ' ').slice(0, 200)}"` : '';
+        console.error(`  ❌  바로가기 규칙이 동작하지 않아요(${sample.name}.dshs.dev, status ${page.status}, ${hint}${snippet})`);
       }
     }
     // 확인 전 자리표시(경고 페이지로 302)도 같은 규칙을 쓰지만 보내는 곳이 달라 따로 본다
