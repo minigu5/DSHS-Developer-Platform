@@ -22,7 +22,7 @@ export function AuthShell({ children, mark = "logo" }: { children: ReactNode; ma
       <div className="relative z-10 flex w-full max-w-[400px] flex-col items-center text-center sm:max-w-[620px]">
         {mark === "logo" ? (
           <span
-            className="rise block h-16 w-16 overflow-hidden rounded-[20px] shadow-[0_8px_20px_-8px_rgba(0,0,0,0.25)] sm:h-[84px] sm:w-[84px] sm:rounded-[26px]"
+            className="rise block h-16 w-16 overflow-hidden rounded-[20px] shadow-[0_8px_20px_-8px_rgba(0,0,0,0.25)] dark:ring-1 dark:ring-zinc-700 sm:h-[84px] sm:w-[84px] sm:rounded-[26px]"
             aria-hidden
           >
             <Image src="/logo.svg" alt="" width={84} height={84} className="block h-full w-full" />

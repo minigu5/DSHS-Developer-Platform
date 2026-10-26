@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,6 +29,16 @@ export function OnboardingForm({ user }: { user: User }) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  // 단계가 바뀌면 누른 버튼이 사라지므로 새 제목으로 포커스를 옮긴다(첫 화면은 그대로)
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const firstStepRender = useRef(true);
+  useEffect(() => {
+    if (firstStepRender.current) {
+      firstStepRender.current = false;
+      return;
+    }
+    titleRef.current?.focus();
+  }, [step]);
 
   const form = useForm<OnboardingValues>({
     resolver: zodResolver(onboardingSchema),
@@ -120,7 +130,7 @@ export function OnboardingForm({ user }: { user: User }) {
       >
         {step} / 2단계
       </span>
-      <h1 className={cn(AUTH_TITLE_CLASS, "mt-3 sm:mt-3 sm:text-[40px]")} style={riseDelay(90)}>
+      <h1 ref={titleRef} tabIndex={-1} className={cn(AUTH_TITLE_CLASS, "mt-3 outline-none sm:mt-3 sm:text-[40px]")} style={riseDelay(90)}>
         {step === 1 ? "닉네임 정하기" : "관심 분야 고르기"}
       </h1>
       <p className={AUTH_LEAD_CLASS} style={riseDelay(120)}>

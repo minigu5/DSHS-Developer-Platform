@@ -26,20 +26,3 @@ export function announcementCategoryLabel(category: string): string {
 export function announcementCategoryColor(category: string): string {
   return ANNOUNCEMENT_CATEGORY_COLORS[category] ?? ANNOUNCEMENT_CATEGORY_COLORS.general;
 }
-
-/** 마크다운 본문에서 카드 요약용 평문 첫 문단을 뽑는다(기호 제거, 최대 120자). */
-export function announcementSummary(content: string, max = 120): string {
-  const firstParagraph = content
-    .split(/\n\s*\n/)
-    .map((p) => p.trim())
-    .find((p) => p.length > 0 && !p.startsWith("```"));
-  if (!firstParagraph) return "";
-  return firstParagraph
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/[#*`>_~]/g, "")
-    .replace(/^\s*[-+]\s+/gm, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, max);
-}

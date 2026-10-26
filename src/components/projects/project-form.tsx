@@ -126,7 +126,10 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   const [userError, setUserError] = useState("");
 
   // 플랫폼 & 기능
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(initialData?.platforms ?? []);
+  // 웹사이트는 모든 플랫폼 — 옛 프로젝트에 일부만 저장돼 있어도 처음부터 전체로 보여 준다
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(() =>
+    initialData?.types?.includes('website') ? PLATFORMS.map(p => p.value) : (initialData?.platforms ?? []),
+  );
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>(initialData?.features ?? []);
   const [featureCustom, setFeatureCustom] = useState<string>(initialData?.feature_custom ?? "");
 
@@ -135,7 +138,6 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
     (initialData?.icon_type === 'link') ? 'link' : (initialData?.icon_type ?? "auto")
   );
   const [iconUrl, setIconUrl] = useState<string>(initialData?.icon_url ?? "");
-  const [iconPreview, setIconPreview] = useState<string | null>(initialData?.icon_url ?? null);
   const [autoIconPreview, setAutoIconPreview] = useState<string | null>(
     initialData?.icon_type === 'auto' ? (initialData?.icon_url ?? null) : null
   );
@@ -145,9 +147,11 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   const [repoUrl, setRepoUrl] = useState<string>(initialData?.repo_url ?? "");
 
   // 라이선스
-  const [licenseFeatures, setLicenseFeatures] = useState<string[]>(initialData?.license_features ?? []);
-  const [hasCustomLicense, setHasCustomLicense] = useState(!!initialData?.license_custom);
-  const [licenseCustom, setLicenseCustom] = useState<string>(initialData?.license_custom ?? "");
+  // 비공개 소스는 라이선스를 저장하지 않으므로 처음부터 비워 둔다
+  const initialClosed = initialData?.source_type === 'closed';
+  const [licenseFeatures, setLicenseFeatures] = useState<string[]>(initialClosed ? [] : (initialData?.license_features ?? []));
+  const [hasCustomLicense, setHasCustomLicense] = useState(!initialClosed && !!initialData?.license_custom);
+  const [licenseCustom, setLicenseCustom] = useState<string>(initialClosed ? "" : (initialData?.license_custom ?? ""));
 
   // GitHub 라이선스 가져오기 — 저장소 링크 입력칸을 벗어날 때, 또는 README를 가져온 뒤 저장소마다 한 번.
   // origin 이 'user' 면(처음부터 값이 있었거나 칩을 직접 건드림) 덮어쓰지 않는다. 'auto' 는 우리가 채운 값이라
@@ -157,7 +161,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   const [licenseNote, setLicenseNote] = useState("");
   const licenseRepoRef = useRef(repoKey(initialData?.repo_url ?? ""));
   const licenseOriginRef = useRef<"none" | "auto" | "user">(
-    initialData?.license_features?.length || initialData?.license_custom ? "user" : "none",
+    !initialClosed && (initialData?.license_features?.length || initialData?.license_custom) ? "user" : "none",
   );
 
   // await 뒤에 다시 읽는 값이라 TS 가 앞선 검사로 좁혀 둔 타입을 쓰지 않게 함수로 읽는다.
@@ -398,9 +402,18 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
     setLicenseFeatures(prev => checked ? [...prev, val] : prev.filter(p => p !== val));
   };
 
+  const isValidUrl = (value: string) => {
+    if (!value) return false;
+    try { new URL(value); return true; } catch { return false; }
+  };
+
   const fetchAutoFavicon = (targetUrl: string) => {
-    if (!targetUrl) { setAutoIconPreview(null); return; }
-    try { new URL(targetUrl); } catch { setAutoIconPreview(null); return; }
+    if (!isValidUrl(targetUrl)) { setAutoIconPreview(null); return; }
+    scheduleFaviconFetch(targetUrl);
+  };
+
+  // 입력이 멈추면 파비콘을 가져온다 — 결과는 타이머 안에서만 상태에 넣는다
+  const scheduleFaviconFetch = (targetUrl: string) => {
     if (autoFaviconTimer.current) clearTimeout(autoFaviconTimer.current);
     autoFaviconTimer.current = setTimeout(async () => {
       try {
@@ -414,18 +427,14 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   };
 
   useEffect(() => {
-    if (iconType === 'auto') fetchAutoFavicon(url);
+    if (iconType === 'auto' && isValidUrl(url)) scheduleFaviconFetch(url);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (isWebsite) {
-      setSelectedPlatforms(PLATFORMS.map(p => p.value));
-    }
-  }, [isWebsite]);
-
   const toggleType = (value: string) => {
-    setTypes(prev => prev.includes(value) ? prev.filter(t => t !== value) : [...prev, value]);
+    const adding = !types.includes(value);
+    setTypes(adding ? [...types, value] : types.filter(t => t !== value));
+    if (adding && value === 'website') setSelectedPlatforms(PLATFORMS.map(p => p.value));
   };
 
   // 편집 모드: 기존 팀원 프로필 로드
@@ -448,8 +457,9 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   }, []);
 
   // Closed Source 전환 시 라이선스 초기화
-  useEffect(() => {
-    if (sourceType === 'closed') {
+  const handleSourceTypeChange = (next: SourceType) => {
+    setSourceType(next);
+    if (next === 'closed') {
       setLicenseFeatures([]);
       setHasCustomLicense(false);
       setLicenseCustom("");
@@ -458,14 +468,12 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
       setLicenseError("");
       setLicenseNote("");
     }
-  }, [sourceType]);
+  };
 
-  // 비공개 팀 프로젝트: 팀원을 allowedUsers에 자동 동기화
-  useEffect(() => {
-    if (visibility === 'private' && authorRole === 'team') {
-      setAllowedUsers(prev => [...new Set([...prev, ...teamMembers])]);
-    }
-  }, [visibility, authorRole, teamMembers]);
+  // 비공개 팀 프로젝트: 팀원은 접근 허용 목록에 늘 들어간다 — 저장할 때 합치고, 화면에도 합쳐 보여 준다
+  const shownAllowedUsers = visibility === 'private' && authorRole === 'team'
+    ? [...new Set([...allowedUsers, ...teamMembers])]
+    : allowedUsers;
 
   // 팀 모드 전환 시 현재 로그인 사용자 자동 추가
   useEffect(() => {
@@ -502,14 +510,12 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
     setIconType(newType);
     if (newType === 'auto') {
       setIconUrl("");
-      setIconPreview(null);
       fetchAutoFavicon(url);
     }
   };
 
   const handleIconChange = (url: string) => {
     setIconUrl(url);
-    setIconPreview(url || null);
   };
 
   // 주소(서브도메인)가 있으면 서버 액션이 먼저 반납하고 DNS 레코드를 지운다
@@ -750,8 +756,10 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
     }
   };
 
-  // 목차 레일·필수 항목 집계 — 필수 7: 아이콘, 이름, 링크, 간단 설명, 상세 설명, 종류, 플랫폼
+  // 목차 레일·필수 항목 집계 — 필수: 아이콘, 이름, 링크, 간단 설명, 상세 설명, 종류 + (앱일 때만) 플랫폼 — handleSubmit 검사와 같게
   const iconReady = iconType === "auto" ? Boolean(url.trim()) : Boolean(iconUrl.trim());
+  const platformsRequired = types.includes("app");
+  const platformsReady = !platformsRequired || selectedPlatforms.length > 0;
   const requiredFlags = [
     iconReady,
     Boolean(title.trim()),
@@ -759,13 +767,13 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
     Boolean(shortDesc.trim()),
     Boolean(description.trim()),
     types.length > 0,
-    selectedPlatforms.length > 0,
+    ...(platformsRequired ? [platformsReady] : []),
   ];
   const requiredDone = requiredFlags.filter(Boolean).length;
   const railSections: FormRailSection[] = [
     { id: "section-basic", title: "기본 정보", done: iconReady && Boolean(title.trim()) && Boolean(url.trim()) && Boolean(shortDesc.trim()) },
     { id: "section-description", title: "상세 설명", done: Boolean(description.trim()) },
-    { id: "section-category", title: "분류", done: types.length > 0 && selectedPlatforms.length > 0 },
+    { id: "section-category", title: "분류", done: types.length > 0 && platformsReady },
     { id: "section-source", title: "소스코드·라이선스", done: sourceType === "closed" || Boolean(repoUrl.trim()) },
     { id: "section-visibility", title: "공개 범위·만든 사람", done: authorRole === "individual" || Boolean(teamName.trim()) },
   ];
@@ -1014,7 +1022,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
                   label={stype.value === "open" ? "오픈소스" : "비공개"}
                   description={stype.value === "open" ? "저장소 링크를 함께 올려요" : "코드는 공개하지 않아요"}
                   selected={sourceType === stype.value}
-                  onSelect={() => setSourceType(stype.value as SourceType)}
+                  onSelect={() => handleSourceTypeChange(stype.value as SourceType)}
                 />
               ))}
             </div>
@@ -1063,8 +1071,8 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
             </div>
           )}
 
-          <div className={cn("grid gap-2.5", sourceType === "closed" && "pointer-events-none select-none opacity-40")}>
-            <Label className={labelClass}>허용하는 것</Label>
+          <div className="grid gap-2.5">
+            <Label className={cn(labelClass, sourceType === "closed" && "opacity-40")}>허용하는 것</Label>
             <div className="flex flex-wrap gap-2">
               {LICENSE_FEATURES.map(lf => (
                 <ToggleChip
@@ -1072,9 +1080,10 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
                   pressed={licenseFeatures.includes(lf.value)}
                   onToggle={() => handleLicenseFeatureChange(lf.value, !licenseFeatures.includes(lf.value))}
                   label={lf.label}
+                  disabled={sourceType === "closed"}
                 />
               ))}
-              <ToggleChip pressed={hasCustomLicense} onToggle={() => { licenseOriginRef.current = "user"; setHasCustomLicense(!hasCustomLicense); }} label="기타 (직접 입력)" />
+              <ToggleChip pressed={hasCustomLicense} onToggle={() => { licenseOriginRef.current = "user"; setHasCustomLicense(!hasCustomLicense); }} label="기타 (직접 입력)" disabled={sourceType === "closed"} />
             </div>
             <p className={hintClass}>
               {sourceType === "closed"
@@ -1157,13 +1166,13 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
                     aria-label="접근 허용 사용자 추가"
                     className={cn(buttonVariants({ variant: "outline" }), "h-11 rounded-xl px-4")}
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-4 h-4" aria-hidden />
                   </button>
                 </div>
                 {userError && <p className="text-xs text-red-500 mt-1">{userError}</p>}
-                {allowedUsers.length > 0 && (
+                {shownAllowedUsers.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-3">
-                    {allowedUsers.map(user => {
+                    {shownAllowedUsers.map(user => {
                       const isTeamMember = authorRole === 'team' && teamMembers.includes(user);
                       return (
                         <div key={user} className={cn("flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium", isTeamMember ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300")}>
@@ -1171,8 +1180,8 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
                           {isTeamMember ? (
                             <span className="text-xs text-blue-500 dark:text-blue-400 ml-0.5">팀원</span>
                           ) : (
-                            <button type="button" onClick={() => removeAllowedUser(user)} className="text-zinc-400 hover:text-red-500 rounded-full p-0.5">
-                              <X className="w-3.5 h-3.5" />
+                            <button type="button" onClick={() => removeAllowedUser(user)} aria-label={`${user} 접근 허용 빼기`} className="text-zinc-400 hover:text-red-500 rounded-full p-0.5">
+                              <X className="w-3.5 h-3.5" aria-hidden />
                             </button>
                           )}
                         </div>
@@ -1212,9 +1221,10 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
                     type="button"
                     onClick={() => void addTeamMember()}
                     disabled={memberLoading}
+                    aria-label="팀원 추가"
                     className={cn(buttonVariants({ variant: "outline" }), "h-11 rounded-xl px-4")}
                   >
-                    {memberLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                    {memberLoading ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> : <Plus className="w-4 h-4" aria-hidden />}
                   </button>
                 </div>
                 {memberError && <p className="text-xs text-red-500 mt-1">{memberError}</p>}
@@ -1228,7 +1238,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
                         <div key={email} className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50">
                           <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-bold shrink-0">
                             {profile?.avatar_url ? (
-                              <img src={profile.avatar_url} alt={name} className="w-full h-full object-cover" />
+                              <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                             ) : (
                               name.charAt(0)
                             )}
@@ -1238,8 +1248,8 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
                             <div className="text-xs text-zinc-500 truncate">{email}{isMe && " · 나"}</div>
                           </div>
                           {!isMe && (
-                            <button type="button" onClick={() => removeTeamMember(email)} className="text-zinc-400 hover:text-red-500 rounded-full p-0.5 shrink-0">
-                              <X className="w-3.5 h-3.5" />
+                            <button type="button" onClick={() => removeTeamMember(email)} aria-label={`팀원 ${name} 빼기`} className="text-zinc-400 hover:text-red-500 rounded-full p-0.5 shrink-0">
+                              <X className="w-3.5 h-3.5" aria-hidden />
                             </button>
                           )}
                         </div>

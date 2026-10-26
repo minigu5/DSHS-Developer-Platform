@@ -20,9 +20,11 @@ type FormRailProps = {
  */
 export function FormRail({ sections, requiredDone, requiredTotal, className }: FormRailProps) {
   const [activeId, setActiveId] = useState<string>(sections[0]?.id ?? "");
+  // sections 배열은 렌더마다 새로 만들어지므로 id 목록이 바뀔 때만 다시 관찰한다
+  const idsKey = sections.map((s) => s.id).join("|");
 
   useEffect(() => {
-    const els = sections.map((s) => document.getElementById(s.id)).filter((el): el is HTMLElement => Boolean(el));
+    const els = idsKey.split("|").map((id) => document.getElementById(id)).filter((el): el is HTMLElement => Boolean(el));
     if (els.length === 0) return;
     const observer = new IntersectionObserver(
       (entries) => {
@@ -35,7 +37,7 @@ export function FormRail({ sections, requiredDone, requiredTotal, className }: F
     );
     els.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-  }, [sections]);
+  }, [idsKey]);
 
   const jump = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });

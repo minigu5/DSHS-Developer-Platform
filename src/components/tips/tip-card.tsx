@@ -40,7 +40,7 @@ export function TipCard({ tip }: { tip: TipCardData }) {
           />
           <Image
             src={tip.cover_url}
-            alt={tip.title}
+            alt=""
             fill
             className="object-contain"
             unoptimized={isExternalImage(tip.cover_url)}
@@ -80,7 +80,7 @@ export function TipCard({ tip }: { tip: TipCardData }) {
               {tip.author?.avatar_url ? (
                 <Image
                   src={tip.author.avatar_url}
-                  alt={authorName}
+                  alt=""
                   fill
                   className="object-cover"
                   unoptimized={isExternalImage(tip.author.avatar_url)}

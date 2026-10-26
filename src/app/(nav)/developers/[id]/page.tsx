@@ -23,12 +23,15 @@ const CONTACT_ICONS: Record<UserContact["type"], React.ElementType> = {
   website: Globe,
 };
 
-function contactHref(contact: UserContact): string {
-  if (contact.type === "email") return `mailto:${contact.value}`;
-  if (contact.type === "github") return `https://github.com/${contact.value}`;
-  if (contact.type === "instagram") return `https://instagram.com/${contact.value}`;
-  if (contact.value.startsWith("http")) return contact.value;
-  return contact.value;
+// 링크로 열 수 없는 값(디스코드 사용자 이름 등)은 null — 상대 경로 링크가 되지 않게 글자로만 보여 준다
+function contactHref(contact: UserContact): string | null {
+  const value = contact.value.trim();
+  if (contact.type === "email") return `mailto:${value}`;
+  if (contact.type === "github") return `https://github.com/${value}`;
+  if (contact.type === "instagram") return `https://instagram.com/${value.replace(/^@/, "")}`;
+  if (/^https?:\/\//i.test(value)) return value;
+  if (contact.type === "website" && /^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(value)) return `https://${value}`;
+  return null;
 }
 
 function contactText(contact: UserContact): string {
@@ -73,7 +76,7 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
     ? `author_id.eq.${id},team_members.cs.{"${developer.email}"}`
     : `author_id.eq.${id}`;
 
-  const [{ data: projects }, { data: tipRows }, { data: ideaRows }] = await Promise.all([
+  const [{ data: projects }, { data: tipRows, count: tipCount }, { data: ideaRows, count: ideaCount }] = await Promise.all([
     supabase
       .from("projects")
       .select(
@@ -85,14 +88,14 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
       .returns<ProjectCardData[]>(),
     supabase
       .from("tips")
-      .select("id, title, cover_url, created_at, tip_likes(count), tip_comments(count)")
+      .select("id, title, cover_url, created_at, tip_likes(count), tip_comments(count)", { count: "exact" })
       .eq("author_id", id)
       .order("created_at", { ascending: false })
       .limit(5)
       .returns<TipRow[]>(),
     supabase
       .from("ideas")
-      .select("id, title, status, created_at")
+      .select("id, title, status, created_at", { count: "exact" })
       .eq("author_id", id)
       .order("created_at", { ascending: false })
       .limit(5)
@@ -113,6 +116,8 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
   ]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 6);
+  // 목록은 최근 6개만 보여 주지만 제목 옆 숫자는 쓴 글 전체 수
+  const postCount = (tipCount ?? tipRows?.length ?? 0) + (ideaCount ?? ideaRows?.length ?? 0);
 
   const avatarUrl = developer.avatar_url ?? "";
   const nickname = developer.nickname ?? "";
@@ -168,17 +173,27 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
             const Icon = CONTACT_ICONS[contact.type];
             const href = contactHref(contact);
             const external = contact.type !== "email";
+            const pill = "inline-flex h-[34px] items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3.5 text-[13px] font-medium text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white";
+            const content = (
+              <>
+                <Icon className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" aria-hidden />
+                {contactText(contact)}
+              </>
+            );
             return (
               <li key={`${contact.type}-${idx}`}>
-                <a
-                  href={href}
-                  target={external ? "_blank" : undefined}
-                  rel={external ? "noreferrer" : undefined}
-                  className="inline-flex h-[34px] items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3.5 text-[13px] font-medium text-zinc-900 transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:hover:border-zinc-600"
-                >
-                  <Icon className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" aria-hidden />
-                  {contactText(contact)}
-                </a>
+                {href ? (
+                  <a
+                    href={href}
+                    target={external ? "_blank" : undefined}
+                    rel={external ? "noreferrer" : undefined}
+                    className={`${pill} transition-colors hover:border-zinc-400 dark:hover:border-zinc-600`}
+                  >
+                    {content}
+                  </a>
+                ) : (
+                  <span className={pill}>{content}</span>
+                )}
               </li>
             );
           })}
@@ -260,7 +275,7 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
           <div className="mb-[18px] flex items-baseline justify-between gap-4">
             <h2 className="font-heading text-[22px] font-bold text-zinc-900 dark:text-white">
               {isOwner ? "내가 쓴 글" : "작성한 글"}
-              <span className="ml-1.5 text-[15px] font-semibold text-zinc-500 tabular-nums dark:text-zinc-400">{posts.length}</span>
+              <span className="ml-1.5 text-[15px] font-semibold text-zinc-500 tabular-nums dark:text-zinc-400">{postCount}</span>
             </h2>
           </div>
 

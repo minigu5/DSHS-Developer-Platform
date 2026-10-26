@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SECTION_COLORS } from "@/lib/section-colors";
-import { announcementSummary } from "@/lib/announcement-colors";
+import { announcementSummary } from "@/lib/announcement-summary";
 import { PageHero } from "@/components/shared/page-hero";
 import { AnnouncementCard, type AnnouncementCardData } from "@/components/announcements/announcement-card";
 

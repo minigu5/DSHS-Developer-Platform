@@ -142,7 +142,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     {
       label: "소스코드",
       value: project.source_type === "open" ? "오픈소스" : "비공개",
-      sub: `허용 ${allowedCount}개`,
+      // 비공개 소스는 라이선스를 고를 수 없으니 "허용 0개"를 보여 주지 않는다
+      sub: project.source_type === "open" ? `허용 ${allowedCount}개` : undefined,
     },
   ];
 
