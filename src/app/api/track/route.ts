@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 
 async function buildIpHash(request: NextRequest): Promise<string> {
+  // Cloudflare 가 넣는 cf-connecting-ip 를 먼저 — x-forwarded-for 첫 값은 요청자가 꾸밀 수 있음
   const ip =
+    request.headers.get("cf-connecting-ip") ||
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     request.headers.get("x-real-ip") ||
     "unknown";
@@ -55,7 +57,8 @@ export async function GET(request: NextRequest) {
   const ipHash: string | null = userId ? null : await buildIpHash(request);
 
   // 원자적 클릭 추적 (중복이면 RPC가 false 반환, count 증가 안 함)
-  await supabase.rpc("track_project_click", {
+  // RPC는 service_role 전용 — 브라우저에서 ip_hash 를 바꿔 가며 직접 부르지 못하게 (migration 20261027100000)
+  await createAdminClient().rpc("track_project_click", {
     p_project_id: projectId,
     p_user_id: userId,
     p_ip_hash: ipHash,
