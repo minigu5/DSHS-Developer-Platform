@@ -31,6 +31,8 @@ import { FormRail, type FormRailSection } from "@/components/forms/form-rail";
 import { TYPE_ICONS, PLATFORM_ICONS, CATEGORY_ICONS } from "@/lib/type-icons";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { Markdown } from "@/components/shared/markdown";
+import { ConfirmNameInput } from "@/components/shared/confirm-name-input";
+import { nameMatches } from "@/lib/confirm-name";
 import { parseGithubRepo } from "@/lib/github-readme";
 import { closeDomainOfPrivateProject, deleteProject } from "@/lib/projects/actions";
 import { addGithubToProfile } from "@/lib/profile/actions";
@@ -76,6 +78,10 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   const [showPrivateDialog, setShowPrivateDialog] = useState(false);
   // 저장 없이 주소만 닫기(이미 비공개인데 주소가 남은 경우) — 같은 확인 창을 쓴다
   const [closeOnly, setCloseOnly] = useState(false);
+  // 삭제·주소 반납 확인 창에서 직접 적는 프로젝트 이름 — 저장된 이름(initialData.title)과 같아야 버튼이 켜진다
+  const [confirmName, setConfirmName] = useState("");
+  const savedTitle = initialData?.title ?? "";
+  const confirmed = nameMatches(confirmName, savedTitle);
   // 등록 직후 방문 주소가 호스트 무료 주소(.vercel.app 등)면 도메인 마련하기를 권한다
   const [domainOffer, setDomainOffer] = useState<{ projectId: string; host: string; hostname: string } | null>(null);
 
@@ -522,7 +528,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   const handleDelete = async () => {
     setIsDeleting(true);
     setDeleteError("");
-    const result = await deleteProject(initialData!.id);
+    const result = await deleteProject(initialData!.id, confirmName);
     setIsDeleting(false);
     if (!result.ok) {
       setDeleteError(result.error);
@@ -1328,7 +1334,10 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         open={showPrivateDialog}
         onOpenChange={(open) => {
           setShowPrivateDialog(open);
-          if (!open) setCloseOnly(false);
+          if (!open) {
+            setCloseOnly(false);
+            setConfirmName("");
+          }
         }}
       >
         <DialogContent showCloseButton={false} className="rounded-2xl">
@@ -1344,18 +1353,21 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
             <li>방문 주소가 이 주소였다면 도메인을 받기 전 주소로 돌아가요. 기억된 주소가 없으면 비워져요.</li>
             <li>다시 공개로 바꿔도 주소는 돌아오지 않아요. 도메인 마련하기에서 새로 받아야 해요.</li>
           </ul>
+          <ConfirmNameInput name={savedTitle} value={confirmName} onChange={setConfirmName} />
           <DialogFooter>
             <button
               type="button"
-              onClick={() => { setShowPrivateDialog(false); setCloseOnly(false); }}
+              onClick={() => { setShowPrivateDialog(false); setCloseOnly(false); setConfirmName(""); }}
               className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}
             >
               취소
             </button>
             <button
               type="button"
+              disabled={!confirmed}
               onClick={() => {
                 setShowPrivateDialog(false);
+                setConfirmName("");
                 if (closeOnly) {
                   setCloseOnly(false);
                   void closeDomainNow();
@@ -1363,7 +1375,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
                   void saveProject();
                 }
               }}
-              className={cn(buttonVariants(), "rounded-xl bg-red-600 text-white hover:bg-red-700")}
+              className={cn(buttonVariants(), "rounded-xl bg-red-600 text-white hover:bg-red-700 disabled:opacity-50")}
             >
               {closeOnly ? "주소 반납" : "비공개로 바꾸고 주소 반납"}
             </button>
@@ -1391,7 +1403,17 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
       </Dialog>
 
       {showDanger && (
-        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <Dialog
+          open={showDeleteDialog}
+          onOpenChange={(open) => {
+            if (isDeleting) return;
+            setShowDeleteDialog(open);
+            if (!open) {
+              setConfirmName("");
+              setDeleteError("");
+            }
+          }}
+        >
           <DialogContent showCloseButton={false} className="rounded-2xl">
             <DialogHeader>
               <DialogTitle className="text-lg">정말 삭제하시겠습니까?</DialogTitle>
@@ -1403,14 +1425,19 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
                   </span>
                 )}
               </DialogDescription>
-              {deleteError && (
-                <p role="alert" className="text-sm text-red-600 dark:text-red-400">{deleteError}</p>
-              )}
             </DialogHeader>
+            <ConfirmNameInput name={savedTitle} value={confirmName} onChange={setConfirmName} disabled={isDeleting} />
+            {deleteError && (
+              <p role="alert" className="text-sm text-red-600 dark:text-red-400">{deleteError}</p>
+            )}
             <DialogFooter>
               <button
                 type="button"
-                onClick={() => setShowDeleteDialog(false)}
+                onClick={() => {
+                  setShowDeleteDialog(false);
+                  setConfirmName("");
+                  setDeleteError("");
+                }}
                 disabled={isDeleting}
                 className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}
               >
@@ -1419,11 +1446,11 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
               <button
                 type="button"
                 onClick={handleDelete}
-                disabled={isDeleting}
+                disabled={isDeleting || !confirmed}
                 className={cn(
                   buttonVariants(),
-                  "rounded-xl bg-red-600 hover:bg-red-700 text-white flex items-center",
-                  isDeleting && "opacity-50 cursor-not-allowed"
+                  "rounded-xl bg-red-600 hover:bg-red-700 text-white flex items-center disabled:opacity-50",
+                  isDeleting && "cursor-not-allowed"
                 )}
               >
                 {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}

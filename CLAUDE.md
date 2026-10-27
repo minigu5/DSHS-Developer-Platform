@@ -108,6 +108,7 @@
 
 ### 팀 프로젝트 수정 권한
 - **팀원도 프로젝트 수정 가능**: `team_members` 배열에 이메일이 있는 사용자는 수정 페이지 접근·저장 가능.
+- **되돌리기 어려운 작업은 프로젝트 이름 입력**(2026-10-27 사용자 요청): 프로젝트 삭제·비공개 전환으로 주소 반납·"주소 닫기"(수정 폼)와 `/domains`의 "이 주소 반납하기" 확인 창에 `ConfirmNameInput`(`src/components/shared/confirm-name-input.tsx`) — 저장된 프로젝트 이름을 똑같이 적어야(앞뒤 공백만 무시, `nameMatches` `src/lib/confirm-name.ts`) 버튼이 켜진다. `deleteProject(id, confirmTitle)`은 서버에서도 이름을 다시 확인, 반납·주소 닫기는 화면에서만 막는다.
 - **삭제는 소유자(author)·개발자 계정만 가능**: `edit/page.tsx`에서 `isAuthor` 여부를 계산해 `ProjectForm`에 `canDelete` prop으로 전달. 팀원(`canDelete=false`)에게는 "위험 구역" 섹션 미노출.
 - RLS(`projects_update_own`)가 `author_id = uid OR email = ANY(team_members)` 조건으로 DB 레벨에서도 팀원 UPDATE를 허용.
 

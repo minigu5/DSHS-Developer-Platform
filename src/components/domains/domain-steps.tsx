@@ -20,6 +20,9 @@ import { VERIFY_FILE_PATH, VERIFY_META_NAME } from "@/lib/domains/verify";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { cn } from "@/lib/utils";
 
+import { ConfirmNameInput } from "@/components/shared/confirm-name-input";
+import { nameMatches } from "@/lib/confirm-name";
+
 import { HostPicker } from "./host-picker";
 import { UrlChangedDialog } from "./url-changed-dialog";
 import { AUTO_INTERVAL_MS, AUTO_MAX_ROUNDS, type AutoState, type CheckState } from "./use-domain-checks";
@@ -346,17 +349,27 @@ function ConnectStatus({ domain, check, auto, onCheck }: { domain: DomainView; c
   );
 }
 
-function ReleaseButton({ domain }: { domain: DomainView }) {
+// 반납은 되돌릴 수 없어서(이름이 풀려 남이 가져갈 수 있음) 프로젝트 이름을 직접 적어야 버튼이 켜진다
+function ReleaseButton({ domain, projectTitle }: { domain: DomainView; projectTitle: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
+  const [typed, setTyped] = useState("");
   const [pending, start] = useTransition();
+  const changeOpen = (next: boolean) => {
+    if (pending) return;
+    setOpen(next);
+    if (!next) {
+      setTyped("");
+      setError("");
+    }
+  };
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className="text-xs text-zinc-500 underline-offset-2 hover:text-red-600 hover:underline dark:text-zinc-400">
         이 주소 반납하기
       </button>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={changeOpen}>
         <DialogContent showCloseButton={false} className="rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-lg">이 주소를 반납할까요?</DialogTitle>
@@ -364,19 +377,21 @@ function ReleaseButton({ domain }: { domain: DomainView }) {
               <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-200">{domain.name}.dshs.dev</span> · DNS 레코드가 바로 지워지고, 이 이름은 다른 사람이 받을 수 있어요.
             </DialogDescription>
           </DialogHeader>
+          <ConfirmNameInput name={projectTitle} value={typed} onChange={setTyped} disabled={pending} />
           {error && <ErrorText>{error}</ErrorText>}
           <DialogFooter>
-            <button type="button" onClick={() => setOpen(false)} disabled={pending} className={SECONDARY}>
+            <button type="button" onClick={() => changeOpen(false)} disabled={pending} className={SECONDARY}>
               취소
             </button>
             <button
               type="button"
-              disabled={pending}
+              disabled={pending || !nameMatches(typed, projectTitle)}
               onClick={() =>
                 start(async () => {
                   const r = await releaseSubdomain(domain.id);
                   if (!r.ok) return setError(r.error);
                   setOpen(false);
+                  setTyped("");
                   router.refresh();
                 })
               }
@@ -542,7 +557,7 @@ export function DomainSteps({
 
       {domain && (
         <div className="flex justify-end">
-          <ReleaseButton domain={domain} />
+          <ReleaseButton domain={domain} projectTitle={project.title} />
         </div>
       )}
     </div>

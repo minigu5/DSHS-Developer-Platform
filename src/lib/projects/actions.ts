@@ -6,6 +6,7 @@
 
 import { revalidatePath } from 'next/cache'
 
+import { nameMatches } from '@/lib/confirm-name'
 import { isAllowedEmail, isDeveloper } from '@/lib/constants'
 import { removeCloudflare } from '@/lib/domains/cleanup'
 import { releaseLiveDomainWith } from '@/lib/domains/release'
@@ -37,7 +38,7 @@ function releaseLiveDomain(
   })
 }
 
-export async function deleteProject(projectId: string): Promise<ProjectActionResult> {
+export async function deleteProject(projectId: string, confirmTitle: string): Promise<ProjectActionResult> {
   const supabase = await createClient()
   const {
     data: { user },
@@ -45,8 +46,9 @@ export async function deleteProject(projectId: string): Promise<ProjectActionRes
   if (!user?.email || !isAllowedEmail(user.email)) return { ok: false, error: '학교 계정으로 로그인해야 해요.' }
 
   const admin = createAdminClient()
-  const { data: project } = await admin.from('projects').select('author_id').eq('id', projectId).maybeSingle()
+  const { data: project } = await admin.from('projects').select('author_id, title').eq('id', projectId).maybeSingle()
   if (!project || project.author_id !== user.id) return { ok: false, error: '내 프로젝트만 삭제할 수 있어요.' }
+  if (!nameMatches(confirmTitle, project.title)) return { ok: false, error: '프로젝트 이름을 똑같이 적어 주세요.' }
 
   if (!(await releaseLiveDomain(admin, user.id, projectId, 'project_deleted'))) return { ok: false, error: FAILED }
 
