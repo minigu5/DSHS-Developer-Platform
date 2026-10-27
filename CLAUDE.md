@@ -228,8 +228,8 @@
 
 ### 주요 테이블 구조
 - **`users`**: `id`, `email`, `full_name`, `nickname`, `bio`, `interests`, `avatar_url`, `contacts`(JSONB, `docs/14-supabase-users-contacts.sql` 적용 필요)
-- **`projects`**: `id`, `author_id`, `title`, `description`, `types`(text[], `docs/17-supabase-projects-multi-type.sql` 적용 필요), `platforms`, `source_type`, `repo_url`, `url`, `license_features`, `visibility`, `allowed_users`, `icon_url`, `readme_sync`·`readme_etag`·`readme_synced_at`(`docs/20-supabase-projects-readme-sync.sql`, 적용 완료)
-- **`reviews`**: `id`, `project_id`, `user_id`, `rating`(nullable, `docs/15-supabase-reviews-optional-rating.sql` 적용 필요), `comment`
+- **`projects`**: `id`, `author_id`, `title`, `description`, `types`(text[], `docs/17` 1단계 + 2단계 중 `projects_types_not_empty` CHECK까지 운영 적용 — 옛 `type` 칸 삭제만 남음, 어디서도 안 씀), `platforms`, `source_type`, `repo_url`, `url`, `license_features`, `visibility`, `allowed_users`, `icon_url`, `readme_sync`·`readme_etag`·`readme_synced_at`(`docs/20-supabase-projects-readme-sync.sql`, 적용 완료)
+- **`reviews`**: `id`, `project_id`, `user_id`, `rating`(nullable — `docs/15` 내용은 2026-10-27 migration `20261027110000`으로 운영 적용, 그 전엔 운영이 NOT NULL이라 별점 없는 리뷰가 저장 실패했음), UNIQUE(`project_id`,`user_id`) — 프로젝트마다 한 사람 1개, `comment`
 
 ### RLS 정책 요약
 - **`users`**: 누구나 조회 가능, 본인만 수정 가능.
@@ -245,7 +245,7 @@
 ### 리뷰 기능 (`src/components/projects/`)
 - **별점 선택 선택사항화**: `review-form.tsx`의 rating은 0(선택 안 함) 허용. 라벨 "별점 (선택)" 표시. 같은 별을 다시 클릭하면 해제. rating=0이면 DB에 null로 저장.
 - **rating=null 리뷰**: `review-list.tsx`에서 별점 없이 댓글만 표시. `ReviewItem.rating`은 `number | null`.
-- **DB**: `reviews.rating` 컬럼 NOT NULL 제거 + CHECK(rating IS NULL OR BETWEEN 1 AND 5) — `docs/15-supabase-reviews-optional-rating.sql` 실행 필요.
+- **DB**: `reviews.rating` 컬럼 NOT NULL 제거 + CHECK(rating IS NULL OR BETWEEN 1 AND 5) — 운영 적용 완료(2026-10-27 migration `20261027110000`).
 
 ### 팁(블로그) 테이블 — `docs/08-supabase-tips.sql`
 - **`tips`**: `id`, `author_id`, `title`, `summary`, `content`(마크다운), `cover_url`, `tags[]`, `created_at`, `updated_at`(트리거 자동 갱신).
@@ -523,6 +523,7 @@
 - **실명 파생**: `student_mappings` 테이블은 삭제됨. 이제 `users.full_name`은 로그인 시 이메일(입학연도)과 구글 계정명(숫자4자리+이름)에서 자동 파생 — `src/app/auth/callback/route.ts` 참고.
 - **Supabase Client**: 서버 사이드에서는 `createServerClient`, 클라이언트에서는 `createBrowserClient` 사용. 민감한 작업은 항상 `getUser()`로 검증. 서버에서 `getSession()`은 쿠키 값을 검증 없이 돌려주므로 권한 판단(특히 `createAdminClient()` 사용 여부)에 쓰지 않는다(2026-10-26 프로젝트 수정 페이지를 `getUser()`로 교체).
 - **사용자 키로 못 바꾸는 칸**(2026-10-27, migration `20261027100000_lock_identity_columns.sql`): 학생이 API로 `users.email`을 관리자·다른 학생 이메일로 바꿔 비공개 열람·남의 프로젝트 수정이 되던 구멍을 막음. 트리거가 `current_user`가 `anon`/`authenticated`일 때만 거절한다 — `users`의 `id`·`email`·`full_name`·`created_at`(같은 값 다시 쓰기는 허용, 프로필 upsert가 email을 같이 보냄), `projects`의 `id`·`author_id`·`click_count`·`created_at`(INSERT 땐 `click_count=0`), 공지의 `is_pinned`·`admin` 카테고리(관리자 제외). 서비스 키·SECURITY DEFINER 함수는 그대로 쓴다. `users.email` UNIQUE. RLS 정책은 `public.users.email` 대신 `auth.jwt() ->> 'email'`, 관리자는 `is_admin()`(auth.users 기준) — **새 정책도 public.users.email로 권한을 판단하지 말 것**. `track_project_click`은 service_role 전용(`/api/track`이 `createAdminClient()`로 부름, IP는 `cf-connecting-ip` 우선). 남은 한계: 익명 클릭은 User-Agent만 바꿔 다시 셀 수 있다(요청마다 한 번).
+- **DB 정리**(2026-10-27, migration `20261027110000_db_hardening.sql`): NOT VALID 제약 전부 VALIDATE, 외래 키마다 인덱스, 함수 search_path 고정(SECURITY DEFINER는 `''`), RLS의 `auth.uid()`·`is_admin()`은 `(select …)`로 감쌈 — **새 정책·함수도 같은 규칙으로**.
 - **보안 헤더**(2026-10-26): `next.config.ts` `headers()`가 모든 응답에 `X-Frame-Options: DENY`·CSP `frame-ancestors 'none'`(클릭재킹 차단)·`nosniff`·`Referrer-Policy`·`Permissions-Policy`(카메라·마이크·위치 끔)를 붙이고 `poweredByHeader: false`. OpenNext에서도 적용됨을 `wrangler dev`로 확인. 우리 화면을 iframe에 넣는 기능이 생기면 여기를 고칠 것. HSTS는 `.dev`가 브라우저 preload 목록이라 안 둠. 스크립트 CSP는 아직 없음.
 
 ---
