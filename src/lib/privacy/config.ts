@@ -14,7 +14,7 @@ export const PRIVACY_COOKIE_OPTIONS = {
 }
 
 /** 개인정보 보호책임자 문의처 — policy.ts 와 화면이 같이 쓴다. */
-export const PRIVACY_CONTACT_EMAIL = 'ts250024@ts.hs.kr'
+export const PRIVACY_CONTACT_EMAIL = 'seong381400@gmail.com'
 
 /** 철회(탈퇴) 확인 입력칸에 직접 쳐야 하는 말 */
 export const WITHDRAW_CONFIRM_TEXT = '탈퇴'

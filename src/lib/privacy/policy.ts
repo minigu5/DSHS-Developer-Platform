@@ -5,7 +5,7 @@ import { PRIVACY_CONTACT_EMAIL } from './config.ts'
  * 만들어지므로 본문을 한 글자라도 고치면 버전이 자동으로 바뀌어 모든 사용자에게 동의 창이 다시 뜬다 —
  * 오탈자 수정도 마찬가지이니 고친 뒤 배포하기 전에 꼭 필요한 수정인지 확인할 것.
  */
-export const PRIVACY_EFFECTIVE_DATE = '2026-10-25'
+export const PRIVACY_EFFECTIVE_DATE = '2026-10-31'
 
 const [year, month, day] = PRIVACY_EFFECTIVE_DATE.split('-').map(Number)
 
@@ -87,7 +87,7 @@ export const PRIVACY_POLICY_MD = `DSHS Developer Platform(이하 "이 사이트"
 
 ## 9. 개인정보 보호책임자와 문의
 
-- 담당: 이 사이트 운영자 (개발자 계정)
+- 담당: 신민규
 - 이메일: [${PRIVACY_CONTACT_EMAIL}](mailto:${PRIVACY_CONTACT_EMAIL})
 
 개인정보 침해로 도움이 필요하면 아래 기관에도 문의할 수 있어요.
