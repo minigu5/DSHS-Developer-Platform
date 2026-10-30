@@ -71,7 +71,9 @@ CREATE TABLE public.projects (
   allowed_users      text[] NOT NULL DEFAULT '{}',
 
   -- 작성자 형태
-  author_role        text NOT NULL DEFAULT 'individual' CHECK (author_role IN ('individual', 'team')),
+  -- 'anonymous' 와 public_author_id(익명이면 NULL, 자동 계산)·author_id 읽기 차단(칸 단위 GRANT)은
+  -- supabase/migrations/20261031100000_projects_anonymous.sql 참고
+  author_role        text NOT NULL DEFAULT 'individual' CHECK (author_role IN ('individual', 'team', 'anonymous')),
   team_name          text,
   team_members       text[],
 

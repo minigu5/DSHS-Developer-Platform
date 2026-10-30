@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, Globe, Code2, Users, User as UserIcon, Plus, X, Link as LinkIcon, Loader2, Image as ImageIcon, Trash2, Rocket, Download, RefreshCw } from "lucide-react";
+import { Lock, Globe, Code2, Users, User as UserIcon, VenetianMask, Plus, X, Link as LinkIcon, Loader2, Image as ImageIcon, Trash2, Rocket, Download, RefreshCw } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -43,7 +43,7 @@ import type { ProjectRow, UserContact } from "@/lib/types";
 
 type Visibility = 'public' | 'private';
 type SourceType = 'open' | 'closed';
-type AuthorRole = 'individual' | 'team';
+type AuthorRole = 'individual' | 'team' | 'anonymous';
 type IconType = 'auto' | 'link';
 
 type TeamMemberProfile = {
@@ -60,7 +60,8 @@ function repoKey(input: string): string {
 }
 
 interface ProjectFormProps {
-  initialData?: ProjectRow;
+  /** 사용자 키로 읽은 행이라 author_id 는 없다(PROJECT_COLUMNS) */
+  initialData?: Omit<ProjectRow, 'author_id'>;
   isEdit?: boolean;
   canDelete?: boolean;
   /** 이 프로젝트에 살아 있는 주소(서브도메인) 이름 — 삭제하면 함께 반납돼요 */
@@ -735,7 +736,8 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         allowLeave();
         router.push(`/projects/${initialData.id}`);
       } else {
-        const { data, error } = await supabase.from('projects').insert([{ ...commonFields, author_id: session.user.id }]).select().single();
+        // select('id') — 사용자 키는 author_id 를 못 읽어서 전체 칸으로 돌려받으면 권한 오류
+        const { data, error } = await supabase.from('projects').insert([{ ...commonFields, author_id: session.user.id }]).select('id').single();
         if (error) throw error;
         allowLeave();
         const offer = isWebsite && visibility === 'public' ? await domainOfferFor(url, session.user.id) : null;
@@ -781,7 +783,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
     { id: "section-description", title: "상세 설명", done: Boolean(description.trim()) },
     { id: "section-category", title: "분류", done: types.length > 0 && platformsReady },
     { id: "section-source", title: "소스코드·라이선스", done: sourceType === "closed" || Boolean(repoUrl.trim()) },
-    { id: "section-visibility", title: "공개 범위·만든 사람", done: authorRole === "individual" || Boolean(teamName.trim()) },
+    { id: "section-visibility", title: "공개 범위·만든 사람", done: authorRole !== "team" || Boolean(teamName.trim()) },
   ];
   const typeDesc = (value: string) => GUIDE_PROGRAM_TYPES.find((t) => t.value === value)?.desc;
 
@@ -1201,10 +1203,26 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
 
           <div className="grid gap-2.5">
             <Label className={labelClass}>만든 사람</Label>
-            <div className="grid gap-2.5 sm:grid-cols-2">
+            <div className="grid gap-2.5 sm:grid-cols-3">
               <ChoiceRow icon={UserIcon} label="개인" description="내 이름으로 올려요" selected={authorRole === "individual"} onSelect={() => setAuthorRole("individual")} />
               <ChoiceRow icon={Users} label="팀" description="팀 이름과 팀원을 적어요" selected={authorRole === "team"} onSelect={() => setAuthorRole("team")} />
+              {/* 팀원이 소유자 프로젝트를 익명으로 바꾸면 팀원 목록이 비워져 자기 수정 권한도 사라진다 — 소유자(canDelete)만 */}
+              <ChoiceRow
+                icon={VenetianMask}
+                label="익명"
+                description="이름 없이 올려요"
+                selected={authorRole === "anonymous"}
+                onSelect={() => setAuthorRole("anonymous")}
+                disabled={isEdit && !canDelete && authorRole !== "anonymous"}
+                disabledReason="프로젝트 주인만 익명으로 바꿀 수 있어요"
+              />
             </div>
+            {authorRole === "anonymous" && (
+              <p className="text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+                다른 사람에게는 만든 사람이 &lsquo;익명&rsquo;으로 보이고, 내 프로필과 이름 검색에는 나오지 않아요. 수정·삭제는 지금처럼 나만 할 수 있어요.
+                설명·저장소 링크·사이트에 이름이나 GitHub 아이디가 있으면 거기서는 알 수 있어요.
+              </p>
+            )}
           </div>
 
           {authorRole === "team" && (

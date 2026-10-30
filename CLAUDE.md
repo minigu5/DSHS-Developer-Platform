@@ -61,7 +61,7 @@
 | **소스코드** | `source_type` | `open`(`repo_url` 필수) / `closed` |
 | **라이선스 권한** | `license_features` | 상업적 이용, 수정, 배포, 개인적 이용, 법적 책임, 보증 (다중 선택) |
 | **공개 여부** | `visibility` | `public` / `private` |
-| **작성자 형태** | `author_role` | `individual` / `team` |
+| **작성자 형태** | `author_role` | `individual` / `team` / `anonymous`(2026-10-31, 아래 「익명 프로젝트」) |
 | **아이콘** | `icon_type` | `auto` (URL favicon 자동 추출) / `link` (이미지 업로드 또는 URL 직접 입력) |
 
 ### 프로젝트 등록 폼 UX (`src/components/projects/project-form.tsx`)
@@ -105,6 +105,16 @@
 - **웹사이트 + 전체 플랫폼**: `types`에 `website`가 있고 모든 플랫폼이 선택된 경우 카드에서는 "Web" 하나만 표시 (DB 실제 값은 유지).
 - **아이콘**: `mt-[5px]`로 텍스트 영역보다 5px 아래에 위치.
 - **별점/리뷰 수**: 쿼리에 `reviews(rating)` 포함 시 플랫폼 칩 옆에 평균 별점(`Star` 아이콘 + 소수 1자리)과 리뷰 수(`MessageSquare` 아이콘)를 작게 표시. rating=null 리뷰는 별점 평균 계산에서 제외.
+
+### 익명 프로젝트 (2026-10-31 사용자 요청)
+- 등록·수정 폼 "만든 사람"이 개인 / 팀 / **익명** 3칸. 익명은 팀 이름·팀원 없음(DB CHECK `projects_anonymous_no_team`). 수정 화면에서 팀원(소유자 아님)은 익명으로 못 바꾼다(화면만).
+- 사용자 결정: 소유자는 DB(`author_id`)에 그대로, 남에게는 **모든 프로젝트 목록·상세·홈에 '익명'(`ANONYMOUS_AUTHOR`)으로만** 보이고 **프로필 목록·작성자 이름 검색·작성자 링크에는 절대 안 나온다** — 화면만이 아니라 **DB에서 막는다**(migration `20261031100000_projects_anonymous.sql`).
+  - `projects.author_id`는 anon/authenticated가 **읽을 수 없다**(칸 단위 GRANT). `select('*')`도 막히므로 사용자 키로는 칸을 적어 읽는다 — 상세·수정은 `PROJECT_COLUMNS`(`src/lib/projects/columns.ts`). **projects에 새 칸을 만들면 migration에서 `GRANT SELECT (새 칸) ON public.projects TO anon, authenticated`와 `PROJECT_COLUMNS` 추가 필수.** 서비스 키·SECURITY DEFINER 함수는 그대로 `author_id`를 쓴다.
+  - 화면의 작성자는 자동 계산 칸 `public_author_id`(익명이면 NULL)로만: 링크 `/developers/<public_author_id>`, 사용자 붙이기는 **`users!projects_public_author_id_fkey(...)`**(관계가 둘이라 이름 필수 — 그냥 `users(...)`는 PGRST201).
+  - 내 프로젝트(익명 포함)는 `rpc('my_project_ids')`(본인 것만, authenticated 전용) — 수정 페이지 소유자 판정, 상세 "수정하기"(이제 서버에서 판단, `EditButton`은 링크만), 본인 프로필 목록(익명도 '익명'으로 보임), `/domains` 목록.
+  - reviews 조회 정책은 다른 표의 `author_id`를 읽으면 권한 오류라 `EXISTS (SELECT 1 FROM projects WHERE id = project_id)`(= projects RLS에 맡김)로 바꿈.
+  - 해줘 "구현완료" 연결은 익명 프로젝트를 받지 않고(`public_author_id = 나`만), 연결 뒤 익명으로 바꾼 프로젝트는 해줘 목록·상세에서 숨긴다(글쓴이 = 만든 사람이라 익명이 풀림).
+  - 한계: 설명·저장소 링크(GitHub 아이디)·사이트 내용으로는 알 수 있음(폼 안내 문구). 개발자 계정도 화면에서는 '익명'으로 본다(DB에서 확인).
 
 ### 팀 프로젝트 수정 권한
 - **팀원도 프로젝트 수정 가능**: `team_members` 배열에 이메일이 있는 사용자는 수정 페이지 접근·저장 가능.

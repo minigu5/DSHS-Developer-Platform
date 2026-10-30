@@ -6,6 +6,7 @@ import { PageHero } from "@/components/shared/page-hero";
 import { ProjectForm } from "@/components/projects/project-form";
 import { isDeveloper } from "@/lib/constants";
 import { getLiveDomain } from "@/lib/domains/read";
+import { PROJECT_COLUMNS } from "@/lib/projects/columns";
 
 export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -25,7 +26,7 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
   // Fetch project
   const { data: project, error } = await queryClient
     .from('projects')
-    .select('*')
+    .select(PROJECT_COLUMNS)
     .eq('id', id)
     .single();
 
@@ -33,13 +34,14 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
     notFound();
   }
 
-  // Check ownership — 개발자 계정·팀원도 수정 가능
+  // Check ownership — 개발자 계정·팀원도 수정 가능. author_id 는 사용자 키로 못 읽으므로(익명 프로젝트 보호) my_project_ids() 로 본인 것인지 본다
   const isTeamMember = project.team_members?.includes(user.email ?? "") ?? false;
-  if (!userIsDeveloper && project.author_id !== user.id && !isTeamMember) {
+  const isOwnProject = ((await supabase.rpc('my_project_ids')).data ?? []).includes(project.id);
+  if (!userIsDeveloper && !isOwnProject && !isTeamMember) {
     redirect(`/projects/${id}`);
   }
 
-  const isAuthor = project.author_id === user.id || userIsDeveloper;
+  const isAuthor = isOwnProject || userIsDeveloper;
   const subdomainName = isAuthor ? ((await getLiveDomain(project.id))?.name ?? null) : null;
 
   return (

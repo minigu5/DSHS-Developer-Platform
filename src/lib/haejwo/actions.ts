@@ -104,15 +104,15 @@ export async function markIdeaDone(
   } = await supabase.auth.getUser();
   if (!user) return { error: "로그인이 필요합니다." };
 
-  // 1) 본인 프로젝트인지 검증
+  // 1) 본인 프로젝트인지 검증 — 익명 프로젝트(public_author_id 가 null)는 연결하면 익명이 풀려서 받지 않는다
   const { data: project } = await supabase
     .from("projects")
     .select("id")
     .eq("id", projectId)
-    .eq("author_id", user.id)
+    .eq("public_author_id", user.id)
     .single();
 
-  if (!project) return { error: "본인이 등록한 프로젝트만 선택할 수 있습니다." };
+  if (!project) return { error: "본인 이름으로 등록한 프로젝트만 선택할 수 있습니다(익명 프로젝트는 연결할 수 없어요)." };
 
   // 2) 아이디어 작성자 본인인지 검증
   const { data: idea } = await supabase

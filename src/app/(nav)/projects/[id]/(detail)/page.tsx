@@ -13,7 +13,8 @@ import { ProjectReviews } from "@/components/projects/project-reviews";
 import { ProjectIcon } from "@/components/projects/project-icon";
 import { EditButton } from "@/components/projects/edit-button";
 import type { ReviewItem } from "@/components/projects/review-list";
-import { LICENSE_FEATURES, PLATFORMS, isDeveloper, projectTypeLabels } from "@/lib/constants";
+import { ANONYMOUS_AUTHOR, LICENSE_FEATURES, PLATFORMS, isDeveloper, projectTypeLabels } from "@/lib/constants";
+import { PROJECT_AUTHOR, PROJECT_COLUMNS } from "@/lib/projects/columns";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { getLiveDomain } from "@/lib/domains/read";
 import { RedirectPill } from "@/components/domains/redirect-pill";
@@ -51,7 +52,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const [projectResult, reviewsResult, liveDomain] = await Promise.all([
     queryClient
       .from('projects')
-      .select(`*, users (*)`)
+      .select(`${PROJECT_COLUMNS}, ${PROJECT_AUTHOR} (*)`)
       .eq('id', id)
       .single(),
     queryClient
@@ -102,10 +103,21 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       ? ratedReviews.reduce((sum, r) => sum + r.rating!, 0) / ratedReviews.length
       : 0;
 
+  const isAnonymous = project.author_role === 'anonymous';
   const authorName =
-    (project.author_role === 'team'
-      ? project.team_name
-      : project.users?.nickname || project.users?.full_name) ?? '알 수 없음';
+    (isAnonymous
+      ? ANONYMOUS_AUTHOR
+      : project.author_role === 'team'
+        ? project.team_name
+        : project.users?.nickname || project.users?.full_name) ?? '알 수 없음';
+
+  // 수정 버튼: 소유자·팀원·개발자 계정. 익명 프로젝트는 소유자를 화면에서 알 수 없으니 my_project_ids() 로 본인 것인지 확인한다
+  const canEdit =
+    !!user &&
+    (isDeveloper(user.email) ||
+      (!!project.public_author_id && project.public_author_id === user.id) ||
+      (!!user.email && (project.team_members ?? []).includes(user.email)) ||
+      (isAnonymous && ((await supabase.rpc('my_project_ids')).data ?? []).includes(project.id)));
   const tags = project.features || [];
 
   const platformLabels: string[] = (project.platforms ?? []).map(
@@ -193,7 +205,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             )}
 
             <div className="mt-3.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-zinc-600 dark:text-zinc-400">
-              {project.author_role === "team" ? (
+              {project.author_role === "team" || isAnonymous ? (
                 <span className="inline-flex items-center gap-2">
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200" aria-hidden>
                     {authorName.charAt(0)}
@@ -201,7 +213,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   <b className="font-semibold text-zinc-900 dark:text-white">{authorName}</b>
                 </span>
               ) : (
-                <Link href={`/developers/${project.author_id}`} className="group/author inline-flex items-center gap-2 rounded-full">
+                <Link href={`/developers/${project.public_author_id}`} className="group/author inline-flex items-center gap-2 rounded-full">
                   <span className="relative h-7 w-7 overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800">
                     {project.users?.avatar_url ? (
                       <Image src={project.users.avatar_url} alt="" fill sizes="28px" className="object-cover" unoptimized={isExternalImage(project.users.avatar_url)} />
@@ -215,7 +227,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 </Link>
               )}
               <span aria-hidden>·</span>
-              <span>{project.author_role === "team" ? "팀 프로젝트" : "개인 프로젝트"}</span>
+              <span>{isAnonymous ? "익명 프로젝트" : project.author_role === "team" ? "팀 프로젝트" : "개인 프로젝트"}</span>
               <span aria-hidden>·</span>
               <span>{createdLabel} 등록</span>
             </div>
@@ -246,7 +258,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   <span className="sr-only"> (새 탭에서 열림)</span>
                 </a>
               )}
-              <EditButton projectId={project.id} authorId={project.author_id} teamMembers={project.team_members} />
+              {canEdit && <EditButton projectId={project.id} />}
             </div>
           </div>
         </div>
@@ -267,7 +279,17 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             {/* 개발자 */}
             <div className={sideCard}>
               <h2 className={sideTitle}>{project.author_role === "team" ? "팀" : "개발자"}</h2>
-              {project.author_role === "team" ? (
+              {isAnonymous ? (
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[13px] font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200" aria-hidden>
+                    {authorName.charAt(0)}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold text-zinc-900 dark:text-white">{authorName}</div>
+                    <div className="text-xs text-zinc-500 dark:text-zinc-400">만든 사람이 이름을 밝히지 않았어요</div>
+                  </div>
+                </div>
+              ) : project.author_role === "team" ? (
                 <div>
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[13px] font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200" aria-hidden>
@@ -316,7 +338,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                     </div>
                   </div>
                   <Link
-                    href={`/developers/${project.author_id}`}
+                    href={`/developers/${project.public_author_id}`}
                     className="mt-4 inline-flex items-center gap-0.5 rounded-sm text-[13px] font-medium text-blue-700 hover:underline underline-offset-4 dark:text-blue-300"
                   >
                     프로필 보기

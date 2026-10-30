@@ -71,17 +71,23 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
   const { data: developer, error: userError } = await supabase.from("users").select("*").eq("id", id).single();
   if (userError || !developer) notFound();
 
-  // 직접 등록한 프로젝트 + 팀원(team_members 이메일)으로 들어간 프로젝트
-  const teamFilter = developer.email
-    ? `author_id.eq.${id},team_members.cs.{"${developer.email}"}`
-    : `author_id.eq.${id}`;
+  // 직접 등록한 프로젝트 + 팀원(team_members 이메일)으로 들어간 프로젝트.
+  // 익명 프로젝트는 public_author_id 가 null 이라 남에게는 절대 안 나오고, 본인 프로필에서만 my_project_ids() 로 더한다.
+  const myIds = isOwner ? ((await supabase.rpc("my_project_ids")).data ?? []) : [];
+  const teamFilter = [
+    `public_author_id.eq.${id}`,
+    developer.email ? `team_members.cs.{"${developer.email}"}` : null,
+    myIds.length ? `id.in.(${myIds.join(",")})` : null,
+  ]
+    .filter(Boolean)
+    .join(",");
 
   const [{ data: projects }, { data: tipRows, count: tipCount }, { data: ideaRows, count: ideaCount }] = await Promise.all([
     supabase
       .from("projects")
       .select(
-        `id, title, short_description, types, platforms, author_role, team_name, icon_url, features, author_id, visibility,
-         users (*), reviews(rating)`,
+        `id, title, short_description, types, platforms, author_role, team_name, icon_url, features, public_author_id, visibility,
+         users!projects_public_author_id_fkey (*), reviews(rating)`,
       )
       .or(teamFilter)
       .order("created_at", { ascending: false })

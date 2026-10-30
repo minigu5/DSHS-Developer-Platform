@@ -1,37 +1,11 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Pencil } from "lucide-react";
 
-import { createClient } from "@/lib/supabase/client";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { isDeveloper } from "@/lib/constants";
 
-export function EditButton({
-  projectId,
-  authorId,
-  teamMembers,
-}: {
-  projectId: string;
-  authorId: string;
-  teamMembers?: string[] | null;
-}) {
-  const [show, setShow] = useState(false);
-
-  useEffect(() => {
-    createClient()
-      .auth.getUser()
-      .then(({ data: { user } }) => {
-        const isAuthor = user?.id === authorId;
-        const isTeamMember = !!user?.email && (teamMembers?.includes(user.email) ?? false);
-        setShow(isAuthor || isTeamMember || isDeveloper(user?.email));
-      });
-  }, [authorId, teamMembers]);
-
-  if (!show) return null;
-
+/** 수정할 수 있는 사람(소유자·팀원·개발자 계정)인지는 상세 페이지가 서버에서 판단한다 — 익명 프로젝트는 브라우저가 소유자를 알 수 없어서. */
+export function EditButton({ projectId }: { projectId: string }) {
   return (
     <Link
       href={`/projects/${projectId}/edit`}

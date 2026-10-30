@@ -52,8 +52,8 @@ export async function deleteProject(projectId: string, confirmTitle: string): Pr
 
   if (!(await releaseLiveDomain(admin, user.id, projectId, 'project_deleted'))) return { ok: false, error: FAILED }
 
-  // 실제 삭제는 사용자 권한(RLS: 소유자만)으로
-  const { error } = await supabase.from('projects').delete().eq('id', projectId).eq('author_id', user.id)
+  // 실제 삭제는 사용자 권한(RLS: 소유자만)으로. author_id 는 사용자 키로 못 읽어서 거르기에 못 쓴다 — 위에서 서비스 키로 확인했고 RLS 가 한 번 더 막는다
+  const { error } = await supabase.from('projects').delete().eq('id', projectId)
   if (error) {
     console.error('[projects] 삭제 실패', error)
     return { ok: false, error: FAILED }

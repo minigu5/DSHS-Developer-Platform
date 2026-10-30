@@ -6,7 +6,7 @@ import { cn, isExternalImage } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProjectIcon } from "@/components/projects/project-icon";
-import { PLATFORMS, projectTypeLabels } from "@/lib/constants";
+import { ANONYMOUS_AUTHOR, PLATFORMS, projectTypeLabels } from "@/lib/constants";
 
 // projects 테이블에서 카드 표시에 필요한 최소 컬럼들.
 // users join 결과는 supabase 가 객체 또는 배열로 줄 수 있어 둘 다 허용.
@@ -16,11 +16,12 @@ export type ProjectCardData = {
   short_description: string | null;
   types: string[] | null;
   platforms: string[] | null;
-  author_role: 'individual' | 'team' | null;
+  author_role: 'individual' | 'team' | 'anonymous' | null;
   team_name: string | null;
   icon_url: string | null;
   features: string[] | null;
-  author_id: string;
+  /** 익명이면 null — 작성자 링크·이름은 이 칸으로만 정한다(author_id 는 사용자 키로 못 읽음) */
+  public_author_id: string | null;
   visibility?: 'public' | 'private' | null;
   users: { full_name: string | null; nickname: string | null; avatar_url: string | null } | { full_name: string | null; nickname: string | null; avatar_url: string | null }[] | null;
   reviews?: { rating: number }[] | null;
@@ -28,13 +29,14 @@ export type ProjectCardData = {
 };
 
 function resolveAuthorName(p: ProjectCardData, fallback = '알 수 없음'): string {
+  if (p.author_role === 'anonymous') return ANONYMOUS_AUTHOR;
   if (p.author_role === 'team' && p.team_name) return p.team_name;
   const u = Array.isArray(p.users) ? p.users[0] : p.users;
   return u?.nickname || u?.full_name || fallback;
 }
 
 function resolveAuthorAvatar(p: ProjectCardData): string | null {
-  if (p.author_role === 'team') return null;
+  if (p.author_role === 'team' || p.author_role === 'anonymous') return null;
   const u = Array.isArray(p.users) ? p.users[0] : p.users;
   return u?.avatar_url || null;
 }
@@ -171,9 +173,9 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
     </div>
   );
 
-  if (project.author_role !== 'team' && project.author_id) {
+  if (project.author_role !== 'team' && project.public_author_id) {
     author = (
-      <Link href={`/developers/${project.author_id}`} className="group/author z-10 relative">
+      <Link href={`/developers/${project.public_author_id}`} className="group/author z-10 relative">
         {author}
       </Link>
     );

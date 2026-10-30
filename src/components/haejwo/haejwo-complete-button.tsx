@@ -52,7 +52,8 @@ export function HaejwoCompleteButton({ ideaId }: { ideaId: string }) {
     const { data } = await supabase
       .from("projects")
       .select("id, title, types, short_description")
-      .eq("author_id", user.id)
+      // 익명 프로젝트는 빼고 — 해줘 글에 연결하면 글쓴이가 곧 만든 사람이라 익명이 풀린다
+      .eq("public_author_id", user.id)
       .order("created_at", { ascending: false });
     setProjects(data ?? []);
     setFetching(false);

@@ -96,7 +96,7 @@ export type Database = {
           // 04 alter
           short_description: string | null;
           url: string | null;
-          author_role: 'individual' | 'team' | null;
+          author_role: 'individual' | 'team' | 'anonymous' | null;
           team_name: string | null;
           team_members: string[] | null;
           icon_url: string | null;
@@ -111,6 +111,8 @@ export type Database = {
           readme_sync: boolean;
           readme_etag: string | null;
           readme_synced_at: string | null;
+          // 익명이면 null, 아니면 author_id (자동 계산). 사용자 키는 author_id 를 못 읽으므로 화면은 이 칸을 쓴다
+          public_author_id: string | null;
         };
         Insert: {
           id?: string;
@@ -128,7 +130,7 @@ export type Database = {
           updated_at?: string;
           short_description?: string | null;
           url?: string | null;
-          author_role?: 'individual' | 'team' | null;
+          author_role?: 'individual' | 'team' | 'anonymous' | null;
           team_name?: string | null;
           team_members?: string[] | null;
           icon_url?: string | null;
@@ -157,7 +159,7 @@ export type Database = {
           updated_at?: string;
           short_description?: string | null;
           url?: string | null;
-          author_role?: 'individual' | 'team' | null;
+          author_role?: 'individual' | 'team' | 'anonymous' | null;
           team_name?: string | null;
           team_members?: string[] | null;
           icon_url?: string | null;
@@ -175,6 +177,12 @@ export type Database = {
           {
             foreignKeyName: 'projects_author_id_fkey';
             columns: ['author_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'projects_public_author_id_fkey';
+            columns: ['public_author_id'];
             referencedRelation: 'users';
             referencedColumns: ['id'];
           },
@@ -558,6 +566,10 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      my_project_ids: {
+        Args: Record<string, never>;
+        Returns: string[];
+      };
       save_guide_revision: {
         Args: {
           p_author_id: string;

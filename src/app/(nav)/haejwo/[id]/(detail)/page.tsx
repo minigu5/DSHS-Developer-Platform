@@ -23,6 +23,7 @@ type LinkedProject = {
   short_description: string | null;
   url: string | null;
   icon_url: string | null;
+  author_role: string | null;
 };
 
 type IdeaDetail = {
@@ -53,7 +54,7 @@ export default async function HaejwoDetailPage({
       .select(
         `id, author_id, title, type, category, content, status, linked_project_id, created_at,
          author:users!ideas_author_id_fkey(nickname, full_name, avatar_url),
-         linked_project:projects!ideas_linked_project_id_fkey(id, title, short_description, url, icon_url)`,
+         linked_project:projects!ideas_linked_project_id_fkey(id, title, short_description, url, icon_url, author_role)`,
       )
       .eq("id", id)
       .single()
@@ -77,9 +78,11 @@ export default async function HaejwoDetailPage({
     locale: ko,
   });
 
-  const linkedProject = Array.isArray(idea.linked_project)
+  const linkedRaw = Array.isArray(idea.linked_project)
     ? idea.linked_project[0] ?? null
     : idea.linked_project;
+  // 연결한 뒤 익명으로 바꾼 프로젝트는 보여 주지 않는다 — 글쓴이가 곧 만든 사람이라 익명이 풀린다
+  const linkedProject = linkedRaw?.author_role === "anonymous" ? null : linkedRaw;
 
   const TypeIcon = TYPE_ICONS[idea.type];
 

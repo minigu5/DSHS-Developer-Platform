@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Search, Rocket } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { projectTypeLabels } from "@/lib/constants";
+import { ANONYMOUS_AUTHOR, projectTypeLabels } from "@/lib/constants";
 import { SiteHeader } from "@/components/shared/site-header";
 import { MobileNav } from "@/components/shared/page-nav";
 import { createClient } from "@/lib/supabase/server";
@@ -88,8 +88,8 @@ export default async function HomePage() {
         team_name,
         icon_url,
         features,
-        author_id,
-        users (full_name, nickname, avatar_url),
+        public_author_id,
+        users!projects_public_author_id_fkey (full_name, nickname, avatar_url),
         reviews(rating)
       `)
       .eq("visibility", "public")
@@ -161,7 +161,12 @@ export default async function HomePage() {
       ? {
           title: latest.title,
           icon_url: latest.icon_url,
-          authorName: latest.author_role === "team" && latest.team_name ? `${latest.team_name} 팀` : personName(latestUser),
+          authorName:
+            latest.author_role === "anonymous"
+              ? ANONYMOUS_AUTHOR
+              : latest.author_role === "team" && latest.team_name
+                ? `${latest.team_name} 팀`
+                : personName(latestUser),
           typeLabel: projectTypeLabels(latest.types, true).join(" · "),
         }
       : null,

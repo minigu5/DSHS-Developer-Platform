@@ -20,7 +20,7 @@ export const metadata = {
 
 type IdeaRow = Omit<HaejwoCardData, "linked_title" | "author"> & {
   author: HaejwoCardData["author"] | HaejwoCardData["author"][] | null;
-  linked_project: { title: string } | { title: string }[] | null;
+  linked_project: { title: string; author_role: string | null } | { title: string; author_role: string | null }[] | null;
 };
 
 /**
@@ -35,7 +35,7 @@ export default async function HaejwoPage() {
     .select(
       `id, title, type, category, status, created_at,
        author:users!ideas_author_id_fkey(nickname, full_name, avatar_url),
-       linked_project:projects(title)`,
+       linked_project:projects(title, author_role)`,
     )
     .order("created_at", { ascending: false })
     .returns<IdeaRow[]>();
@@ -45,7 +45,8 @@ export default async function HaejwoPage() {
     return {
       ...row,
       author: Array.isArray(row.author) ? row.author[0] ?? null : row.author,
-      linked_title: linked?.title ?? null,
+      // 익명 프로젝트는 연결을 숨긴다(글쓴이 = 만든 사람이라 익명이 풀림)
+      linked_title: linked && linked.author_role !== "anonymous" ? linked.title : null,
     };
   });
 

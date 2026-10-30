@@ -88,11 +88,13 @@ export const LIVE_STATUSES = LIVE
 /** 내 웹사이트 프로젝트(소유자만)와 그 주소. RLS 를 타는 사용자 클라이언트로 읽는다. */
 export async function listMyDomainProjects(userId: string): Promise<DomainProjectRow[]> {
   const supabase = await createClient()
+  // author_id 는 사용자 키로 못 읽는다(익명 프로젝트 보호) — 익명까지 포함한 내 프로젝트 id 를 함수로 받는다
+  const { data: myIds } = await supabase.rpc('my_project_ids')
   const [{ data: projects }, { data: domains }] = await Promise.all([
     supabase
       .from('projects')
       .select('id, title, url, icon_url, types, visibility')
-      .eq('author_id', userId)
+      .in('id', myIds ?? [])
       .contains('types', ['website'])
       .order('created_at', { ascending: false })
       .order('id'),

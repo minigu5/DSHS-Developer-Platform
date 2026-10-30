@@ -175,3 +175,6 @@ export function isDeveloper(email: string | undefined | null): boolean {
   if (!email) return false;
   return email.toLowerCase() === DEVELOPER_EMAIL.toLowerCase();
 }
+
+// 만든 사람을 '익명'으로 고른 프로젝트에 보여 주는 이름. 소유자(author_id)는 DB 에만 있고 사용자 키로는 못 읽는다.
+export const ANONYMOUS_AUTHOR = '익명';

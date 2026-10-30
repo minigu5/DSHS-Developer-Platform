@@ -15,10 +15,10 @@ const PROJECT_SELECT = `
   team_name,
   icon_url,
   features,
-  author_id,
+  public_author_id,
   visibility,
   click_count,
-  users (*),
+  users!projects_public_author_id_fkey (*),
   reviews(rating)
 `;
 
