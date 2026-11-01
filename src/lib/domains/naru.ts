@@ -10,6 +10,15 @@ export type NaruServer = {
   nodeId: string | null
   domain: string | null
   target: string | null
+  /** 화면용: 주소를 붙일 수 있는가(허브가 터널 대상을 줬는가). 클라이언트는 이 값을 채우지 않는다 — listMyNaruServers 가 채운다 */
+  ready?: boolean
+}
+
+/** 화면에 넘길 서버 목록: running·stopped 만, 허브 내부 값(노드·터널 대상)은 지우고 target 이 없으면 ready=false */
+export function toPickableServers(servers: NaruServer[]): NaruServer[] {
+  return servers
+    .filter((s) => s.status === 'running' || s.status === 'stopped')
+    .map((s) => ({ ...s, nodeId: null, target: null, ready: s.target !== null }))
 }
 
 /** 허브가 답한 HTTP 상태. 네트워크 실패·시간 초과는 status 0 */
@@ -202,6 +211,9 @@ export function naruReleases(rows: { id: string; naruServerId: string }[], gone:
   return rows.filter((r) => set.has(r.naruServerId)).map((r) => r.id)
 }
 
+/** 한 번에 이보다 많이(그리고 전체의 절반 넘게) 반납해야 하면 허브 이상으로 보고 멈춘다 */
+export const NARU_MASS_RELEASE_MIN = 2
+
 export type NaruSyncDeps = {
   /** null = 허브 설정(NARU_HUB_URL·KEY) 없음 */
   naru: Pick<NaruClient, 'sync'> | null
@@ -249,6 +261,16 @@ export async function runNaruSync(deps: NaruSyncDeps): Promise<{ failures: numbe
       return { failures: 0, released: [] }
     }
     deps.log(`❌  대곽나루 허브 sync 실패: ${e instanceof NaruError ? `status ${e.status}` : String(e)}`)
+    return { failures: 1, released: [] }
+  }
+
+  // 허브 캐시가 비정상(서버 목록 유실 등)이면 거의 모든 묶음이 gone 으로 온다. 한꺼번에 많이 반납하기 전에 멈춘다 — 이메일은 찍지 않는다.
+  if (gone.length > NARU_MASS_RELEASE_MIN && gone.length * 2 > rows.length) {
+    const goneIds = new Set(gone)
+    const names = rows.filter((r) => goneIds.has(r.naruServerId)).map((r) => r.name)
+    deps.log(
+      `❌  허브가 ${rows.length}개 중 ${gone.length}개를 '서버 없음'이라고 해 반납하지 않고 멈춤(허브 서버 목록 이상 의심): ${names.join(', ') || '(이름 없음)'}`,
+    )
     return { failures: 1, released: [] }
   }
 

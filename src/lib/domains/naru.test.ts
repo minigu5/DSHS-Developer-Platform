@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createNaruClient, naruLinkFor, naruReleases, NaruError, planNaruSync, runNaruSync, unbindNaruBestEffort, type NaruRow } from './naru.ts'
+import { createNaruClient, naruLinkFor, naruReleases, NaruError, toPickableServers, planNaruSync, runNaruSync, unbindNaruBestEffort, type NaruRow } from './naru.ts'
 
 type Call = { method: string; url: string; headers: Record<string, string>; body: unknown }
 
@@ -231,4 +231,36 @@ test('반납이 한 행에서 실패해도 나머지를 계속하고 실패로 �
   assert.deepEqual(h.events, ['sync:2', 'release:row-1', 'release:row-2'])
   assert.equal(r.failures, 1)
   assert.deepEqual(r.released, ['site2'])
+})
+
+test('대량 반납 방어: gone 이 2개 초과이고 절반 넘으면 아무것도 반납하지 않고 실패(이메일 안 찍음)', async () => {
+  const rows = [ROW(1), ROW(2), ROW(3), ROW(4), ROW(5)]
+  const h = syncHarness({ load: async () => rows, sync: async () => ({ gone: ['fa4e0001', 'fa4e0002', 'fa4e0003'] }) })
+  const r = await runNaruSync(h.deps)
+  assert.deepEqual(h.events, ['sync:5'])
+  assert.deepEqual(r, { failures: 1, released: [] })
+  assert.ok(h.lines.some((l) => l.includes('❌') && l.includes('site1')))
+  assert.ok(h.lines.every((l) => !l.includes('@')))
+})
+
+test('대량 반납 방어 경계: 절반 이하이거나 2개 이하면 그대로 반납', async () => {
+  // 3개 / 6개 = 정확히 절반 → 통과
+  const six = syncHarness({
+    load: async () => [1, 2, 3, 4, 5, 6].map((n) => ROW(n)),
+    sync: async () => ({ gone: ['fa4e0001', 'fa4e0002', 'fa4e0003'] }),
+  })
+  const r6 = await runNaruSync(six.deps)
+  assert.equal(r6.failures, 0)
+  assert.deepEqual(r6.released, ['site1', 'site2', 'site3'])
+  // 2개 / 2개 = 전부지만 2개 이하라 통과
+  const two = syncHarness({ sync: async () => ({ gone: ['fa4e0001', 'fa4e0002'] }) })
+  const r2 = await runNaruSync(two.deps)
+  assert.equal(r2.failures, 0)
+  assert.deepEqual(r2.released, ['site1', 'site2'])
+})
+
+test('toPickableServers: running·stopped 만, target 이 없으면 ready=false, 내부 값은 지움', () => {
+  const mk = (id: string, status: string, target: string | null) => ({ id, name: id, status, nodeId: 'server-09', domain: null, target })
+  const out = toPickableServers([mk('a', 'running', 'x.cfargotunnel.com'), mk('b', 'stopped', null), mk('c', 'creating', 'x.cfargotunnel.com')])
+  assert.deepEqual(out.map((s) => [s.id, s.ready, s.nodeId, s.target]), [['a', true, null, null], ['b', false, null, null]])
 })

@@ -7,6 +7,7 @@ import { ChevronDown } from "lucide-react";
 import { ProjectIcon } from "@/components/projects/project-icon";
 import { customDomainOf, dshsAddressOf, isNaruHost, isRedirectHost } from "@/lib/domains/hosts";
 import type { DomainProjectRow, DomainView } from "@/lib/domains/read";
+import { rowDisabled } from "@/lib/domains/list-state";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { cn } from "@/lib/utils";
 
@@ -92,8 +93,8 @@ export function DomainList({
     <ul className="flex flex-col gap-3">
       {rows.map(({ project, domain }) => {
         const live = isLive(domain);
-        // 대곽나루 흐름에서는 방문 주소가 없어도 열 수 있다(서버에 붙인 뒤에 정하면 되니까)
-        const disabled = !project.url && !naruServerId;
+        // 대곽나루 흐름에서는 방문 주소가 없어도 열 수 있다(서버에 붙인 뒤에 정하면 되니까). 이미 주소가 있는 줄은 늘 관리할 수 있다
+        const disabled = rowDisabled({ url: project.url, naruServerId, live });
         const expanded = open === project.id;
         const panelId = `domain-panel-${project.id}`;
         // 비공개 프로젝트는 새 주소를 못 받는다(이미 받은 주소는 관리할 수 있게 둔다)

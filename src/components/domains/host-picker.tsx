@@ -201,7 +201,7 @@ export function NaruPanel({
       setLoadError("");
       setServers(r.data);
       const pre = r.data.find((s) => s.id === preselectId);
-      if (pre && !(pre.domain !== null && fqdnOfServerDomain(pre.domain) !== fqdn)) setSelected(pre.id);
+      if (pre && pre.ready !== false && !(pre.domain !== null && fqdnOfServerDomain(pre.domain) !== fqdn)) setSelected(pre.id);
     });
     return () => {
       cancelled = true;
@@ -281,13 +281,14 @@ export function NaruPanel({
         {servers.map((s) => {
           const taken = takenBy(s);
           const mine = isMine(s);
+          const notReady = s.ready === false; // 서버 PC 에 터널 id 가 없어 아직 주소를 붙일 수 없다
           return (
             <label
               key={s.id}
               className={cn(
                 "flex items-center gap-3 rounded-xl border bg-white px-3 py-2.5 text-sm dark:bg-zinc-900",
                 selected === s.id ? "border-teal-700 dark:border-teal-400" : "border-zinc-200 dark:border-zinc-800",
-                taken ? "opacity-60" : "cursor-pointer",
+                taken || notReady ? "opacity-60" : "cursor-pointer",
               )}
             >
               <input
@@ -295,7 +296,7 @@ export function NaruPanel({
                 name={`naru-server-${domain.id}`}
                 value={s.id}
                 checked={selected === s.id}
-                disabled={taken !== null || pending}
+                disabled={taken !== null || notReady || pending}
                 onChange={() => setSelected(s.id)}
                 className="h-4 w-4 accent-teal-700"
               />
@@ -305,6 +306,7 @@ export function NaruPanel({
                   {SERVER_STATUS[s.status] ?? s.status}
                   {taken && <> · 이미 <span className="font-mono">{taken}</span> 연결됨</>}
                   {mine && " · 지금 이 주소가 연결돼 있어요"}
+                  {notReady && " · 이 서버는 아직 주소를 붙일 수 없어요"}
                 </span>
               </span>
             </label>

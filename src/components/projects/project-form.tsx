@@ -37,7 +37,7 @@ import { parseGithubRepo } from "@/lib/github-readme";
 import { closeDomainOfPrivateProject, deleteProject } from "@/lib/projects/actions";
 import { addGithubToProfile } from "@/lib/profile/actions";
 import { detectHost, HOST_PRESETS } from "@/lib/domains/hosts";
-import { withProject } from "@/lib/domains/next-path";
+import { shouldFollowNext, withProject } from "@/lib/domains/next-path";
 import { createClient } from "@/lib/supabase/client";
 import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 import type { ProjectRow, UserContact } from "@/lib/types";
@@ -747,7 +747,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         const { data, error } = await supabase.from('projects').insert([{ ...commonFields, author_id: session.user.id }]).select('id').single();
         if (error) throw error;
         allowLeave();
-        if (nextHref) {
+        if (nextHref && shouldFollowNext(nextHref, { isWebsite, isPublic: visibility === 'public' })) {
           router.push(withProject(nextHref, data.id));
           router.refresh();
           return;

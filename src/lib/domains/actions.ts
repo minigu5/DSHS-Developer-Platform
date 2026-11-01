@@ -20,7 +20,7 @@ import { buildRecords, runConnect, runConnectNaru } from './connect'
 import { createSiteFetcher } from './fetch-site'
 import { HOST_PRESETS, isNaruHost, isRedirectHost, siteAddressFor, siteHostFor, targetBoundToSite, validateTarget, validateTxt, type HostKey, type TxtInput } from './hosts'
 import { normalizeName, validateName } from './name'
-import { getNaruClient, NaruError, unbindNaruBestEffort, type NaruServer } from './naru'
+import { getNaruClient, NaruError, toPickableServers, unbindNaruBestEffort, type NaruServer } from './naru'
 import { getRedirectClient, redirectConfigured } from './redirects'
 import { checkSite, type CheckResult } from './verify'
 
@@ -345,7 +345,7 @@ export async function listMyNaruServers(): Promise<ActionResult<NaruServer[]>> {
     const servers = await naru.listServers(user.email)
     return {
       ok: true,
-      data: servers.filter((s) => s.status === 'running' || s.status === 'stopped').map((s) => ({ ...s, nodeId: null, target: null })),
+      data: toPickableServers(servers),
     }
   } catch (e) {
     if (e instanceof NaruError) return { ok: false, error: naruErrorMessage(e) }

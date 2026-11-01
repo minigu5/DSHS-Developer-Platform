@@ -21,6 +21,11 @@ export function withProject(next: string, projectId: string): string {
   return `${next}${next.includes('?') ? '&' : '?'}project=${encodeURIComponent(projectId)}`
 }
 
+/** 등록 뒤 `next`(도메인 화면 등)로 돌아가도 되는가: 웹사이트이면서 공개일 때만. 비공개·다른 종류는 주소를 못 받으니 보통 등록 흐름으로 */
+export function shouldFollowNext(next: string | null | undefined, project: { isWebsite: boolean; isPublic: boolean }): boolean {
+  return Boolean(next) && project.isWebsite && project.isPublic
+}
+
 /** 대곽나루 서버 id — 허브가 정하는 8자리 16진수 */
 export const NARU_SERVER_ID = /^[0-9a-f]{8}$/
 

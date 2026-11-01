@@ -45,6 +45,8 @@ export default async function DomainsPage({ searchParams }: { searchParams: Prom
   const openRow = rows.find((r) => r.project.id === requested && openable(r));
   // 대곽나루 흐름에서 줄이 하나뿐(주소 받을 수 있는 프로젝트 하나)이면 그 줄을 바로 연다
   const naruCandidates = naruServerId ? rows.filter(openable) : [];
+  // 웹사이트 프로젝트는 있지만 어느 것도 주소를 받을 수 없으면(비공개·이미 주소 있음·3개 한도) 고를 게 없다 → 새 프로젝트를 등록하게 한다
+  const needsNewProject = naruServerId !== null && naruCandidates.length === 0
   const initialOpen = openRow?.project.id ?? (naruCandidates.length === 1 && rows.length === 1 ? naruCandidates[0].project.id : null);
 
   return (
@@ -79,13 +81,17 @@ export default async function DomainsPage({ searchParams }: { searchParams: Prom
                 <>
                   <span className="font-semibold">먼저 웹사이트 프로젝트를 등록해요.</span> 등록하고 나면 대곽나루 서버에 주소를 붙일 수 있어요. 방문 주소는 비워도 돼요.
                 </>
+              ) : needsNewProject ? (
+                <>
+                  <span className="font-semibold">주소를 받을 수 있는 프로젝트가 없어요.</span> 공개 웹사이트 프로젝트를 새로 등록하면 대곽나루 서버에 주소를 붙일 수 있어요.
+                </>
               ) : (
                 <>
                   <span className="font-semibold">대곽나루 서버에 붙일 프로젝트를 골라요.</span> 주소가 아직 없는 프로젝트의 버튼을 누르면 대곽나루로 미리 골라져 있어요.
                 </>
               )}
             </p>
-            {rows.length === 0 && (
+            {needsNewProject && (
               <Link
                 href={`/projects/new?type=website&next=${encodeURIComponent(`/domains?naru=${naruServerId}`)}`}
                 className={cn(buttonVariants(), "h-9 rounded-full px-4 text-sm", SECTION_COLORS.domains.button)}

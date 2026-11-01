@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { naruServerIdOf, safeDomainsNext, withProject } from './next-path.ts'
+import { naruServerIdOf, safeDomainsNext, shouldFollowNext, withProject } from './next-path.ts'
 
 test('/domains 로 시작하는 안쪽 경로만 받는다', () => {
   assert.equal(safeDomainsNext('/domains'), '/domains')
@@ -46,4 +46,11 @@ test('서버 id 는 8자리 소문자 16진수만', () => {
   for (const bad of ['FA4E0001', 'fa4e000', 'fa4e00011', 'zzzzzzzz', 'fa4e0001\n', '', undefined]) {
     assert.equal(naruServerIdOf(bad), null, String(bad))
   }
+})
+
+test('shouldFollowNext: 웹사이트이고 공개일 때만 next 를 따른다', () => {
+  assert.equal(shouldFollowNext('/domains?naru=fa4e0001', { isWebsite: true, isPublic: true }), true)
+  assert.equal(shouldFollowNext('/domains?naru=fa4e0001', { isWebsite: true, isPublic: false }), false)
+  assert.equal(shouldFollowNext('/domains?naru=fa4e0001', { isWebsite: false, isPublic: true }), false)
+  assert.equal(shouldFollowNext(null, { isWebsite: true, isPublic: true }), false)
 })
