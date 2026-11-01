@@ -190,6 +190,7 @@
 
 ## 🔎 탐색/검색 (`/explore`)
 - `src/components/explore/explore-client.tsx`: 클라이언트 측 필터링.
+- **검색어·필터·정렬은 주소에 남는다**(2026-11-01 사용자 요청 — 새로고침하면 다 풀리던 것): `?q=&type=&category=&platform=&sort=`(여러 값은 쉼표, 기본값은 안 씀). 변환은 `src/lib/explore-query.ts`(테스트 `explore-query.test.ts`, 모르는 값은 버림). 서버 페이지가 `searchParams`를 읽어 첫 화면부터 거른 목록을 그리고(`force-dynamic`이라 캐시 손해 없음), `ExploreClient`가 바뀔 때 300ms 모았다 `history.replaceState`(기록 안 쌓음, Safari 30초 100회 제한 때문에 묶음). 링크 공유·뒤로 가기에도 같은 결과.
 - 검색 대상: 프로젝트 제목·설명·태그(`features`) + **작성자 닉네임·실명·팀 이름**.
 - **머리(2026-10-24 톤 통일)**: `PageHero`(section=explore, `maxWidth="lg"`) 안에 큰 검색창(`rounded-full`, 최대 640px)이 들어간다 — 이 페이지의 히어로. 검색창은 `ExploreClient`가 렌더(상태 공유).
 - **사이드바 필터** (데스크탑, `md:` 이상): **프로그램 종류 → 카테고리 → 플랫폼** 접이식 3그룹(다중 선택). 체크박스 없이 아이콘+라벨 토글 버튼으로 구성. 선택 시 파란 배경+파란 텍스트로 강조. 컨테이너는 `max-w-6xl`(사이드바 224px + 카드 **최대 2열**).

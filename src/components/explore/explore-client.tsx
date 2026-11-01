@@ -11,21 +11,24 @@ import { PROJECT_TYPES, PLATFORMS, FEATURES } from "@/lib/constants";
 import { TYPE_ICONS, PLATFORM_ICONS, CATEGORY_ICONS } from "@/lib/type-icons";
 import { PageHero } from "@/components/shared/page-hero";
 import { MobileFilterBar } from "@/components/explore/mobile-filter-bar";
+import { exploreQueryString, type ExploreQuery, type ExploreSort } from "@/lib/explore-query";
 
 
 interface ExploreClientProps {
   initialProjects: ProjectCardData[];
+  /** 주소에서 읽은 검색어·필터·정렬(서버 페이지가 parseExploreQuery로 넘김) */
+  initialQuery: ExploreQuery;
 }
 
-export function ExploreClient({ initialProjects }: ExploreClientProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+export function ExploreClient({ initialProjects, initialQuery }: ExploreClientProps) {
+  const [searchQuery, setSearchQuery] = useState(initialQuery.q);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(initialQuery.platforms);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(initialQuery.types);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(initialQuery.categories);
   const [typeOpen, setTypeOpen] = useState(false);
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [platformOpen, setPlatformOpen] = useState(false);
-  const [sortBy, setSortBy] = useState<'newest' | 'clicks' | 'rating'>('newest');
+  const [sortBy, setSortBy] = useState<ExploreSort>(initialQuery.sort);
   const [sortOpen, setSortOpen] = useState(false);
 
   const handlePlatformChange = (platform: string, checked: boolean) => {
@@ -97,6 +100,24 @@ export function ExploreClient({ initialProjects }: ExploreClientProps) {
     // newest: 서버에서 created_at DESC로 정렬되어 옴
     return filtered;
   }, [searchQuery, selectedPlatforms, selectedTypes, selectedCategories, initialProjects, sortBy]);
+
+  // 검색어·필터·정렬을 주소에 남긴다 — 새로고침·뒤로 가기·링크 공유에도 같은 결과.
+  // 기록은 쌓지 않고(replaceState) 타자 칠 때마다 쓰지 않게 잠깐 모았다 쓴다(Safari는 30초에 100번 넘으면 막음).
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      const qs = exploreQueryString({
+        q: searchQuery,
+        types: selectedTypes,
+        categories: selectedCategories,
+        platforms: selectedPlatforms,
+        sort: sortBy,
+      });
+      if (qs !== window.location.search && !(qs === "" && window.location.search === "?")) {
+        window.history.replaceState(null, "", `${window.location.pathname}${qs}${window.location.hash}`);
+      }
+    }, 300);
+    return () => window.clearTimeout(t);
+  }, [searchQuery, selectedTypes, selectedCategories, selectedPlatforms, sortBy]);
 
   useEffect(() => {
     if (!sortOpen) return;

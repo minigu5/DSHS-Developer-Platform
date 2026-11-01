@@ -4,6 +4,7 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { ExploreClient } from "@/components/explore/explore-client";
 import { isDeveloper } from "@/lib/constants";
 import type { ProjectCardData } from "@/components/projects/project-card";
+import { parseExploreQuery } from "@/lib/explore-query";
 
 const PROJECT_SELECT = `
   id,
@@ -22,7 +23,13 @@ const PROJECT_SELECT = `
   reviews(rating)
 `;
 
-export default async function ExplorePage() {
+export default async function ExplorePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  // 주소의 검색어·필터·정렬로 첫 화면부터 거른 목록을 그린다(새로고침해도 그대로).
+  const initialQuery = parseExploreQuery(await searchParams);
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -47,5 +54,5 @@ export default async function ExplorePage() {
     projects = data;
   }
 
-  return <ExploreClient initialProjects={projects ?? []} />;
+  return <ExploreClient initialProjects={projects ?? []} initialQuery={initialQuery} />;
 }
