@@ -20,6 +20,9 @@ export type HostKey =
   | 'cloudflare-workers'
   | 'firebase'
 
+/** DB host 열에 들어가는 값 = 학생이 고르는 호스트(HostKey) + 대곽나루 서버('naru'). 프리셋(HOST_PRESETS)은 HostKey 만 가진다 */
+export type DomainHost = HostKey | 'naru'
+
 export type HostPreset = {
   key: HostKey
   label: string
@@ -207,12 +210,30 @@ export const HOST_PRESETS: Record<HostKey, HostPreset> = {
   },
 }
 
-export function isRedirectHost(host: HostKey | null): boolean {
-  return host !== null && HOST_PRESETS[host].mode === 'redirect'
+/**
+ * 대곽나루 서버에 연결된 주소(host 'naru'). HOST_PRESETS 카드·detectHost·siteAddressFor 에는 없다 —
+ * 학생이 고르는 호스트가 아니라 대곽나루 서버 탭에서만 만들고, DB 열 타입(SubdomainHost)에만 들어 있다.
+ */
+export function isNaruHost(host: string | null | undefined): host is 'naru' {
+  return host === 'naru'
+}
+
+/** 호스트 프리셋 — 대곽나루('naru')·null 은 프리셋이 없어 null */
+export function presetOf(host: DomainHost | null | undefined): HostPreset | null {
+  return host && host !== 'naru' ? HOST_PRESETS[host] : null
+}
+
+/** 화면에 보일 호스트 이름 */
+export function hostLabelOf(host: DomainHost | null | undefined, fallback = '호스트'): string {
+  return isNaruHost(host) ? '대곽나루' : (presetOf(host)?.label ?? fallback)
+}
+
+export function isRedirectHost(host: DomainHost | null): boolean {
+  return presetOf(host)?.mode === 'redirect'
 }
 
 /** 소유 확인 토큰을 찾아볼 사이트 — 바로가기는 보낼 곳(target), 연결은 우리 주소 */
-export function siteHostFor(row: { name: string; host: HostKey; target: string | null }): string {
+export function siteHostFor(row: { name: string; host: DomainHost; target: string | null }): string {
   return isRedirectHost(row.host) && row.target ? row.target : `${row.name}.${ROOT_DOMAIN}`
 }
 
@@ -240,9 +261,9 @@ const SITE_ONLY_PATTERN: Partial<Record<HostKey, RegExp>> = {
 }
 
 /** CNAME 값(바로가기는 보낼 곳)을 원래 주소의 호스트 이름으로 정할 수 있는 호스트 — 연결 대상을 확인한 사이트에 묶는다 */
-export function targetBoundToSite(host: HostKey): boolean {
-  const p = HOST_PRESETS[host]
-  return p.mode === 'redirect' || p.prefillFromUrl
+export function targetBoundToSite(host: DomainHost): boolean {
+  const p = presetOf(host)
+  return p !== null && (p.mode === 'redirect' || p.prefillFromUrl)
 }
 
 /**

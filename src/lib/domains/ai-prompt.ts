@@ -2,17 +2,17 @@
 // 문구는 사용자가 확정한 것(2026-10-25). 첫 두 줄만 2026-10-26 "확인 먼저" 흐름에 맞춰 바꿈(사용자 확인) —
 // 아직 주소를 붙이기 전이라 "붙이려고 해"로 쓰고, 확인도 원래 주소(siteUrl)에서 한다. 바꾸면 ai-prompt.test.ts 도 같이 고친다.
 
-import { HOST_PRESETS, isRedirectHost, type HostKey } from './hosts.ts'
+import { hostLabelOf, isRedirectHost, type DomainHost } from './hosts.ts'
 import { ROOT_DOMAIN } from './name.ts'
 import { VERIFY_META_NAME } from './verify.ts'
 
 const SECOND_LINE = '먼저 이 사이트가 내 것이라는 걸 확인하는 코드를 넣고 다시 배포해 줘.'
 
 /** siteUrl: ②에서 확인할 학생 사이트 원래 주소(https://…/) */
-export function buildVerifyPrompt(o: { name: string; token: string; host: HostKey | null; siteUrl: string }): string {
+export function buildVerifyPrompt(o: { name: string; token: string; host: DomainHost | null; siteUrl: string }): string {
   const fqdn = `${o.name}.${ROOT_DOMAIN}`
   if (o.host && isRedirectHost(o.host)) return buildRedirectPrompt(fqdn, o.token, o.host, o.siteUrl)
-  const hostLabel = o.host ? HOST_PRESETS[o.host].label : '호스트'
+  const hostLabel = hostLabelOf(o.host)
   const pushTo = o.host === 'gitlab-pages' ? 'GitLab' : 'GitHub'
 
   return [
@@ -36,7 +36,7 @@ export function buildVerifyPrompt(o: { name: string; token: string; host: HostKe
   ].join('\n')
 }
 
-function buildRedirectPrompt(fqdn: string, token: string, host: HostKey, siteUrl: string): string {
+function buildRedirectPrompt(fqdn: string, token: string, host: DomainHost, siteUrl: string): string {
   const workers = host === 'cloudflare-workers'
   return [
     `내 웹사이트(${siteUrl})에 https://${ROOT_DOMAIN} 서비스로 ${fqdn} 바로가기 주소를 붙이려고 해.`,

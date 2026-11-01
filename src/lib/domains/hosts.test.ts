@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { customDomainOf, detectHost, dshsAddressOf, isRedirectHost, siteAddressFor, siteHostFor, targetBoundToSite, validateTarget, validateTxt, HOST_PRESETS } from './hosts.ts'
+import { isNaruHost, customDomainOf, detectHost, dshsAddressOf, isRedirectHost, siteAddressFor, siteHostFor, targetBoundToSite, validateTarget, validateTxt, HOST_PRESETS } from './hosts.ts'
 
 test('프로젝트 주소로 호스트를 미리 고른다', () => {
   assert.deepEqual(detectHost('https://meal-alarm.vercel.app/'), { host: 'vercel', prefill: null })
@@ -199,4 +199,13 @@ test('targetBoundToSite: CNAME 값을 원래 주소에서 알 수 있는 호스�
   for (const h of ['netlify', 'cloudflare-pages', 'github-pages', 'gitlab-pages', 'render', 'cloudflare-workers', 'firebase'] as const) {
     assert.equal(targetBoundToSite(h), true, h)
   }
+})
+
+test('naru 는 HOST_PRESETS 카드 목록과 siteAddressFor 에 없다', () => {
+  assert.equal(Object.keys(HOST_PRESETS).includes('naru'), false)
+  assert.equal(siteAddressFor('https://00000000-0000-0000-0000-000000000000.cfargotunnel.com/'), null)
+  assert.equal(detectHost('https://00000000-0000-0000-0000-000000000000.cfargotunnel.com/'), null)
+  assert.equal(isNaruHost('naru'), true)
+  assert.equal(isNaruHost('vercel'), false)
+  assert.equal(isNaruHost(null), false)
 })

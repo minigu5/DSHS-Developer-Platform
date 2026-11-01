@@ -13,7 +13,7 @@ import {
   setSiteAddress,
 } from "@/lib/domains/actions";
 import { buildVerifyPrompt } from "@/lib/domains/ai-prompt";
-import { HOST_PRESETS, isRedirectHost, siteAddressFor, targetBoundToSite } from "@/lib/domains/hosts";
+import { HOST_PRESETS, hostLabelOf, isRedirectHost, siteAddressFor, targetBoundToSite } from "@/lib/domains/hosts";
 import { normalizeName } from "@/lib/domains/name";
 import type { DomainProjectRow, DomainView } from "@/lib/domains/read";
 import { VERIFY_FILE_PATH, VERIFY_META_NAME } from "@/lib/domains/verify";
@@ -467,7 +467,7 @@ export function DomainSteps({
   const urlIsDomain = fqdn !== null && project.url?.replace(/\/+$/, "") === `https://${fqdn}`;
   // 바로가기는 사이트가 원래 주소에서 그대로 돌아서 DB·로그인 설정을 바꿀 일이 없다 → 안내 창 없음
   const redirect = isRedirectHost(domain?.host ?? null);
-  const hostLabel = domain?.host ? HOST_PRESETS[domain.host].label : "호스트";
+  const hostLabel = hostLabelOf(domain?.host);
 
   return (
     <div className="flex flex-col gap-4">

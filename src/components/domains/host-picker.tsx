@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ExternalLink, Loader2 } from "lucide-react";
 
 import { connectHost } from "@/lib/domains/actions";
-import { HOST_PRESETS, targetBoundToSite, type TxtInput } from "@/lib/domains/hosts";
+import { isNaruHost, presetOf, targetBoundToSite, type TxtInput } from "@/lib/domains/hosts";
 import type { DomainView } from "@/lib/domains/read";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { cn } from "@/lib/utils";
@@ -27,12 +27,12 @@ export function HostPicker({ domain, onDone }: { domain: DomainView; onDone: () 
   const [txt, setTxt] = useState<TxtInput>(
     domain.host === host && domain.txt[0]
       ? domain.txt[0]
-      : { name: host ? (HOST_PRESETS[host].txt?.name.replaceAll("{label}", domain.name) ?? "") : "", value: "" },
+      : { name: presetOf(host)?.txt?.name.replaceAll("{label}", domain.name) ?? "", value: "" },
   );
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
-  if (!host) return null;
-  const preset = HOST_PRESETS[host];
+  const preset = presetOf(host);
+  if (!host || !preset || isNaruHost(host)) return null;
   const redirect = preset.mode === "redirect";
 
   const submit = () =>

@@ -30,7 +30,9 @@ export type SubdomainHost =
   | 'render'
   | 'railway'
   | 'cloudflare-workers'
-  | 'firebase';
+  | 'firebase'
+  // 대곽나루 학생 서버 — supabase/migrations/20261101110000_subdomains_naru.sql
+  | 'naru';
 
 export type Database = {
   public: {
@@ -536,6 +538,8 @@ export type Database = {
           site_verified_at: string | null;
           /** 마지막으로 호스트에 연결한 시각 — 연결 안 된 주소의 7일 반납을 여기서부터 센다 */
           connected_at: string | null;
+          /** host 가 naru 일 때 묶인 대곽나루 서버 id(8자리 16진수) */
+          naru_server_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -607,6 +611,11 @@ export type Database = {
           p_txt: Json;
           p_record_ids: string[];
         };
+        Returns: undefined;
+      };
+      // 대곽나루 서버에 연결(확인 코드 없이 바로 active) — 서버 액션이 허브에서 주인·터널 대상을 받은 뒤 부른다
+      subdomain_connect_naru: {
+        Args: { p_user: string; p_id: string; p_server_id: string; p_target: string; p_record_ids: string[] };
         Returns: undefined;
       };
       subdomain_record_check: {

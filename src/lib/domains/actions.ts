@@ -18,7 +18,7 @@ import { getDnsClient } from './cloudflare'
 import { removeCloudflare } from './cleanup'
 import { buildRecords, runConnect } from './connect'
 import { createSiteFetcher } from './fetch-site'
-import { HOST_PRESETS, isRedirectHost, siteAddressFor, siteHostFor, targetBoundToSite, validateTarget, validateTxt, type HostKey, type TxtInput } from './hosts'
+import { HOST_PRESETS, isNaruHost, isRedirectHost, siteAddressFor, siteHostFor, targetBoundToSite, validateTarget, validateTxt, type HostKey, type TxtInput } from './hosts'
 import { normalizeName, validateName } from './name'
 import { getRedirectClient, redirectConfigured } from './redirects'
 import { checkSite, type CheckResult } from './verify'
@@ -276,6 +276,8 @@ export async function verifySubdomain(
   if (!user) return LOGIN_REQUIRED
   const row = await loadRow(id)
   if (!row || row.owner_id !== user.id) return { ok: false, error: RPC_ERRORS.not_owner }
+  // 대곽나루 서버 주소는 확인 코드도 연결 확인도 없다 — 연결하는 순간 active, 반납은 허브에 서버가 없을 때만
+  if (isNaruHost(row.host)) return { ok: true, data: { result: 'ok', detail: null, status: row.status, siteVerified: true } }
 
   const siteStep = !row.site_verified_at && row.site_url && row.site_host
   if (!siteStep && !row.host) return { ok: false, error: '먼저 ②에서 내 사이트 주소를 넣어요.' }

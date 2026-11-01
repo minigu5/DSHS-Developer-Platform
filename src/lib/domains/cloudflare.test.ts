@@ -100,3 +100,18 @@ test('바로가기 AAAA 는 proxied 로 만든다(Bulk Redirects 는 proxied 레
   await dns.create([{ type: 'AAAA', name: 'meal.dshs.dev', content: '100::' }], 'row-1')
   assert.deepEqual(calls[0].body, { type: 'AAAA', name: 'meal.dshs.dev', content: '100::', ttl: 1, proxied: true, comment: 'dshs-subdomain:row-1' })
 })
+
+test('proxied:true 를 준 CNAME 은 proxied 로 만든다, 안 주면 지금처럼 DNS only', async () => {
+  const { f, calls } = fakeFetch((c, i) => ok({ id: `rec${i}` }))
+  const dns = createDnsClient({ token: 't', zoneId: 'zone1', fetch: f })
+  await dns.create(
+    [
+      { type: 'CNAME', name: 'a.dshs.dev', content: '0000.cfargotunnel.com', proxied: true },
+      { type: 'CNAME', name: 'b.dshs.dev', content: 'b.netlify.app' },
+      { type: 'AAAA', name: 'c.dshs.dev', content: '100::' },
+      { type: 'AAAA', name: 'd.dshs.dev', content: '100::', proxied: false },
+    ],
+    'row-1',
+  )
+  assert.deepEqual(calls.map((c) => (c.body as { proxied: boolean }).proxied), [true, false, true, false])
+})

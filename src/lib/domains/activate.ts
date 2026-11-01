@@ -9,7 +9,7 @@
 
 import type { DnsClient } from './cloudflare.ts'
 import { REDIRECT_ID_PREFIX, removeCloudflareWith } from './cleanup.ts'
-import { isRedirectHost, type HostKey } from './hosts.ts'
+import { isRedirectHost, type DomainHost } from './hosts.ts'
 import { ROOT_DOMAIN } from './name.ts'
 import type { RedirectClient } from './redirects.ts'
 
@@ -31,7 +31,7 @@ export type ActivateDeps = {
 }
 
 /** 연결 확인 결과를 "연결됨"으로 쳐도 되는가 — 바로가기 행은 목록 항목이 있어야 실제로 넘어간다 */
-export function connectionLive(row: { host: HostKey | null; cf_record_ids: string[] }): boolean {
+export function connectionLive(row: { host: DomainHost | null; cf_record_ids: string[] }): boolean {
   if (row.host === null) return false
   return !isRedirectHost(row.host) || row.cf_record_ids.some((id) => id.startsWith(REDIRECT_ID_PREFIX))
 }

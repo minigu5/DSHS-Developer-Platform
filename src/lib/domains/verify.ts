@@ -2,7 +2,7 @@
 // 연결 확인(서버 액션)과 매일 점검(scripts/check-subdomains.mts)이 같은 판정을 쓴다.
 // 네트워크는 Fetcher 로 주입받는다(본문 256KB 자르기·타임아웃은 Fetcher 책임 — fetch-site.ts).
 
-import { HOST_PRESETS, type HostKey } from './hosts.ts'
+import { presetOf, type DomainHost } from './hosts.ts'
 
 export const VERIFY_META_NAME = 'dshs-verify'
 export const VERIFY_FILE_PATH = '/.well-known/dshs-verify.txt'
@@ -59,7 +59,7 @@ async function fetchSameHost(start: string, fetcher: Fetcher): Promise<FetchedPa
  * ② 소유 확인은 학생 사이트 원래 주소(GitHub Pages 프로젝트 사이트처럼 경로가 있을 수 있음).
  * meta 는 base 에서, 파일은 base 아래 → (경로가 있으면) 호스트 루트 순서로 본다.
  */
-export async function checkSite(base: string, token: string, host: HostKey, fetcher: Fetcher): Promise<CheckResult> {
+export async function checkSite(base: string, token: string, host: DomainHost, fetcher: Fetcher): Promise<CheckResult> {
   const root = await fetchSameHost(base, fetcher)
   if ('error' in root) return { kind: 'unreachable', detail: root.error }
 
@@ -74,7 +74,7 @@ export async function checkSite(base: string, token: string, host: HostKey, fetc
     if (!('error' in file) && file.status >= 200 && file.status < 300 && file.body.trim() === token) return { kind: 'ok' }
   }
 
-  if (HOST_PRESETS[host].notFound(root.status, root.headers, root.body)) return { kind: 'not_found_page' }
+  if (presetOf(host)?.notFound(root.status, root.headers, root.body)) return { kind: 'not_found_page' }
   if (ok2xx) return { kind: 'no_token' }
   return { kind: 'unreachable', detail: `status ${root.status}` }
 }

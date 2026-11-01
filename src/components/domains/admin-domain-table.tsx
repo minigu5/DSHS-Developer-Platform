@@ -7,7 +7,7 @@ import { Loader2 } from "lucide-react";
 
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { revokeSubdomain, unblockSubdomain } from "@/lib/domains/actions";
-import { HOST_PRESETS } from "@/lib/domains/hosts";
+import { hostLabelOf } from "@/lib/domains/hosts";
 import type { AdminDomainRow } from "@/lib/domains/read";
 import { cn } from "@/lib/utils";
 
@@ -76,7 +76,7 @@ export function AdminDomainTable({ rows }: { rows: AdminDomainRow[] }) {
                   {r.revokedReason && <p className="text-xs text-zinc-500 dark:text-zinc-400">{r.revokedReason}</p>}
                 </td>
                 <td className="px-4 py-3 text-xs text-zinc-600 dark:text-zinc-400">
-                  {r.host ? `${HOST_PRESETS[r.host].label} → ` : "—"}
+                  {r.host ? `${hostLabelOf(r.host)} → ` : "—"}
                   <span className="font-mono">{r.target ?? ""}</span>
                 </td>
                 <td className="px-4 py-3 text-xs">
