@@ -139,6 +139,7 @@
 ### 결과 스테퍼 (`src/app/(nav)/guide/[...slug]/page.tsx` + `src/components/guide/guide-viewer.tsx`)
 - **한 화면에 단계 하나**, 버튼으로 넘김(문서처럼 스크롤 금지 — 사용자 결정). 위 진행 막대 = 장 4칸(누르면 그 장 첫 단계), 장 이름 줄 "N장 · 이름 — i / n", 새 장 첫 단계에 "○○ 끝! 이제 ○○ 차례예요." 띠, 카드 머리 "N-i" 번호 + (3장) 경로 알약 줄, 주 버튼 문구는 단계의 `[!next]`(없으면 "다음"/"N장으로"). 마지막 단계에 "내 프로젝트 등록하기"·"해줘! 둘러보기" 고정 버튼(위키로 편집 안 되게 코드에 둠).
 - 진행은 `localStorage['guide-progress:<경로>']`(useSyncExternalStore로 복원, 범위 밖이면 0). 옛 슬러그·잘못된 주소는 `redirect('/guide')`.
+- **이어서 보기**(2026-11-01 사용자 요청 — 하다가 나가도 이어서 보게): `GuideViewer`가 단계가 바뀔 때마다 `localStorage['guide-last']`에 마지막으로 본 가이드(경로·제목·단계·장 이름·단계 제목·시각)를 남기고, 위저드(`/guide`) 위에 `GuideResumeCard`("읽다 만 가이드가 있어요" + 진행 막대 + "이어서 보기" → 그 경로, 거기서 `guide-progress`로 같은 단계 복원)가 뜬다. 마지막 단계까지 봤으면 안 뜨고, × 는 기록만 지운다(가이드별 진행은 남음). 읽기·검증은 `src/lib/guide-resume.ts`(`parseGuideResume` — 경로는 `/guide/<slug>`만 받아 링크로 씀, 테스트 `guide-resume.test.ts`). 브라우저에만 저장(DB 없음) — 개인정보 처리방침의 "가이드에서 읽던 위치를 기억해요"에 이미 포함이라 문구는 안 바꿈(바꾸면 전원 재동의).
 - 단계 바뀌면 새 h2로 포커스, 카드가 화면 위로 벗어나 있으면 카드 머리로 스크롤.
 
 ### 콘텐츠 = 조각 (`src/content/guides/<key>.md`, 작성법 `src/content/guides/README.md`)

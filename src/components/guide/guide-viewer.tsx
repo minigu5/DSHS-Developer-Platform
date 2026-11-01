@@ -14,10 +14,13 @@ import type { LoadedChapter } from "@/lib/guide-content";
 import { parseStepMeta, routeOf } from "@/lib/guide-markup";
 import { GuideStepBody } from "@/components/guide/guide-step-body";
 import { GuideChapterTools } from "@/components/guide/guide-chapter-tools";
+import { GUIDE_RESUME_KEY, type GuideResume } from "@/lib/guide-resume";
 
 interface GuideViewerProps {
   /** 진행 저장 key (가이드 주소) */
   storageKey: string;
+  /** 가이드 제목 — 위저드의 "이어서 보기"에 쓴다 */
+  title: string;
   chapters: LoadedChapter[];
   answers: GuideAnswers;
   aiLabel: string;
@@ -48,7 +51,7 @@ function readSaved(storageKey: string, total: number): number {
   }
 }
 
-export function GuideViewer({ storageKey, chapters, answers, aiLabel, recommendedNote }: GuideViewerProps) {
+export function GuideViewer({ storageKey, title, chapters, answers, aiLabel, recommendedNote }: GuideViewerProps) {
   const pathname = usePathname();
 
   const steps = useMemo<FlatStep[]>(
@@ -83,6 +86,29 @@ export function GuideViewer({ storageKey, chapters, answers, aiLabel, recommende
       // 저장 실패해도 넘기기는 된다
     }
   };
+
+  // 마지막으로 본 가이드·단계를 기억해 위저드에서 이어서 볼 수 있게 한다
+  useEffect(() => {
+    const s = steps[index];
+    if (!s) return;
+    const c = chapters[s.chapterIndex];
+    const record: GuideResume = {
+      path: storageKey,
+      title,
+      step: index,
+      total,
+      chapterNo: c.no,
+      chapterName: c.name,
+      inChapter: s.inChapter + 1,
+      stepTitle: s.title,
+      at: Date.now(),
+    };
+    try {
+      window.localStorage.setItem(GUIDE_RESUME_KEY, JSON.stringify(record));
+    } catch {
+      // 기록 못 해도 가이드는 그대로 본다
+    }
+  }, [index, steps, chapters, storageKey, title, total]);
 
   // 단계가 바뀌면 새 제목으로 포커스, 카드가 화면 위로 벗어나 있으면 카드 머리로 스크롤
   useEffect(() => {

@@ -59,6 +59,7 @@ export default async function GuideResultPage({ params }: GuideResultPageProps) 
         {chapters.length > 0 ? (
           <GuideViewer
             storageKey={path}
+            title={plan.title}
             chapters={chapters}
             answers={answers}
             aiLabel={GUIDE_AI_LABELS[plan.aiKey]}
