@@ -19,9 +19,11 @@ function trim(text: string, max: number): string {
   return t.length > max ? `${t.slice(0, max)}…` : t;
 }
 
-/** 홈 "이렇게 써요" — 올리기 → 써 보고 리뷰 → 해줘로 요청, 각 칸 아래에 실제 최근 예시 한 줄. */
-export function HowItWorks({ examples }: { examples: HowItWorksExamples }) {
-  const { latestProject, latestReview, latestIdea } = examples;
+/** 홈 "이렇게 써요" — 올리기 → 써 보고 리뷰 → 해줘로 요청, 각 칸 아래에 실제 최근 예시 한 줄.
+ * `examples`가 null이면 아직 받는 중 — 예시 줄 자리에 회색 막대를 둔다. */
+export function HowItWorks({ examples }: { examples: HowItWorksExamples | null }) {
+  const loading = examples === null;
+  const { latestProject, latestReview, latestIdea } = examples ?? { latestProject: null, latestReview: null, latestIdea: null };
 
   const steps = [
     {
@@ -97,7 +99,7 @@ export function HowItWorks({ examples }: { examples: HowItWorksExamples }) {
           <h3 className="font-heading text-base font-bold text-zinc-900 dark:text-white">{step.title}</h3>
           <p className="text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400 break-keep">{step.body}</p>
           <div className="mt-auto flex items-center gap-2.5 border-t border-zinc-100 pt-3 text-xs text-zinc-600 dark:border-zinc-800/60 dark:text-zinc-400">
-            {step.example}
+            {loading ? <span aria-hidden className="h-[34px] w-full rounded-lg bg-zinc-100 dark:bg-zinc-800" /> : step.example}
           </div>
         </li>
       ))}

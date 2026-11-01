@@ -570,6 +570,10 @@ export type Database = {
         Args: Record<string, never>;
         Returns: string[];
       };
+      domain_showcase: {
+        Args: { p_limit?: number };
+        Returns: Json;
+      };
       save_guide_revision: {
         Args: {
           p_author_id: string;
