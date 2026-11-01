@@ -20,6 +20,8 @@ DECLARE
   c      uuid;
   d      uuid;
   f      uuid;
+  nr     uuid;
+  nr2    uuid;
   ids    text[];
   st     text;
   n      int;
@@ -31,7 +33,7 @@ BEGIN
   SELECT id INTO adm FROM public.users WHERE email = 'ts250024@ts.hs.kr';
   IF u IS NULL OR u2 IS NULL THEN RAISE EXCEPTION 'VERIFY FAIL need two non-developer users'; END IF;
 
-  -- 테스트 프로젝트: 1~4 웹사이트(url 있음), 5 앱, 6 웹사이트(url 없음), 7 다른 사람 웹사이트
+  -- 테스트 프로젝트: 1~4 웹사이트(url 있음), 5 앱, 6 웹사이트(url 없음 — 대곽나루 주소용), 7 다른 사람 웹사이트
   FOR i IN 1..7 LOOP
     INSERT INTO public.projects (author_id, title, description, source_type, visibility, types, url)
     VALUES (
@@ -64,8 +66,6 @@ BEGIN
   EXCEPTION WHEN raise_exception THEN log := log || 'invalid=' || SQLERRM || ';'; END;
   BEGIN PERFORM public.subdomain_reserve(u, p[5], 'zz-verify-app'); log := log || 'app=ok;';
   EXCEPTION WHEN raise_exception THEN log := log || 'app=' || SQLERRM || ';'; END;
-  BEGIN PERFORM public.subdomain_reserve(u, p[6], 'zz-verify-nourl'); log := log || 'nourl=ok;';
-  EXCEPTION WHEN raise_exception THEN log := log || 'nourl=' || SQLERRM || ';'; END;
   BEGIN PERFORM public.subdomain_reserve(u, p[7], 'zz-verify-other'); log := log || 'other=ok;';
   EXCEPTION WHEN raise_exception THEN log := log || 'other=' || SQLERRM || ';'; END;
 
@@ -149,6 +149,43 @@ BEGIN
   ids := public.subdomain_release(NULL, c, 'never_connected_7d');
   log := log || 'service_release=' || (SELECT status || '/' || released_reason FROM public.subdomains WHERE id = c) || ';';
 
+  -- 대곽나루 호스트(naru, 2026-11-01): url 없는 웹사이트도 예약되고, 확인 없이 바로 연결되며, 서버 1대에 주소 1개
+  nr := public.subdomain_reserve(u, p[6], 'zz-verify-n');
+  log := log || 'naru_nourl=' || (SELECT status FROM public.subdomains WHERE id = nr) || ';';
+  log := log || 'naru_target=' || public.subdomain_target_ok('naru', '00000000-0000-0000-0000-000000000000.cfargotunnel.com')::text || '/'
+    || public.subdomain_target_ok('naru', 'example.com')::text || '/'
+    || public.subdomain_target_ok('naru', '0000-0000.cfargotunnel.com')::text || '/'
+    || public.subdomain_target_ok('naru', 'x.00000000-0000-0000-0000-000000000000.cfargotunnel.com')::text || ';';
+  BEGIN PERFORM public.subdomain_connect_naru(u, nr, 'fa4e0001', 'example.com', '{}'); log := log || 'naru_bad_target=ok;';
+  EXCEPTION WHEN raise_exception THEN log := log || 'naru_bad_target=' || SQLERRM || ';'; END;
+  BEGIN PERFORM public.subdomain_connect_naru(u, nr, 'XYZ', '00000000-0000-0000-0000-000000000000.cfargotunnel.com', '{}'); log := log || 'naru_bad_server=ok;';
+  EXCEPTION WHEN raise_exception THEN log := log || 'naru_bad_server=' || SQLERRM || ';'; END;
+  BEGIN PERFORM public.subdomain_connect_naru(u2, nr, 'fa4e0001', '00000000-0000-0000-0000-000000000000.cfargotunnel.com', '{}'); log := log || 'naru_other=ok;';
+  EXCEPTION WHEN raise_exception THEN log := log || 'naru_other=' || SQLERRM || ';'; END;
+  BEGIN PERFORM public.subdomain_connect(u, nr, 'naru', '00000000-0000-0000-0000-000000000000.cfargotunnel.com', '[]', '{}'); log := log || 'naru_generic=ok;';
+  EXCEPTION WHEN raise_exception THEN log := log || 'naru_generic=' || SQLERRM || ';'; END;
+  PERFORM public.subdomain_connect_naru(u, nr, 'fa4e0001', '00000000-0000-0000-0000-000000000000.cfargotunnel.com', ARRAY['n1']);
+  log := log || 'naru_connected=' || (SELECT status || '/' || host || '/' || site_host || '/' || naru_server_id || '/' || ever_active::text
+    || '/' || (site_verified_at IS NOT NULL)::text || '/' || (connected_at IS NOT NULL)::text || '/' || array_to_string(cf_record_ids, ',')
+    FROM public.subdomains WHERE id = nr) || ';';
+  -- 같은 행을 같은 서버로 다시 연결해도 자기 자신과는 겹치지 않는다
+  PERFORM public.subdomain_connect_naru(u, nr, 'fa4e0001', '00000000-0000-0000-0000-000000000000.cfargotunnel.com', ARRAY['n1', 'n2']);
+  log := log || 'naru_reconnect=' || (SELECT array_length(cf_record_ids, 1)::text FROM public.subdomains WHERE id = nr) || ';';
+  -- 같은 서버에 두 번째 주소는 안 된다
+  nr2 := public.subdomain_reserve(u2, p[7], 'zz-verify-n2');
+  BEGIN PERFORM public.subdomain_connect_naru(u2, nr2, 'fa4e0001', '00000000-0000-0000-0000-000000000000.cfargotunnel.com', '{}'); log := log || 'naru_taken=ok;';
+  EXCEPTION WHEN raise_exception THEN log := log || 'naru_taken=' || SQLERRM || ';'; END;
+  PERFORM public.subdomain_release(u2, nr2, 'x');
+  -- 서버가 풀리면 다른 주소가 그 서버를 쓸 수 있다
+  nr2 := public.subdomain_reserve(u2, p[7], 'zz-verify-n3');
+  PERFORM public.subdomain_release(u, nr, 'owner');
+  PERFORM public.subdomain_connect_naru(u2, nr2, 'fa4e0001', '00000000-0000-0000-0000-000000000000.cfargotunnel.com', '{}');
+  log := log || 'naru_free_after_release=' || (SELECT status || '/' || naru_server_id FROM public.subdomains WHERE id = nr2) || ';';
+  PERFORM public.subdomain_release(u2, nr2, 'x');
+  log := log || 'naru_fn=' || has_function_privilege('anon', 'public.subdomain_connect_naru(uuid,uuid,text,text,text[])', 'EXECUTE')::text || '/'
+    || has_function_privilege('authenticated', 'public.subdomain_connect_naru(uuid,uuid,text,text,text[])', 'EXECUTE')::text || '/'
+    || has_function_privilege('service_role', 'public.subdomain_connect_naru(uuid,uuid,text,text,text[])', 'EXECUTE')::text || ';';
+
   -- 회수는 관리자만
   BEGIN PERFORM public.subdomain_revoke(u, b, '장난'); log := log || 'revoke_user=ok;';
   EXCEPTION WHEN raise_exception THEN log := log || 'revoke_user=' || SQLERRM || ';'; END;
@@ -225,7 +262,7 @@ BEGIN
   expect :=
     'name_norm=zz-verify-a;status=reserved;owner=true;token_len=32;'
     'fourth=limit;taken=name_taken;same_project=project_has_subdomain;reserved=name_reserved;invalid=name_invalid;'
-    'app=not_website;nourl=not_website;other=not_owner;delete=project_has_subdomain;'
+    'app=not_website;other=not_owner;delete=project_has_subdomain;'
     'ph=p1,redirect:p2;ph_twice=records_exist;'
     'unverified=not_verified;site_http=site_invalid;site_shape=site_invalid;site_other=not_owner;site_changed=site_changed;'
     'site_same_keeps=true;host_mismatch=host_mismatch;'
@@ -234,6 +271,9 @@ BEGIN
     'url=https://zz-verify-a.dshs.dev;url_reserved=not_active;'
     'release_other=not_owner;released=rec1,rec2/released;url_restored=https://zz-verify-1.vercel.app;reuse=true;delete_after_release=true;history_kept=true;'
     'service_release=released/never_connected_7d;'
+    'naru_nourl=reserved;naru_target=true/false/false/false;naru_bad_target=target_invalid;naru_bad_server=target_invalid;'
+    'naru_other=not_owner;naru_generic=host_mismatch;naru_connected=active/naru/naru/fa4e0001/true/true/true/n1;'
+    'naru_reconnect=2;naru_taken=naru_server_taken;naru_free_after_release=active/fa4e0001;naru_fn=false/false/true;'
     'revoke_user=not_admin;revoked_name=name_taken;unblocked=true;'
     'fn_anon=false;fn_auth=false;fn_service=true;'
     'rls_other_rows=0;rls_insert=denied;'
