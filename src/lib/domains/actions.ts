@@ -65,6 +65,7 @@ const NARU_BAD_STATE = '서버가 켜져 있거나 꺼져 있을 때만 주소�
 // 허브 오류 → 문구: 404 는 내 서버가 아님, 네트워크 실패(0)·5xx 는 닿지 못함
 function naruErrorMessage(e: NaruError): string {
   if (e.status === 404) return NARU_NOT_MINE
+  if (e.status === 422) return RPC_ERRORS.name_invalid
   if (e.status === 409) return NARU_BAD_STATE
   if (e.status === 0 || e.status >= 500) return NARU_UNREACHABLE
   return UNKNOWN
@@ -298,10 +299,10 @@ export async function verifySubdomain(
   if (!user) return LOGIN_REQUIRED
   const row = await loadRow(id)
   if (!row || row.owner_id !== user.id) return { ok: false, error: RPC_ERRORS.not_owner }
-  // 대곽나루 서버 주소는 확인 코드도 연결 확인도 없다 — 연결하는 순간 active, 반납은 허브에 서버가 없을 때만
-  if (isNaruHost(row.host)) return { ok: true, data: { result: 'ok', detail: null, status: row.status, siteVerified: true } }
-
   const siteStep = !row.site_verified_at && row.site_url && row.site_host
+  // 대곽나루 서버 주소는 확인 코드도 연결 확인도 없다 — 연결하는 순간 active, 반납은 허브에 서버가 없을 때만.
+  // 단 다른 호스트로 옮기려고 ② 원래 주소를 확인하는 중(siteStep)이면 그대로 확인해야 connectHost 가 not_verified 로 막히지 않는다
+  if (!siteStep && isNaruHost(row.host)) return { ok: true, data: { result: 'ok', detail: null, status: row.status, siteVerified: true } }
   if (!siteStep && !row.host) return { ok: false, error: '먼저 ②에서 내 사이트 주소를 넣어요.' }
 
   // 확인할 곳 — 사설 IP 로 풀리면 요청하지 않는다
@@ -396,7 +397,7 @@ export async function connectNaru(id: string, serverId: string): Promise<ActionR
           if (error) throw error
         },
       },
-      { id, name: row.name, serverId, email: user.email },
+      { id, name: row.name, serverId, email: user.email, previousServerId: row.host === 'naru' ? row.naru_server_id : null },
     )
   } catch (e) {
     if (e instanceof NaruError) return { ok: false, error: naruErrorMessage(e) }

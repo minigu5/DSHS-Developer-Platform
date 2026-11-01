@@ -110,3 +110,15 @@ test('옛 레코드 지우기가 실패해도 허브 묶음을 푼다', async ()
   await assert.rejects(runConnectNaru(h.deps, INPUT), /cf down/)
   assert.deepEqual(h.events, ['bind:fa4e0001:meal', 'unbind:fa4e0001'])
 })
+
+test('같은 서버 재연결에서 DNS 실패면 허브 풀지 않는다', async () => {
+  const h = naruHarness({ dnsFails: true })
+  await assert.rejects(runConnectNaru(h.deps, { ...INPUT, previousServerId: 'fa4e0001' }), /cf down/)
+  assert.deepEqual(h.events, ['bind:fa4e0001:meal', 'dns.create'])
+})
+
+test('다른 서버에서 옮겨 오는 연결은 DNS 실패면 허브를 푼다', async () => {
+  const h = naruHarness({ dnsFails: true })
+  await assert.rejects(runConnectNaru(h.deps, { ...INPUT, previousServerId: 'fa4e0009' }), /cf down/)
+  assert.deepEqual(h.events, ['bind:fa4e0001:meal', 'dns.create', 'unbind:fa4e0001'])
+})

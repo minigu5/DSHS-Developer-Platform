@@ -31,6 +31,7 @@ export async function runConnect(
  * 대곽나루 서버에 연결: 허브 묶기 → 허브가 준 target 으로 proxied CNAME → DB 기록.
  * 허브 묶기가 실패하면 DNS 를 하나도 만들지 않는다. DNS 가 실패하면 허브 묶음을 풀고,
  * DB 기록이 실패하면 DNS 를 지우고 허브 묶음을 푼 뒤 원래 오류를 그대로 던진다(풀기·지우기 실패는 무시 — 매일 점검이 정리).
+ * previousServerId 가 serverId 와 같으면(같은 서버 재연결) 실패해도 허브 묶음을 풀지 않는다.
  * clearOld: 허브 묶기가 성공한 뒤 DNS 를 만들기 전에 옛 레코드(자리표시 등)를 지우는 단계. rpcConnect 는 target 도 받는다.
  */
 export async function runConnectNaru(
@@ -40,10 +41,12 @@ export async function runConnectNaru(
     rpcConnect: (ids: string[], target: string) => Promise<void>
     clearOld?: () => Promise<void>
   },
-  input: { id: string; name: string; serverId: string; email: string },
+  input: { id: string; name: string; serverId: string; email: string; previousServerId?: string | null },
 ): Promise<void> {
   const { target } = await deps.naru.bind(input.serverId, input.email, input.name)
-  const unbind = () => deps.naru.unbind(input.serverId, input.email).catch(() => {})
+  // 이미 같은 서버에 묶여 있던 행의 재연결이면 허브 묶음은 원래 유효했다 — 실패해도 풀지 않는다
+  const wasBound = input.previousServerId === input.serverId
+  const unbind = () => (wasBound ? Promise.resolve() : deps.naru.unbind(input.serverId, input.email).catch(() => {}))
 
   let ids: string[]
   try {
