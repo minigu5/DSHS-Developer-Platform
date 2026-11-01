@@ -19,6 +19,14 @@ export type CheckRow = {
   ever_active: boolean
 }
 
+/**
+ * 토큰 확인·끊김·7일 반납(decide)을 받을 행. 대곽나루 서버 주소(host 'naru')는 뺀다 —
+ * 확인 코드가 없고, 반납은 허브에 그 서버가 없을 때만이다(naru.ts runNaruSync). 호스트 없는 예약 행은 그대로 대상.
+ */
+export function checkTargets<T extends { host: string | null }>(rows: T[]): T[] {
+  return rows.filter((r) => r.host !== 'naru')
+}
+
 export type Decision = { ok: boolean; release: null | 'broken_7d' | 'never_connected_7d' }
 
 const olderThan = (iso: string, now: Date) => now.getTime() - new Date(iso).getTime() > RELEASE_AFTER_DAYS * DAY_MS

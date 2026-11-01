@@ -2,6 +2,9 @@
 // DB 가 모르는(반납·회수된 주소의) Cloudflare 레코드·바로가기 목록 항목을 지운다.
 // 바로가기 주소(Workers·Firebase)는 보낼 곳 사이트에서 토큰을 확인한다(바로가기는 ③ 연결하기에서 이미 만들어진다).
 // 예약만 된 주소(② 확인 전)는 확인하지 않고 7일 규칙만 본다.
+// 대곽나루 서버 주소(host 'naru')는 토큰 확인·끊김·7일 반납에서 뺀다 — 대신 허브(POST /devplatform/sync)와 한 번에 맞추고,
+// 허브에 그 서버가 없다고 한 주소만 반납한다(naru_server_gone). 주소 조회가 실패하면 sync 를 부르지 않고(빈 목록으로 허브의 묶음이
+// 다 지워지지 않게) 실패로 끝내고, 허브에 닿지 못하면 반납 없이 건너뛴다(허브 장애로 학생 주소를 잃지 않게).
 // 끝에 바로가기 하나·확인 전 자리표시 하나를 실제로 열어 302 가 오는지 본다(계정에 하나뿐인 Bulk Redirect 규칙이 꺼지면 알아채려고).
 //
 // 매일 밤 GitHub Actions(.github/workflows/check-subdomains.yml)가 실행한다.
@@ -12,17 +15,19 @@
 // 필요 환경변수(.env.local 또는 Actions secrets):
 //   NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CLOUDFLARE_DNS_API_TOKEN, CLOUDFLARE_ZONE_ID
 //   바로가기(선택 — 바로가기 주소가 하나라도 있으면 필요): CLOUDFLARE_LISTS_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_REDIRECT_LIST_ID
+//   대곽나루(선택 — 대곽나루 주소가 하나라도 있으면 필요): NARU_HUB_URL, NARU_HUB_KEY
 // 공개 저장소라 Actions 로그가 공개된다 — 주소 이름(공개 DNS)만 찍고 프로젝트 제목·이메일은 찍지 않는다.
 
 import { createClient } from '@supabase/supabase-js';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { connectionLive } from '../src/lib/domains/activate.ts';
-import { blockedByChallenge, decide, placeholderWorks, redirectWorks, strayIds, type CheckRow } from '../src/lib/domains/check.ts';
+import { blockedByChallenge, checkTargets, decide, placeholderWorks, redirectWorks, strayIds, type CheckRow } from '../src/lib/domains/check.ts';
 import { REDIRECT_ID_PREFIX, removeCloudflareWith } from '../src/lib/domains/cleanup.ts';
 import { createDnsClient } from '../src/lib/domains/cloudflare.ts';
 import { createSiteFetcher } from '../src/lib/domains/fetch-site.ts';
-import { isRedirectHost, siteHostFor, type HostKey } from '../src/lib/domains/hosts.ts';
+import { isRedirectHost, siteHostFor, type DomainHost } from '../src/lib/domains/hosts.ts';
+import { createNaruClient, runNaruSync, type NaruRow } from '../src/lib/domains/naru.ts';
 import { createRedirectClient, RedirectError, type RedirectClient } from '../src/lib/domains/redirects.ts';
 import { checkSite, type CheckResult } from '../src/lib/domains/verify.ts';
 
@@ -53,6 +58,8 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const LISTS_TOKEN = process.env.CLOUDFLARE_LISTS_API_TOKEN;
 const ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
 const REDIRECT_LIST_ID = process.env.CLOUDFLARE_REDIRECT_LIST_ID;
+const NARU_URL = process.env.NARU_HUB_URL;
+const NARU_KEY = process.env.NARU_HUB_KEY;
 
 if (!SUPABASE_URL || !SERVICE_KEY || !CF_TOKEN || !CF_ZONE) {
   console.error('❌  NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, CLOUDFLARE_DNS_API_TOKEN, CLOUDFLARE_ZONE_ID 를 설정하세요.');
@@ -69,10 +76,11 @@ const redirects = (): RedirectClient => {
   return redirectClient;
 };
 const cleanupDeps = { dns, redirects };
+const naruClient = NARU_URL && NARU_KEY ? createNaruClient({ url: NARU_URL, key: NARU_KEY }) : null;
 const fetcher = createSiteFetcher();
 const LIVE = ['reserved', 'pending', 'active', 'broken'];
 
-type Row = CheckRow & { id: string; name: string; host: HostKey | null; target: string | null; verify_token: string; cf_record_ids: string[] };
+type Row = CheckRow & { id: string; name: string; host: DomainHost | null; target: string | null; verify_token: string; cf_record_ids: string[] };
 
 let failures = 0;
 const now = new Date();
@@ -88,12 +96,14 @@ if (error) {
   process.exit(1);
 }
 
-console.log(`주소 ${rows.length}개 점검`);
-if (!redirectClient && (rows as Row[]).some((r) => isRedirectHost(r.host))) {
+// 대곽나루 서버 주소는 아래 sync 에서 따로 — 토큰 확인·decide 에는 안 넣는다
+const targets = checkTargets(rows as Row[]);
+console.log(`주소 ${targets.length}개 점검 (대곽나루 ${rows.length - targets.length}개는 허브와 맞춤)`);
+if (!redirectClient && targets.some((r) => isRedirectHost(r.host))) {
   failures++;
   console.error('❌  바로가기 목록 환경변수가 없어요');
 }
-for (const row of rows as Row[]) {
+for (const row of targets) {
   const fqdn = `${row.name}.dshs.dev`;
   try {
     const result: CheckResult | null =
@@ -126,6 +136,43 @@ for (const row of rows as Row[]) {
     failures++;
     console.error(`  ❌  ${fqdn}: ${e instanceof Error ? e.message : String(e)}`);
   }
+}
+
+// 대곽나루 서버 주소: 허브와 한 번에 맞추고, 허브에 서버가 없는 주소만 반납한다. 로그엔 주소 이름만(이메일·서버 id 금지)
+{
+  const naru = await runNaruSync({
+    naru: naruClient,
+    dryRun: DRY_RUN,
+    log: (m) => (m.startsWith('❌') ? console.error(m) : console.log(m)),
+    loadRows: async (): Promise<NaruRow[]> => {
+      const { data: naruRows, error: e } = await supabase
+        .from('subdomains')
+        .select('id, name, owner_id, naru_server_id')
+        .eq('host', 'naru')
+        .in('status', LIVE)
+        .order('name');
+      if (e) throw new Error(`주소 조회 ${e.message}`);
+      const owners = [...new Set((naruRows ?? []).map((r) => r.owner_id as string))];
+      const emails = new Map<string, string>();
+      if (owners.length) {
+        const { data: users, error: ue } = await supabase.from('users').select('id, email').in('id', owners);
+        if (ue) throw new Error(`주인 조회 ${ue.message}`);
+        for (const u of users ?? []) emails.set(u.id as string, u.email as string);
+      }
+      // 서버 id·주인 이메일이 빠진 행이 있으면 불완전한 목록을 보내지 않는다(허브가 그 묶음을 지워 버린다)
+      return (naruRows ?? []).map((r) => {
+        const email = emails.get(r.owner_id as string);
+        if (!r.naru_server_id || !email) throw new Error(`${r.name}: 서버 id 또는 주인을 찾지 못함`);
+        return { id: r.id as string, name: r.name as string, naruServerId: r.naru_server_id as string, ownerEmail: email };
+      });
+    },
+    release: async (row) => {
+      const { data: ids, error: e } = await supabase.rpc('subdomain_release', { p_actor: null, p_id: row.id, p_reason: 'naru_server_gone' });
+      if (e) throw new Error(`release ${e.message}`);
+      await removeCloudflareWith((ids as string[] | null) ?? [], cleanupDeps);
+    },
+  });
+  failures += naru.failures;
 }
 
 // 고아·찌꺼기 정리: comment 의 행이 살아 있지 않거나, 살아 있는 행인데 그 행의 기록(cf_record_ids)에 없고 1시간 넘은

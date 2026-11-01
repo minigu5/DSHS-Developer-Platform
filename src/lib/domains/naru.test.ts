@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createNaruClient, naruLinkFor, NaruError, unbindNaruBestEffort } from './naru.ts'
+import { createNaruClient, naruLinkFor, naruReleases, NaruError, planNaruSync, runNaruSync, unbindNaruBestEffort, type NaruRow } from './naru.ts'
 
 type Call = { method: string; url: string; headers: Record<string, string>; body: unknown }
 
@@ -117,4 +117,118 @@ test('unbindNaruBestEffort: 대곽나루 행만 풀고, 실패는 로그만', as
   await unbindNaruBestEffort({ unbind: async () => { throw new NaruError('x', 0) } }, { host: 'naru', naruServerId: 'fa4e0004', ownerEmail: 'a@ts.hs.kr' }, log)
   assert.ok(logs.length >= 1)
   assert.ok(logs.every((l) => !l.includes('@')))
+})
+
+// ── 매일 점검: 대곽나루 행은 sync
+
+const ROW = (n: number, over: Partial<NaruRow> = {}): NaruRow => ({
+  id: `row-${n}`, naruServerId: `fa4e000${n}`, ownerEmail: `s${n}@ts.hs.kr`, name: `site${n}`, ...over,
+})
+
+test('planNaruSync 는 live 대곽나루 행만 묶음으로', () => {
+  const rows: NaruRow[] = [
+    ROW(1),
+    ROW(2, { host: 'vercel' }),
+    ROW(3, { status: 'released' }),
+    ROW(4, { host: 'naru', status: 'active' }),
+  ]
+  assert.deepEqual(planNaruSync(rows), [
+    { serverId: 'fa4e0001', email: 's1@ts.hs.kr', name: 'site1' },
+    { serverId: 'fa4e0004', email: 's4@ts.hs.kr', name: 'site4' },
+  ])
+})
+
+test('naruReleases: gone 이면 반납, 아니면 그대로', () => {
+  const rows = [ROW(1), ROW(2), ROW(3)]
+  assert.deepEqual(naruReleases(rows, ['fa4e0002', 'zzzzzzzz']), ['row-2'])
+  assert.deepEqual(naruReleases(rows, []), [])
+})
+
+function syncHarness(over: {
+  load?: () => Promise<NaruRow[]>
+  sync?: (b: { serverId: string; email: string; name: string }[]) => Promise<{ gone: string[] }>
+  noHub?: boolean
+  dryRun?: boolean
+  releaseFails?: string
+} = {}) {
+  const events: string[] = []
+  const lines: string[] = []
+  const deps = {
+    naru: over.noHub
+      ? null
+      : {
+          sync: async (b: { serverId: string; email: string; name: string }[]) => {
+            events.push(`sync:${b.length}`)
+            return over.sync ? over.sync(b) : { gone: [] }
+          },
+        },
+    loadRows: over.load ?? (async () => [ROW(1), ROW(2)]),
+    release: async (row: NaruRow) => {
+      events.push(`release:${row.id}`)
+      if (over.releaseFails === row.id) throw new Error('db')
+    },
+    dryRun: over.dryRun ?? false,
+    log: (m: string) => lines.push(m),
+  }
+  return { deps, events, lines }
+}
+
+test('조회 실패면 sync를 부르지 않는다', async () => {
+  const h = syncHarness({ load: async () => { throw new Error('supabase down') } })
+  const r = await runNaruSync(h.deps)
+  assert.deepEqual(h.events, [])
+  assert.equal(r.failures, 1)
+})
+
+test('sync 가 돌려준 gone 행만 반납한다', async () => {
+  const h = syncHarness({ sync: async () => ({ gone: ['fa4e0002'] }) })
+  const r = await runNaruSync(h.deps)
+  assert.deepEqual(h.events, ['sync:2', 'release:row-2'])
+  assert.deepEqual(r, { failures: 0, released: ['site2'] })
+})
+
+test('허브가 안 닿으면(0·5xx) 반납 없이 건너뛴다, 실패로 세지 않는다', async () => {
+  for (const status of [0, 502, 503]) {
+    const h = syncHarness({ sync: async () => { throw new NaruError('x', status) } })
+    const r = await runNaruSync(h.deps)
+    assert.deepEqual(h.events, ['sync:2'])
+    assert.equal(r.failures, 0)
+    assert.ok(h.lines.some((l) => l.includes('건너뜀')))
+  }
+})
+
+test('허브가 거절하면(401 등) 실패로 센다, 반납 없음', async () => {
+  const h = syncHarness({ sync: async () => { throw new NaruError('x', 401) } })
+  const r = await runNaruSync(h.deps)
+  assert.equal(r.failures, 1)
+  assert.deepEqual(h.events, ['sync:2'])
+})
+
+test('dry-run 은 허브를 부르지 않고 계획만 낸다(이메일은 안 찍는다)', async () => {
+  const h = syncHarness({ dryRun: true })
+  const r = await runNaruSync(h.deps)
+  assert.deepEqual(h.events, [])
+  assert.equal(r.failures, 0)
+  assert.ok(h.lines.some((l) => l.includes('site1')))
+  assert.ok(h.lines.every((l) => !l.includes('@')))
+})
+
+test('허브 설정이 없는데 대곽나루 행이 있으면 실패, 행이 없으면 조용히 끝', async () => {
+  assert.equal((await runNaruSync(syncHarness({ noHub: true }).deps)).failures, 1)
+  const empty = syncHarness({ noHub: true, load: async () => [] })
+  assert.equal((await runNaruSync(empty.deps)).failures, 0)
+})
+
+test('행이 0개여도 허브가 있으면 빈 목록으로 맞춘다(조회가 성공했을 때만)', async () => {
+  const h = syncHarness({ load: async () => [] })
+  await runNaruSync(h.deps)
+  assert.deepEqual(h.events, ['sync:0'])
+})
+
+test('반납이 한 행에서 실패해도 나머지를 계속하고 실패로 센다', async () => {
+  const h = syncHarness({ sync: async () => ({ gone: ['fa4e0001', 'fa4e0002'] }), releaseFails: 'row-1' })
+  const r = await runNaruSync(h.deps)
+  assert.deepEqual(h.events, ['sync:2', 'release:row-1', 'release:row-2'])
+  assert.equal(r.failures, 1)
+  assert.deepEqual(r.released, ['site2'])
 })

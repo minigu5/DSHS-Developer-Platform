@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { blockedByChallenge, decide, managedRowId, placeholderWorks, redirectWorks, strayIds } from './check.ts'
+import { blockedByChallenge, checkTargets, decide, managedRowId, placeholderWorks, redirectWorks, strayIds } from './check.ts'
 
 const NOW = new Date('2026-11-01T18:30:00Z')
 const daysAgo = (n: number) => new Date(NOW.getTime() - n * 86_400_000).toISOString()
@@ -112,4 +112,13 @@ test('placeholderWorks: 302 로 경고 페이지에 보내야 자리표시가 �
   assert.equal(placeholderWorks(page(302, 'https://dshs.dev/pending-domain/meal'), 'meal'), true)
   assert.equal(placeholderWorks(page(302, 'https://dshs.dev/pending-domain/other'), 'meal'), false)
   assert.equal(placeholderWorks(page(200, null), 'meal'), false)
+})
+
+test('decide 는 naru 행을 받지 않는다(호출부에서 걸러짐) — 점검 대상 필터', () => {
+  const rows = [
+    { id: 'a', host: 'vercel' as string | null },
+    { id: 'b', host: 'naru' as string | null },
+    { id: 'c', host: null },
+  ]
+  assert.deepEqual(checkTargets(rows).map((r) => r.id), ['a', 'c'])
 })

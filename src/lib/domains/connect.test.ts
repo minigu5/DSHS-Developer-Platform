@@ -1,7 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildRecords, runConnect } from './connect.ts'
-import type { DnsClient } from './cloudflare.ts'
+import { buildRecords, runConnect, runConnectNaru } from './connect.ts'
+import type { DnsClient, DnsRecordInput } from './cloudflare.ts'
+import { NaruError } from './naru.ts'
 
 function fakeDns() {
   const removed: string[][] = []
@@ -41,9 +42,6 @@ test('성공하면 아무것도 지우지 않고 DB 에 레코드 id 를 넘긴�
 })
 
 // ── 대곽나루: 허브 묶기 → proxied CNAME → DB 순서
-import { runConnectNaru } from './connect.ts'
-import { NaruError } from './naru.ts'
-import type { DnsRecordInput } from './cloudflare.ts'
 
 function naruHarness(over: { bind?: () => Promise<{ target: string }>; dnsFails?: boolean; rpc?: (ids: string[], target: string) => Promise<void>; clearOld?: () => Promise<void> } = {}) {
   const events: string[] = []

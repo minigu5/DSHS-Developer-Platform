@@ -174,3 +174,98 @@ export async function unbindNaruBestEffort(
     log('[naru] 허브 묶음 풀기 실패, 매일 점검이 정리', e instanceof NaruError ? `status ${e.status}` : 'error')
   }
 }
+
+// ── 매일 점검: 대곽나루 행은 토큰 확인 대신 허브와 맞춘다 (scripts/check-subdomains.mts)
+
+export type NaruRow = {
+  id: string
+  naruServerId: string
+  ownerEmail: string
+  name: string
+  /** 있으면 대곽나루·살아 있는 행만 묶음에 넣는다(조회가 이미 거르면 생략) */
+  host?: string | null
+  status?: string
+}
+
+const LIVE_STATUSES = ['reserved', 'pending', 'active', 'broken']
+
+/** 허브에 보낼 묶음 — live 대곽나루 행만 */
+export function planNaruSync(rows: NaruRow[]): NaruBinding[] {
+  return rows
+    .filter((r) => (r.host === undefined || r.host === 'naru') && (r.status === undefined || LIVE_STATUSES.includes(r.status)))
+    .map((r) => ({ serverId: r.naruServerId, email: r.ownerEmail, name: r.name }))
+}
+
+/** 허브가 "그 서버가 없다(또는 주인이 다르다)"고 한 행 id — 반납할 행 */
+export function naruReleases(rows: { id: string; naruServerId: string }[], gone: string[]): string[] {
+  const set = new Set(gone)
+  return rows.filter((r) => set.has(r.naruServerId)).map((r) => r.id)
+}
+
+export type NaruSyncDeps = {
+  /** null = 허브 설정(NARU_HUB_URL·KEY) 없음 */
+  naru: Pick<NaruClient, 'sync'> | null
+  /** 대곽나루 행 조회. 실패하면 던진다 — 그러면 sync 를 부르지 않는다(빈 목록으로 허브의 묶음이 다 지워지지 않게) */
+  loadRows: () => Promise<NaruRow[]>
+  /** DB 반납 + DNS 삭제. 실패하면 던진다 */
+  release: (row: NaruRow) => Promise<void>
+  dryRun: boolean
+  /** 공개 로그 — 주소 이름만 찍는다(이메일·서버 id 금지) */
+  log: (message: string) => void
+}
+
+/**
+ * 대곽나루 행을 허브와 맞춘다: 조회 → sync → gone 행 반납.
+ * - 조회 실패: sync 를 안 부르고 실패 1건
+ * - 허브가 안 닿음(네트워크·5xx): 반납 없이 건너뜀(실패 아님 — 허브 장애로 학생 주소를 잃지 않게)
+ * - 허브가 거절(401 등): 설정 문제라 실패
+ * - dry-run: 허브를 부르지 않고 계획만 출력
+ */
+export async function runNaruSync(deps: NaruSyncDeps): Promise<{ failures: number; released: string[] }> {
+  let rows: NaruRow[]
+  try {
+    rows = await deps.loadRows()
+  } catch (e) {
+    deps.log(`❌  대곽나루 주소 조회 실패, 허브와 맞추지 않음: ${e instanceof Error ? e.message : String(e)}`)
+    return { failures: 1, released: [] }
+  }
+
+  if (deps.dryRun) {
+    deps.log(`대곽나루 주소 ${rows.length}개: ${rows.map((r) => r.name).join(', ') || '(없음)'} — dry-run 이라 허브와 맞추지 않아요`)
+    return { failures: 0, released: [] }
+  }
+  if (!deps.naru) {
+    if (!rows.length) return { failures: 0, released: [] }
+    deps.log('❌  NARU_HUB_URL / NARU_HUB_KEY 가 없어 대곽나루 주소를 허브와 맞추지 못해요')
+    return { failures: 1, released: [] }
+  }
+
+  let gone: string[]
+  try {
+    gone = (await deps.naru.sync(planNaruSync(rows))).gone
+  } catch (e) {
+    if (e instanceof NaruError && (e.status === 0 || e.status >= 500)) {
+      deps.log(`  ⚠️  대곽나루 허브에 닿지 못해 이번엔 건너뜀(status ${e.status}) — 주소는 그대로 둠`)
+      return { failures: 0, released: [] }
+    }
+    deps.log(`❌  대곽나루 허브 sync 실패: ${e instanceof NaruError ? `status ${e.status}` : String(e)}`)
+    return { failures: 1, released: [] }
+  }
+
+  let failures = 0
+  const released: string[] = []
+  const byId = new Map(rows.map((r) => [r.id, r]))
+  for (const id of naruReleases(rows, gone)) {
+    const row = byId.get(id)!
+    try {
+      await deps.release(row)
+      released.push(row.name)
+      deps.log(`  ${row.name}.dshs.dev: 대곽나루 서버가 없어 반납(naru_server_gone)`)
+    } catch (e) {
+      failures++
+      deps.log(`  ❌  ${row.name}.dshs.dev: 반납 실패 ${e instanceof Error ? e.message : String(e)}`)
+    }
+  }
+  deps.log(`  대곽나루 주소 ${rows.length}개를 허브와 맞춤${released.length ? `, ${released.length}개 반납` : ''}`)
+  return { failures, released }
+}
