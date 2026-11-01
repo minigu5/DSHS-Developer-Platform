@@ -5,10 +5,14 @@
 
 type DbResult<T> = { data: T | null; error: { message: string } | null }
 
+export type LiveDomain = { id: string; host?: string | null; naruServerId?: string | null; ownerId?: string }
+
 export type ReleaseDeps = {
-  findLive: () => Promise<DbResult<{ id: string }>>
+  findLive: () => Promise<DbResult<LiveDomain>>
   release: (subdomainId: string) => Promise<DbResult<string[]>>
   removeCloudflare: (ids: string[]) => Promise<void>
+  /** 대곽나루 주소를 반납한 뒤 허브 묶음을 푼다(DNS 삭제 뒤, 최선 노력). 대곽나루 행에만 불린다 */
+  unbindNaru?: (live: LiveDomain) => Promise<void>
   log: (message: string, detail: unknown) => void
 }
 
@@ -28,6 +32,9 @@ export async function releaseLiveDomainWith(deps: ReleaseDeps): Promise<boolean>
   }
   if (ids?.length) {
     await deps.removeCloudflare(ids).catch((e) => deps.log('[projects] Cloudflare 레코드 삭제 실패, 매일 점검이 정리', e))
+  }
+  if (live.host === 'naru' && deps.unbindNaru) {
+    await deps.unbindNaru(live).catch((e) => deps.log('[projects] 대곽나루 허브 묶음 풀기 실패, 매일 점검이 정리', e))
   }
   return true
 }

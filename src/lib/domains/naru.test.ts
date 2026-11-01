@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createNaruClient, naruLinkFor, NaruError } from './naru.ts'
+import { createNaruClient, naruLinkFor, NaruError, unbindNaruBestEffort } from './naru.ts'
 
 type Call = { method: string; url: string; headers: Record<string, string>; body: unknown }
 
@@ -102,4 +102,19 @@ test('sync: 5xx → NaruError status 그대로', async () => {
 
 test('naruLinkFor 는 서버 id 를 붙이지 않는다', () => {
   assert.equal(naruLinkFor('fa4e0001'), 'https://대곽나루.dshs-app.net/dashboard?view=server')
+})
+
+test('unbindNaruBestEffort: 대곽나루 행만 풀고, 실패는 로그만', async () => {
+  const unbound: string[] = []
+  const logs: string[] = []
+  const naru = { unbind: async (id: string) => { unbound.push(id) } }
+  const log = (m: string) => logs.push(m)
+  await unbindNaruBestEffort(naru, { host: 'naru', naruServerId: 'fa4e0001', ownerEmail: 'a@ts.hs.kr' }, log)
+  await unbindNaruBestEffort(naru, { host: 'vercel', naruServerId: null, ownerEmail: 'a@ts.hs.kr' }, log)
+  await unbindNaruBestEffort(naru, { host: 'naru', naruServerId: 'fa4e0002', ownerEmail: null }, log)
+  await unbindNaruBestEffort(null, { host: 'naru', naruServerId: 'fa4e0003', ownerEmail: 'a@ts.hs.kr' }, log)
+  assert.deepEqual(unbound, ['fa4e0001'])
+  await unbindNaruBestEffort({ unbind: async () => { throw new NaruError('x', 0) } }, { host: 'naru', naruServerId: 'fa4e0004', ownerEmail: 'a@ts.hs.kr' }, log)
+  assert.ok(logs.length >= 1)
+  assert.ok(logs.every((l) => !l.includes('@')))
 })

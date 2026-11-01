@@ -56,3 +56,42 @@ test('Cloudflare 삭제가 실패해도 DB 는 반납됐으니 true(남은 것�
   const h = deps({ removeFails: true })
   assert.equal(await releaseLiveDomainWith(h.deps), true)
 })
+
+// ── 대곽나루 주소 반납: DNS 삭제 뒤 허브 풀기(최선 노력)
+test('대곽나루 주소 반납은 DNS 를 지운 뒤 허브 묶음을 푼다', async () => {
+  const calls: string[] = []
+  const ok = await releaseLiveDomainWith({
+    findLive: async () => ({ data: { id: 'sub-1', host: 'naru', naruServerId: 'fa4e0001' }, error: null }),
+    release: async () => ({ data: ['rec1'], error: null }),
+    removeCloudflare: async (ids) => { calls.push(`remove:${ids.join(',')}`) },
+    unbindNaru: async (live) => { calls.push(`unbind:${live.naruServerId}`) },
+    log: () => {},
+  })
+  assert.equal(ok, true)
+  assert.deepEqual(calls, ['remove:rec1', 'unbind:fa4e0001'])
+})
+
+test('대곽나루 주소 반납은 허브 풀기가 실패해도 성공', async () => {
+  const logs: string[] = []
+  const ok = await releaseLiveDomainWith({
+    findLive: async () => ({ data: { id: 'sub-1', host: 'naru', naruServerId: 'fa4e0001' }, error: null }),
+    release: async () => ({ data: ['rec1'], error: null }),
+    removeCloudflare: async () => {},
+    unbindNaru: async () => { throw new Error('hub down') },
+    log: (m) => logs.push(m),
+  })
+  assert.equal(ok, true)
+  assert.equal(logs.length, 1)
+})
+
+test('다른 호스트 주소는 허브를 부르지 않는다', async () => {
+  let called = false
+  await releaseLiveDomainWith({
+    findLive: async () => ({ data: { id: 'sub-1', host: 'vercel', naruServerId: null }, error: null }),
+    release: async () => ({ data: ['rec1'], error: null }),
+    removeCloudflare: async () => {},
+    unbindNaru: async () => { called = true },
+    log: () => {},
+  })
+  assert.equal(called, false)
+})

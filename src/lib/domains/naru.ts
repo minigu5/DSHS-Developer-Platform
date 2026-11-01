@@ -153,3 +153,24 @@ export function naruLinkFor(serverId: string): string {
   void serverId
   return 'https://대곽나루.dshs-app.net/dashboard?view=server'
 }
+
+/**
+ * 주소를 반납한 뒤 허브 묶음을 푼다 — 최선 노력. 실패해도 반납은 성공으로 보고(매일 점검의 sync 가 정리) 로그만 남긴다.
+ * 대곽나루 행이 아니거나 서버 id·주인 이메일을 모르거나 허브 클라이언트가 없으면 아무것도 안 한다. 로그에 이메일을 찍지 않는다.
+ */
+export async function unbindNaruBestEffort(
+  naru: Pick<NaruClient, 'unbind'> | null,
+  row: { host: string | null; naruServerId: string | null; ownerEmail: string | null },
+  log: (message: string, detail?: unknown) => void = (m, d) => console.error(m, d),
+): Promise<void> {
+  if (row.host !== 'naru' || !row.naruServerId) return
+  if (!naru || !row.ownerEmail) {
+    log('[naru] 허브 묶음 풀기를 건너뜀(허브 설정 또는 주인 이메일 없음), 매일 점검이 정리')
+    return
+  }
+  try {
+    await naru.unbind(row.naruServerId, row.ownerEmail)
+  } catch (e) {
+    log('[naru] 허브 묶음 풀기 실패, 매일 점검이 정리', e instanceof NaruError ? `status ${e.status}` : 'error')
+  }
+}

@@ -16,10 +16,11 @@ import type { SubdomainStatus } from '@/lib/types'
 import { activateRedirect, connectionLive, createPlaceholder } from './activate'
 import { getDnsClient } from './cloudflare'
 import { removeCloudflare } from './cleanup'
-import { buildRecords, runConnect } from './connect'
+import { buildRecords, runConnect, runConnectNaru } from './connect'
 import { createSiteFetcher } from './fetch-site'
 import { HOST_PRESETS, isNaruHost, isRedirectHost, siteAddressFor, siteHostFor, targetBoundToSite, validateTarget, validateTxt, type HostKey, type TxtInput } from './hosts'
 import { normalizeName, validateName } from './name'
+import { getNaruClient, NaruError, unbindNaruBestEffort, type NaruServer } from './naru'
 import { getRedirectClient, redirectConfigured } from './redirects'
 import { checkSite, type CheckResult } from './verify'
 
@@ -53,7 +54,23 @@ const RPC_ERRORS: Record<string, string> = {
   target_mismatch: 'CNAME 값이 ②에서 확인한 사이트 주소와 달라요.',
   site_invalid: '호스트의 기본 주소(예: 이름.vercel.app)를 넣어요.',
   site_changed: '확인하는 사이에 사이트 주소가 바뀌었어요. 다시 확인해요.',
+  naru_server_taken: '이 서버에는 이미 주소가 있어요.',
 }
+
+const NARU_NOT_READY = '대곽나루 연결은 아직 준비 중이에요.'
+const NARU_NOT_MINE = '내 대곽나루 서버가 아니에요.'
+const NARU_UNREACHABLE = '대곽나루에 닿지 못했어요. 잠시 뒤 다시 시도해요.'
+const NARU_BAD_STATE = '서버가 켜져 있거나 꺼져 있을 때만 주소를 연결할 수 있어요. 서버 상태를 확인해요.'
+
+// 허브 오류 → 문구: 404 는 내 서버가 아님, 네트워크 실패(0)·5xx 는 닿지 못함
+function naruErrorMessage(e: NaruError): string {
+  if (e.status === 404) return NARU_NOT_MINE
+  if (e.status === 409) return NARU_BAD_STATE
+  if (e.status === 0 || e.status >= 500) return NARU_UNREACHABLE
+  return UNKNOWN
+}
+
+const NARU_SERVER_ID = /^[0-9a-f]{8}$/
 
 const RESERVES_PER_DAY = 10
 const REDIRECT_FAILED = '바로가기를 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.'
@@ -87,7 +104,7 @@ const LOGIN_REQUIRED = { ok: false as const, error: '학교 계정으로 로그�
 async function loadRow(id: string) {
   const { data } = await createAdminClient()
     .from('subdomains')
-    .select('id, name, owner_id, project_id, status, host, target, verify_token, cf_record_ids, site_url, site_host, site_verified_at')
+    .select('id, name, owner_id, project_id, status, host, target, verify_token, cf_record_ids, site_url, site_host, site_verified_at, naru_server_id')
     .eq('id', id)
     .maybeSingle()
   return data
@@ -112,7 +129,11 @@ export async function checkNameAvailable(raw: string): Promise<ActionResult<{ av
   return count ? { ok: true, data: { available: false, reason: RPC_ERRORS.name_taken } } : { ok: true, data: { available: true } }
 }
 
-export async function reserveSubdomain(projectId: string, rawName: string): Promise<ActionResult<{ id: string }>> {
+/**
+ * opts.naru: 대곽나루 서버에 붙일 이름이면 방문 주소(url)가 없어도 예약한다(DB 는 url 을 안 본다) — 자리표시도 안 만든다(곧 연결).
+ * 그 밖의 흐름은 방문 주소가 있는 웹사이트 프로젝트만(not_website).
+ */
+export async function reserveSubdomain(projectId: string, rawName: string, opts?: { naru?: boolean }): Promise<ActionResult<{ id: string }>> {
   const user = await currentUser()
   if (!user) return LOGIN_REQUIRED
   const name = normalizeName(rawName)
@@ -122,11 +143,12 @@ export async function reserveSubdomain(projectId: string, rawName: string): Prom
   // 비공개 프로젝트는 주소를 못 받는다. 내 프로젝트만 읽어서(남의 공개 범위는 알려 주지 않음), 아니면 아래 RPC 가 not_owner 로 거른다.
   const { data: project } = await createAdminClient()
     .from('projects')
-    .select('visibility')
+    .select('visibility, url')
     .eq('id', projectId)
     .eq('author_id', user.id)
     .maybeSingle()
   if (project?.visibility === 'private') return { ok: false, error: '비공개 프로젝트는 도메인을 마련할 수 없어요.' }
+  if (project && !opts?.naru && !project.url?.trim()) return { ok: false, error: RPC_ERRORS.not_website }
 
   const admin = createAdminClient()
   // 예약마다 Cloudflare 를 부르므로(자리표시) 받고 반납하기를 되풀이해 계정 전체 API 한도를 쓰지 못하게 하루 횟수를 묶는다
@@ -141,7 +163,7 @@ export async function reserveSubdomain(projectId: string, rawName: string): Prom
   if (error) return rpcError('subdomain_reserve', error)
 
   // 확인 전에 들어오면 경고 페이지로 — 최선 노력. 못 만들면 주소가 DNS 부터 안 풀려 그래도 열리지 않는다
-  if (redirectConfigured()) {
+  if (!opts?.naru && redirectConfigured()) {
     try {
       await createPlaceholder(
         {
@@ -312,6 +334,87 @@ export async function verifySubdomain(
   return { ok: true, data: { result: result.kind, detail, status: data, siteVerified: Boolean(row.site_verified_at) } }
 }
 
+// 내 대곽나루 서버(주소를 붙일 수 있는 running·stopped 만). 허브 내부 값(노드·터널 대상)은 화면에 넘기지 않는다
+export async function listMyNaruServers(): Promise<ActionResult<NaruServer[]>> {
+  const user = await currentUser()
+  if (!user) return LOGIN_REQUIRED
+  const naru = getNaruClient()
+  if (!naru) return { ok: false, error: NARU_NOT_READY }
+  try {
+    const servers = await naru.listServers(user.email)
+    return {
+      ok: true,
+      data: servers.filter((s) => s.status === 'running' || s.status === 'stopped').map((s) => ({ ...s, nodeId: null, target: null })),
+    }
+  } catch (e) {
+    if (e instanceof NaruError) return { ok: false, error: naruErrorMessage(e) }
+    console.error('[domains] listMyNaruServers 실패', e)
+    return { ok: false, error: UNKNOWN }
+  }
+}
+
+// 대곽나루 서버에 연결: 허브가 이메일로 주인을 확인하고 터널 대상을 준다 → proxied CNAME → DB. 확인 코드 단계 없음
+export async function connectNaru(id: string, serverId: string): Promise<ActionResult> {
+  const user = await currentUser()
+  if (!user) return LOGIN_REQUIRED
+  const naru = getNaruClient()
+  if (!naru) return { ok: false, error: NARU_NOT_READY }
+  if (!NARU_SERVER_ID.test(serverId)) return { ok: false, error: NARU_NOT_MINE }
+
+  const row = await loadRow(id)
+  if (!row || row.owner_id !== user.id) return { ok: false, error: RPC_ERRORS.not_owner }
+  if (!['reserved', 'pending', 'active', 'broken'].includes(row.status)) return { ok: false, error: RPC_ERRORS.not_live }
+
+  const admin = createAdminClient()
+  // 허브에 묶기 전에 막는다 — 허브는 나중 묶음이 이겨서, 이미 다른 주소가 쓰는 서버를 묶으면 그 주소의 연결이 끊긴다
+  const { count: taken, error: takenError } = await admin
+    .from('subdomains')
+    .select('id', { count: 'exact', head: true })
+    .eq('naru_server_id', serverId)
+    .neq('id', id)
+    .in('status', ['reserved', 'pending', 'active', 'broken'])
+  if (takenError) return { ok: false, error: UNKNOWN }
+  if (taken) return { ok: false, error: RPC_ERRORS.naru_server_taken }
+
+  try {
+    await runConnectNaru(
+      {
+        naru,
+        dns: getDnsClient(),
+        // 옛 레코드(자리표시·다른 호스트 연결)는 허브 묶기가 성공한 뒤에 지운다 — 허브가 안 닿으면 DNS 를 건드리지 않는다
+        clearOld: async () => {
+          if (row.cf_record_ids.length) await removeCloudflare(row.cf_record_ids)
+        },
+        rpcConnect: async (ids, target) => {
+          const { error } = await admin.rpc('subdomain_connect_naru', {
+            p_user: user.id,
+            p_id: id,
+            p_server_id: serverId,
+            p_target: target,
+            p_record_ids: ids,
+          })
+          if (error) throw error
+        },
+      },
+      { id, name: row.name, serverId, email: user.email },
+    )
+  } catch (e) {
+    if (e instanceof NaruError) return { ok: false, error: naruErrorMessage(e) }
+    if (e && typeof e === 'object' && 'message' in e && typeof e.message === 'string' && RPC_ERRORS[e.message.trim()]) {
+      return { ok: false, error: RPC_ERRORS[e.message.trim()] }
+    }
+    console.error('[domains] connectNaru 실패', e)
+    return { ok: false, error: 'DNS 레코드를 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.' }
+  }
+
+  // 다른 서버에 묶여 있던 주소를 이 서버로 옮긴 경우 옛 서버의 묶음도 푼다(최선 노력)
+  if (row.host === 'naru' && row.naru_server_id && row.naru_server_id !== serverId) {
+    await unbindNaruBestEffort(naru, { host: 'naru', naruServerId: row.naru_server_id, ownerEmail: user.email })
+  }
+  done()
+  return { ok: true, data: null }
+}
+
 export async function applyProjectUrl(id: string): Promise<ActionResult> {
   const user = await currentUser()
   if (!user) return LOGIN_REQUIRED
@@ -333,12 +436,25 @@ async function removeRecords(ids: string[], tag: string) {
   }
 }
 
+// 대곽나루 행을 반납·회수한 뒤 허브 묶음을 푼다(DNS 삭제 뒤, 최선 노력). 반납하는 사람이 주인이 아닐 수 있어 주인 이메일은 users 에서 읽는다
+async function unbindNaruAfter(row: Awaited<ReturnType<typeof loadRow>>, actor: { id: string; email: string }) {
+  if (!row || row.host !== 'naru') return
+  let ownerEmail: string | null = row.owner_id === actor.id ? actor.email : null
+  if (!ownerEmail) {
+    const { data } = await createAdminClient().from('users').select('email').eq('id', row.owner_id).maybeSingle()
+    ownerEmail = data?.email ?? null
+  }
+  await unbindNaruBestEffort(getNaruClient(), { host: row.host, naruServerId: row.naru_server_id, ownerEmail })
+}
+
 export async function releaseSubdomain(id: string): Promise<ActionResult> {
   const user = await currentUser()
   if (!user) return LOGIN_REQUIRED
+  const before = await loadRow(id)
   const { data, error } = await createAdminClient().rpc('subdomain_release', { p_actor: user.id, p_id: id, p_reason: 'owner' })
   if (error) return rpcError('subdomain_release', error)
   await removeRecords(data ?? [], 'release')
+  await unbindNaruAfter(before, user)
   done()
   return { ok: true, data: null }
 }
@@ -347,9 +463,11 @@ export async function revokeSubdomain(id: string, reason: string): Promise<Actio
   const user = await currentUser()
   if (!user) return LOGIN_REQUIRED
   if (!isDeveloper(user.email)) return { ok: false, error: RPC_ERRORS.not_admin }
+  const before = await loadRow(id)
   const { data, error } = await createAdminClient().rpc('subdomain_revoke', { p_admin: user.id, p_id: id, p_reason: reason })
   if (error) return rpcError('subdomain_revoke', error)
   await removeRecords(data ?? [], 'revoke')
+  await unbindNaruAfter(before, user)
   done()
   return { ok: true, data: null }
 }

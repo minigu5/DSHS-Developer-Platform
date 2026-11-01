@@ -6,6 +6,7 @@ import { cookies } from 'next/headers'
 import { cloudinary } from '@/lib/cloudinary'
 import { isAllowedEmail } from '@/lib/constants'
 import { removeCloudflare } from '@/lib/domains/cleanup'
+import { getNaruClient, unbindNaruBestEffort } from '@/lib/domains/naru'
 import { PRIVACY_COOKIE, PRIVACY_COOKIE_OPTIONS, WITHDRAW_CONFIRM_TEXT } from '@/lib/privacy/config'
 import { cloudinaryPublicId } from '@/lib/privacy/format'
 import { PRIVACY_POLICY_VERSION } from '@/lib/privacy/version'
@@ -55,9 +56,12 @@ async function eraseAccount(userId: string): Promise<boolean> {
   const admin = createAdminClient()
   const { data: domains } = await admin
     .from('subdomains')
-    .select('cf_record_ids')
+    .select('cf_record_ids, host, naru_server_id')
     .eq('owner_id', userId)
     .in('status', ['reserved', 'pending', 'active', 'broken'])
+  // 대곽나루 서버 주소가 있으면 허브 묶음을 풀 때 주인 이메일이 필요한데, 계정이 지워지기 전에만 읽을 수 있다
+  const hasNaru = (domains ?? []).some((d) => d.host === 'naru')
+  const { data: owner } = hasNaru ? await admin.from('users').select('email').eq('id', userId).maybeSingle() : { data: null }
   const { data: urls, error } = await admin.rpc('withdraw_account', { p_user_id: userId })
   if (error) return false
   const recordIds = (domains ?? []).flatMap((d) => d.cf_record_ids)
@@ -65,6 +69,10 @@ async function eraseAccount(userId: string): Promise<boolean> {
     await removeCloudflare(recordIds).catch((e) =>
       console.error('[privacy] 탈퇴한 계정의 Cloudflare 레코드 삭제 실패, 매일 점검이 정리', e),
     )
+  }
+  // 허브 묶음 풀기 — 최선 노력(실패하면 매일 점검의 sync 가 정리)
+  for (const d of domains ?? []) {
+    await unbindNaruBestEffort(getNaruClient(), { host: d.host, naruServerId: d.naru_server_id, ownerEmail: owner?.email ?? null })
   }
   await deleteCloudinaryImages(urls ?? [])
   return true
