@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 
 import { ProjectIcon } from "@/components/projects/project-icon";
-import { customDomainOf, dshsAddressOf, isRedirectHost } from "@/lib/domains/hosts";
+import { customDomainOf, dshsAddressOf, isNaruHost, isRedirectHost } from "@/lib/domains/hosts";
 import type { DomainProjectRow, DomainView } from "@/lib/domains/read";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { cn } from "@/lib/utils";
@@ -67,15 +67,18 @@ export function DomainList({
   rows,
   limitReached,
   initialOpen = null,
+  naruServerId = null,
 }: {
   rows: DomainProjectRow[];
   limitReached: boolean;
   /** 프로젝트 등록 직후 "도메인 마련하기"로 들어오면 그 줄을 펼친 채로 시작 */
   initialOpen?: string | null;
+  /** 대곽나루 서버 카드에서 들어왔을 때(?naru=) — 방문 주소가 없는 프로젝트도 열 수 있고, 연결 방법이 대곽나루로 미리 골라진다 */
+  naruServerId?: string | null;
 }) {
   const [open, setOpen] = useState<string | null>(initialOpen);
-  // 패널이 접혀 있어도 호스트 연결을 마친 주소는 여기서 자동으로 확인한다
-  const liveDomains = useMemo(() => rows.flatMap((r) => (isLive(r.domain) ? [r.domain] : [])), [rows]);
+  // 패널이 접혀 있어도 호스트 연결을 마친 주소는 여기서 자동으로 확인한다 — 대곽나루 주소는 확인 코드가 없어서 뺀다
+  const liveDomains = useMemo(() => rows.flatMap((r) => (isLive(r.domain) && !isNaruHost(r.domain.host) ? [r.domain] : [])), [rows]);
   const checks = useDomainChecks(liveDomains);
 
   // 펼친 채로 들어왔으면 그 줄로 스크롤하고 이름 칸에 바로 쓸 수 있게
@@ -89,7 +92,8 @@ export function DomainList({
     <ul className="flex flex-col gap-3">
       {rows.map(({ project, domain }) => {
         const live = isLive(domain);
-        const disabled = !project.url;
+        // 대곽나루 흐름에서는 방문 주소가 없어도 열 수 있다(서버에 붙인 뒤에 정하면 되니까)
+        const disabled = !project.url && !naruServerId;
         const expanded = open === project.id;
         const panelId = `domain-panel-${project.id}`;
         // 비공개 프로젝트는 새 주소를 못 받는다(이미 받은 주소는 관리할 수 있게 둔다)
@@ -172,6 +176,7 @@ export function DomainList({
                   check={live ? checks.stateOf(domain.id) : IDLE_CHECK}
                   auto={live ? checks.autoOf(domain.id) : "off"}
                   onCheck={() => live && void checks.check(domain.id)}
+                  naruServerId={naruServerId}
                 />
               </div>
             )}

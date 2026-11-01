@@ -6,7 +6,9 @@ import { buttonVariants } from "@/components/ui/button";
 import { PageHero } from "@/components/shared/page-hero";
 import { DomainList } from "@/components/domains/domain-list";
 import { isDeveloper } from "@/lib/constants";
+import { naruServerIdOf } from "@/lib/domains/next-path";
 import { LIVE_STATUSES, listMyDomainProjects } from "@/lib/domains/read";
+import { SECTION_COLORS } from "@/lib/section-colors";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
@@ -19,18 +21,31 @@ export const metadata = {
 
 const MAX_DOMAINS = 3;
 
-export default async function DomainsPage({ searchParams }: { searchParams: Promise<{ project?: string }> }) {
-  const { project: requested } = await searchParams;
+export default async function DomainsPage({ searchParams }: { searchParams: Promise<{ project?: string; naru?: string }> }) {
+  const { project: requested, naru } = await searchParams;
+  // 대곽나루 서버 카드의 "dshs.dev 주소 받기"로 들어온 경우(?naru=<서버 id>) — 형식이 아니면 없는 것으로
+  const naruServerId = naruServerIdOf(naru);
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect(`/login?next=${encodeURIComponent(requested ? `/domains?project=${requested}` : "/domains")}`);
+  if (!user) {
+    const back = new URLSearchParams();
+    if (naruServerId) back.set("naru", naruServerId);
+    if (requested) back.set("project", requested);
+    const query = back.toString();
+    redirect(`/login?next=${encodeURIComponent(query ? `/domains?${query}` : "/domains")}`);
+  }
 
   const rows = await listMyDomainProjects(user.id);
   const used = rows.filter((r) => r.domain && LIVE_STATUSES.includes(r.domain.status)).length;
   // 등록 직후 "도메인 마련하기"로 왔을 때(?project=) 그 줄을 펼친다 — 내 목록에 있고 아직 주소가 없을 때만
-  const openRow = rows.find((r) => r.project.id === requested && r.project.url && !r.project.isPrivate && !r.domain && used < MAX_DOMAINS);
+  // 대곽나루 흐름에서는 방문 주소가 없어도 된다
+  const openable = (r: (typeof rows)[number]) => (naruServerId || r.project.url) && !r.project.isPrivate && !r.domain && used < MAX_DOMAINS;
+  const openRow = rows.find((r) => r.project.id === requested && openable(r));
+  // 대곽나루 흐름에서 줄이 하나뿐(주소 받을 수 있는 프로젝트 하나)이면 그 줄을 바로 연다
+  const naruCandidates = naruServerId ? rows.filter(openable) : [];
+  const initialOpen = openRow?.project.id ?? (naruCandidates.length === 1 && rows.length === 1 ? naruCandidates[0].project.id : null);
 
   return (
     <div className="flex min-h-screen flex-col bg-white dark:bg-zinc-950">
@@ -57,8 +72,33 @@ export default async function DomainsPage({ searchParams }: { searchParams: Prom
           </p>
         </div>
 
+        {naruServerId && (
+          <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 sm:flex-row sm:items-center dark:border-teal-900 dark:bg-teal-950/40">
+            <p className="flex-1 text-sm text-teal-900 dark:text-teal-200">
+              {rows.length === 0 ? (
+                <>
+                  <span className="font-semibold">먼저 웹사이트 프로젝트를 등록해요.</span> 등록하고 나면 대곽나루 서버에 주소를 붙일 수 있어요. 방문 주소는 비워도 돼요.
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold">대곽나루 서버에 붙일 프로젝트를 골라요.</span> 주소가 아직 없는 프로젝트의 버튼을 누르면 대곽나루로 미리 골라져 있어요.
+                </>
+              )}
+            </p>
+            {rows.length === 0 && (
+              <Link
+                href={`/projects/new?type=website&next=${encodeURIComponent(`/domains?naru=${naruServerId}`)}`}
+                className={cn(buttonVariants(), "h-9 rounded-full px-4 text-sm", SECTION_COLORS.domains.button)}
+              >
+                <Plus className="mr-1 h-4 w-4" aria-hidden />
+                프로젝트 등록하기
+              </Link>
+            )}
+          </div>
+        )}
+
         {rows.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-zinc-300 px-6 py-12 text-center dark:border-zinc-700">
+          naruServerId ? null : <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-zinc-300 px-6 py-12 text-center dark:border-zinc-700">
             <p className="text-sm text-zinc-600 dark:text-zinc-400">웹사이트 프로젝트를 등록하면 주소를 받을 수 있어요.</p>
             <Link href="/projects/new" className={cn(buttonVariants({ variant: "outline" }), "h-9 rounded-full px-4 text-sm")}>
               <Plus className="mr-1 h-4 w-4" aria-hidden />
@@ -66,11 +106,11 @@ export default async function DomainsPage({ searchParams }: { searchParams: Prom
             </Link>
           </div>
         ) : (
-          <DomainList rows={rows} limitReached={used >= MAX_DOMAINS} initialOpen={openRow?.project.id ?? null} />
+          <DomainList rows={rows} limitReached={used >= MAX_DOMAINS} initialOpen={initialOpen} naruServerId={naruServerId} />
         )}
 
         <p className="mt-8 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
-          주소는 한 사람당 {MAX_DOMAINS}개까지, 웹사이트 프로젝트마다 하나씩 받을 수 있어요. 매일 한 번 연결을 확인하고, 7일 넘게 끊겨 있으면 자동으로 반납돼요.
+          주소는 한 사람당 {MAX_DOMAINS}개까지, 웹사이트 프로젝트마다 하나씩 받을 수 있어요. 매일 한 번 연결을 확인하고, 7일 넘게 끊겨 있으면 자동으로 반납돼요. 대곽나루 서버에 붙인 주소는 서버가 없어질 때만 반납돼요.
           부적절한 이름이나 사이트는 관리자가 회수할 수 있어요.
         </p>
       </main>

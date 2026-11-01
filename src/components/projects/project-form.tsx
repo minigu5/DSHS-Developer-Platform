@@ -37,6 +37,7 @@ import { parseGithubRepo } from "@/lib/github-readme";
 import { closeDomainOfPrivateProject, deleteProject } from "@/lib/projects/actions";
 import { addGithubToProfile } from "@/lib/profile/actions";
 import { detectHost, HOST_PRESETS } from "@/lib/domains/hosts";
+import { withProject } from "@/lib/domains/next-path";
 import { createClient } from "@/lib/supabase/client";
 import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 import type { ProjectRow, UserContact } from "@/lib/types";
@@ -66,9 +67,13 @@ interface ProjectFormProps {
   canDelete?: boolean;
   /** 이 프로젝트에 살아 있는 주소(서브도메인) 이름 — 삭제하면 함께 반납돼요 */
   subdomainName?: string | null;
+  /** 새 등록에서 종류를 미리 고른다(도메인 마련하기 → 대곽나루 흐름의 "웹사이트") */
+  initialType?: string | null;
+  /** 등록이 끝나면 돌아갈 /domains 경로(검증된 값). 있으면 권유 창 없이 그리로 가고, 방문 주소는 비워도 된다 */
+  nextHref?: string | null;
 }
 
-export function ProjectForm({ initialData, isEdit = false, canDelete = true, subdomainName = null }: ProjectFormProps) {
+export function ProjectForm({ initialData, isEdit = false, canDelete = true, subdomainName = null, initialType = null, nextHref = null }: ProjectFormProps) {
   const router = useRouter();
   const supabase = createClient();
   const [isLoading, setIsLoading] = useState(false);
@@ -87,8 +92,10 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   const [domainOffer, setDomainOffer] = useState<{ projectId: string; host: string; hostname: string } | null>(null);
 
   const [title, setTitle] = useState<string>(initialData?.title ?? "");
-  const [types, setTypes] = useState<string[]>(initialData?.types ?? []);
+  const [types, setTypes] = useState<string[]>(initialData?.types ?? (initialType ? [initialType] : []));
   const isWebsite = types.includes('website');
+  // 대곽나루 서버에 붙일 웹사이트는 방문 주소가 아직 없을 수 있다 — 새 등록이고 돌아갈 곳이 있을 때만 비워도 된다
+  const urlOptional = !isEdit && nextHref !== null && isWebsite;
   const [sourceType, setSourceType] = useState<SourceType>(
     (initialData?.source_type as SourceType) ?? "open",
   );
@@ -602,7 +609,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
       return;
     }
 
-    if (!url) {
+    if (!url && !urlOptional) {
       setErrorMsg("웹사이트 또는 다운로드 링크를 입력해주세요.");
       scrollToField("url_section");
       return;
@@ -718,7 +725,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         author_role: authorRole,
         team_name: authorRole === 'team' ? teamName : null,
         team_members: authorRole === 'team' ? teamMembers : [],
-        url,
+        url: url.trim() === '' && urlOptional ? null : url,
         icon_type: iconType,
         icon_url: finalIconUrl,
         updated_at: new Date().toISOString()
@@ -740,6 +747,11 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         const { data, error } = await supabase.from('projects').insert([{ ...commonFields, author_id: session.user.id }]).select('id').single();
         if (error) throw error;
         allowLeave();
+        if (nextHref) {
+          router.push(withProject(nextHref, data.id));
+          router.refresh();
+          return;
+        }
         const offer = isWebsite && visibility === 'public' ? await domainOfferFor(url, session.user.id) : null;
         if (offer) {
           setDomainOffer({ projectId: data.id, ...offer });
@@ -765,13 +777,13 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   };
 
   // 목차 레일·필수 항목 집계 — 필수: 아이콘, 이름, 링크, 간단 설명, 상세 설명, 종류 + (앱일 때만) 플랫폼 — handleSubmit 검사와 같게
-  const iconReady = iconType === "auto" ? Boolean(url.trim()) : Boolean(iconUrl.trim());
+  const iconReady = iconType === "auto" ? Boolean(url.trim()) || urlOptional : Boolean(iconUrl.trim());
   const platformsRequired = types.includes("app");
   const platformsReady = !platformsRequired || selectedPlatforms.length > 0;
   const requiredFlags = [
     iconReady,
     Boolean(title.trim()),
-    Boolean(url.trim()),
+    Boolean(url.trim()) || urlOptional,
     Boolean(shortDesc.trim()),
     Boolean(description.trim()),
     types.length > 0,
@@ -779,7 +791,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   ];
   const requiredDone = requiredFlags.filter(Boolean).length;
   const railSections: FormRailSection[] = [
-    { id: "section-basic", title: "기본 정보", done: iconReady && Boolean(title.trim()) && Boolean(url.trim()) && Boolean(shortDesc.trim()) },
+    { id: "section-basic", title: "기본 정보", done: iconReady && Boolean(title.trim()) && (Boolean(url.trim()) || urlOptional) && Boolean(shortDesc.trim()) },
     { id: "section-description", title: "상세 설명", done: Boolean(description.trim()) },
     { id: "section-category", title: "분류", done: types.length > 0 && platformsReady },
     { id: "section-source", title: "소스코드·라이선스", done: sourceType === "closed" || Boolean(repoUrl.trim()) },
@@ -840,11 +852,12 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
               <Input id="title" value={title} onChange={e => setTitle(e.target.value)} placeholder="예: 급식알리미" className="h-11 rounded-xl" />
             </div>
             <div className="grid gap-1.5" id="url_section">
-              <Label htmlFor="url" className={labelClass}>웹사이트 또는 다운로드 링크{req}</Label>
+              <Label htmlFor="url" className={labelClass}>웹사이트 또는 다운로드 링크{!urlOptional && req}</Label>
               <div className="relative">
                 <LinkIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" aria-hidden />
                 <Input id="url" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://..." className="h-11 rounded-xl pl-9" />
               </div>
+              {urlOptional && <p className={hintClass}>방문 주소는 비워도 돼요. 대곽나루 서버에 주소를 붙인 뒤에 바꿔도 돼요.</p>}
             </div>
           </div>
 

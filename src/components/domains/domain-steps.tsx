@@ -13,7 +13,7 @@ import {
   setSiteAddress,
 } from "@/lib/domains/actions";
 import { buildVerifyPrompt } from "@/lib/domains/ai-prompt";
-import { HOST_PRESETS, hostLabelOf, isRedirectHost, siteAddressFor, targetBoundToSite } from "@/lib/domains/hosts";
+import { HOST_PRESETS, hostLabelOf, isNaruHost, isRedirectHost, siteAddressFor, targetBoundToSite } from "@/lib/domains/hosts";
 import { normalizeName } from "@/lib/domains/name";
 import type { DomainProjectRow, DomainView } from "@/lib/domains/read";
 import { VERIFY_FILE_PATH, VERIFY_META_NAME } from "@/lib/domains/verify";
@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 import { ConfirmNameInput } from "@/components/shared/confirm-name-input";
 import { nameMatches } from "@/lib/confirm-name";
 
-import { HostPicker } from "./host-picker";
+import { HostPicker, NaruPanel } from "./host-picker";
 import { UrlChangedDialog } from "./url-changed-dialog";
 import { AUTO_INTERVAL_MS, AUTO_MAX_ROUNDS, type AutoState, type CheckState } from "./use-domain-checks";
 
@@ -67,7 +67,7 @@ function ErrorText({ children }: { children: ReactNode }) {
 }
 
 // ① 이름 정하기
-function NameStep({ projectId }: { projectId: string }) {
+function NameStep({ projectId, naru = false }: { projectId: string; naru?: boolean }) {
   const router = useRouter();
   const [raw, setRaw] = useState("");
   const [check, setCheck] = useState<{ name: string; available: boolean; reason?: string } | null>(null);
@@ -90,7 +90,7 @@ function NameStep({ projectId }: { projectId: string }) {
   const submit = () =>
     start(async () => {
       setError("");
-      const r = await reserveSubdomain(projectId, name);
+      const r = await reserveSubdomain(projectId, name, naru ? { naru: true } : undefined);
       if (!r.ok) setError(r.error);
       else router.refresh();
     });
@@ -436,19 +436,48 @@ function UrlSuggestion({ domain, onApplied }: { domain: DomainView; onApplied: (
   );
 }
 
+// 어디에 올린 사이트인지 — 대곽나루 서버면 확인 코드 없이 서버만 골라 연결하고, 그 밖의 호스트면 ② 확인 코드 → ③ 호스트 연결
+function ModeCards({ naru, onChange }: { naru: boolean; onChange: (naru: boolean) => void }) {
+  const card = (active: boolean) =>
+    cn(
+      "flex-1 rounded-xl border px-4 py-3 text-left transition-colors",
+      active ? "border-teal-700 bg-teal-50 dark:border-teal-400 dark:bg-teal-950/40" : "border-zinc-200 bg-white hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-900",
+    );
+  return (
+    <div role="radiogroup" aria-label="내 사이트가 있는 곳" className="flex flex-col gap-2 sm:flex-row">
+      <button type="button" role="radio" aria-checked={naru} onClick={() => onChange(true)} className={card(naru)}>
+        <span className="block text-sm font-semibold text-zinc-900 dark:text-zinc-100">대곽나루</span>
+        <span className="block text-xs text-zinc-600 dark:text-zinc-400">학교 서버 · 대곽나루에서 빌린 서버</span>
+      </button>
+      <button type="button" role="radio" aria-checked={!naru} onClick={() => onChange(false)} className={card(!naru)}>
+        <span className="block text-sm font-semibold text-zinc-900 dark:text-zinc-100">다른 호스트</span>
+        <span className="block text-xs text-zinc-600 dark:text-zinc-400">Vercel · Netlify · GitHub Pages 등</span>
+      </button>
+    </div>
+  );
+}
+
 export function DomainSteps({
   project,
   domain,
   check,
   auto,
   onCheck,
+  naruServerId = null,
 }: {
   project: DomainProjectRow["project"];
   domain: DomainView | null;
   check: CheckState;
   auto: AutoState;
   onCheck: () => void;
+  /** 대곽나루 서버 카드에서 들어왔다면 그 서버 id — 연결 방법이 대곽나루로 미리 골라진다 */
+  naruServerId?: string | null;
 }) {
+  // 확인 코드도 호스트 연결도 시작하지 않은 주소(또는 아직 주소 없음)만 연결 방법을 고를 수 있다
+  const canChooseMode = domain === null || (domain.status === "reserved" && !domain.siteVerified && domain.siteUrl === null);
+  const [naruChoice, setNaruChoice] = useState(Boolean(naruServerId));
+  const naruMode = isNaruHost(domain?.host) || (canChooseMode && naruChoice);
+  const [changeServer, setChangeServer] = useState(false);
   const [reconnect, setReconnect] = useState(false);
   const [changeSite, setChangeSite] = useState(false);
   // "바꾸기" 직후 project.url 이 새 주소로 바뀌므로, 안내에 쓸 옛 주소는 누르는 순간에 붙잡아 둔다
@@ -469,6 +498,58 @@ export function DomainSteps({
   const redirect = isRedirectHost(domain?.host ?? null);
   const hostLabel = hostLabelOf(domain?.host);
 
+  if (naruMode) {
+    const naruConnected = domain !== null && isNaruHost(domain.host);
+    const showPanel = domain !== null && (!naruConnected || changeServer);
+    return (
+      <div className="flex flex-col gap-4">
+        {domain?.status === "active" && !urlIsDomain && (
+          <UrlSuggestion domain={domain} onApplied={() => setUrlChange({ from: project.url?.trim() || null, open: true })} />
+        )}
+        {fqdn && (
+          <UrlChangedDialog open={urlChange?.open ?? false} onClose={() => setUrlChange((c) => c && { ...c, open: false })} oldUrl={urlChange?.from ?? null} newUrl={`https://${fqdn}`} />
+        )}
+        {canChooseMode && <ModeCards naru onChange={(n) => setNaruChoice(n)} />}
+
+        <ol className="flex flex-col gap-4">
+          <Step n={1} state={domain ? "done" : "current"} title={domain ? <>이름 <span className="font-mono">{fqdn}</span></> : "이름 정하기"}>
+            {!domain && <NameStep projectId={project.id} naru />}
+          </Step>
+          <Step
+            n={2}
+            state={!domain ? "todo" : naruConnected && !changeServer ? "done" : "current"}
+            title={naruConnected && !changeServer ? "연결됨 — 내 대곽나루 서버가 이 주소로 열려요" : "대곽나루 서버에 연결하기"}
+          >
+            {showPanel && (
+              <NaruPanel domain={domain} preselectId={naruServerId} onDone={() => setChangeServer(false)} onCancel={naruConnected ? () => setChangeServer(false) : undefined} />
+            )}
+            {domain && naruConnected && !changeServer && (
+              <div className="flex flex-col gap-2">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  서버 안에서 8080 포트로 서비스를 열어요. 꺼져 있으면 &lsquo;서버가 응답하지 않아요&rsquo; 화면이 보여요.
+                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <a href={`https://${fqdn}`} target="_blank" rel="noopener noreferrer" className={cn(SECONDARY, "h-8")}>
+                    {fqdn} 열기
+                  </a>
+                  <button type="button" onClick={() => setChangeServer(true)} className="text-xs text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
+                    다른 서버로 바꾸기
+                  </button>
+                </div>
+              </div>
+            )}
+          </Step>
+        </ol>
+
+        {domain && (
+          <div className="flex justify-end">
+            <ReleaseButton domain={domain} projectTitle={project.title} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {domain?.status === "active" && !urlIsDomain && (
@@ -477,6 +558,8 @@ export function DomainSteps({
       {fqdn && !redirect && (
         <UrlChangedDialog open={urlChange?.open ?? false} onClose={() => setUrlChange((c) => c && { ...c, open: false })} oldUrl={urlChange?.from ?? null} newUrl={`https://${fqdn}`} />
       )}
+
+      {canChooseMode && <ModeCards naru={false} onChange={(n) => setNaruChoice(n)} />}
 
       <ol className="flex flex-col gap-4">
         <Step n={1} state={domain ? "done" : "current"} title={domain ? <>이름 <span className="font-mono">{fqdn}</span></> : "이름 정하기"}>
