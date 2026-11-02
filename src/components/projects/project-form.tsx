@@ -36,7 +36,7 @@ import { nameMatches } from "@/lib/confirm-name";
 import { parseGithubRepo } from "@/lib/github-readme";
 import { closeDomainOfPrivateProject, deleteProject } from "@/lib/projects/actions";
 import { addGithubToProfile } from "@/lib/profile/actions";
-import { detectHost, HOST_PRESETS } from "@/lib/domains/hosts";
+import { domainOfferOf, previewAddressOf, quickToConnect } from "@/lib/domains/offer";
 import { shouldFollowNext, withProject } from "@/lib/domains/next-path";
 import { createClient } from "@/lib/supabase/client";
 import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
@@ -89,7 +89,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   const savedTitle = initialData?.title ?? "";
   const confirmed = nameMatches(confirmName, savedTitle);
   // 등록 직후 방문 주소가 호스트 무료 주소(.vercel.app 등)면 도메인 마련하기를 권한다
-  const [domainOffer, setDomainOffer] = useState<{ projectId: string; host: string; hostname: string } | null>(null);
+  const [domainOffer, setDomainOffer] = useState<{ projectId: string; hostLabel: string; hostname: string; suggestion: string | null; quick: boolean } | null>(null);
 
   const [title, setTitle] = useState<string>(initialData?.title ?? "");
   const [types, setTypes] = useState<string[]>(initialData?.types ?? (initialType ? [initialType] : []));
@@ -158,6 +158,10 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   const autoFaviconTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [url, setUrl] = useState<string>(initialData?.url ?? "");
+  // Firebase·Pages 미리보기 주소는 며칠 뒤 사라진다 — 원래 주소로 바꾸게 알린다
+  const previewAddress = previewAddressOf(url);
+  // 수정 화면: 주소를 아직 안 받은 소유자에게 주소 칸 아래 한 줄로 다시 권한다
+  const editDomainOffer = isEdit && canDelete && !subdomainName && isWebsite && visibility === 'public' && initialData?.id ? domainOfferOf(url) : null;
   const [repoUrl, setRepoUrl] = useState<string>(initialData?.repo_url ?? "");
 
   // 라이선스
@@ -550,17 +554,15 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
 
   // 도메인 마련하기로 연결할 수 있는 호스트 주소이고, 주소를 아직 3개 다 쓰지 않았을 때만
   const domainOfferFor = async (rawUrl: string, userId: string) => {
-    const trimmed = rawUrl.trim();
-    const full = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-    const detected = detectHost(full);
-    if (!detected) return null;
+    const offer = domainOfferOf(rawUrl);
+    if (!offer) return null;
     const { count, error } = await supabase
       .from('subdomains')
       .select('id', { count: 'exact', head: true })
       .eq('owner_id', userId)
       .in('status', ['reserved', 'pending', 'active', 'broken']);
     if (!error && (count ?? 0) >= 3) return null;
-    return { host: HOST_PRESETS[detected.host].label, hostname: new URL(full).hostname };
+    return { hostLabel: offer.hostLabel, hostname: offer.hostname, suggestion: offer.suggestion, quick: quickToConnect(offer.host) };
   };
 
   // 권유 창을 닫으면 원래대로 프로젝트 페이지로
@@ -858,6 +860,30 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
                 <Input id="url" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://..." className="h-11 rounded-xl pl-9" />
               </div>
               {urlOptional && <p className={hintClass}>방문 주소는 비워도 돼요. 대곽나루 서버에 주소를 붙인 뒤에 바꿔도 돼요.</p>}
+              {previewAddress ? (
+                <div role="alert" className="grid gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
+                  <p>
+                    <span className="font-semibold">며칠 뒤 사라지는 미리보기 주소예요.</span> {previewAddress.host}의 미리보기 주소는 기한이 지나면 안 열리고, 도메인 마련하기에도 쓸 수 없어요.
+                    원래 주소(<span className="font-mono">{previewAddress.live}</span>)를 넣어요.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setUrl(`https://${previewAddress.live}/`)}
+                    className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-7 justify-self-start rounded-full border-rose-300 bg-white px-3 text-xs text-rose-700 hover:bg-rose-100 dark:border-rose-800 dark:bg-zinc-900 dark:text-rose-300 dark:hover:bg-rose-950")}
+                  >
+                    원래 주소로 바꾸기
+                  </button>
+                </div>
+              ) : (
+                editDomainOffer && (
+                  <p className={hintClass}>
+                    짧은 주소도 받을 수 있어요{editDomainOffer.suggestion && <> (예: <span className="font-mono">{editDomainOffer.suggestion}.dshs.dev</span>)</>}.{" "}
+                    <a href={`/domains?project=${initialData?.id}`} className="font-medium text-teal-700 underline underline-offset-2 hover:text-teal-800 dark:text-teal-400 dark:hover:text-teal-300">
+                      도메인 마련하기
+                    </a>
+                  </p>
+                )
+              )}
             </div>
           </div>
 
@@ -1346,10 +1372,20 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
           <DialogHeader>
             <DialogTitle className="text-lg">등록했어요! 짧은 주소도 받을까요?</DialogTitle>
             <DialogDescription>
-              지금 방문 주소는 {domainOffer?.host} 무료 주소(<span className="font-mono">{domainOffer?.hostname}</span>)예요.
-              도메인 마련하기로 <span className="font-mono">이름.dshs.dev</span> 같은 주소를 붙일 수 있어요.
+              {domainOffer?.hostLabel} 무료 주소 대신 <span className="font-mono">이름.dshs.dev</span>로 사이트를 알릴 수 있어요.
+              {domainOffer?.quick ? " 호스트에서 할 일이 없어서 2분이면 끝나요." : " 호스트 설정에 주소 하나만 넣으면 돼요."}
             </DialogDescription>
           </DialogHeader>
+          <div className="grid gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="grid gap-0.5">
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">지금</span>
+              <span className="break-all font-mono text-zinc-500 dark:text-zinc-400">{domainOffer?.hostname}</span>
+            </div>
+            <div className="grid gap-0.5">
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">받으면</span>
+              <span className="break-all font-mono font-semibold text-zinc-900 dark:text-white">{domainOffer?.suggestion ?? "이름"}.dshs.dev</span>
+            </div>
+          </div>
           <DialogFooter>
             <button type="button" onClick={() => finishDomainOffer(false)} className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}>
               나중에
