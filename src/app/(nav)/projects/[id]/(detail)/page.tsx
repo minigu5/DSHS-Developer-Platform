@@ -17,8 +17,6 @@ import { ANONYMOUS_AUTHOR, LICENSE_FEATURES, PLATFORMS, isDeveloper, projectType
 import { PROJECT_AUTHOR, PROJECT_COLUMNS } from "@/lib/projects/columns";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { getLiveDomain } from "@/lib/domains/read";
-import { domainOfferOf, previewAddressOf, quickToConnect } from "@/lib/domains/offer";
-import { DomainNudge } from "@/components/projects/domain-nudge";
 import { RedirectPill } from "@/components/domains/redirect-pill";
 import { StatStrip, type StatStripItem } from "@/components/projects/stat-strip";
 import { ReadingSurface } from "@/components/shared/reading-surface";
@@ -114,30 +112,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         : project.users?.nickname || project.users?.full_name) ?? '알 수 없음';
 
   // 수정 버튼: 소유자·팀원·개발자 계정. 익명 프로젝트는 소유자를 화면에서 알 수 없으니 my_project_ids() 로 본인 것인지 확인한다
-  const isOwner =
-    !!user &&
-    ((!!project.public_author_id && project.public_author_id === user.id) ||
-      (isAnonymous && ((await supabase.rpc('my_project_ids')).data ?? []).includes(project.id)));
   const canEdit =
     !!user &&
-    (isOwner ||
-      isDeveloper(user.email) ||
-      (!!user.email && (project.team_members ?? []).includes(user.email)));
-
-  // 소유자에게만: 미리보기 주소 경고, 아니면 도메인 마련하기 안내(공개 웹사이트·이 프로젝트에 주소 없음·계정당 3개 미만)
-  const ownerPreview = isOwner && project.url ? previewAddressOf(project.url) : null;
-  let ownerOffer: ReturnType<typeof domainOfferOf> = null;
-  if (isOwner && !ownerPreview && project.url && project.visibility === 'public' && (project.types ?? []).includes('website')) {
-    const offer = domainOfferOf(project.url);
-    if (offer) {
-      const { data: mine } = await supabase
-        .from('subdomains')
-        .select('project_id')
-        .eq('owner_id', user.id)
-        .in('status', ['reserved', 'pending', 'active', 'broken']);
-      if (mine && mine.length < 3 && !mine.some((row) => row.project_id === project.id)) ownerOffer = offer;
-    }
-  }
+    (isDeveloper(user.email) ||
+      (!!project.public_author_id && project.public_author_id === user.id) ||
+      (!!user.email && (project.team_members ?? []).includes(user.email)) ||
+      (isAnonymous && ((await supabase.rpc('my_project_ids')).data ?? []).includes(project.id)));
   const tags = project.features || [];
 
   const platformLabels: string[] = (project.platforms ?? []).map(
@@ -287,26 +267,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </div>
           </div>
         </div>
-
-        {ownerPreview && (
-          <div role="alert" className="mt-8 rounded-3xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700 sm:p-6 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
-            <p className="text-rose-600 dark:text-rose-400">나에게만 보이는 안내예요</p>
-            <h2 className="font-heading mt-1 text-lg font-bold tracking-tight break-keep text-rose-800 dark:text-rose-200">방문 주소가 며칠 뒤 사라지는 미리보기 주소예요</h2>
-            <p className="mt-1 break-keep">
-              {ownerPreview.host} 미리보기 주소는 기한이 지나면 안 열려요. 원래 주소(<span className="font-mono">{ownerPreview.live}</span>)로 바꿔 두면 계속 열리고, 짧은 주소도 받을 수 있어요.
-            </p>
-            <Link
-              href={`/projects/${project.id}/edit`}
-              className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-full border border-rose-300 bg-white px-4 font-semibold text-rose-700 transition-colors hover:bg-rose-100 dark:border-rose-800 dark:bg-zinc-900 dark:text-rose-300 dark:hover:bg-rose-950"
-            >
-              주소 고치기
-              <ChevronRight className="h-4 w-4" aria-hidden />
-            </Link>
-          </div>
-        )}
-        {ownerOffer && (
-          <DomainNudge projectId={project.id} hostname={ownerOffer.hostname} suggestion={ownerOffer.suggestion} quick={quickToConnect(ownerOffer.host)} />
-        )}
 
         <StatStrip items={stats} className="mt-8" />
 
