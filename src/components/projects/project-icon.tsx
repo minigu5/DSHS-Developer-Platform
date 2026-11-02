@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { cn, isExternalImage } from "@/lib/utils";
 
@@ -28,6 +28,49 @@ function tintFor(title: string): string {
   return FALLBACK_TINTS[Math.abs(hash) % FALLBACK_TINTS.length];
 }
 
+// 움직일 수 있는 이미지 형식. 아이콘이 계속 움직이면 목록에서 시선을 다 뺏어서 첫 장면만 보여 준다
+const ANIMATED_EXT = /\.(gif|webp|apng)(\?|#|$)/i;
+const CLOUDINARY_UPLOAD = /^(https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/)(?!pg_)/;
+
+/** 직접 올린(Cloudinary) 움직이는 이미지는 첫 장면만 받는다(pg_1 변환 — 받는 크기도 줄어듦) */
+function stillCloudinaryUrl(src: string): string {
+  return ANIMATED_EXT.test(src) ? src.replace(CLOUDINARY_UPLOAD, "$1pg_1/") : src;
+}
+
+/** 바깥 주소의 움직이는 이미지는 받은 뒤 첫 장면을 canvas에 그려 멈춘 그림으로 보여 준다 */
+function FrozenImage({ src, alt, onError }: { src: string; alt: string; onError: () => void }) {
+  const imgRef = useRef<HTMLImageElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const draw = () => {
+    const img = imgRef.current;
+    const canvas = canvasRef.current;
+    if (!img || !canvas || !img.naturalWidth) return;
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    canvas.getContext("2d")?.drawImage(img, 0, 0);
+  };
+
+  // 하이드레이션 전에 이미 다 받은 이미지는 onLoad가 다시 안 불리므로 직접 그린다
+  useEffect(() => {
+    if (imgRef.current?.complete) draw();
+  }, [src]);
+
+  return (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element -- 화면에는 canvas만 보이고, 이 img는 첫 장면을 받아 오는 용도 */}
+      <img ref={imgRef} src={src} alt="" className="hidden" onLoad={draw} onError={onError} />
+      <canvas
+        ref={canvasRef}
+        role={alt ? "img" : undefined}
+        aria-label={alt || undefined}
+        aria-hidden={!alt || undefined}
+        className="absolute inset-0 size-full object-cover"
+      />
+    </>
+  );
+}
+
 export function ProjectIcon({ src, title, className, decorative = false }: ProjectIconProps) {
   const [error, setError] = useState(false);
 
@@ -48,17 +91,26 @@ export function ProjectIcon({ src, title, className, decorative = false }: Proje
     );
   }
 
+  const stillSrc = stillCloudinaryUrl(src);
+  // Cloudinary가 아닌 주소의 움직이는 형식만 canvas로 멈춘다
+  const frozen = stillSrc === src && ANIMATED_EXT.test(src);
+
   return (
-    <div className={cn("relative overflow-hidden rounded-2xl outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10", className)}>
-      <Image
-        src={src}
-        alt={decorative ? "" : title}
-        fill
-        sizes="96px"
-        className="object-cover"
-        onError={() => setError(true)}
-        unoptimized={isExternalImage(src)}
-      />
+    // 바탕은 다크 모드에서도 흰색 — 투명 배경에 검은 그림인 아이콘이 어두운 카드 위에서 안 보였다
+    <div className={cn("relative overflow-hidden rounded-2xl bg-white outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10", className)}>
+      {frozen ? (
+        <FrozenImage src={src} alt={decorative ? "" : title} onError={() => setError(true)} />
+      ) : (
+        <Image
+          src={stillSrc}
+          alt={decorative ? "" : title}
+          fill
+          sizes="96px"
+          className="object-cover"
+          onError={() => setError(true)}
+          unoptimized={isExternalImage(stillSrc)}
+        />
+      )}
     </div>
   );
 }
