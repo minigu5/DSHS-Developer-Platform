@@ -103,7 +103,7 @@ export function ImageUploadInput({
         </div>
 
         {/* 드롭존 + URL 입력 */}
-        <div className="flex-1 space-y-2">
+        <div className="min-w-0 flex-1 space-y-2">
           <div
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}

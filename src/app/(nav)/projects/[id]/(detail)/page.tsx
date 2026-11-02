@@ -174,7 +174,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         </Link>
 
         {/* 머리 — 아이콘 스티커 + 제목·설명·작성자·버튼 */}
-        <div className="mt-5 flex items-start gap-4 sm:gap-7">
+        <div className="mt-5 flex flex-col items-start gap-4 sm:flex-row sm:gap-7">
           <ProjectIcon
             src={project.icon_url}
             title={project.title}
@@ -226,10 +226,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   <b className="font-semibold text-zinc-900 underline-offset-4 group-hover/author:underline dark:text-white">{authorName}</b>
                 </Link>
               )}
-              <span aria-hidden>·</span>
-              <span>{isAnonymous ? "익명 프로젝트" : project.author_role === "team" ? "팀 프로젝트" : "개인 프로젝트"}</span>
-              <span aria-hidden>·</span>
-              <span>{createdLabel} 등록</span>
+              {/* 점과 뒤 글을 한 덩어리로 — 줄이 바뀔 때 점만 앞 줄 끝에 남지 않게 */}
+              <span className="inline-flex gap-2 whitespace-nowrap">
+                <span aria-hidden>·</span>
+                {isAnonymous ? "익명 프로젝트" : project.author_role === "team" ? "팀 프로젝트" : "개인 프로젝트"}
+              </span>
+              <span className="inline-flex gap-2 whitespace-nowrap">
+                <span aria-hidden>·</span>
+                {createdLabel} 등록
+              </span>
             </div>
 
             <div className="mt-5 flex flex-wrap items-center gap-2.5">
@@ -238,7 +243,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   href={`/api/track?project=${project.id}`}
                   target="_blank"
                   rel="noreferrer"
-                  className={cn(buttonVariants({ size: "lg" }), "h-11 rounded-full px-5 text-sm", SECTION_COLORS.explore.button)}
+                  className={cn(buttonVariants({ size: "lg" }), "h-11 flex-1 rounded-full px-4 text-sm sm:flex-none sm:px-5", SECTION_COLORS.explore.button)}
                 >
                   <ExternalLink className="mr-1.5 h-4 w-4" aria-hidden /> 웹사이트 방문
                   <span className="sr-only"> (새 탭에서 열림)</span>
@@ -251,7 +256,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   rel="noreferrer"
                   className={cn(
                     buttonVariants({ variant: "outline", size: "lg" }),
-                    "h-11 rounded-full border-zinc-300 bg-white px-5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800",
+                    "h-11 flex-1 rounded-full border-zinc-300 bg-white px-4 text-sm hover:bg-zinc-100 sm:flex-none sm:px-5 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800",
                   )}
                 >
                   <Code2 className="mr-1.5 h-4 w-4" aria-hidden /> GitHub 저장소

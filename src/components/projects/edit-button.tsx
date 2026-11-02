@@ -9,7 +9,7 @@ export function EditButton({ projectId }: { projectId: string }) {
   return (
     <Link
       href={`/projects/${projectId}/edit`}
-      className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "h-11 rounded-full px-4 text-sm text-zinc-700 dark:text-zinc-300")}
+      className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "h-11 w-full rounded-full px-4 text-sm text-zinc-700 sm:w-auto dark:text-zinc-300")}
     >
       <Pencil className="mr-1.5 h-4 w-4" aria-hidden /> 수정하기
     </Link>

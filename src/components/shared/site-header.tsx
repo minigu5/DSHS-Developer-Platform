@@ -53,8 +53,10 @@ export function SiteHeader({
               height={32}
               className="block rounded-lg border border-zinc-200 dark:border-zinc-800 shrink-0"
             />
-            {/* 공식 이름은 영문(도메인과 일치), 읽는 이름 "대곽 개발자 플랫폼"을 아래 작은 글씨로 병기 */}
-            <span className="flex flex-col gap-px">
+            {/* 공식 이름은 영문(도메인과 일치), 읽는 이름 "대곽 개발자 플랫폼"을 아래 작은 글씨로 병기.
+                360px 미만(벨·로그인 버튼과 겹침)과 640~767px(가로로 눕힌 폰 — 메뉴가 오른쪽 버튼과 겹침)에서는
+                글자를 화면에서만 숨긴다(읽기 프로그램용 이름은 남김) */}
+            <span className={cn("flex flex-col gap-px max-[359px]:sr-only", showNav && "sm:max-md:sr-only")}>
               <span className="font-heading font-bold text-[15px] sm:text-[17px] leading-[1.1] tracking-tight text-zinc-900 dark:text-white">
                 DSHS Developer Platform
               </span>

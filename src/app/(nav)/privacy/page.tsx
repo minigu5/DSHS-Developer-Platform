@@ -25,7 +25,7 @@ export default function PrivacyPage() {
         title="개인정보 처리방침"
         description="어떤 정보를 왜 받고, 어떻게 지우는지 적었어요."
       />
-      <main className="mx-auto grid max-w-3xl gap-5 bg-white px-6 py-8 dark:bg-zinc-950 sm:py-10">
+      <main className="mx-auto grid max-w-3xl gap-5 bg-white px-6 py-8 *:min-w-0 dark:bg-zinc-950 sm:py-10">
         <ConsentStatus version={PRIVACY_POLICY_VERSION} />
         <ReadingSurface>
           <MarkdownRender>{PRIVACY_POLICY_MD}</MarkdownRender>

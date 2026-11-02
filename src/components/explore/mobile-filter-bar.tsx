@@ -89,62 +89,64 @@ export function MobileFilterBar({
       ref={rootRef}
       className="sticky top-16 z-20 border-b border-zinc-200 bg-white md:hidden dark:border-zinc-800 dark:bg-zinc-950"
     >
-      <div className="flex h-14 items-center gap-2 overflow-x-auto px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {GROUPS.map((g) => {
-          const count = selectedOf(g.key).length;
-          const isOpen = open === g.key;
-          return (
-            <button
-              key={g.key}
-              type="button"
-              onClick={() => setOpen(isOpen ? null : g.key)}
-              aria-expanded={isOpen}
-              aria-controls={`filter-panel-${g.key}`}
-              className={cn(
-                "inline-flex h-[34px] shrink-0 items-center gap-1.5 rounded-full border bg-white px-3.5 text-[13px] font-medium whitespace-nowrap transition-colors dark:bg-zinc-900",
-                isOpen
-                  ? "border-zinc-900 text-zinc-900 dark:border-white dark:text-white"
-                  : "border-zinc-200 text-zinc-700 dark:border-zinc-800 dark:text-zinc-300",
-              )}
-            >
-              {g.label}
-              {count > 0 && (
-                <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-semibold tabular-nums text-white">
-                  {count}
-                </span>
-              )}
-              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isOpen && "rotate-180")} aria-hidden />
-            </button>
-          );
-        })}
-
-        {activeCount > 0 && (
-          <>
-            <span className="h-[18px] w-px shrink-0 bg-zinc-200 dark:bg-zinc-800" aria-hidden />
-            {activeChips.map((chip) => (
+      {/* 정렬은 스크롤 상자 밖에 둔다 — 안에 두면 열린 정렬 메뉴가 overflow 에 잘린다 */}
+      <div className="flex h-14 items-center pr-6">
+        <div className="flex h-full min-w-0 flex-1 items-center gap-2 overflow-x-auto pl-6 pr-6 [mask-image:linear-gradient(to_right,#000_calc(100%-24px),transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {GROUPS.map((g) => {
+            const count = selectedOf(g.key).length;
+            const isOpen = open === g.key;
+            return (
               <button
-                key={`${chip.key}-${chip.value}`}
+                key={g.key}
                 type="button"
-                onClick={() => toggleOf(chip.key)(chip.value, false)}
-                aria-label={`${chip.label} 필터 해제`}
-                className="inline-flex h-[34px] shrink-0 items-center gap-1.5 rounded-full bg-blue-50 pl-3 pr-2.5 text-[13px] font-medium whitespace-nowrap text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                onClick={() => setOpen(isOpen ? null : g.key)}
+                aria-expanded={isOpen}
+                aria-controls={`filter-panel-${g.key}`}
+                className={cn(
+                  "inline-flex h-[34px] shrink-0 items-center gap-1.5 rounded-full border bg-white px-3.5 text-[13px] font-medium whitespace-nowrap transition-colors dark:bg-zinc-900",
+                  isOpen
+                    ? "border-zinc-900 text-zinc-900 dark:border-white dark:text-white"
+                    : "border-zinc-200 text-zinc-700 dark:border-zinc-800 dark:text-zinc-300",
+                )}
               >
-                {chip.Icon && <chip.Icon className="h-3.5 w-3.5" aria-hidden />}
-                {chip.label}
-                <X className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                {g.label}
+                {count > 0 && (
+                  <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-semibold tabular-nums text-white">
+                    {count}
+                  </span>
+                )}
+                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isOpen && "rotate-180")} aria-hidden />
               </button>
-            ))}
-            <button
-              type="button"
-              onClick={onReset}
-              className="shrink-0 rounded-sm text-[13px] font-medium text-zinc-600 underline-offset-4 hover:underline dark:text-zinc-400"
-            >
-              초기화
-            </button>
-          </>
-        )}
+            );
+          })}
 
-        <div className="ml-auto shrink-0 pl-2">{sortButton}</div>
+          {activeCount > 0 && (
+            <>
+              <span className="h-[18px] w-px shrink-0 bg-zinc-200 dark:bg-zinc-800" aria-hidden />
+              {activeChips.map((chip) => (
+                <button
+                  key={`${chip.key}-${chip.value}`}
+                  type="button"
+                  onClick={() => toggleOf(chip.key)(chip.value, false)}
+                  aria-label={`${chip.label} 필터 해제`}
+                  className="inline-flex h-[34px] shrink-0 items-center gap-1.5 rounded-full bg-blue-50 pl-3 pr-2.5 text-[13px] font-medium whitespace-nowrap text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                >
+                  {chip.Icon && <chip.Icon className="h-3.5 w-3.5" aria-hidden />}
+                  {chip.label}
+                  <X className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={onReset}
+                className="shrink-0 rounded-sm text-[13px] font-medium text-zinc-600 underline-offset-4 hover:underline dark:text-zinc-400"
+              >
+                초기화
+              </button>
+            </>
+          )}
+        </div>
+        <div className="shrink-0">{sortButton}</div>
       </div>
 
       {open && (

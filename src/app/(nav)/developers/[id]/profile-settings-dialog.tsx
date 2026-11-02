@@ -136,7 +136,7 @@ export function ProfileSettingsDialog({ userId, initialNickname, initialBio, ini
           <div className="space-y-2">
             <label htmlFor="nickname" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">닉네임</label>
             <div className="flex gap-2">
-              <div className="relative flex-1">
+              <div className="relative min-w-0 flex-1">
                 <input
                   id="nickname"
                   value={nickname}
@@ -152,6 +152,7 @@ export function ProfileSettingsDialog({ userId, initialNickname, initialBio, ini
                 type="button" 
                 variant="outline" 
                 size="sm" 
+                className="h-10 shrink-0"
                 onClick={handleCheckDuplicate}
                 disabled={checkingNickname || isNicknameChecked}
               >
@@ -212,7 +213,7 @@ export function ProfileSettingsDialog({ userId, initialNickname, initialBio, ini
                 const Icon = meta?.icon ?? Globe;
                 return (
                   <div key={idx} className="flex items-center gap-2">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
+                    <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 sm:flex dark:border-zinc-800 dark:bg-zinc-900">
                       <Icon className="h-4 w-4 text-zinc-500" />
                     </div>
                     <select
@@ -222,7 +223,7 @@ export function ProfileSettingsDialog({ userId, initialNickname, initialBio, ini
                         next[idx] = { ...next[idx], type: e.target.value as UserContact['type'] };
                         setContacts(next);
                       }}
-                      className="h-9 rounded-md border border-zinc-200 bg-white px-2 text-sm dark:border-zinc-800 dark:bg-zinc-950"
+                      className="h-9 shrink-0 rounded-md border border-zinc-200 bg-white px-2 text-sm dark:border-zinc-800 dark:bg-zinc-950"
                     >
                       {CONTACT_TYPES.map((t) => (
                         <option key={t.value} value={t.value}>{t.label}</option>
@@ -236,7 +237,7 @@ export function ProfileSettingsDialog({ userId, initialNickname, initialBio, ini
                         setContacts(next);
                       }}
                       placeholder={meta?.placeholder ?? ""}
-                      className="flex h-9 flex-1 rounded-md border border-zinc-200 bg-white px-3 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-800 dark:bg-zinc-950"
+                      className="flex h-9 min-w-0 flex-1 rounded-md border border-zinc-200 bg-white px-3 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-800 dark:bg-zinc-950"
                     />
                     <button
                       type="button"
