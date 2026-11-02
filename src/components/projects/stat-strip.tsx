@@ -26,7 +26,7 @@ export function StatStrip({ items, className }: { items: StatStripItem[]; classN
         <div
           key={item.label}
           className={cn(
-            "grid gap-1 px-3 py-[18px] text-center",
+            "grid content-start gap-1 px-3 py-[18px] text-center",
             index > 0 && "sm:border-l sm:border-zinc-100 sm:dark:border-zinc-800",
             index % 2 === 1 && "border-l border-zinc-100 dark:border-zinc-800",
             index >= 2 && "border-t border-zinc-100 sm:border-t-0 dark:border-zinc-800",
