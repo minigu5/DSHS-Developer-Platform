@@ -4,6 +4,10 @@
     "deny": [
       "Read(node_modules/**)",
       "Read(.next/**)",
+      "Read(.open-next/**)",
+      "Read(.wrangler/**)",
+      "Read(supabase/.temp/**)",
+      "Read(src/content/guides/fragments.generated.ts)",
       "Read(build/**)",
       "Read(dist/**)",
       "Read(.cache/**)",
@@ -15,6 +19,16 @@
       "Read(pnpm-lock.yaml)",
       "Read(*.log)",
       "Read(**/student_mappings*)",
+      "Read(**/*real_names*)",
+      "Read(.env)",
+      "Read(.env.local)",
+      "Read(.env.development*)",
+      "Read(.env.production*)",
+      "Read(.env.test*)",
+      "Read(.dev.vars)",
+      "Read(*.pem)",
+      "Read(*.key)",
+      "Read(*.crt)",
       "Read(*.png)",
       "Read(*.jpg)",
       "Read(*.jpeg)",
@@ -24,7 +38,11 @@
       "Read(*.pdf)",
       "Read(*.woff)",
       "Read(*.woff2)",
-      "Read(*.ttf)"
+      "Read(*.ttf)",
+      "Read(*.otf)",
+      "Read(*.zip)",
+      "Read(*.mp4)",
+      "Read(*.mov)"
     ]
   }
 }
