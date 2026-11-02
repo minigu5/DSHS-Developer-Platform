@@ -18,9 +18,9 @@ import { getDnsClient } from './cloudflare'
 import { removeCloudflare } from './cleanup'
 import { buildRecords, runConnect, runConnectNaru } from './connect'
 import { createSiteFetcher } from './fetch-site'
-import { HOST_PRESETS, isNaruHost, isRedirectHost, siteAddressFor, siteHostFor, targetBoundToSite, validateTarget, validateTxt, type HostKey, type TxtInput } from './hosts'
+import { HOST_PRESETS, isRedirectHost, siteAddressFor, siteHostFor, targetBoundToSite, validateTarget, validateTxt, type HostKey, type TxtInput } from './hosts'
 import { normalizeName, validateName } from './name'
-import { getNaruClient, NaruError, toPickableServers, unbindNaruBestEffort, type NaruServer } from './naru'
+import { getNaruClient, isSiteStep, NaruError, shouldSkipVerify, toPickableServers, unbindNaruBestEffort, type NaruServer } from './naru'
 import { getRedirectClient, redirectConfigured } from './redirects'
 import { checkSite, type CheckResult } from './verify'
 
@@ -256,6 +256,7 @@ export async function connectHost(id: string, host: HostKey, rawTarget: string, 
         },
         { id, name: row.name, target },
       )
+      await unbindIfMovedFromNaru(row, user.email)
       done()
       return { ok: true, data: null }
     }
@@ -286,8 +287,15 @@ export async function connectHost(id: string, host: HostKey, rawTarget: string, 
     console.error('[domains] connectHost 실패', e)
     return { ok: false, error: isRedirectHost(host) ? REDIRECT_FAILED : 'DNS 레코드를 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.' }
   }
+  await unbindIfMovedFromNaru(row, user.email)
   done()
   return { ok: true, data: null }
+}
+
+// 대곽나루 주소를 다른 호스트로 옮겼으면(subdomain_connect 가 naru_server_id 를 비웠다) 허브 묶음도 푼다 — 최선 노력, 실패는 로그만(매일 점검 sync 가 정리)
+async function unbindIfMovedFromNaru(row: NonNullable<Awaited<ReturnType<typeof loadRow>>>, ownerEmail: string) {
+  if (row.host !== 'naru') return
+  await unbindNaruBestEffort(getNaruClient(), { host: row.host, naruServerId: row.naru_server_id, ownerEmail })
 }
 
 // result 가 unreachable 일 때만 detail(예: "status 404", "redirect to another host") — 왜 안 열리는지 화면에 보여 주려고.
@@ -299,10 +307,9 @@ export async function verifySubdomain(
   if (!user) return LOGIN_REQUIRED
   const row = await loadRow(id)
   if (!row || row.owner_id !== user.id) return { ok: false, error: RPC_ERRORS.not_owner }
-  const siteStep = !row.site_verified_at && row.site_url && row.site_host
-  // 대곽나루 서버 주소는 확인 코드도 연결 확인도 없다 — 연결하는 순간 active, 반납은 허브에 서버가 없을 때만.
-  // 단 다른 호스트로 옮기려고 ② 원래 주소를 확인하는 중(siteStep)이면 그대로 확인해야 connectHost 가 not_verified 로 막히지 않는다
-  if (!siteStep && isNaruHost(row.host)) return { ok: true, data: { result: 'ok', detail: null, status: row.status, siteVerified: true } }
+  const siteStep = isSiteStep(row)
+  // 대곽나루 서버 주소는 확인 코드도 연결 확인도 없다 — 단 다른 호스트로 옮기려고 ② 원래 주소를 확인하는 중이면 확인한다(shouldSkipVerify)
+  if (shouldSkipVerify(row)) return { ok: true, data: { result: 'ok', detail: null, status: row.status, siteVerified: true } }
   if (!siteStep && !row.host) return { ok: false, error: '먼저 ②에서 내 사이트 주소를 넣어요.' }
 
   // 확인할 곳 — 사설 IP 로 풀리면 요청하지 않는다

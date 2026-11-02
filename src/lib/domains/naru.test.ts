@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createNaruClient, naruLinkFor, naruReleases, NaruError, toPickableServers, planNaruSync, runNaruSync, unbindNaruBestEffort, type NaruRow } from './naru.ts'
+import { createNaruClient, isSiteStep, naruLinkFor, naruReleases, NaruError, runNaruDnsRepair, shouldSkipVerify, toPickableServers, planNaruSync, runNaruSync, unbindNaruBestEffort, type NaruRow } from './naru.ts'
 
 type Call = { method: string; url: string; headers: Record<string, string>; body: unknown }
 
@@ -263,4 +263,158 @@ test('toPickableServers: running·stopped 만, target 이 없으면 ready=false,
   const mk = (id: string, status: string, target: string | null) => ({ id, name: id, status, nodeId: 'server-09', domain: null, target })
   const out = toPickableServers([mk('a', 'running', 'x.cfargotunnel.com'), mk('b', 'stopped', null), mk('c', 'creating', 'x.cfargotunnel.com')])
   assert.deepEqual(out.map((s) => [s.id, s.ready, s.nodeId, s.target]), [['a', true, null, null], ['b', false, null, null]])
+})
+
+test('대량 반납 방어 분모는 실제로 보낸 묶음 수: 보내지 않은 행(다른 호스트·반납됨)은 세지 않는다', async () => {
+  // 읽은 행 6개 중 2개는 묶음에 안 들어간다 → 보낸 4개 중 3개가 gone 이면 절반 넘음(읽은 전체 6개로 나누면 절반이라 통과해 버린다)
+  const rows = [ROW(1), ROW(2), ROW(3), ROW(4), ROW(5, { host: 'vercel' }), ROW(6, { status: 'released' })]
+  const h = syncHarness({ load: async () => rows, sync: async () => ({ gone: ['fa4e0001', 'fa4e0002', 'fa4e0003'] }) })
+  const r = await runNaruSync(h.deps)
+  assert.deepEqual(h.events, ['sync:4'])
+  assert.deepEqual(r, { failures: 1, released: [] })
+  assert.ok(h.lines.some((l) => l.includes('4개 중 3개')))
+})
+
+test('보내지 않은 행은 gone 에 서버 id 가 겹쳐도 반납하지 않는다', async () => {
+  const rows = [ROW(1), ROW(2, { host: 'vercel' })]
+  const h = syncHarness({ load: async () => rows, sync: async () => ({ gone: ['fa4e0002'] }) })
+  const r = await runNaruSync(h.deps)
+  assert.deepEqual(h.events, ['sync:1'])
+  assert.deepEqual(r.released, [])
+})
+
+// ── 확인 건너뛰기 판단 (verifySubdomain)
+
+test('isSiteStep: 원래 주소가 있고 아직 확인 전일 때만', () => {
+  assert.equal(isSiteStep({ site_url: 'https://a.vercel.app/', site_host: 'vercel', site_verified_at: null }), true)
+  assert.equal(isSiteStep({ site_url: 'https://a.vercel.app/', site_host: 'vercel', site_verified_at: '2026-11-01T00:00:00Z' }), false)
+  assert.equal(isSiteStep({ site_url: null, site_host: 'naru', site_verified_at: null }), false)
+  assert.equal(isSiteStep({ site_url: 'https://a.vercel.app/', site_host: null, site_verified_at: null }), false)
+})
+
+test('shouldSkipVerify: 대곽나루 행은 건너뛰되, 다른 호스트로 옮기려고 ② 원래 주소를 확인하는 중이면 확인한다', () => {
+  // 가만히 연결된 대곽나루 행: 확인 없음
+  assert.equal(shouldSkipVerify({ host: 'naru', site_url: null, site_host: 'naru', site_verified_at: '2026-11-01T00:00:00Z' }), true)
+  // 옮기는 중: 원래 주소를 저장했고 아직 확인 전 → 확인해야 connectHost 가 not_verified 로 막히지 않는다
+  assert.equal(shouldSkipVerify({ host: 'naru', site_url: 'https://a.vercel.app/', site_host: 'vercel', site_verified_at: null }), false)
+  // 옮기려고 확인을 마친 뒤(다시 verify 가 불려도 대곽나루 행이라 그대로 ok)
+  assert.equal(shouldSkipVerify({ host: 'naru', site_url: 'https://a.vercel.app/', site_host: 'vercel', site_verified_at: '2026-11-02T00:00:00Z' }), true)
+  // 대곽나루가 아닌 행은 건너뛰지 않는다
+  assert.equal(shouldSkipVerify({ host: 'vercel', site_url: null, site_host: null, site_verified_at: null }), false)
+  assert.equal(shouldSkipVerify({ host: null, site_url: null, site_host: null, site_verified_at: null }), false)
+})
+
+// ── 매일 점검: 대곽나루 행의 DNS 레코드가 사라졌으면 다시 만든다
+
+const MANAGED = (rowId: string, id = `cf-${rowId}`) => ({ id, name: 'x.dshs.dev', comment: `dshs-subdomain:${rowId}`, createdOn: '2026-11-01T00:00:00Z' })
+
+function repairHarness(over: {
+  rows?: { id: string; name: string; target: string | null }[]
+  managed?: ReturnType<typeof MANAGED>[]
+  loadFails?: boolean
+  listFails?: boolean
+  createFails?: string
+  setFails?: string
+  dryRun?: boolean
+} = {}) {
+  const events: string[] = []
+  const lines: string[] = []
+  const deps = {
+    loadRows: async () => {
+      if (over.loadFails) throw new Error('supabase down')
+      return over.rows ?? [{ id: 'row-1', name: 'site1', target: '0000.cfargotunnel.com' }]
+    },
+    dns: {
+      listManaged: async () => {
+        events.push('list')
+        if (over.listFails) throw new Error('cf down')
+        return over.managed ?? []
+      },
+      create: async (rows: { type: string; name: string; content: string; proxied?: boolean }[], rowId: string) => {
+        if (over.createFails === rowId) throw new Error('cf create failed')
+        events.push(`create:${rowId}:${rows.map((r) => `${r.type}/${r.name}/${r.content}/${r.proxied}`).join('|')}`)
+        return [`new-${rowId}`]
+      },
+      remove: async (ids: string[]) => {
+        events.push(`remove:${ids.join(',')}`)
+      },
+    },
+    setRecords: async (id: string, ids: string[]) => {
+      if (over.setFails === id) throw new Error('db down')
+      events.push(`set:${id}:${ids.join(',')}`)
+    },
+    dryRun: over.dryRun ?? false,
+    log: (m: string) => lines.push(m),
+  }
+  return { deps, events, lines }
+}
+
+test('DNS 레코드가 있는 행은 건드리지 않는다', async () => {
+  const h = repairHarness({ managed: [MANAGED('row-1')] })
+  const r = await runNaruDnsRepair(h.deps)
+  assert.deepEqual(h.events, ['list'])
+  assert.deepEqual(r, { failures: 0, recreated: [] })
+})
+
+test('레코드가 사라진 행은 proxied CNAME 을 target 으로 다시 만들고 id 를 DB 에 기록한다(주소 이름만 로그)', async () => {
+  const h = repairHarness({ managed: [MANAGED('other-row')] })
+  const r = await runNaruDnsRepair(h.deps)
+  assert.deepEqual(h.events, ['list', 'create:row-1:CNAME/site1.dshs.dev/0000.cfargotunnel.com/true', 'set:row-1:new-row-1'])
+  assert.deepEqual(r, { failures: 0, recreated: ['site1'] })
+  assert.ok(h.lines.some((l) => l.includes('site1.dshs.dev')))
+  assert.ok(h.lines.every((l) => !l.includes('@') && !l.includes('0000.cfargotunnel.com') && !l.includes('row-1')))
+})
+
+test('dry-run 은 계획만 출력하고 만들지 않는다', async () => {
+  const h = repairHarness({ dryRun: true })
+  const r = await runNaruDnsRepair(h.deps)
+  assert.deepEqual(h.events, ['list'])
+  assert.deepEqual(r, { failures: 0, recreated: [] })
+  assert.ok(h.lines.some((l) => l.includes('site1') && l.includes('dry-run')))
+})
+
+test('DB 기록이 실패하면 방금 만든 레코드를 지우고 실패로 센다', async () => {
+  const h = repairHarness({ setFails: 'row-1' })
+  const r = await runNaruDnsRepair(h.deps)
+  assert.deepEqual(h.events, ['list', 'create:row-1:CNAME/site1.dshs.dev/0000.cfargotunnel.com/true', 'remove:new-row-1'])
+  assert.deepEqual(r, { failures: 1, recreated: [] })
+})
+
+test('한 행에서 만들기가 실패해도 다음 행은 계속한다', async () => {
+  const rows = [
+    { id: 'row-1', name: 'site1', target: '0000.cfargotunnel.com' },
+    { id: 'row-2', name: 'site2', target: '0000.cfargotunnel.com' },
+  ]
+  const h = repairHarness({ rows, createFails: 'row-1' })
+  const r = await runNaruDnsRepair(h.deps)
+  assert.equal(r.failures, 1)
+  assert.deepEqual(r.recreated, ['site2'])
+})
+
+test('target 을 모르는 행은 만들지 않고 실패로 센다', async () => {
+  const h = repairHarness({ rows: [{ id: 'row-1', name: 'site1', target: null }] })
+  const r = await runNaruDnsRepair(h.deps)
+  assert.deepEqual(h.events, ['list'])
+  assert.equal(r.failures, 1)
+})
+
+test('행 조회가 실패하면 Cloudflare 를 부르지 않고 실패 1건', async () => {
+  const h = repairHarness({ loadFails: true })
+  const r = await runNaruDnsRepair(h.deps)
+  assert.deepEqual(h.events, [])
+  assert.equal(r.failures, 1)
+})
+
+test('Cloudflare 목록 조회가 실패하면 아무것도 만들지 않고 실패 1건', async () => {
+  const h = repairHarness({ listFails: true })
+  const r = await runNaruDnsRepair(h.deps)
+  assert.deepEqual(h.events, ['list'])
+  assert.equal(r.failures, 1)
+})
+
+test('대곽나루 행이 없으면 Cloudflare 를 부르지 않는다', async () => {
+  const h = repairHarness({ rows: [] })
+  const r = await runNaruDnsRepair(h.deps)
+  assert.deepEqual(h.events, [])
+  assert.deepEqual(r, { failures: 0, recreated: [] })
 })

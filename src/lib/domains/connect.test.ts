@@ -122,3 +122,16 @@ test('다른 서버에서 옮겨 오는 연결은 DNS 실패면 허브를 푼다
   await assert.rejects(runConnectNaru(h.deps, { ...INPUT, previousServerId: 'fa4e0009' }), /cf down/)
   assert.deepEqual(h.events, ['bind:fa4e0001:meal', 'dns.create', 'unbind:fa4e0001'])
 })
+
+test('같은 서버 재연결에서 DB 기록(rpc)이 실패하면 방금 만든 레코드는 지우되 허브는 풀지 않는다', async () => {
+  const boom = new Error('naru_server_taken')
+  const h = naruHarness({ rpc: async () => { throw boom } })
+  await assert.rejects(runConnectNaru(h.deps, { ...INPUT, previousServerId: 'fa4e0001' }), (e) => e === boom)
+  assert.deepEqual(h.events, ['bind:fa4e0001:meal', 'dns.create', 'rpc:rec0:0000.cfargotunnel.com', 'dns.remove:rec0'])
+})
+
+test('같은 서버 재연결에서 옛 레코드 지우기(clearOld)가 실패하면 허브를 풀지 않는다', async () => {
+  const h = naruHarness({ clearOld: async () => { throw new Error('cf down') } })
+  await assert.rejects(runConnectNaru(h.deps, { ...INPUT, previousServerId: 'fa4e0001' }), /cf down/)
+  assert.deepEqual(h.events, ['bind:fa4e0001:meal'])
+})

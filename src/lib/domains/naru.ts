@@ -3,6 +3,10 @@
 // 모든 요청에 헤더 x-devplatform-key. JSON 은 snake_case 라 여기서 camelCase 로 바꾼다.
 // 운영 Worker 비밀 NARU_HUB_URL(https://hub.dshs-app.net)·NARU_HUB_KEY(허브 DEVPLATFORM_API_KEY와 같은 값). 로그에 이메일·키를 찍지 않는다.
 
+import { RECORD_COMMENT_PREFIX, type DnsClient } from './cloudflare.ts'
+import { isNaruHost } from './hosts.ts'
+import { ROOT_DOMAIN } from './name.ts'
+
 export type NaruServer = {
   id: string
   name: string
@@ -265,19 +269,21 @@ export async function runNaruSync(deps: NaruSyncDeps): Promise<{ failures: numbe
   }
 
   // 허브 캐시가 비정상(서버 목록 유실 등)이면 거의 모든 묶음이 gone 으로 온다. 한꺼번에 많이 반납하기 전에 멈춘다 — 이메일은 찍지 않는다.
-  if (gone.length > NARU_MASS_RELEASE_MIN && gone.length * 2 > rows.length) {
+  // 비율의 분모는 읽은 전체가 아니라 실제로 허브에 보낸 묶음 수다(보내지 않은 행이 섞여도 기준이 흐려지지 않게).
+  const sent = rows.filter((r) => planNaruSync([r]).length > 0)
+  if (gone.length > NARU_MASS_RELEASE_MIN && gone.length * 2 > sent.length) {
     const goneIds = new Set(gone)
-    const names = rows.filter((r) => goneIds.has(r.naruServerId)).map((r) => r.name)
+    const names = sent.filter((r) => goneIds.has(r.naruServerId)).map((r) => r.name)
     deps.log(
-      `❌  허브가 ${rows.length}개 중 ${gone.length}개를 '서버 없음'이라고 해 반납하지 않고 멈춤(허브 서버 목록 이상 의심): ${names.join(', ') || '(이름 없음)'}`,
+      `❌  허브가 ${sent.length}개 중 ${gone.length}개를 '서버 없음'이라고 해 반납하지 않고 멈춤(허브 서버 목록 이상 의심): ${names.join(', ') || '(이름 없음)'}`,
     )
     return { failures: 1, released: [] }
   }
 
   let failures = 0
   const released: string[] = []
-  const byId = new Map(rows.map((r) => [r.id, r]))
-  for (const id of naruReleases(rows, gone)) {
+  const byId = new Map(sent.map((r) => [r.id, r]))
+  for (const id of naruReleases(sent, gone)) {
     const row = byId.get(id)!
     try {
       await deps.release(row)
@@ -288,6 +294,94 @@ export async function runNaruSync(deps: NaruSyncDeps): Promise<{ failures: numbe
       deps.log(`  ❌  ${row.name}.dshs.dev: 반납 실패 ${e instanceof Error ? e.message : String(e)}`)
     }
   }
-  deps.log(`  대곽나루 주소 ${rows.length}개를 허브와 맞춤${released.length ? `, ${released.length}개 반납` : ''}`)
+  deps.log(`  대곽나루 주소 ${sent.length}개를 허브와 맞춤${released.length ? `, ${released.length}개 반납` : ''}`)
   return { failures, released }
+}
+
+// ── 확인(verifySubdomain)을 건너뛸지
+
+/** ② 내 사이트 원래 주소를 저장했고 아직 확인 전인 행 — 이 단계의 확인은 원래 주소에서 한다 */
+export function isSiteStep(row: { site_url: string | null; site_host: string | null; site_verified_at: string | null }): boolean {
+  return !row.site_verified_at && Boolean(row.site_url) && Boolean(row.site_host)
+}
+
+/**
+ * 대곽나루 서버 주소는 확인 코드도 연결 확인도 없다 — 연결하는 순간 active, 반납은 허브에 서버가 없을 때만.
+ * 단 다른 호스트로 옮기려고 ② 원래 주소를 확인하는 중(isSiteStep)이면 그대로 확인해야 connectHost 가 not_verified 로 막히지 않는다.
+ */
+export function shouldSkipVerify(row: {
+  host: string | null
+  site_url: string | null
+  site_host: string | null
+  site_verified_at: string | null
+}): boolean {
+  return isNaruHost(row.host) && !isSiteStep(row)
+}
+
+// ── 매일 점검: 대곽나루 행의 DNS 레코드가 없으면 다시 만든다 (같은 서버 재연결이 중간에 실패하면 옛 레코드만 지워진 active 행이 남는다)
+
+export type NaruDnsRow = { id: string; name: string; target: string | null }
+
+export type NaruDnsRepairDeps = {
+  /** 살아 있는 대곽나루 행. 실패하면 던진다 */
+  loadRows: () => Promise<NaruDnsRow[]>
+  /** listManaged: 댓글 `dshs-subdomain:<행 id>` 가 붙은 레코드(우리가 만든 것)를 모은다 */
+  dns: Pick<DnsClient, 'create' | 'remove' | 'listManaged'>
+  /** DB 에 새 레코드 id 를 기록한다(subdomain_set_naru_records). 실패하면 던진다 */
+  setRecords: (rowId: string, recordIds: string[]) => Promise<void>
+  dryRun: boolean
+  /** 공개 로그 — 주소 이름만 찍는다(이메일·서버 id·터널 대상 금지) */
+  log: (message: string) => void
+}
+
+/**
+ * 살아 있는 대곽나루 행마다 Cloudflare 에 그 행의 레코드(댓글 `dshs-subdomain:<행 id>`)가 있는지 보고,
+ * 없으면 proxied CNAME 을 target 으로 다시 만들어 레코드 id 를 DB 에 기록한다.
+ * 행·목록 조회가 실패하면 아무것도 만들지 않고 실패 1건. DB 기록이 실패하면 방금 만든 레코드를 지운다.
+ */
+export async function runNaruDnsRepair(deps: NaruDnsRepairDeps): Promise<{ failures: number; recreated: string[] }> {
+  let rows: NaruDnsRow[]
+  try {
+    rows = await deps.loadRows()
+  } catch (e) {
+    deps.log(`❌  대곽나루 DNS 점검: 주소 조회 실패 ${e instanceof Error ? e.message : String(e)}`)
+    return { failures: 1, recreated: [] }
+  }
+  if (!rows.length) return { failures: 0, recreated: [] }
+
+  let have: Set<string>
+  try {
+    have = new Set((await deps.dns.listManaged()).map((m) => m.comment))
+  } catch (e) {
+    deps.log(`❌  대곽나루 DNS 점검: Cloudflare 레코드 조회 실패 ${e instanceof Error ? e.message : String(e)}`)
+    return { failures: 1, recreated: [] }
+  }
+
+  let failures = 0
+  const recreated: string[] = []
+  for (const row of rows) {
+    if (have.has(RECORD_COMMENT_PREFIX + row.id)) continue
+    const fqdn = `${row.name}.${ROOT_DOMAIN}`
+    if (!row.target) {
+      failures++
+      deps.log(`  ❌  ${fqdn}: DNS 레코드가 없는데 연결 대상을 몰라 다시 만들지 못함`)
+      continue
+    }
+    if (deps.dryRun) {
+      deps.log(`  ${fqdn}: DNS 레코드가 없어 다시 만들 예정 (dry-run, 그대로 둠)`)
+      continue
+    }
+    let ids: string[] = []
+    try {
+      ids = await deps.dns.create([{ type: 'CNAME', name: fqdn, content: row.target, proxied: true }], row.id)
+      await deps.setRecords(row.id, ids)
+      recreated.push(row.name)
+      deps.log(`  ${fqdn}: DNS 레코드가 없어 다시 만듦`)
+    } catch (e) {
+      failures++
+      if (ids.length) await deps.dns.remove(ids).catch(() => {})
+      deps.log(`  ❌  ${fqdn}: DNS 레코드 다시 만들기 실패 ${e instanceof Error ? e.message : String(e)}`)
+    }
+  }
+  return { failures, recreated }
 }
