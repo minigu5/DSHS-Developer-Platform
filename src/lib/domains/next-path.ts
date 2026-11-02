@@ -32,3 +32,17 @@ export const NARU_SERVER_ID = /^[0-9a-f]{8}$/
 export function naruServerIdOf(raw: string | undefined): string | null {
   return raw && NARU_SERVER_ID.test(raw) ? raw : null
 }
+
+/** `?host=naru` — 연결 방법 고르기(대곽나루/다른 호스트)가 새로고침에 사라지지 않게 주소에 남긴다 */
+export function hostParamIsNaru(raw: string | undefined): boolean {
+  return raw === 'naru'
+}
+
+/** 현재 쿼리(`?a=b`, 앞의 ? 는 있어도 없어도)에서 host=naru 만 넣거나 빼고 다시 만든다. 다른 쿼리는 그대로. 비면 빈 문자열 */
+export function withHostParam(search: string, naru: boolean): string {
+  const params = new URLSearchParams(search)
+  if (naru) params.set('host', 'naru')
+  else params.delete('host')
+  const out = params.toString()
+  return out ? `?${out}` : ''
+}

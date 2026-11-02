@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { verifySubdomain } from "@/lib/domains/actions";
+import { isNaruHost } from "@/lib/domains/hosts";
 import { startPoller } from "@/lib/domains/poller";
 import type { DomainView } from "@/lib/domains/read";
 import type { CheckResult } from "@/lib/domains/verify";
@@ -43,6 +44,8 @@ export function useDomainChecks(domains: DomainView[]) {
   const pollKey = useMemo(
     () =>
       domains
+        // 대곽나루 주소는 확인 코드도 연결 확인도 없어 자동 확인하지 않는다(옮기는 중의 ② 확인은 지금 확인하기 버튼으로)
+        .filter((d) => !isNaruHost(d.host))
         .filter((d) => d.status === "pending" || d.status === "broken" || (d.status === "reserved" && d.siteUrl !== null && !d.siteVerified))
         .map((d) => `${d.id}|${d.status}|${d.siteUrl ?? ""}`)
         .sort()

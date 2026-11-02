@@ -6,3 +6,17 @@ export function rowDisabled(input: { url: string | null | undefined; naruServerI
   if (input.live) return false
   return !input.url && !input.naruServerId
 }
+
+/**
+ * `/domains?naru=` 로 들어왔을 때 목록 위 안내 종류.
+ * none: ?naru= 없음 / no-project: 웹사이트 프로젝트 없음 / limit: 주소를 이미 한도(max)만큼 씀(새 프로젝트를 만들어도 못 받음) /
+ * new-project: 한도 안인데 주소를 받을 수 있는 프로젝트가 없음 / pick: 고를 프로젝트가 있음
+ */
+export type NaruGuideKind = 'none' | 'no-project' | 'limit' | 'new-project' | 'pick'
+
+export function naruGuideKind(input: { naruServerId: string | null; rowCount: number; candidates: number; used: number; max: number }): NaruGuideKind {
+  if (input.naruServerId === null) return 'none'
+  if (input.rowCount === 0) return 'no-project'
+  if (input.candidates === 0) return input.used >= input.max ? 'limit' : 'new-project'
+  return 'pick'
+}

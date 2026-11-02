@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { naruServerIdOf, safeDomainsNext, shouldFollowNext, withProject } from './next-path.ts'
+import { hostParamIsNaru, naruServerIdOf, safeDomainsNext, shouldFollowNext, withHostParam, withProject } from './next-path.ts'
 
 test('/domains 로 시작하는 안쪽 경로만 받는다', () => {
   assert.equal(safeDomainsNext('/domains'), '/domains')
@@ -53,4 +53,18 @@ test('shouldFollowNext: 웹사이트이고 공개일 때만 next 를 따른다',
   assert.equal(shouldFollowNext('/domains?naru=fa4e0001', { isWebsite: true, isPublic: false }), false)
   assert.equal(shouldFollowNext('/domains?naru=fa4e0001', { isWebsite: false, isPublic: true }), false)
   assert.equal(shouldFollowNext(null, { isWebsite: true, isPublic: true }), false)
+})
+
+test('hostParamIsNaru: ?host=naru 만 대곽나루', () => {
+  assert.equal(hostParamIsNaru('naru'), true)
+  for (const other of ['other', 'NARU', 'naru ', '', undefined]) assert.equal(hostParamIsNaru(other), false, String(other))
+})
+
+test('withHostParam: 다른 쿼리는 그대로 두고 host=naru 만 넣고 뺀다', () => {
+  assert.equal(withHostParam('', true), '?host=naru')
+  assert.equal(withHostParam('?naru=fa4e0001', true), '?naru=fa4e0001&host=naru')
+  assert.equal(withHostParam('?project=abc&host=naru', true), '?project=abc&host=naru')
+  assert.equal(withHostParam('?naru=fa4e0001&host=naru', false), '?naru=fa4e0001')
+  assert.equal(withHostParam('?host=naru', false), '')
+  assert.equal(withHostParam('', false), '')
 })

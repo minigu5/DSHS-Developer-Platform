@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Check, Copy, Loader2 } from "lucide-react";
 
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -15,6 +15,7 @@ import {
 import { buildVerifyPrompt } from "@/lib/domains/ai-prompt";
 import { HOST_PRESETS, hostLabelOf, isNaruHost, isRedirectHost, siteAddressFor, targetBoundToSite } from "@/lib/domains/hosts";
 import { normalizeName } from "@/lib/domains/name";
+import { withHostParam } from "@/lib/domains/next-path";
 import type { DomainProjectRow, DomainView } from "@/lib/domains/read";
 import { VERIFY_FILE_PATH, VERIFY_META_NAME } from "@/lib/domains/verify";
 import { SECTION_COLORS } from "@/lib/section-colors";
@@ -464,6 +465,7 @@ export function DomainSteps({
   auto,
   onCheck,
   naruServerId = null,
+  initialNaru = false,
 }: {
   project: DomainProjectRow["project"];
   domain: DomainView | null;
@@ -472,19 +474,33 @@ export function DomainSteps({
   onCheck: () => void;
   /** 대곽나루 서버 카드에서 들어왔다면 그 서버 id — 연결 방법이 대곽나루로 미리 골라진다 */
   naruServerId?: string | null;
+  /** 주소의 ?host=naru — 새로고침해도 고른 연결 방법이 남도록 주소에 적어 둔 값 */
+  initialNaru?: boolean;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
   // 확인 코드도 호스트 연결도 시작하지 않은 주소(또는 아직 주소 없음)만 연결 방법을 고를 수 있다
   const canChooseMode = domain === null || (domain.status === "reserved" && !domain.siteVerified && domain.siteUrl === null);
-  const [naruChoice, setNaruChoice] = useState(Boolean(naruServerId));
-  const naruMode = isNaruHost(domain?.host) || (canChooseMode && naruChoice);
+  const [naruChoice, setNaruChoice] = useState(Boolean(naruServerId) || initialNaru);
+  // 연결 방법 고르기를 주소(?host=naru)에 남겨 새로고침에 사라지지 않게 한다. scroll 은 건드리지 않는다
+  const chooseMode = (naru: boolean) => {
+    setNaruChoice(naru);
+    router.replace(`${pathname}${withHostParam(window.location.search, naru)}`, { scroll: false });
+  };
+  // 연결된 대곽나루 주소를 다른 호스트로 옮기는 중 — 새 호스트 연결이 끝나야 대곽나루 연결이 풀린다(그동안 DNS·허브 묶음 그대로)
+  // 주소(행) id 로 기억한다 — 반납하고 새 주소를 받아도 옮기는 중 표시가 남지 않게
+  const [moveOutId, setMoveOutId] = useState<string | null>(null);
+  const moving = domain !== null && moveOutId === domain.id && isNaruHost(domain.host);
+  const naruMode = !moving && (isNaruHost(domain?.host) || (canChooseMode && naruChoice));
   const [changeServer, setChangeServer] = useState(false);
   const [reconnect, setReconnect] = useState(false);
   const [changeSite, setChangeSite] = useState(false);
   // "바꾸기" 직후 project.url 이 새 주소로 바뀌므로, 안내에 쓸 옛 주소는 누르는 순간에 붙잡아 둔다
   const [urlChange, setUrlChange] = useState<{ from: string | null; open: boolean } | null>(null);
   const fqdn = domain ? `${domain.name}.dshs.dev` : null;
-  const connected = domain !== null && domain.status !== "reserved";
-  const verified = domain !== null && domain.siteVerified;
+  // 옮기는 중에는 아직 새 호스트에 연결한 게 아니고, 대곽나루로 한 "확인"은 새 호스트 확인으로 치지 않는다
+  const connected = domain !== null && domain.status !== "reserved" && !moving;
+  const verified = domain !== null && domain.siteVerified && !(moving && isNaruHost(domain.siteHost));
   const showSite = domain !== null && (!verified || changeSite);
   const siteHostname = domain?.siteUrl ? new URL(domain.siteUrl).hostname : null;
   // ②에서 다른 사이트를 확인했는데 지금 연결은 옛 사이트를 가리키는 경우 — 다시 연결해야 새 사이트로 열린다
@@ -509,7 +525,7 @@ export function DomainSteps({
         {fqdn && (
           <UrlChangedDialog open={urlChange?.open ?? false} onClose={() => setUrlChange((c) => c && { ...c, open: false })} oldUrl={urlChange?.from ?? null} newUrl={`https://${fqdn}`} />
         )}
-        {canChooseMode && <ModeCards naru onChange={(n) => setNaruChoice(n)} />}
+        {canChooseMode && <ModeCards naru onChange={chooseMode} />}
 
         <ol className="flex flex-col gap-4">
           <Step n={1} state={domain ? "done" : "current"} title={domain ? <>이름 <span className="font-mono">{fqdn}</span></> : "이름 정하기"}>
@@ -535,6 +551,9 @@ export function DomainSteps({
                   <button type="button" onClick={() => setChangeServer(true)} className="text-xs text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
                     다른 서버로 바꾸기
                   </button>
+                  <button type="button" onClick={() => domain && setMoveOutId(domain.id)} className="text-xs text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
+                    다른 호스트로 옮기기
+                  </button>
                 </div>
               </div>
             )}
@@ -552,14 +571,22 @@ export function DomainSteps({
 
   return (
     <div className="flex flex-col gap-4">
-      {domain?.status === "active" && !urlIsDomain && (
+      {moving && (
+        <div className="flex flex-col gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 sm:flex-row sm:items-center dark:border-teal-900 dark:bg-teal-950/40">
+          <p className="flex-1 text-sm text-teal-900 dark:text-teal-200">새 호스트 연결이 끝나야 대곽나루 연결이 풀려요.</p>
+          <button type="button" onClick={() => setMoveOutId(null)} className={SECONDARY}>
+            취소
+          </button>
+        </div>
+      )}
+      {domain?.status === "active" && !urlIsDomain && !moving && (
         <UrlSuggestion domain={domain} onApplied={() => !redirect && setUrlChange({ from: project.url?.trim() || null, open: true })} />
       )}
       {fqdn && !redirect && (
         <UrlChangedDialog open={urlChange?.open ?? false} onClose={() => setUrlChange((c) => c && { ...c, open: false })} oldUrl={urlChange?.from ?? null} newUrl={`https://${fqdn}`} />
       )}
 
-      {canChooseMode && <ModeCards naru={false} onChange={(n) => setNaruChoice(n)} />}
+      {canChooseMode && <ModeCards naru={false} onChange={chooseMode} />}
 
       <ol className="flex flex-col gap-4">
         <Step n={1} state={domain ? "done" : "current"} title={domain ? <>이름 <span className="font-mono">{fqdn}</span></> : "이름 정하기"}>
@@ -582,7 +609,7 @@ export function DomainSteps({
           {domain && showSite && (
             <SiteStep domain={domain} projectUrl={project.url ?? ""} check={check} auto={auto} onCheck={onCheck} onSaved={() => setChangeSite(false)} />
           )}
-          {domain && verified && changeSite && (
+          {domain && verified && changeSite && !moving && (
             <button type="button" onClick={() => setChangeSite(false)} className="mt-2 text-xs text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
               바꾸지 않을게요
             </button>

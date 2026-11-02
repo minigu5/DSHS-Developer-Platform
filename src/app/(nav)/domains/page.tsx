@@ -6,7 +6,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { PageHero } from "@/components/shared/page-hero";
 import { DomainList } from "@/components/domains/domain-list";
 import { isDeveloper } from "@/lib/constants";
-import { naruServerIdOf } from "@/lib/domains/next-path";
+import { naruGuideKind } from "@/lib/domains/list-state";
+import { hostParamIsNaru, naruServerIdOf } from "@/lib/domains/next-path";
 import { LIVE_STATUSES, listMyDomainProjects } from "@/lib/domains/read";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { createClient } from "@/lib/supabase/server";
@@ -21,10 +22,12 @@ export const metadata = {
 
 const MAX_DOMAINS = 3;
 
-export default async function DomainsPage({ searchParams }: { searchParams: Promise<{ project?: string; naru?: string }> }) {
-  const { project: requested, naru } = await searchParams;
+export default async function DomainsPage({ searchParams }: { searchParams: Promise<{ project?: string; naru?: string; host?: string }> }) {
+  const { project: requested, naru, host } = await searchParams;
   // 대곽나루 서버 카드의 "dshs.dev 주소 받기"로 들어온 경우(?naru=<서버 id>) — 형식이 아니면 없는 것으로
   const naruServerId = naruServerIdOf(naru);
+  // 연결 방법 고르기(?host=naru)가 새로고침에 사라지지 않게 주소에 남겨 둔 값
+  const naruHost = hostParamIsNaru(host);
   const supabase = await createClient();
   const {
     data: { user },
@@ -33,6 +36,7 @@ export default async function DomainsPage({ searchParams }: { searchParams: Prom
     const back = new URLSearchParams();
     if (naruServerId) back.set("naru", naruServerId);
     if (requested) back.set("project", requested);
+    if (naruHost) back.set("host", "naru");
     const query = back.toString();
     redirect(`/login?next=${encodeURIComponent(query ? `/domains?${query}` : "/domains")}`);
   }
@@ -46,7 +50,9 @@ export default async function DomainsPage({ searchParams }: { searchParams: Prom
   // 대곽나루 흐름에서 줄이 하나뿐(주소 받을 수 있는 프로젝트 하나)이면 그 줄을 바로 연다
   const naruCandidates = naruServerId ? rows.filter(openable) : [];
   // 웹사이트 프로젝트는 있지만 어느 것도 주소를 받을 수 없으면(비공개·이미 주소 있음·3개 한도) 고를 게 없다 → 새 프로젝트를 등록하게 한다
-  const needsNewProject = naruServerId !== null && naruCandidates.length === 0
+  // 주소를 이미 3개 쓰고 있으면 새 프로젝트를 등록해도 못 받는다 → 등록 버튼 대신 한도 안내
+  const guide = naruGuideKind({ naruServerId, rowCount: rows.length, candidates: naruCandidates.length, used, max: MAX_DOMAINS });
+  const needsNewProject = guide === "no-project" || guide === "new-project";
   const initialOpen = openRow?.project.id ?? (naruCandidates.length === 1 && rows.length === 1 ? naruCandidates[0].project.id : null);
 
   return (
@@ -77,11 +83,13 @@ export default async function DomainsPage({ searchParams }: { searchParams: Prom
         {naruServerId && (
           <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 sm:flex-row sm:items-center dark:border-teal-900 dark:bg-teal-950/40">
             <p className="flex-1 text-sm text-teal-900 dark:text-teal-200">
-              {rows.length === 0 ? (
+              {guide === "no-project" ? (
                 <>
                   <span className="font-semibold">먼저 웹사이트 프로젝트를 등록해요.</span> 등록하고 나면 대곽나루 서버에 주소를 붙일 수 있어요. 방문 주소는 비워도 돼요.
                 </>
-              ) : needsNewProject ? (
+              ) : guide === "limit" ? (
+                <>주소는 한 사람당 {MAX_DOMAINS}개까지라 더 받을 수 없어요. 안 쓰는 주소를 반납하면 받을 수 있어요.</>
+              ) : guide === "new-project" ? (
                 <>
                   <span className="font-semibold">주소를 받을 수 있는 프로젝트가 없어요.</span> 공개 웹사이트 프로젝트를 새로 등록하면 대곽나루 서버에 주소를 붙일 수 있어요.
                 </>
@@ -112,7 +120,7 @@ export default async function DomainsPage({ searchParams }: { searchParams: Prom
             </Link>
           </div>
         ) : (
-          <DomainList rows={rows} limitReached={used >= MAX_DOMAINS} initialOpen={initialOpen} naruServerId={naruServerId} />
+          <DomainList rows={rows} limitReached={used >= MAX_DOMAINS} initialOpen={initialOpen} naruServerId={naruServerId} initialNaru={naruHost} />
         )}
 
         <p className="mt-8 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">

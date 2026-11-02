@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 
 import { ProjectIcon } from "@/components/projects/project-icon";
-import { customDomainOf, dshsAddressOf, isNaruHost, isRedirectHost } from "@/lib/domains/hosts";
+import { customDomainOf, dshsAddressOf, isRedirectHost } from "@/lib/domains/hosts";
 import type { DomainProjectRow, DomainView } from "@/lib/domains/read";
 import { rowDisabled } from "@/lib/domains/list-state";
 import { SECTION_COLORS } from "@/lib/section-colors";
@@ -69,6 +69,7 @@ export function DomainList({
   limitReached,
   initialOpen = null,
   naruServerId = null,
+  initialNaru = false,
 }: {
   rows: DomainProjectRow[];
   limitReached: boolean;
@@ -76,10 +77,13 @@ export function DomainList({
   initialOpen?: string | null;
   /** 대곽나루 서버 카드에서 들어왔을 때(?naru=) — 방문 주소가 없는 프로젝트도 열 수 있고, 연결 방법이 대곽나루로 미리 골라진다 */
   naruServerId?: string | null;
+  /** 주소의 ?host=naru — 연결 방법 고르기가 새로고침에 사라지지 않게 남겨 둔 값. 펼친 줄의 연결 방법이 대곽나루로 미리 골라진다 */
+  initialNaru?: boolean;
 }) {
   const [open, setOpen] = useState<string | null>(initialOpen);
-  // 패널이 접혀 있어도 호스트 연결을 마친 주소는 여기서 자동으로 확인한다 — 대곽나루 주소는 확인 코드가 없어서 뺀다
-  const liveDomains = useMemo(() => rows.flatMap((r) => (isLive(r.domain) && !isNaruHost(r.domain.host) ? [r.domain] : [])), [rows]);
+  // 패널이 접혀 있어도 호스트 연결을 마친 주소는 여기서 자동으로 확인한다. 대곽나루 주소는 자동 확인 대상이 아니다(훅이 뺀다) —
+  // 다만 다른 호스트로 옮기려고 ② 원래 주소를 확인하는 중에는 확인 결과·토스트를 받을 수 있게 훅에 넘긴다
+  const liveDomains = useMemo(() => rows.flatMap((r) => (isLive(r.domain) ? [r.domain] : [])), [rows]);
   const checks = useDomainChecks(liveDomains);
 
   // 펼친 채로 들어왔으면 그 줄로 스크롤하고 이름 칸에 바로 쓸 수 있게
@@ -178,6 +182,7 @@ export function DomainList({
                   auto={live ? checks.autoOf(domain.id) : "off"}
                   onCheck={() => live && void checks.check(domain.id)}
                   naruServerId={naruServerId}
+                  initialNaru={initialNaru}
                 />
               </div>
             )}
