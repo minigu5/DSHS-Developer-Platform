@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition, type ReactNode } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Check, Copy, Loader2 } from "lucide-react";
 
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -477,15 +477,13 @@ export function DomainSteps({
   /** 주소의 ?host=naru — 새로고침해도 고른 연결 방법이 남도록 주소에 적어 둔 값 */
   initialNaru?: boolean;
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
   // 확인 코드도 호스트 연결도 시작하지 않은 주소(또는 아직 주소 없음)만 연결 방법을 고를 수 있다
   const canChooseMode = domain === null || (domain.status === "reserved" && !domain.siteVerified && domain.siteUrl === null);
   const [naruChoice, setNaruChoice] = useState(Boolean(naruServerId) || initialNaru);
-  // 연결 방법 고르기를 주소(?host=naru)에 남겨 새로고침에 사라지지 않게 한다. scroll 은 건드리지 않는다
+  // 연결 방법 고르기를 주소(?host=naru)에 남겨 새로고침에 사라지지 않게 한다. 서버를 다시 부르지 않으려고(이 페이지는 force-dynamic) history 만 바꾼다
   const chooseMode = (naru: boolean) => {
     setNaruChoice(naru);
-    router.replace(`${pathname}${withHostParam(window.location.search, naru)}`, { scroll: false });
+    window.history.replaceState(null, "", `${window.location.pathname}${withHostParam(window.location.search, naru)}${window.location.hash}`);
   };
   // 연결된 대곽나루 주소를 다른 호스트로 옮기는 중 — 새 호스트 연결이 끝나야 대곽나루 연결이 풀린다(그동안 DNS·허브 묶음 그대로)
   // 주소(행) id 로 기억한다 — 반납하고 새 주소를 받아도 옮기는 중 표시가 남지 않게
@@ -573,7 +571,11 @@ export function DomainSteps({
     <div className="flex flex-col gap-4">
       {moving && (
         <div className="flex flex-col gap-2 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 sm:flex-row sm:items-center dark:border-teal-900 dark:bg-teal-950/40">
-          <p className="flex-1 text-sm text-teal-900 dark:text-teal-200">새 호스트 연결이 끝나야 대곽나루 연결이 풀려요.</p>
+          <p className="flex-1 text-sm text-teal-900 dark:text-teal-200">
+            새 호스트 연결이 끝나야 대곽나루 연결이 풀려요.
+            <br />
+            확인은 &lsquo;지금 확인하기&rsquo;를 눌러요.
+          </p>
           <button type="button" onClick={() => setMoveOutId(null)} className={SECONDARY}>
             취소
           </button>

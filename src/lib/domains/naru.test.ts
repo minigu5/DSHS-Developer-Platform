@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createNaruClient, isSiteStep, naruLinkFor, naruReleases, NaruError, runNaruDnsRepair, shouldSkipVerify, toPickableServers, planNaruSync, runNaruSync, unbindNaruBestEffort, type NaruRow } from './naru.ts'
+import { createNaruClient, isSiteStep, naruLinkFor, naruReleases, NaruError, restoreNaruDns, runNaruDnsRepair, shouldSkipVerify, toPickableServers, planNaruSync, runNaruSync, unbindNaruBestEffort, type NaruRow } from './naru.ts'
 
 type Call = { method: string; url: string; headers: Record<string, string>; body: unknown }
 
@@ -417,4 +417,27 @@ test('대곽나루 행이 없으면 Cloudflare 를 부르지 않는다', async (
   const r = await runNaruDnsRepair(h.deps)
   assert.deepEqual(h.events, [])
   assert.deepEqual(r, { failures: 0, recreated: [] })
+})
+
+// ── restoreNaruDns: 다른 호스트로 옮기는 연결이 실패했을 때 지워 둔 대곽나루 CNAME 을 바로 되살린다
+
+test('restoreNaruDns: proxied CNAME 을 target 으로 다시 만들고 레코드 id 를 기록한다', async () => {
+  const h = repairHarness()
+  await restoreNaruDns({ dns: h.deps.dns, setRecords: h.deps.setRecords }, { id: 'row-1', name: 'site1', target: '0000.cfargotunnel.com' })
+  assert.deepEqual(h.events, ['create:row-1:CNAME/site1.dshs.dev/0000.cfargotunnel.com/true', 'set:row-1:new-row-1'])
+})
+
+test('restoreNaruDns: DB 기록이 실패하면 방금 만든 레코드를 지우고 오류를 던진다', async () => {
+  const h = repairHarness({ setFails: 'row-1' })
+  await assert.rejects(
+    restoreNaruDns({ dns: h.deps.dns, setRecords: h.deps.setRecords }, { id: 'row-1', name: 'site1', target: '0000.cfargotunnel.com' }),
+    /db down/,
+  )
+  assert.deepEqual(h.events, ['create:row-1:CNAME/site1.dshs.dev/0000.cfargotunnel.com/true', 'remove:new-row-1'])
+})
+
+test('restoreNaruDns: 연결 대상을 모르면 아무것도 만들지 않고 던진다', async () => {
+  const h = repairHarness()
+  await assert.rejects(restoreNaruDns({ dns: h.deps.dns, setRecords: h.deps.setRecords }, { id: 'row-1', name: 'site1', target: null }), /target/)
+  assert.deepEqual(h.events, [])
 })

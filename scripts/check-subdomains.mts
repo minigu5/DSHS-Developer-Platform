@@ -176,26 +176,6 @@ for (const row of targets) {
   failures += naru.failures;
 }
 
-// 대곽나루 서버 주소의 DNS 레코드 복구: 같은 서버 재연결이 중간에 실패하면 옛 레코드만 지워진 active 행이 남는다.
-// 위 sync 가 반납한 행은 빠지도록 여기서 다시 읽는다. 로그엔 다시 만든 주소 이름만
-{
-  const repair = await runNaruDnsRepair({
-    dryRun: DRY_RUN,
-    log: (m) => (m.includes('❌') ? console.error(m) : console.log(m)),
-    dns,
-    loadRows: async () => {
-      const { data: naruRows, error: e } = await supabase.from('subdomains').select('id, name, target').eq('host', 'naru').in('status', LIVE).order('name');
-      if (e) throw new Error(`주소 조회 ${e.message}`);
-      return (naruRows ?? []).map((r) => ({ id: r.id as string, name: r.name as string, target: (r.target as string | null) ?? null }));
-    },
-    setRecords: async (id, ids) => {
-      const { error: e } = await supabase.rpc('subdomain_set_naru_records', { p_id: id, p_record_ids: ids });
-      if (e) throw new Error(`set_naru_records ${e.message}`);
-    },
-  });
-  failures += repair.failures;
-}
-
 // 고아·찌꺼기 정리: comment 의 행이 살아 있지 않거나, 살아 있는 행인데 그 행의 기록(cf_record_ids)에 없고 1시간 넘은
 // DNS 레코드·바로가기 목록 항목을 지운다(strayIds). 막 연결·활성화 중인 것은 1시간 여유로 건드리지 않는다.
 let liveRows: { id: string; name: string; status: string; target: string | null; cf_record_ids: string[] }[] = [];
@@ -212,6 +192,26 @@ try {
 } catch (e) {
   failures++;
   console.error(`  ❌  고아 레코드 정리 실패: ${e instanceof Error ? e.message : String(e)}`);
+}
+
+// 대곽나루 서버 주소의 DNS 레코드 복구: 같은 서버 재연결이 중간에 실패하면 옛 레코드만 지워진 active 행이 남는다.
+// sync 가 반납한 행은 빠지도록 여기서 다시 읽고, 고아 레코드 정리를 먼저 해 실제 상태를 본 뒤 맞춘다. 로그엔 다시 만든 주소 이름만
+{
+  const repair = await runNaruDnsRepair({
+    dryRun: DRY_RUN,
+    log: (m) => (m.includes('❌') ? console.error(m) : console.log(m)),
+    dns,
+    loadRows: async () => {
+      const { data: naruRows, error: e } = await supabase.from('subdomains').select('id, name, target').eq('host', 'naru').in('status', LIVE).order('name');
+      if (e) throw new Error(`주소 조회 ${e.message}`);
+      return (naruRows ?? []).map((r) => ({ id: r.id as string, name: r.name as string, target: (r.target as string | null) ?? null }));
+    },
+    setRecords: async (id, ids) => {
+      const { error: e } = await supabase.rpc('subdomain_set_naru_records', { p_id: id, p_record_ids: ids });
+      if (e) throw new Error(`set_naru_records ${e.message}`);
+    },
+  });
+  failures += repair.failures;
 }
 
 // 바로가기: 고아 목록 항목 정리 + 규칙이 실제로 동작하는지 하나만 열어 본다

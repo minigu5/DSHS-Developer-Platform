@@ -20,7 +20,7 @@ import { buildRecords, runConnect, runConnectNaru } from './connect'
 import { createSiteFetcher } from './fetch-site'
 import { HOST_PRESETS, isRedirectHost, siteAddressFor, siteHostFor, targetBoundToSite, validateTarget, validateTxt, type HostKey, type TxtInput } from './hosts'
 import { normalizeName, validateName } from './name'
-import { getNaruClient, isSiteStep, NaruError, shouldSkipVerify, toPickableServers, unbindNaruBestEffort, type NaruServer } from './naru'
+import { getNaruClient, isSiteStep, NaruError, restoreNaruDns, shouldSkipVerify, toPickableServers, unbindNaruBestEffort, type NaruServer } from './naru'
 import { getRedirectClient, redirectConfigured } from './redirects'
 import { checkSite, type CheckResult } from './verify'
 
@@ -231,9 +231,14 @@ export async function connectHost(id: string, host: HostKey, rawTarget: string, 
   }
   if (HOST_PRESETS[host].txt?.required && txt.length === 0) return { ok: false, error: RPC_ERRORS.txt_missing }
 
+  // 옛 레코드를 지우기 시작했는가 — 대곽나루 행이면 이 뒤의 실패에서 지워 둔 CNAME 을 바로 되살린다
+  let oldRecordsTouched = false
   try {
     // 다시 연결하는 경우 옛 레코드부터 지운다(같은 이름의 CNAME 은 하나만 둘 수 있다). 바로가기였다면 목록 항목도
-    if (row.cf_record_ids.length) await removeCloudflare(row.cf_record_ids)
+    if (row.cf_record_ids.length) {
+      oldRecordsTouched = true
+      await removeCloudflare(row.cf_record_ids)
+    }
 
     const admin = createAdminClient()
     // 바로가기: ②에서 이미 확인했으므로 바로 AAAA + 목록 항목을 만들고 subdomain_connect 로 기록한다
@@ -281,6 +286,8 @@ export async function connectHost(id: string, host: HostKey, rawTarget: string, 
       id,
     )
   } catch (e) {
+    // 대곽나루 주소를 옮기다 실패했으면 행은 여전히 대곽나루·active·허브 묶임이다 — 지워 둔 CNAME 을 바로 되살린다(실패하면 매일 점검이 다시 만든다)
+    if (oldRecordsTouched) await restoreNaruAfterFailedMove(row)
     if (e && typeof e === 'object' && 'message' in e && typeof e.message === 'string' && RPC_ERRORS[e.message.trim()]) {
       return { ok: false, error: RPC_ERRORS[e.message.trim()] }
     }
@@ -290,6 +297,25 @@ export async function connectHost(id: string, host: HostKey, rawTarget: string, 
   await unbindIfMovedFromNaru(row, user.email)
   done()
   return { ok: true, data: null }
+}
+
+// 대곽나루 주소를 다른 호스트로 옮기다 실패한 뒤: 옛 proxied CNAME 을 target 으로 되살리고 레코드 id 를 기록한다 — 최선 노력, 로그엔 주소 이름만
+async function restoreNaruAfterFailedMove(row: NonNullable<Awaited<ReturnType<typeof loadRow>>>) {
+  if (row.host !== 'naru') return
+  try {
+    await restoreNaruDns(
+      {
+        dns: getDnsClient(),
+        setRecords: async (rowId, ids) => {
+          const { error } = await createAdminClient().rpc('subdomain_set_naru_records', { p_id: rowId, p_record_ids: ids })
+          if (error) throw error
+        },
+      },
+      { id: row.id, name: row.name, target: row.target },
+    )
+  } catch {
+    console.error(`[domains] ${row.name}.dshs.dev: 옮기기 실패 뒤 대곽나루 DNS 를 되살리지 못함, 매일 점검이 다시 만듦`)
+  }
 }
 
 // 대곽나루 주소를 다른 호스트로 옮겼으면(subdomain_connect 가 naru_server_id 를 비웠다) 허브 묶음도 푼다 — 최선 노력, 실패는 로그만(매일 점검 sync 가 정리)

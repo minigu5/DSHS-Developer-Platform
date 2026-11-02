@@ -618,6 +618,11 @@ export type Database = {
         Args: { p_user: string; p_id: string; p_server_id: string; p_target: string; p_record_ids: string[] };
         Returns: undefined;
       };
+      // 대곽나루 행의 사라진 DNS 레코드 id 를 다시 기록(host='naru'·live 만, 서비스 전용)
+      subdomain_set_naru_records: {
+        Args: { p_id: string; p_record_ids: string[] };
+        Returns: undefined;
+      };
       subdomain_record_check: {
         Args: { p_id: string; p_ok: boolean; p_now: string };
         Returns: SubdomainStatus;

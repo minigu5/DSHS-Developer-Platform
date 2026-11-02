@@ -322,6 +322,25 @@ export function shouldSkipVerify(row: {
 
 export type NaruDnsRow = { id: string; name: string; target: string | null }
 
+/**
+ * 대곽나루 행의 proxied CNAME 을 target 으로 (다시) 만들고 레코드 id 를 DB 에 기록한다. 매일 점검(runNaruDnsRepair)과
+ * 다른 호스트로 옮기는 연결이 실패했을 때의 즉시 복구(actions.ts connectHost)가 같이 쓴다.
+ * 연결 대상을 모르면 만들지 않고 던진다. DB 기록이 실패하면 방금 만든 레코드를 지우고 오류를 그대로 던진다.
+ */
+export async function restoreNaruDns(
+  deps: { dns: Pick<DnsClient, 'create' | 'remove'>; setRecords: (rowId: string, recordIds: string[]) => Promise<void> },
+  row: NaruDnsRow,
+): Promise<void> {
+  if (!row.target) throw new Error('연결 대상(target)을 몰라 DNS 레코드를 만들지 못함')
+  const ids = await deps.dns.create([{ type: 'CNAME', name: `${row.name}.${ROOT_DOMAIN}`, content: row.target, proxied: true }], row.id)
+  try {
+    await deps.setRecords(row.id, ids)
+  } catch (e) {
+    await deps.dns.remove(ids).catch(() => {})
+    throw e
+  }
+}
+
 export type NaruDnsRepairDeps = {
   /** 살아 있는 대곽나루 행. 실패하면 던진다 */
   loadRows: () => Promise<NaruDnsRow[]>
@@ -371,15 +390,12 @@ export async function runNaruDnsRepair(deps: NaruDnsRepairDeps): Promise<{ failu
       deps.log(`  ${fqdn}: DNS 레코드가 없어 다시 만들 예정 (dry-run, 그대로 둠)`)
       continue
     }
-    let ids: string[] = []
     try {
-      ids = await deps.dns.create([{ type: 'CNAME', name: fqdn, content: row.target, proxied: true }], row.id)
-      await deps.setRecords(row.id, ids)
+      await restoreNaruDns(deps, row)
       recreated.push(row.name)
       deps.log(`  ${fqdn}: DNS 레코드가 없어 다시 만듦`)
     } catch (e) {
       failures++
-      if (ids.length) await deps.dns.remove(ids).catch(() => {})
       deps.log(`  ❌  ${fqdn}: DNS 레코드 다시 만들기 실패 ${e instanceof Error ? e.message : String(e)}`)
     }
   }
