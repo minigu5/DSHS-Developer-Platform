@@ -181,7 +181,19 @@ BEGIN
   PERFORM public.subdomain_release(u, nr, 'owner');
   PERFORM public.subdomain_connect_naru(u2, nr2, 'fa4e0001', '00000000-0000-0000-0000-000000000000.cfargotunnel.com', '{}');
   log := log || 'naru_free_after_release=' || (SELECT status || '/' || naru_server_id FROM public.subdomains WHERE id = nr2) || ';';
+  -- 사라진 DNS 레코드 다시 기록(subdomain_set_naru_records): 대곽나루 살아 있는 행만, 다른 호스트·반납된 행은 거부
+  PERFORM public.subdomain_set_naru_records(nr2, ARRAY['n9']);
+  log := log || 'naru_records=' || (SELECT array_to_string(cf_record_ids, ',') FROM public.subdomains WHERE id = nr2) || ';';
+  BEGIN PERFORM public.subdomain_set_naru_records(a, ARRAY['x1']); log := log || 'naru_records_other_host=ok;';
+  EXCEPTION WHEN raise_exception THEN log := log || 'naru_records_other_host=' || SQLERRM || ';'; END;
+  BEGIN PERFORM public.subdomain_set_naru_records('00000000-0000-0000-0000-000000000000', ARRAY['x2']); log := log || 'naru_records_missing=ok;';
+  EXCEPTION WHEN raise_exception THEN log := log || 'naru_records_missing=' || SQLERRM || ';'; END;
   PERFORM public.subdomain_release(u2, nr2, 'x');
+  BEGIN PERFORM public.subdomain_set_naru_records(nr2, ARRAY['x3']); log := log || 'naru_records_released=ok;';
+  EXCEPTION WHEN raise_exception THEN log := log || 'naru_records_released=' || SQLERRM || ';'; END;
+  log := log || 'naru_records_fn=' || has_function_privilege('anon', 'public.subdomain_set_naru_records(uuid,text[])', 'EXECUTE')::text || '/'
+    || has_function_privilege('authenticated', 'public.subdomain_set_naru_records(uuid,text[])', 'EXECUTE')::text || '/'
+    || has_function_privilege('service_role', 'public.subdomain_set_naru_records(uuid,text[])', 'EXECUTE')::text || ';';
   log := log || 'naru_fn=' || has_function_privilege('anon', 'public.subdomain_connect_naru(uuid,uuid,text,text,text[])', 'EXECUTE')::text || '/'
     || has_function_privilege('authenticated', 'public.subdomain_connect_naru(uuid,uuid,text,text,text[])', 'EXECUTE')::text || '/'
     || has_function_privilege('service_role', 'public.subdomain_connect_naru(uuid,uuid,text,text,text[])', 'EXECUTE')::text || ';';
@@ -273,7 +285,9 @@ BEGIN
     'service_release=released/never_connected_7d;'
     'naru_nourl=reserved;naru_target=true/false/false/false;naru_bad_target=target_invalid;naru_bad_server=target_invalid;'
     'naru_other=not_owner;naru_generic=host_mismatch;naru_connected=active/naru/naru/fa4e0001/true/true/true/n1;'
-    'naru_reconnect=2;naru_taken=naru_server_taken;naru_free_after_release=active/fa4e0001;naru_fn=false/false/true;'
+    'naru_reconnect=2;naru_taken=naru_server_taken;naru_free_after_release=active/fa4e0001;'
+    'naru_records=n9;naru_records_other_host=not_naru;naru_records_missing=not_found;naru_records_released=not_live;naru_records_fn=false/false/true;'
+    'naru_fn=false/false/true;'
     'revoke_user=not_admin;revoked_name=name_taken;unblocked=true;'
     'fn_anon=false;fn_auth=false;fn_service=true;'
     'rls_other_rows=0;rls_insert=denied;'

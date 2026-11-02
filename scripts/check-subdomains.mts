@@ -3,7 +3,8 @@
 // 바로가기 주소(Workers·Firebase)는 보낼 곳 사이트에서 토큰을 확인한다(바로가기는 ③ 연결하기에서 이미 만들어진다).
 // 예약만 된 주소(② 확인 전)는 확인하지 않고 7일 규칙만 본다.
 // 대곽나루 서버 주소(host 'naru')는 토큰 확인·끊김·7일 반납에서 뺀다 — 대신 허브(POST /devplatform/sync)와 한 번에 맞추고,
-// 허브에 그 서버가 없다고 한 주소만 반납한다(naru_server_gone). 주소 조회가 실패하면 sync 를 부르지 않고(빈 목록으로 허브의 묶음이
+// 허브에 그 서버가 없다고 한 주소만 반납한다(naru_server_gone). 그 뒤 살아 있는 대곽나루 주소의 Cloudflare 레코드(댓글 dshs-subdomain:<행 id>)가
+// 없으면 proxied CNAME 을 다시 만들어 DB 에 기록한다(같은 서버 재연결이 중간에 실패한 경우). 주소 조회가 실패하면 sync 를 부르지 않고(빈 목록으로 허브의 묶음이
 // 다 지워지지 않게) 실패로 끝내고, 허브에 닿지 못하면 반납 없이 건너뛴다(허브 장애로 학생 주소를 잃지 않게).
 // 끝에 바로가기 하나·확인 전 자리표시 하나를 실제로 열어 302 가 오는지 본다(계정에 하나뿐인 Bulk Redirect 규칙이 꺼지면 알아채려고).
 //
@@ -27,7 +28,7 @@ import { REDIRECT_ID_PREFIX, removeCloudflareWith } from '../src/lib/domains/cle
 import { createDnsClient } from '../src/lib/domains/cloudflare.ts';
 import { createSiteFetcher } from '../src/lib/domains/fetch-site.ts';
 import { isRedirectHost, siteHostFor, type DomainHost } from '../src/lib/domains/hosts.ts';
-import { createNaruClient, runNaruSync, type NaruRow } from '../src/lib/domains/naru.ts';
+import { createNaruClient, runNaruDnsRepair, runNaruSync, type NaruRow } from '../src/lib/domains/naru.ts';
 import { createRedirectClient, RedirectError, type RedirectClient } from '../src/lib/domains/redirects.ts';
 import { checkSite, type CheckResult } from '../src/lib/domains/verify.ts';
 
@@ -173,6 +174,26 @@ for (const row of targets) {
     },
   });
   failures += naru.failures;
+}
+
+// 대곽나루 서버 주소의 DNS 레코드 복구: 같은 서버 재연결이 중간에 실패하면 옛 레코드만 지워진 active 행이 남는다.
+// 위 sync 가 반납한 행은 빠지도록 여기서 다시 읽는다. 로그엔 다시 만든 주소 이름만
+{
+  const repair = await runNaruDnsRepair({
+    dryRun: DRY_RUN,
+    log: (m) => (m.includes('❌') ? console.error(m) : console.log(m)),
+    dns,
+    loadRows: async () => {
+      const { data: naruRows, error: e } = await supabase.from('subdomains').select('id, name, target').eq('host', 'naru').in('status', LIVE).order('name');
+      if (e) throw new Error(`주소 조회 ${e.message}`);
+      return (naruRows ?? []).map((r) => ({ id: r.id as string, name: r.name as string, target: (r.target as string | null) ?? null }));
+    },
+    setRecords: async (id, ids) => {
+      const { error: e } = await supabase.rpc('subdomain_set_naru_records', { p_id: id, p_record_ids: ids });
+      if (e) throw new Error(`set_naru_records ${e.message}`);
+    },
+  });
+  failures += repair.failures;
 }
 
 // 고아·찌꺼기 정리: comment 의 행이 살아 있지 않거나, 살아 있는 행인데 그 행의 기록(cf_record_ids)에 없고 1시간 넘은
