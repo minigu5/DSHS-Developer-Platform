@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { Plus, Rocket } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -33,7 +33,6 @@ export function ClosingCta({ projects }: { projects: ShelfProject[] }) {
       <div className="mt-4 flex w-full max-w-[280px] flex-col gap-2.5 sm:w-auto sm:max-w-none sm:flex-row">
         <Link
           href="/projects/new"
-          prefetch={true}
           className={cn(
             buttonVariants({ size: "lg" }),
             "h-12 rounded-full bg-blue-600 px-7 text-sm text-white hover:bg-blue-700 active:scale-[0.96] transition-[background-color,scale] sm:text-base",
@@ -44,7 +43,6 @@ export function ClosingCta({ projects }: { projects: ShelfProject[] }) {
         </Link>
         <Link
           href="/guide"
-          prefetch={true}
           className={cn(
             buttonVariants({ size: "lg", variant: "outline" }),
             "h-12 rounded-full border-zinc-600 bg-transparent px-7 text-sm text-white hover:bg-zinc-800 active:scale-[0.96] transition-[background-color,scale] sm:text-base",

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { useState, type CSSProperties } from "react";
 import { Bell, ChevronRight, Pause, Pin, Play } from "lucide-react";
 import { announcementCategoryColor, announcementCategoryLabel } from "@/lib/announcement-colors";

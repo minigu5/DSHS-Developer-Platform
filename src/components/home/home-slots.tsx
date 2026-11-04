@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import type { CSSProperties } from "react";
 
 import { cn } from "@/lib/utils";

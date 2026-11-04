@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/shared/link";
 
 const REPO_URL = "https://github.com/minigu5/DSHS-Developer-Platform";
 

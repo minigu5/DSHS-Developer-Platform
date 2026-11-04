@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { Search, Rocket, BookOpen, Globe, MessagesSquare } from "lucide-react";
@@ -132,7 +132,6 @@ export function PageNav() {
               itemRefs.current[i] = el;
             }}
             href={href}
-            prefetch={true}
             onClick={onNavigate(href)}
             aria-label={label}
             aria-current={isActive ? "page" : undefined}
@@ -172,7 +171,6 @@ export function MobileNav() {
           <Link
             key={href}
             href={href}
-            prefetch={true}
             onClick={onNavigate(href)}
             aria-label={label}
             aria-current={isActive ? "page" : undefined}

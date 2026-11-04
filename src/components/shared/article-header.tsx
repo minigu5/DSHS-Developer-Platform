@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import Image from "next/image";
 import { ArrowLeft } from "lucide-react";
 

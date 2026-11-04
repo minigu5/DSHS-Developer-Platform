@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { BookOpen, ChevronRight, Globe, Puzzle, Smartphone, Terminal } from "lucide-react";
 
 import { GUIDE_STEPS } from "@/lib/guide";

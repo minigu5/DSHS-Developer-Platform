@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { notFound } from "next/navigation";
 import { Globe } from "lucide-react";
 

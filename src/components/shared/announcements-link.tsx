@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { usePathname } from "next/navigation";
 import { Bell } from "lucide-react";
 
@@ -17,7 +17,6 @@ export function AnnouncementsLink() {
   return (
     <Link
       href="/announcements"
-      prefetch={true}
       aria-label="공지사항"
       aria-current={active ? "page" : undefined}
       title="공지사항"

@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { Plus } from "lucide-react";
 
 import { cn } from "@/lib/utils";

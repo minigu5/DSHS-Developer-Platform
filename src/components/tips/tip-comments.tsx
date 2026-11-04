@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import Image from "next/image";
 import { toast } from "sonner";
 import { Loader2, Trash2 } from "lucide-react";

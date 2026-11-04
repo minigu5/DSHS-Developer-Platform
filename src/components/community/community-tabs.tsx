@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { Megaphone, Newspaper } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -25,7 +25,6 @@ export function CommunityTabs({ current }: { current: "tips" | "haejwo" }) {
           <Link
             key={key}
             href={href}
-            prefetch={true}
             aria-current={active ? "page" : undefined}
             className={cn(
               "inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600",

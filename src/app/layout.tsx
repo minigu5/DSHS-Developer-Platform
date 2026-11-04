@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono, IBM_Plex_Sans_KR } from 'next/font/google';
+import { Geist, Geist_Mono } from 'next/font/google';
+import localFont from 'next/font/local';
 
 import { PrivacyGate } from '@/components/privacy/privacy-gate';
 import { ThemeProvider } from '@/components/shared/theme-provider';
@@ -14,12 +15,17 @@ const geistSans = Geist({
   subsets: ['latin'],
 });
 
-// 제목(h1·h2·로고) 전용 — 굵기 2개만 받아 용량 최소화. 한글 글리프는 unicode-range로 필요한 만큼만 로드됨
-const plexKr = IBM_Plex_Sans_KR({
+// 제목(h1·h2·로고) 전용 — 굵기 2개. Google Fonts 판은 한글이 조각 ~100개로 나뉘어 첫 방문마다 글꼴 요청이
+// ~100번 갔다(Cloudflare 속도 제한 100회/10초 초과). 그래서 자주 쓰는 한글 2,350자(KS X 1001)+라틴만 남긴
+// 파일 2개를 직접 둔다. 만드는 법은 .claude/rules/performance.md. 빠진 글자는 아래 대체 글꼴로 보인다.
+const plexKr = localFont({
   variable: '--font-plex-kr',
-  weight: ['600', '700'],
-  subsets: ['latin'],
+  src: [
+    { path: './fonts/IBMPlexSansKR-SemiBold.woff2', weight: '600', style: 'normal' },
+    { path: './fonts/IBMPlexSansKR-Bold.woff2', weight: '700', style: 'normal' },
+  ],
   display: 'swap',
+  preload: false,
 });
 
 const geistMono = Geist_Mono({

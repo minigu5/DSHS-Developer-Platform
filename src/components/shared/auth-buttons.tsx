@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { useRouter } from "next/navigation";
 import { LogOut, Moon, Sun, User as UserIcon } from "lucide-react";
 import { useTheme } from "next-themes";

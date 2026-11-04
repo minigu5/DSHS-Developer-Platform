@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { ArrowLeft } from "lucide-react";
 
 import { GoogleLoginButton } from "@/components/auth/google-login-button";

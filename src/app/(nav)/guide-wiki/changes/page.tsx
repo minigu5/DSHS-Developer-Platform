@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/shared/link";
 
 import { createClient } from "@/lib/supabase/server";
 import { listRecentChanges } from "@/lib/guide-wiki/read";

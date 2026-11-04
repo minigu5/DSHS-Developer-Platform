@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { redirect } from "next/navigation";
 
 import { resolveSlug, picksToAnswers, planGuide, chipLabel } from "@/lib/guide";

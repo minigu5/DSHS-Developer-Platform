@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { toast } from "sonner";
 import { CheckCircle2, Plus, Loader2 } from "lucide-react";
 

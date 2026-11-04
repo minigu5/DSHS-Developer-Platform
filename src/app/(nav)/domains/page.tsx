@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { redirect } from "next/navigation";
 import { Globe, Plus, ShieldCheck } from "lucide-react";
 

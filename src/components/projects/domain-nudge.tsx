@@ -4,7 +4,7 @@
 // (소유자·공개 웹사이트·주소 없음·3개 미만). "괜찮아요"는 이 브라우저에서 그 프로젝트만 다시 안 띄운다.
 
 import { useState, useSyncExternalStore } from "react";
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { ArrowRight, ChevronRight, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -79,7 +79,6 @@ export function DomainNudge({ projectId, hostname, suggestion, quick }: Props) {
 
       <Link
         href={`/domains?project=${projectId}`}
-        prefetch={true}
         className={cn("mt-5 inline-flex h-11 items-center gap-1.5 rounded-full px-5 text-[15px] font-semibold transition-colors", SECTION_COLORS.domains.button)}
       >
         도메인 마련하기

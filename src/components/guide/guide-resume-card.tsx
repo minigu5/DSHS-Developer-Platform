@@ -4,7 +4,7 @@
 // 기록은 GuideViewer 가 localStorage 에 남긴다(src/lib/guide-resume.ts).
 
 import { useState, useSyncExternalStore } from "react";
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { ChevronRight, X } from "lucide-react";
@@ -99,7 +99,6 @@ export function GuideResumeCard() {
 
       <Link
         href={resume.path}
-        prefetch={true}
         className="mt-5 inline-flex h-11 items-center gap-1.5 rounded-full bg-purple-600 px-5 text-[15px] font-semibold text-white transition-colors hover:bg-purple-700"
       >
         이어서 보기

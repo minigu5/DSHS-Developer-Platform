@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import Image from "next/image";
 import { Bell, Megaphone, Newspaper, Pin } from "lucide-react";
 

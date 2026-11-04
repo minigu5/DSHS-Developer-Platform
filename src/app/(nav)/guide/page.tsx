@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { BookOpen } from "lucide-react";
 import { PageHero } from "@/components/shared/page-hero";
 import { GuideWizard } from "@/components/guide/guide-wizard";

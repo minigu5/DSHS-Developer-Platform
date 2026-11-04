@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import type { MouseEvent } from "react";
 import { ArrowLeft, ChevronDown, Layers } from "lucide-react";
 

@@ -1,7 +1,7 @@
 export const revalidate = 30;
 
 import { Suspense } from "react";
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { Megaphone, PenLine } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";

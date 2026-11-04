@@ -1,6 +1,6 @@
 export const revalidate = 30;
 
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { Bell, PenLine } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";

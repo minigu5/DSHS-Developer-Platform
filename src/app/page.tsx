@@ -3,7 +3,7 @@
 export const dynamic = "force-static";
 
 import type { CSSProperties } from "react";
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { Search, Rocket } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
@@ -54,7 +54,6 @@ export default function HomePage() {
             >
               <Link
                 href="/explore"
-                prefetch={true}
                 className={cn(
                   buttonVariants({ size: "lg" }),
                   "h-12 px-7 rounded-full text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white active:scale-[0.96] transition-[background-color,scale]"
@@ -65,7 +64,6 @@ export default function HomePage() {
               </Link>
               <Link
                 href="/projects/new"
-                prefetch={true}
                 className={cn(
                   buttonVariants({ size: "lg", variant: "outline" }),
                   "h-12 px-7 rounded-full text-sm sm:text-base border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-[0.96] transition-[background-color,scale]"

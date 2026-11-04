@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { ChevronRight, Globe, Lock } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -37,7 +37,6 @@ export function DomainTeaser({ showcase }: { showcase?: DomainShowcase | null })
         </p>
         <Link
           href="/domains"
-          prefetch={true}
           className={cn(
             buttonVariants(),
             "mt-5 h-11 rounded-full px-6 active:scale-[0.96] transition-[background-color,scale]",

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { ChevronRight } from "lucide-react";
 
 type SectionHeaderProps = {

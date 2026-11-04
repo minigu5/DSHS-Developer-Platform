@@ -3,7 +3,7 @@
 // 가이드 결과 스테퍼: 장 4개의 단계를 한 화면에 하나씩 보여 주고 버튼으로 넘긴다.
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { usePathname } from "next/navigation";
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 

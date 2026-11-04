@@ -3,7 +3,7 @@
 //   고치기 /guide-wiki/<key>/edit?from=<지금 가이드 경로>, 기록 /guide-wiki/<key>/history, 전체 지도 /guide-wiki
 // meta는 서버(loadGuide)가 미리 읽어 넘긴다 — 이 컴포넌트는 클라이언트 스테퍼 안에서 그려진다.
 
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { History, Map as MapIcon, Pencil } from "lucide-react";

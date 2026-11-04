@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/shared/link";
 import { Globe, Code2, Lock, Star, ExternalLink, ShieldCheck, ShieldAlert, ArrowLeft, ChevronRight } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
