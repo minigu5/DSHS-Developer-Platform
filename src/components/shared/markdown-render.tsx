@@ -1,17 +1,18 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { rehypeHeadingIds } from "@/lib/heading-slug";
 import { cn, isInternalHref } from "@/lib/utils";
 
 const components = {
   h1: (props: React.ComponentProps<"h1">) => (
-    <h1 className="mb-4 text-2xl font-bold text-zinc-900 dark:text-white" {...props} />
+    <h1 className="mb-4 scroll-mt-20 text-2xl font-bold text-zinc-900 dark:text-white" {...props} />
   ),
   h2: (props: React.ComponentProps<"h2">) => (
-    <h2 className="mb-3 mt-6 text-xl font-bold text-zinc-900 dark:text-white" {...props} />
+    <h2 className="mb-3 mt-6 scroll-mt-20 text-xl font-bold text-zinc-900 dark:text-white" {...props} />
   ),
   h3: (props: React.ComponentProps<"h3">) => (
-    <h3 className="mb-2 mt-4 text-lg font-semibold text-zinc-900 dark:text-white" {...props} />
+    <h3 className="mb-2 mt-4 scroll-mt-20 text-lg font-semibold text-zinc-900 dark:text-white" {...props} />
   ),
   p: (props: React.ComponentProps<"p">) => (
     <p className="mb-4 leading-relaxed text-zinc-700 dark:text-zinc-300" {...props} />
@@ -22,11 +23,11 @@ const components = {
   ol: (props: React.ComponentProps<"ol">) => (
     <ol className="mb-4 list-decimal space-y-1 pl-6 text-zinc-700 dark:text-zinc-300" {...props} />
   ),
-  // 사이트 안 주소(/로 시작)는 같은 탭, 바깥 주소는 새 탭
+  // 사이트 안 주소(/로 시작)와 문서 안 바로가기(#제목)는 같은 탭, 바깥 주소는 새 탭
   a: (props: React.ComponentProps<"a">) => (
     <a
       className="font-medium text-blue-600 underline underline-offset-2 hover:text-blue-700 dark:text-blue-400"
-      {...(isInternalHref(props.href) ? {} : { target: "_blank", rel: "noreferrer" })}
+      {...(isInternalHref(props.href) || props.href?.startsWith("#") ? {} : { target: "_blank", rel: "noreferrer" })}
       {...props}
     />
   ),
@@ -91,7 +92,7 @@ const components = {
 /** 마크다운을 바로 그린다. 서버에서 쓰면 요청마다 CPU를 많이 써서, 빌드 때 그려지는 정적 페이지에서만 직접 쓴다. 나머지는 `Markdown`(브라우저에서 그림). */
 export function MarkdownRender({ children }: { children: string }) {
   return (
-    <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHeadingIds]} components={components}>
       {children}
     </ReactMarkdown>
   );
