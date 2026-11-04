@@ -55,9 +55,9 @@ paths:
 - `<link rel="dns-prefetch" />` — preconnect 미지원 구형 브라우저 대응.
 
 ### 요청 수 줄이기 — Cloudflare 속도 제한(2026-11-04)
-- 문제: 사용자가 Cloudflare에 IP당 100회/10초 속도 제한을 걸어 뒀는데 학교는 IP 하나라 자주 걸렸다. 실측(로그아웃, 첫 방문): 10초 안에 dshs.dev 요청 131개 — 글꼴 103·스크립트 17·RSC 미리 받기 ~30. 두 번째 페이지부터도 ~33개(대부분 미리 받기 = Worker 호출이라 CPU 10ms 한도도 같이 씀).
+- 문제: 사용자가 Cloudflare에 IP당 속도 제한(사용자는 100회로 기억했으나 실제 200회/10초)을 걸어 뒀는데 학교는 IP 하나라 자주 걸렸다. 실측(로그아웃, 첫 방문): 10초 안에 dshs.dev 요청 131개 — 글꼴 103·스크립트 17·RSC 미리 받기 ~30. 두 번째 페이지부터도 ~33개(대부분 미리 받기 = Worker 호출이라 CPU 10ms 한도도 같이 씀).
 - **제목 글꼴 직접 두기** (`src/app/layout.tsx`, `src/app/fonts/`): `next/font/google`의 `IBM_Plex_Sans_KR`은 한글이 조각 ~100개(unicode-range)로 나뉘어 있고 제목 글자가 거의 모든 조각에 흩어져 preload를 꺼도 ~100개를 받았다. 지금은 `next/font/local`로 600·700 woff2 2개(각 ~270KB, 라이선스 `IBMPlexSansKR-OFL.txt`). 한글은 KS X 1001 완성형 2,350자만 — 빠진 글자는 `--font-heading`의 다음 글꼴(Apple SD Gothic Neo 등)로 보인다. `preload: false`.
   - 다시 만들기: google/fonts `ofl/ibmplexsanskr/IBMPlexSansKR-{SemiBold,Bold}.ttf`를 받아 EUC-KR `0xB0A1~0xC8FE`를 디코드한 2,350자를 `hangul.txt`로 만든 뒤 `pyftsubset <ttf> --text-file=hangul.txt --unicodes="U+0020-007E,U+00A0-00FF,U+2010-2027,U+2030-205E,U+20A9,U+2190-2199,U+3000-303F,U+3131-318E,U+FF01-FF5E" --layout-features='*' --flavor=woff2`(fonttools + brotli 필요).
 - **링크 미리 받기** (`src/components/shared/link.tsx`): `next/link` 기본값은 화면에 보이는 링크를 전부 미리 받는다(로그인 필요 경로는 비로그인 때 `/login` 리다이렉트까지 두세 번). 공용 `Link`는 `prefetch={false}`로 넘기고 `onMouseEnter`·`onTouchStart`·`onFocus`에서 `router.prefetch(href)`(문자열 내부 경로만). Next 16.4는 `prefetch={false}`면 hover 미리 받기도 꺼서 직접 부른다. 모든 파일이 `next/link` 대신 이것을 import.
 - 결과(로컬 `next build`+`next start`): 페이지당 요청 ~160 → ~24(글꼴 4·스크립트 ~15, RSC 0), hover 시 RSC 2개.
-- 대시보드 쪽 권장: 속도 제한 규칙 조건에 `not starts_with(http.request.uri.path, "/_next/static/")` — 캐시되는 정적 파일은 세지 않게.
+- 대시보드 규칙 `rate limit protection`(IP당 **200회/10초**, 넘으면 10초 Block): 2026-11-04 사용자가 식을 `(starts_with(http.request.uri.path, "/") and not starts_with(http.request.uri.path, "/_next/static/"))`로 바꿈 — 캐시되는 정적 파일은 세지 않는다. 확인: `/_next/static/` 300회/7초 전부 200, `/logo.svg` 300회/12초는 203회 뒤 429.
