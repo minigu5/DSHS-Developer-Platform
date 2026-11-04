@@ -45,9 +45,10 @@ const components = {
       />
     );
   },
+  // 언어 표시 없는 ``` 블록은 `code`가 인라인으로 오인돼 분홍 글자·배경이 붙으므로 pre 안쪽 code는 여기서 되돌린다
   pre: (props: React.ComponentProps<"pre">) => (
     <pre
-      className="mb-4 overflow-x-auto rounded-xl bg-zinc-900 p-4 font-mono text-sm text-zinc-100 dark:bg-black/60"
+      className="mb-4 overflow-x-auto rounded-xl bg-zinc-900 p-4 font-mono text-sm text-zinc-100 dark:bg-black/60 [&>code]:rounded-none [&>code]:bg-transparent [&>code]:p-0 [&>code]:text-inherit dark:[&>code]:bg-transparent dark:[&>code]:text-inherit"
       {...props}
     />
   ),
