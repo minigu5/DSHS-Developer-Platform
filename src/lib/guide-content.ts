@@ -8,6 +8,7 @@
 import { GUIDE_FRAGMENTS } from "@/content/guides/fragments.generated";
 import {
   FRAGMENT_TITLES,
+  GUIDE_CHAPTERS,
   allGuideAnswers,
   buildSlug,
   planGuide,
@@ -102,4 +103,35 @@ export async function loadGuide(
     }),
   );
   return { plan, chapters: chapters.filter((c): c is LoadedChapter => c !== null) };
+}
+
+export type GuideMapChapter = {
+  no: number;
+  name: string;
+  fragments: { key: string; title: string; usageCount: number }[];
+};
+
+/** 가이드 전체 지도 — 장마다 그 장에 쓰이는 조각과, 조각마다 그 조각을 쓰는 가이드 수. */
+export function listGuideMap(): GuideMapChapter[] {
+  const counts = new Map<string, { chapter: number; count: number }>();
+  for (const a of allGuideAnswers()) {
+    for (const c of planGuide(a).chapters) {
+      const prev = counts.get(c.key);
+      counts.set(c.key, { chapter: c.no, count: (prev?.count ?? 0) + 1 });
+    }
+  }
+  // 장 안의 순서는 FRAGMENT_TITLES 에 적힌 순서를 따른다.
+  const order = Object.keys(FRAGMENT_TITLES);
+  const keys = [...counts.keys()].sort((x, y) => order.indexOf(x) - order.indexOf(y));
+  return GUIDE_CHAPTERS.map((ch) => ({
+    no: ch.no,
+    name: ch.name,
+    fragments: keys
+      .filter((k) => counts.get(k)?.chapter === ch.no)
+      .map((k) => ({
+        key: k,
+        title: (FRAGMENT_TITLES[k] ?? k).replace(/^\d장 · /, ""),
+        usageCount: counts.get(k)?.count ?? 0,
+      })),
+  }));
 }

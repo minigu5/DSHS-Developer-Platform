@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { PageHero } from "@/components/shared/page-hero";
 import { GuideWizard } from "@/components/guide/guide-wizard";
@@ -24,6 +25,22 @@ export default async function GuidePage({
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-6 py-9">
         <GuideResumeCard />
         <GuideWizard initialType={type} />
+        <p className="mt-10 text-center text-[13px] text-zinc-500 dark:text-zinc-400">
+          가이드는 누구나 고칠 수 있어요 ·{" "}
+          <Link
+            href="/guide-wiki"
+            className="font-medium text-zinc-700 underline-offset-2 hover:underline dark:text-zinc-200"
+          >
+            전체 지도
+          </Link>{" "}
+          ·{" "}
+          <Link
+            href="/guide-wiki/changes"
+            className="font-medium text-zinc-700 underline-offset-2 hover:underline dark:text-zinc-200"
+          >
+            최근 바뀜
+          </Link>
+        </p>
       </main>
     </div>
   );

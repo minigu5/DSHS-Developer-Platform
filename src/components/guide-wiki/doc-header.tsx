@@ -17,6 +17,8 @@ interface DocHeaderProps {
   onBackClick?: (e: MouseEvent<HTMLAnchorElement>) => void;
   /** 쓰이는 곳 링크를 새 탭으로 연다(편집 중인 화면을 떠나지 않게). */
   usagesInNewTab?: boolean;
+  /** 편집 화면 — 쓰이는 곳 안내를 "고치면 N곳이 바뀐다"로 바꿔 말한다. */
+  editing?: boolean;
 }
 
 /** 가이드 위키 편집·기록·비교 화면이 함께 쓰는 머리. */
@@ -28,6 +30,7 @@ export function DocHeader({
   usages,
   onBackClick,
   usagesInNewTab = false,
+  editing = false,
 }: DocHeaderProps) {
   return (
     <header>
@@ -47,7 +50,9 @@ export function DocHeader({
         <details className="group relative mt-3 inline-block">
           <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-[13px] font-medium text-zinc-700 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 [&::-webkit-details-marker]:hidden sm:min-h-9">
             <Layers className="h-3.5 w-3.5" aria-hidden />
-            이 내용은 가이드 {usages.length}곳에 함께 쓰여요
+            {editing
+              ? `여기를 고치면 가이드 ${usages.length}곳이 한꺼번에 바뀌어요`
+              : `이 내용은 가이드 ${usages.length}곳에 함께 쓰여요`}
             <ChevronDown
               className="h-3.5 w-3.5 transition-transform group-open:rotate-180"
               aria-hidden

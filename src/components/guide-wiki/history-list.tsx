@@ -26,6 +26,8 @@ interface HistoryRowProps {
   /** 이 버전을 무효로 만든 되돌리기 버전(없으면 undefined). */
   revertedBy: number | undefined;
   signedIn: boolean;
+  /** 여러 조각을 섞어 보여 줄 때(최근 바뀜) 어느 조각인지 — 그 조각 기록으로 가는 링크. */
+  docTitle?: string;
 }
 
 export function Avatar({
@@ -62,7 +64,7 @@ export function Avatar({
 }
 
 /** 고친 기록 한 줄. 서버 화면과 "더 보기"가 함께 쓴다. */
-export function HistoryRow({ docKey, item, latestRev, revertedBy, signedIn }: HistoryRowProps) {
+export function HistoryRow({ docKey, item, latestRev, revertedBy, signedIn, docTitle }: HistoryRowProps) {
   const isCurrent = item.revNo === latestRev;
   const isRevert = item.kind === "revert" && item.revertOf !== null;
   const isSource = item.kind === "seed" || item.kind === "sync";
@@ -85,6 +87,14 @@ export function HistoryRow({ docKey, item, latestRev, revertedBy, signedIn }: Hi
         </span>
         <Avatar name={authorName} url={nickname !== null ? avatarUrl : null} />
         <div className="flex min-w-0 flex-[1_1_300px] flex-col gap-1">
+          {docTitle !== undefined && (
+            <Link
+              href={`${base}/history`}
+              className="self-start text-[13px] font-medium text-zinc-600 transition-colors hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-white"
+            >
+              {docTitle}
+            </Link>
+          )}
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             {nickname !== null && id !== null ? (
               <Link

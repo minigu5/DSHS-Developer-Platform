@@ -225,12 +225,13 @@ export function GuideWikiEditor({ doc, baseRev: initialBaseRev, usages, stale, f
         <div className="mx-auto max-w-3xl">
           <DocHeader
             backHref={backHref}
-            backLabel="가이드로"
+            backLabel={from?.startsWith("/guide-wiki") ? "가이드 전체 지도로" : "가이드로"}
             eyebrow={baseRev === 0 ? "고치는 중 · 저장소 원본 기준" : `고치는 중 · 버전 ${baseRev} 기준`}
             title={doc.title}
             usages={usages}
             onBackClick={onBackClick}
             usagesInNewTab
+            editing
           />
 
           {stale && (

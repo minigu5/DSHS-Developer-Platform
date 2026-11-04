@@ -2,7 +2,12 @@ import 'server-only'
 
 import { createHash } from 'node:crypto'
 
-import { getFragment, listUsages as listGuideUsages } from '@/lib/guide-content'
+import {
+  getFragment,
+  listGuideMap as listGuideContentMap,
+  listUsages as listGuideUsages,
+  type GuideMapChapter,
+} from '@/lib/guide-content'
 import { DEV_SAMPLE } from '@/lib/guide-wiki/dev-sample'
 import type { WikiDoc } from '@/lib/guide-wiki/types'
 
@@ -24,6 +29,11 @@ export async function listUsages(
 ): Promise<{ label: string; href: string }[]> {
   if (isDevSample(key)) return []
   return listGuideUsages(key)
+}
+
+/** 가이드 전체 지도 — 장마다 조각과 그 조각을 쓰는 가이드 수. */
+export function listGuideMap(): GuideMapChapter[] {
+  return listGuideContentMap()
 }
 
 /** 원본 내용 지문. 위키 저장본이 원본과 어긋났는지 비교하는 데 쓴다. */

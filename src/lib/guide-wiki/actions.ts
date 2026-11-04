@@ -10,6 +10,8 @@ import {
   getRevision,
   isSourceStale,
   listHistoryPage,
+  listRecentChanges,
+  type RecentChangesPage,
   type RevisionListItem,
 } from '@/lib/guide-wiki/read'
 import {
@@ -272,4 +274,12 @@ export async function loadMoreRevisions(key: string, before: number): Promise<Hi
     if (by !== undefined) reverted[item.revNo] = by
   }
   return { items, hasMore, reverted }
+}
+
+/** 최근 바뀜(모든 조각) "더 보기". `before` 보다 오래된 쪽을 읽기만 한다(쓰기 없음). */
+export async function loadMoreRecentChanges(before: string): Promise<RecentChangesPage> {
+  if (typeof before !== 'string' || before.length > 40 || Number.isNaN(Date.parse(before))) {
+    return { items: [], hasMore: false, latestRevs: {}, reverted: {} }
+  }
+  return listRecentChanges(before)
 }

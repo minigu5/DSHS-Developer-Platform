@@ -1,12 +1,12 @@
 // 결과 스테퍼의 장 이름 줄 오른쪽 자리 — 조각별 "고치기"·"기록" 링크와 마지막 수정 정보.
 // 가이드 위키 편집 기능(docs/superpowers/specs/2026-10-24-guide-wiki-editing-design.md §7.5).
-//   고치기 /guide-wiki/<key>/edit?from=<지금 가이드 경로>, 기록 /guide-wiki/<key>/history
+//   고치기 /guide-wiki/<key>/edit?from=<지금 가이드 경로>, 기록 /guide-wiki/<key>/history, 전체 지도 /guide-wiki
 // meta는 서버(loadGuide)가 미리 읽어 넘긴다 — 이 컴포넌트는 클라이언트 스테퍼 안에서 그려진다.
 
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
-import { History, Pencil } from "lucide-react";
+import { History, Map as MapIcon, Pencil } from "lucide-react";
 
 import type { ChapterMeta } from "@/lib/guide-content";
 
@@ -42,6 +42,10 @@ export function GuideChapterTools({ fragmentKey, from, meta }: GuideChapterTools
       >
         <History className="h-3.5 w-3.5" aria-hidden />
         기록<span className="sr-only"> (이 장{meta ? `, 버전 ${meta.latestRev}개` : ""})</span>
+      </Link>
+      <Link href="/guide-wiki" className={LINK} aria-label="가이드 전체 지도">
+        <MapIcon className="h-3.5 w-3.5" aria-hidden />
+        <span className="hidden sm:inline">전체</span>
       </Link>
     </div>
   );

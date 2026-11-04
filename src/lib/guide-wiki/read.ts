@@ -237,3 +237,105 @@ export async function isSourceStale(key: string): Promise<boolean> {
 
   return toStats(data.stats).sourceHash !== sourceHash(source)
 }
+
+/** 모든 문서의 버전 색인. 문서마다 최신 번호와 "되돌려짐" 표시를 구하는 데 쓴다. */
+async function listRevisionIndex(): Promise<
+  Map<string, { revNo: number; kind: string; revertOf: number | null }[]>
+> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('guide_revisions')
+    .select('doc_key, rev_no, kind, revert_of')
+  if (error) throw new Error(`guide_revisions 조회 실패: ${error.message}`)
+  const byDoc = new Map<string, { revNo: number; kind: string; revertOf: number | null }[]>()
+  for (const r of data ?? []) {
+    const list = byDoc.get(r.doc_key) ?? []
+    list.push({ revNo: r.rev_no, kind: r.kind, revertOf: r.revert_of })
+    byDoc.set(r.doc_key, list)
+  }
+  return byDoc
+}
+
+export type RecentChangeItem = RevisionListItem & { docKey: string; docTitle: string }
+
+export type RecentChangesPage = {
+  items: RecentChangeItem[]
+  hasMore: boolean
+  /** 문서 key -> 지금 최신 버전 번호. */
+  latestRevs: Record<string, number>
+  /** 문서 key -> (버전 -> 그 버전을 무효로 만든 되돌리기 버전). 이 쪽의 항목만. */
+  reverted: Record<string, Record<number, number>>
+}
+
+/**
+ * 모든 가이드 조각의 최근 바뀜(최신순). `before` 는 created_at < before (키셋 페이지네이션).
+ * 첫 저장 때 자동으로 남는 원본 버전(seed)은 사람이 고친 게 아니라 뺀다.
+ */
+export async function listRecentChanges(before?: string): Promise<RecentChangesPage> {
+  const supabase = await createClient()
+  let query = supabase
+    .from('guide_revisions')
+    .select(`doc_key, title, ${ITEM_COLUMNS}`)
+    .neq('kind', 'seed')
+    .order('created_at', { ascending: false })
+    .limit(HISTORY_PAGE_SIZE + 1)
+  if (before !== undefined) query = query.lt('created_at', before)
+
+  const [{ data, error }, index] = await Promise.all([query, listRevisionIndex()])
+  if (error) throw new Error(`guide_revisions 조회 실패: ${error.message}`)
+
+  const rows = (data ?? []).slice(0, HISTORY_PAGE_SIZE)
+  const items = rows.map((row) => ({ ...toItem(row), docKey: row.doc_key, docTitle: row.title }))
+
+  const latestRevs: Record<string, number> = {}
+  const reverted: Record<string, Record<number, number>> = {}
+  for (const key of new Set(items.map((i) => i.docKey))) {
+    const revs = index.get(key) ?? []
+    latestRevs[key] = Math.max(0, ...revs.map((r) => r.revNo))
+    const map = revertedBy(revs)
+    const mine: Record<number, number> = {}
+    for (const item of items) {
+      if (item.docKey !== key) continue
+      const by = map.get(item.revNo)
+      if (by !== undefined) mine[item.revNo] = by
+    }
+    reverted[key] = mine
+  }
+
+  return { items, hasMore: (data ?? []).length > HISTORY_PAGE_SIZE, latestRevs, reverted }
+}
+
+export type DocSummary = {
+  latestRev: number
+  lastAuthor: { id: string | null; nickname: string } | null
+  lastAt: string | null
+  contributors: number
+}
+
+/** 문서마다 요약(최신 번호·마지막 편집자·기여자 수)을 한 번에. DB 기록이 없는 문서는 빠진다. */
+export async function listDocSummaries(): Promise<Map<string, DocSummary>> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('guide_revisions')
+    .select(`doc_key, ${ITEM_COLUMNS}`)
+    .order('rev_no', { ascending: false })
+  if (error) throw new Error(`guide_revisions 조회 실패: ${error.message}`)
+
+  const out = new Map<string, DocSummary>()
+  const emails = new Map<string, Set<string>>()
+  for (const row of data ?? []) {
+    const set = emails.get(row.doc_key) ?? new Set<string>()
+    set.add(row.author_email)
+    emails.set(row.doc_key, set)
+    if (out.has(row.doc_key)) continue
+    const item = toItem(row)
+    out.set(row.doc_key, {
+      latestRev: item.revNo,
+      lastAuthor: { id: item.author.id, nickname: item.author.nickname ?? WITHDRAWN_NICKNAME },
+      lastAt: item.createdAt,
+      contributors: 0,
+    })
+  }
+  for (const [key, summary] of out) summary.contributors = emails.get(key)?.size ?? 0
+  return out
+}
