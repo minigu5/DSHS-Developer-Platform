@@ -192,40 +192,63 @@ export type Database = {
           },
         ];
       };
-      reviews: {
+      project_comments: {
         Row: {
           id: string;
           project_id: string;
+          /** 사용자 키로는 못 읽는다 — 화면은 public_user_id */
           user_id: string;
-          rating: number | null;
-          comment: string;
+          content: string;
           created_at: string;
+          is_author: boolean;
+          public_user_id: string | null;
         };
         Insert: {
           id?: string;
           project_id: string;
           user_id: string;
-          rating?: number | null;
-          comment: string;
+          content: string;
           created_at?: string;
         };
         Update: {
-          id?: string;
-          project_id?: string;
-          user_id?: string;
-          rating?: number | null;
-          comment?: string;
-          created_at?: string;
+          content?: string;
         };
         Relationships: [
           {
-            foreignKeyName: 'reviews_project_id_fkey';
+            foreignKeyName: 'project_comments_project_id_fkey';
             columns: ['project_id'];
             referencedRelation: 'projects';
             referencedColumns: ['id'];
           },
           {
-            foreignKeyName: 'reviews_user_id_fkey';
+            foreignKeyName: 'project_comments_public_user_id_fkey';
+            columns: ['public_user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      project_hearts: {
+        Row: {
+          project_id: string;
+          user_id: string;
+          created_at: string;
+          by_anonymous_owner: boolean;
+        };
+        Insert: {
+          project_id: string;
+          user_id: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [
+          {
+            foreignKeyName: 'project_hearts_project_id_fkey';
+            columns: ['project_id'];
+            referencedRelation: 'projects';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'project_hearts_user_id_fkey';
             columns: ['user_id'];
             referencedRelation: 'users';
             referencedColumns: ['id'];
@@ -682,7 +705,8 @@ export type UserRow = Database['public']['Tables']['users']['Row'];
 export type ProjectRow = Database['public']['Tables']['projects']['Row'];
 export type ProjectInsert = Database['public']['Tables']['projects']['Insert'];
 export type ProjectUpdate = Database['public']['Tables']['projects']['Update'];
-export type ReviewRow = Database['public']['Tables']['reviews']['Row'];
+export type CommentRow = Database['public']['Tables']['project_comments']['Row'];
+export type HeartRow = Database['public']['Tables']['project_hearts']['Row'];
 export type TipRow = Database['public']['Tables']['tips']['Row'];
 export type TipInsert = Database['public']['Tables']['tips']['Insert'];
 export type TipUpdate = Database['public']['Tables']['tips']['Update'];

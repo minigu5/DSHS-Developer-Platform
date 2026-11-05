@@ -3,7 +3,7 @@
 -- ============================================================
 -- 단일 source of truth. 기존의 04/05/06 alter 는 이 파일로 흡수됨.
 --
--- 주의: 이 스크립트는 public.users / public.projects / public.reviews 를
+-- 주의: 이 스크립트는 public.users / public.projects / public.project_comments / public.project_hearts 를
 -- 모두 DROP 한 뒤 재생성합니다. 기존 데이터는 모두 사라집니다.
 -- auth.users (Supabase Auth) 는 건드리지 않습니다.
 
@@ -11,7 +11,8 @@
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP FUNCTION IF EXISTS public.handle_new_user();
 
-DROP TABLE IF EXISTS public.reviews CASCADE;
+DROP TABLE IF EXISTS public.project_hearts CASCADE;
+DROP TABLE IF EXISTS public.project_comments CASCADE;
 DROP TABLE IF EXISTS public.projects CASCADE;
 DROP TABLE IF EXISTS public.users CASCADE;
 
@@ -116,43 +117,48 @@ CREATE POLICY "projects_delete_own"
   USING (auth.uid() = author_id);
 
 
--- 3. reviews
-CREATE TABLE public.reviews (
-  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id  uuid NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
-  user_id     uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  rating      int  NOT NULL CHECK (rating BETWEEN 1 AND 5),
-  comment     text NOT NULL,
-  created_at  timestamptz NOT NULL DEFAULT now()
+-- 3. project_comments (옛 reviews — 2026-11-05 별점 삭제·이름 변경) / project_hearts
+-- 실제 정의·트리거·정책은 supabase/migrations/20261105110000_comments_hearts.sql(+ 20261105120000 정리)이 기준.
+-- 익명 프로젝트 소유자의 댓글은 public_user_id 가 NULL(트리거), user_id 는 사용자 키로 못 읽음(칸 단위 GRANT).
+CREATE TABLE public.project_comments (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id     uuid NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
+  user_id        uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  content        text NOT NULL,
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  is_author      boolean NOT NULL DEFAULT false,
+  public_user_id uuid REFERENCES public.users(id) ON DELETE CASCADE
 );
+CREATE INDEX project_comments_project_created_idx ON public.project_comments (project_id, created_at);
 
-ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.project_comments ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "reviews_select_when_project_visible"
-  ON public.reviews FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.projects p
-      WHERE p.id = reviews.project_id
-        AND (
-          p.visibility = 'public'
-          OR p.author_id = auth.uid()
-          OR (SELECT email FROM public.users WHERE id = auth.uid()) = ANY(p.allowed_users)
-        )
-    )
-  );
+-- 조회: 그 프로젝트를 내가 볼 수 있으면(projects RLS 에 맡김). 쓰기: 본인.
+CREATE POLICY "project_comments_select_when_project_visible"
+  ON public.project_comments FOR SELECT
+  USING (EXISTS (SELECT 1 FROM public.projects p WHERE p.id = project_comments.project_id));
 
-CREATE POLICY "reviews_insert_own"
-  ON public.reviews FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "project_comments_insert_own"
+  ON public.project_comments FOR INSERT
+  WITH CHECK ((SELECT auth.uid()) = user_id);
 
-CREATE POLICY "reviews_update_own"
-  ON public.reviews FOR UPDATE
-  USING (auth.uid() = user_id);
+CREATE POLICY "project_comments_update_own"
+  ON public.project_comments FOR UPDATE
+  USING ((SELECT auth.uid()) = user_id);
 
-CREATE POLICY "reviews_delete_own"
-  ON public.reviews FOR DELETE
-  USING (auth.uid() = user_id);
+CREATE POLICY "project_comments_delete_own"
+  ON public.project_comments FOR DELETE
+  USING ((SELECT auth.uid()) = user_id);
+
+-- 하트 — 1인 1번, 누가 눌렀는지 공개(만든 사람이 자기 익명 프로젝트에 누른 것만 숨김)
+CREATE TABLE public.project_hearts (
+  project_id         uuid NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
+  user_id            uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  created_at         timestamptz NOT NULL DEFAULT now(),
+  by_anonymous_owner boolean NOT NULL DEFAULT false,
+  PRIMARY KEY (project_id, user_id)
+);
+CREATE INDEX project_hearts_user_created_idx ON public.project_hearts (user_id, created_at DESC);
 
 
 -- 4. auth.users → public.users 자동 동기화 트리거

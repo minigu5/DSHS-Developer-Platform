@@ -168,6 +168,35 @@ export type Database = {
           },
         ]
       }
+      privacy_consents: {
+        Row: {
+          consented_at: string
+          id: string
+          policy_version: string
+          user_id: string
+        }
+        Insert: {
+          consented_at?: string
+          id?: string
+          policy_version: string
+          user_id: string
+        }
+        Update: {
+          consented_at?: string
+          id?: string
+          policy_version?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "privacy_consents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_clicks: {
         Row: {
           clicked_date: string
@@ -210,6 +239,97 @@ export type Database = {
           },
         ]
       }
+      project_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_author: boolean
+          project_id: string
+          public_user_id: string | null
+          rating: number | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_author?: boolean
+          project_id: string
+          public_user_id?: string | null
+          rating?: number | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_author?: boolean
+          project_id?: string
+          public_user_id?: string | null
+          rating?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_comments_public_user_id_fkey"
+            columns: ["public_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_hearts: {
+        Row: {
+          by_anonymous_owner: boolean
+          created_at: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          by_anonymous_owner?: boolean
+          created_at?: string
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          by_anonymous_owner?: boolean
+          created_at?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_hearts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_hearts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           allowed_users: string[]
@@ -227,13 +347,17 @@ export type Database = {
           license_custom: string | null
           license_features: string[]
           platforms: string[]
+          public_author_id: string | null
+          readme_etag: string | null
+          readme_sync: boolean
+          readme_synced_at: string | null
           repo_url: string | null
           short_description: string | null
           source_type: string
           team_members: string[] | null
           team_name: string | null
           title: string
-          type: string
+          types: string[]
           updated_at: string
           url: string | null
           visibility: string
@@ -254,13 +378,17 @@ export type Database = {
           license_custom?: string | null
           license_features?: string[]
           platforms?: string[]
+          public_author_id?: string | null
+          readme_etag?: string | null
+          readme_sync?: boolean
+          readme_synced_at?: string | null
           repo_url?: string | null
           short_description?: string | null
           source_type: string
           team_members?: string[] | null
           team_name?: string | null
           title: string
-          type: string
+          types?: string[]
           updated_at?: string
           url?: string | null
           visibility: string
@@ -281,13 +409,17 @@ export type Database = {
           license_custom?: string | null
           license_features?: string[]
           platforms?: string[]
+          public_author_id?: string | null
+          readme_etag?: string | null
+          readme_sync?: boolean
+          readme_synced_at?: string | null
           repo_url?: string | null
           short_description?: string | null
           source_type?: string
           team_members?: string[] | null
           team_name?: string | null
           title?: string
-          type?: string
+          types?: string[]
           updated_at?: string
           url?: string | null
           visibility?: string
@@ -300,44 +432,124 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "projects_public_author_id_fkey"
+            columns: ["public_author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
-      reviews: {
+      subdomain_reserved: {
         Row: {
-          comment: string
-          created_at: string
-          id: string
-          project_id: string
-          rating: number
-          user_id: string
+          name: string
         }
         Insert: {
-          comment: string
-          created_at?: string
-          id?: string
-          project_id: string
-          rating: number
-          user_id: string
+          name: string
         }
         Update: {
-          comment?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      subdomains: {
+        Row: {
+          broken_since: string | null
+          cf_record_ids: string[]
+          checked_at: string | null
+          connected_at: string | null
+          created_at: string
+          ever_active: boolean
+          host: string | null
+          id: string
+          name: string
+          naru_server_id: string | null
+          owner_id: string
+          previous_url: string | null
+          project_id: string | null
+          released_reason: string | null
+          revoked_by: string | null
+          revoked_reason: string | null
+          site_host: string | null
+          site_url: string | null
+          site_verified_at: string | null
+          status: string
+          target: string | null
+          txt_records: Json
+          updated_at: string
+          verify_token: string
+        }
+        Insert: {
+          broken_since?: string | null
+          cf_record_ids?: string[]
+          checked_at?: string | null
+          connected_at?: string | null
           created_at?: string
+          ever_active?: boolean
+          host?: string | null
           id?: string
-          project_id?: string
-          rating?: number
-          user_id?: string
+          name: string
+          naru_server_id?: string | null
+          owner_id: string
+          previous_url?: string | null
+          project_id?: string | null
+          released_reason?: string | null
+          revoked_by?: string | null
+          revoked_reason?: string | null
+          site_host?: string | null
+          site_url?: string | null
+          site_verified_at?: string | null
+          status?: string
+          target?: string | null
+          txt_records?: Json
+          updated_at?: string
+          verify_token?: string
+        }
+        Update: {
+          broken_since?: string | null
+          cf_record_ids?: string[]
+          checked_at?: string | null
+          connected_at?: string | null
+          created_at?: string
+          ever_active?: boolean
+          host?: string | null
+          id?: string
+          name?: string
+          naru_server_id?: string | null
+          owner_id?: string
+          previous_url?: string | null
+          project_id?: string | null
+          released_reason?: string | null
+          revoked_by?: string | null
+          revoked_reason?: string | null
+          site_host?: string | null
+          site_url?: string | null
+          site_verified_at?: string | null
+          status?: string
+          target?: string | null
+          txt_records?: Json
+          updated_at?: string
+          verify_token?: string
         }
         Relationships: [
           {
-            foreignKeyName: "reviews_project_id_fkey"
+            foreignKeyName: "subdomains_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subdomains_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reviews_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "subdomains_revoked_by_fkey"
+            columns: ["revoked_by"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -498,10 +710,57 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      reviews: {
+        Row: {
+          comment: string | null
+          created_at: string | null
+          id: string | null
+          project_id: string | null
+          rating: number | null
+          user_id: string | null
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string | null
+          id?: string | null
+          project_id?: string | null
+          rating?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string | null
+          id?: string | null
+          project_id?: string | null
+          rating?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      _guide_validate_doc: {
+        Args: { p_stats: Json; p_steps: Json; p_title: string }
+        Returns: string
+      }
+      domain_showcase: { Args: { p_limit?: number }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
+      my_project_ids: { Args: never; Returns: string[] }
       save_guide_revision: {
         Args: {
           p_author_id: string
@@ -518,10 +777,95 @@ export type Database = {
         }
         Returns: number
       }
+      subdomain_connect: {
+        Args: {
+          p_host: string
+          p_id: string
+          p_record_ids: string[]
+          p_target: string
+          p_txt: Json
+          p_user: string
+        }
+        Returns: undefined
+      }
+      subdomain_connect_naru: {
+        Args: {
+          p_id: string
+          p_record_ids: string[]
+          p_server_id: string
+          p_target: string
+          p_user: string
+        }
+        Returns: undefined
+      }
+      subdomain_is_developer: { Args: { p_user: string }; Returns: boolean }
+      subdomain_record_check: {
+        Args: { p_id: string; p_now: string; p_ok: boolean }
+        Returns: string
+      }
+      subdomain_release: {
+        Args: { p_actor: string; p_id: string; p_reason: string }
+        Returns: string[]
+      }
+      subdomain_reserve: {
+        Args: { p_name: string; p_project: string; p_user: string }
+        Returns: string
+      }
+      subdomain_restore_project_url: {
+        Args: { p_row: Database["public"]["Tables"]["subdomains"]["Row"] }
+        Returns: undefined
+      }
+      subdomain_revoke: {
+        Args: { p_admin: string; p_id: string; p_reason: string }
+        Returns: string[]
+      }
+      subdomain_set_naru_records: {
+        Args: { p_id: string; p_record_ids: string[] }
+        Returns: undefined
+      }
+      subdomain_set_placeholder_records: {
+        Args: { p_id: string; p_record_ids: string[] }
+        Returns: undefined
+      }
+      subdomain_set_redirect_records: {
+        Args: { p_id: string; p_record_ids: string[] }
+        Returns: undefined
+      }
+      subdomain_set_site: {
+        Args: {
+          p_id: string
+          p_site_host: string
+          p_site_url: string
+          p_user: string
+        }
+        Returns: undefined
+      }
+      subdomain_set_url: {
+        Args: { p_id: string; p_user: string }
+        Returns: undefined
+      }
+      subdomain_target_bound: { Args: { p_host: string }; Returns: boolean }
+      subdomain_target_ok: {
+        Args: { p_host: string; p_target: string }
+        Returns: boolean
+      }
+      subdomain_txt_ok: {
+        Args: { p_host: string; p_name: string; p_txt: Json }
+        Returns: boolean
+      }
+      subdomain_unblock: {
+        Args: { p_admin: string; p_id: string }
+        Returns: undefined
+      }
+      subdomain_verify_site: {
+        Args: { p_id: string; p_site_url: string; p_user: string }
+        Returns: undefined
+      }
       track_project_click: {
         Args: { p_ip_hash?: string; p_project_id: string; p_user_id?: string }
         Returns: boolean
       }
+      withdraw_account: { Args: { p_user_id: string }; Returns: string[] }
     }
     Enums: {
       [_ in never]: never
