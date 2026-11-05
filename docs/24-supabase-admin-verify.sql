@@ -132,7 +132,9 @@ BEGIN
   DELETE FROM public.user_bans WHERE email_hash = public.email_hash(u2mail);
   INSERT INTO public.user_bans (user_id, email_hash, until, reason, created_by) VALUES (u2, public.email_hash(u2mail), now() + interval '7 days', 'zz-active', u);
   INSERT INTO public.user_bans (user_id, email_hash, until, reason) VALUES (u2, public.email_hash(u2mail), now() - interval '1 day', 'zz-ended');
+  INSERT INTO public.admin_actions (action, target_kind, target_id, target_user_id, detail) VALUES ('ban', 'user', u2::text, u2, '{"duration":"7d"}');
   PERFORM public.withdraw_account(u2);
+  log := log || 'actions_forgot=' || (SELECT count(*) FROM public.admin_actions WHERE target_id = u2::text OR target_user_id = u2) || ';';
   SELECT count(*) INTO n FROM public.user_bans WHERE email_hash = public.email_hash(u2mail);
   log := log || 'withdraw=' || n || '/'
     || (SELECT (user_id IS NULL AND reason IS NULL AND created_by IS NULL AND until > now())::text FROM public.user_bans WHERE email_hash = public.email_hash(u2mail) LIMIT 1) || ';';
@@ -146,7 +148,7 @@ BEGIN
     'feed_anon=true/true/true;feed_kinds=0;burst=1;stats=true;rpc_auth=false/false/false;bans_fn=1;'
     'tip_insert=user_banned;member_update=user_banned;same_profile=ok;nick_change=user_banned;heart=ok;'
     'my_ban=1/false;bans_read=denied;owner_update=1;service_update=1;service_insert_for_banned=user_banned;'
-    'my_ban_forever=true;hash_ban=true;hash_ban_ended=false;withdraw=1/true;fn=false/true/false;';
+    'my_ban_forever=true;hash_ban=true;hash_ban_ended=false;actions_forgot=0;withdraw=1/true;fn=false/true/false;';
 
   IF log = expect THEN
     RAISE EXCEPTION 'VERIFY OK';
