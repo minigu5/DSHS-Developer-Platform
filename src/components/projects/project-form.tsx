@@ -662,7 +662,13 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
     router.refresh();
   };
 
+  // 저장에 성공하면 페이지가 바뀔 때까지 다시 저장하지 않는다 — 이동이 1~2초 걸리는 동안 버튼을 또 눌러 같은 프로젝트가 여러 번 등록됐다(2026-11-04).
+  // state 는 다음 렌더까지 안 바뀌므로 빠른 연속 클릭은 ref 로 막는다.
+  const savingRef = useRef(false);
+
   const saveProject = async () => {
+    if (savingRef.current) return;
+    savingRef.current = true;
     setIsLoading(true);
 
     try {
@@ -755,8 +761,11 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         const e = err as { message?: string; details?: string; hint?: string; code?: string };
         msg = [e.message, e.details, e.hint, e.code && `(code: ${e.code})`].filter(Boolean).join(' / ') || msg;
       }
+      if (msg.includes('projects_duplicate_recent')) {
+        msg = '방금 같은 이름으로 등록한 프로젝트가 있어요. 내 프로젝트에서 확인해 주세요.';
+      }
       setErrorMsg(msg);
-    } finally {
+      savingRef.current = false;
       setIsLoading(false);
     }
   };
