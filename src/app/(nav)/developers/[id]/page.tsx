@@ -61,6 +61,11 @@ const riseDelay = (ms: number) => ({ "--rise-delay": `${ms}ms` }) as React.CSSPr
  * 개발자 프로필 — `/me`는 본인 프로필로 리다이렉트되고, 본인이면 관리 요소(프로필 설정·수정 버튼·새 프로젝트 칸)가 붙는다.
  * 머리는 홈 히어로의 축소판(아바타 스티커 → 닉네임 → 자기소개 → 연락처 알약 → 관심분야). 실명·이메일은 머리에 두지 않는다.
  */
+const CARD_COLUMNS = `id, title, short_description, types, platforms, author_role, team_name, icon_url, features, public_author_id, visibility,
+  users!projects_public_author_id_fkey (*), project_hearts(count), project_comments(count)`;
+
+type FavoriteRow = { created_at: string; projects: ProjectCardData | null };
+
 export default async function DeveloperProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -82,12 +87,11 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
     .filter(Boolean)
     .join(",");
 
-  const [{ data: projects }, { data: tipRows, count: tipCount }, { data: ideaRows, count: ideaCount }] = await Promise.all([
+  const [{ data: projects }, { data: tipRows, count: tipCount }, { data: ideaRows, count: ideaCount }, { data: favoriteRows }] = await Promise.all([
     supabase
       .from("projects")
       .select(
-        `id, title, short_description, types, platforms, author_role, team_name, icon_url, features, public_author_id, visibility,
-         users!projects_public_author_id_fkey (*), reviews(rating)`,
+        `${CARD_COLUMNS}`,
       )
       .or(teamFilter)
       .order("created_at", { ascending: false })
@@ -106,7 +110,29 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
       .order("created_at", { ascending: false })
       .limit(5)
       .returns<IdeaRow[]>(),
+    // 즐겨찾기(하트 누른 프로젝트, 최신 먼저) — 보는 사람이 볼 수 없는 프로젝트·만든 사람의 익명 프로젝트 하트는 RLS 가 뺀다
+    supabase
+      .from("project_hearts")
+      .select(`created_at, projects!inner(${CARD_COLUMNS})`)
+      .eq("user_id", id)
+      .order("created_at", { ascending: false })
+      .returns<FavoriteRow[]>(),
   ]);
+
+  const favorites = (favoriteRows ?? []).flatMap((r) => (r.projects ? [r.projects] : []));
+
+  // 보는 사람이 하트를 누른 카드(한 번에)
+  const cardIds = [...new Set([...(projects ?? []), ...favorites].map((p) => p.id))];
+  const viewerHearts = new Set<string>();
+  if (currentUser && cardIds.length) {
+    const { data } = await supabase
+      .from("project_hearts")
+      .select("project_id")
+      .eq("user_id", currentUser.id)
+      .in("project_id", cardIds);
+    for (const h of data ?? []) viewerHearts.add(h.project_id);
+  }
+  const heartOf = (projectId: string) => ({ viewerId: currentUser?.id ?? null, hearted: viewerHearts.has(projectId) });
 
   const posts: PostRow[] = [
     ...(tipRows ?? []).map<PostRow>((t) => ({
@@ -259,7 +285,7 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
           ) : (
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
               {projectList.map((project) => (
-                <ProjectCard key={project.id} project={project} mode={isOwner ? "manage" : "showcase"} authorFallback={displayName} />
+                <ProjectCard key={project.id} project={project} mode={isOwner ? "manage" : "showcase"} authorFallback={displayName} heart={heartOf(project.id)} />
               ))}
               {isOwner && (
                 <Link
@@ -274,6 +300,35 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
           )}
         </div>
       </section>
+
+      {/* 즐겨찾기한 프로젝트 — 모두에게 공개(사용자 결정), 남의 프로필에서 0개면 띠를 숨긴다 */}
+      {(favorites.length > 0 || isOwner) && (
+        <section className="border-b border-zinc-200 bg-zinc-50 py-8 dark:border-zinc-800 dark:bg-zinc-900/40 sm:py-11">
+          <div className="mx-auto w-full max-w-5xl px-6">
+            <div className="mb-[18px] flex items-baseline justify-between gap-4">
+              <h2 className="font-heading text-[22px] font-bold text-zinc-900 dark:text-white">
+                즐겨찾기한 프로젝트
+                <span className="ml-1.5 text-[15px] font-semibold text-zinc-500 tabular-nums dark:text-zinc-400">{favorites.length}</span>
+              </h2>
+            </div>
+
+            {favorites.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-zinc-300 py-12 text-center dark:border-zinc-700">
+                <p className="text-zinc-600 dark:text-zinc-400">마음에 드는 프로젝트에 하트를 누르면 여기에 모여요.</p>
+                <Link href="/explore" className="mt-2 inline-block text-sm font-medium text-blue-700 underline underline-offset-4 dark:text-blue-300">
+                  프로젝트 둘러보기
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                {favorites.map((project) => (
+                  <ProjectCard key={project.id} project={project} mode="showcase" heart={heartOf(project.id)} />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* 작성한 글 */}
       <section className="py-8 sm:py-11">
