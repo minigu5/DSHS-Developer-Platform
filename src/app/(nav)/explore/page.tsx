@@ -20,7 +20,8 @@ const PROJECT_SELECT = `
   visibility,
   click_count,
   users!projects_public_author_id_fkey (*),
-  reviews(rating)
+  project_hearts(count),
+  project_comments(count)
 `;
 
 export default async function ExplorePage({
@@ -54,5 +55,23 @@ export default async function ExplorePage({
     projects = data;
   }
 
-  return <ExploreClient initialProjects={projects ?? []} initialQuery={initialQuery} />;
+  // 맨 위 즐겨찾기 칸 — 내 하트(최신 먼저). 개발자 계정도 본인 것만이라 사용자 클라이언트로.
+  let myHeartIds: string[] = [];
+  if (user) {
+    const { data } = await supabase
+      .from('project_hearts')
+      .select('project_id')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    myHeartIds = (data ?? []).map((h) => h.project_id);
+  }
+
+  return (
+    <ExploreClient
+      initialProjects={projects ?? []}
+      initialQuery={initialQuery}
+      viewerId={user?.id ?? null}
+      myHeartIds={myHeartIds}
+    />
+  );
 }

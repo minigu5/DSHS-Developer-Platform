@@ -21,3 +21,4 @@ paths:
 - **모바일 필터**(`src/components/explore/mobile-filter-bar.tsx`): 머리 아래 `sticky` 가로 스크롤 바 — [종류 ▾][카테고리 ▾][플랫폼 ▾] 드롭다운 알약 + 선택된 값은 파란 칩(× 해제) + 오른쪽 정렬. 드롭다운은 `absolute top-full` 패널(바깥 클릭·Esc로 닫힘, `aria-expanded`). 결과 줄은 "N개 · 필터 적용" + 정렬(데스크탑).
 - 헤더 우측 버튼은 제거됨 — 전역 `PageNav`로 이동.
 - 로그인 페이지(`/login`) 뒤로가기 링크는 `/`가 아닌 `/explore`로 이동.
+- **즐겨찾기 칸·하트순**(2026-11-05, `docs/superpowers/specs/2026-11-04-hearts-comments-design.md`): 서버 페이지가 `project_hearts(count), project_comments(count)`와 내 하트 id(최신 먼저)를 넘기고, `ExploreClient`가 하트 상태(`hearts`·`heartOrder`)를 하나로 쥔다 — 같은 카드가 칸과 목록에 둘 다 있어도 같이 바뀌고, 칸에서 취소하면 바로 빠진다(카드는 제어 모드 `heart.onToggle`). 칸 `FavoritesSection`(`favorites-section.tsx`): 로그인 + 하트 1개 이상 + **검색어·필터 없음**일 때만(`shouldShowFavorites`), 처음 2장(`FAVORITES_PREVIEW`) + "N개 더 보기"/"접기". 하트 누른 프로젝트도 아래 전체 목록에 그대로 나온다(사용자 결정 — 검색하면 칸이 숨기 때문). 정렬 `?sort=hearts`("하트순", 같은 수면 최신순), 옛 `?sort=rating`은 최신순으로.

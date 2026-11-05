@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import { Search, Filter, ChevronDown, ArrowUpDown, X } from "lucide-react";
 import type { CSSProperties } from "react";
 
@@ -12,15 +13,25 @@ import { TYPE_ICONS, PLATFORM_ICONS, CATEGORY_ICONS } from "@/lib/type-icons";
 import { PageHero } from "@/components/shared/page-hero";
 import { MobileFilterBar } from "@/components/explore/mobile-filter-bar";
 import { exploreQueryString, type ExploreQuery, type ExploreSort } from "@/lib/explore-query";
+import { favoritesInHeartOrder, heartCountOf, shouldShowFavorites } from "@/lib/hearts";
+import { setHeart } from "@/lib/hearts-client";
+import { createClient } from "@/lib/supabase/client";
+import { FavoritesSection } from "@/components/explore/favorites-section";
 
 
 interface ExploreClientProps {
   initialProjects: ProjectCardData[];
   /** 주소에서 읽은 검색어·필터·정렬(서버 페이지가 parseExploreQuery로 넘김) */
   initialQuery: ExploreQuery;
+  /** 로그인한 사람(없으면 하트를 누를 때 로그인으로) */
+  viewerId: string | null;
+  /** 내가 하트를 누른 프로젝트 id(최신 먼저) — 맨 위 즐겨찾기 칸 */
+  myHeartIds: string[];
 }
 
-export function ExploreClient({ initialProjects, initialQuery }: ExploreClientProps) {
+type HeartState = Record<string, { hearted: boolean; count: number }>;
+
+export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeartIds }: ExploreClientProps) {
   const [searchQuery, setSearchQuery] = useState(initialQuery.q);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(initialQuery.platforms);
   const [selectedTypes, setSelectedTypes] = useState<string[]>(initialQuery.types);
@@ -30,6 +41,58 @@ export function ExploreClient({ initialProjects, initialQuery }: ExploreClientPr
   const [platformOpen, setPlatformOpen] = useState(false);
   const [sortBy, setSortBy] = useState<ExploreSort>(initialQuery.sort);
   const [sortOpen, setSortOpen] = useState(false);
+
+  // 하트 상태는 여기 하나 — 즐겨찾기 칸과 아래 목록에 같은 카드가 있어도 같이 바뀐다
+  const [hearts, setHearts] = useState<HeartState>(() => {
+    const mine = new Set(myHeartIds);
+    return Object.fromEntries(
+      initialProjects.map((p) => [p.id, { hearted: mine.has(p.id), count: heartCountOf(p) }]),
+    );
+  });
+  const [heartOrder, setHeartOrder] = useState<string[]>(myHeartIds);
+  const [heartPending, setHeartPending] = useState<Set<string>>(() => new Set());
+
+  const applyHeart = useCallback((id: string, on: boolean) => {
+    setHearts((h) => {
+      const cur = h[id] ?? { hearted: false, count: 0 };
+      if (cur.hearted === on) return h;
+      return { ...h, [id]: { hearted: on, count: Math.max(0, cur.count + (on ? 1 : -1)) } };
+    });
+    setHeartOrder((o) => (on ? [id, ...o.filter((x) => x !== id)] : o.filter((x) => x !== id)));
+  }, []);
+
+  const toggleHeart = useCallback(
+    async (id: string, next: boolean) => {
+      if (!viewerId || heartPending.has(id)) return;
+      setHeartPending((s) => new Set(s).add(id));
+      applyHeart(id, next);
+      const { error } = await setHeart(createClient(), id, viewerId, next);
+      setHeartPending((s) => {
+        const n = new Set(s);
+        n.delete(id);
+        return n;
+      });
+      if (error) {
+        applyHeart(id, !next);
+        toast.error("하트를 누르지 못했어요.", { description: error });
+      }
+    },
+    [viewerId, heartPending, applyHeart],
+  );
+
+  const renderCard = (project: ProjectCardData) => (
+    <ProjectCard
+      key={project.id}
+      project={project}
+      mode="showcase"
+      heart={{
+        viewerId,
+        hearted: hearts[project.id]?.hearted ?? false,
+        count: hearts[project.id]?.count ?? 0,
+        onToggle: (next) => void toggleHeart(project.id, next),
+      }}
+    />
+  );
 
   const handlePlatformChange = (platform: string, checked: boolean) => {
     setSelectedPlatforms(prev =>
@@ -88,18 +151,19 @@ export function ExploreClient({ initialProjects, initialQuery }: ExploreClientPr
     if (sortBy === 'clicks') {
       return [...filtered].sort((a, b) => (b.click_count ?? 0) - (a.click_count ?? 0));
     }
-    if (sortBy === 'rating') {
-      return [...filtered].sort((a, b) => {
-        const getAvg = (p: typeof a) => {
-          const rated = (p.reviews ?? []).filter(r => r.rating != null);
-          return rated.length > 0 ? rated.reduce((s, r) => s + r.rating!, 0) / rated.length : 0;
-        };
-        return getAvg(b) - getAvg(a);
-      });
+    if (sortBy === 'hearts') {
+      // 같은 수면 서버 순서(최신) 유지 — Array.sort 는 안정 정렬
+      return [...filtered].sort((a, b) => (hearts[b.id]?.count ?? 0) - (hearts[a.id]?.count ?? 0));
     }
     // newest: 서버에서 created_at DESC로 정렬되어 옴
     return filtered;
-  }, [searchQuery, selectedPlatforms, selectedTypes, selectedCategories, initialProjects, sortBy]);
+  }, [searchQuery, selectedPlatforms, selectedTypes, selectedCategories, initialProjects, sortBy, hearts]);
+
+  const favorites = useMemo(() => favoritesInHeartOrder(initialProjects, heartOrder), [initialProjects, heartOrder]);
+  const showFavorites = shouldShowFavorites(
+    { q: searchQuery, types: selectedTypes, categories: selectedCategories, platforms: selectedPlatforms },
+    favorites.length,
+  );
 
   // 검색어·필터·정렬을 주소에 남긴다 — 새로고침·뒤로 가기·링크 공유에도 같은 결과.
   // 기록은 쌓지 않고(replaceState) 타자 칠 때마다 쓰지 않게 잠깐 모았다 쓴다(Safari는 30초에 100번 넘으면 막음).
@@ -133,13 +197,13 @@ export function ExploreClient({ initialProjects, initialQuery }: ExploreClientPr
               <button
                 type="button"
                 onClick={() => setSortOpen(o => !o)}
-                aria-label={`정렬: ${sortBy === 'newest' ? '최신순' : sortBy === 'clicks' ? '인기순' : '별점순'}`}
+                aria-label={`정렬: ${sortBy === 'newest' ? '최신순' : sortBy === 'clicks' ? '인기순' : '하트순'}`}
                 aria-expanded={sortOpen}
                 className="flex h-[34px] items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3.5 text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition-colors"
               >
                 <ArrowUpDown className="h-3.5 w-3.5 text-zinc-500" aria-hidden />
                 <span>
-                  {sortBy === 'newest' ? '최신순' : sortBy === 'clicks' ? '인기순' : '별점순'}
+                  {sortBy === 'newest' ? '최신순' : sortBy === 'clicks' ? '인기순' : '하트순'}
                 </span>
               </button>
               {sortOpen && (
@@ -147,7 +211,7 @@ export function ExploreClient({ initialProjects, initialQuery }: ExploreClientPr
                   {([
                     { value: 'newest', label: '최신순' },
                     { value: 'clicks', label: '인기순' },
-                    { value: 'rating', label: '별점순' },
+                    { value: 'hearts', label: '하트순' },
                   ] as const).map(opt => (
                     <button
                       key={opt.value}
@@ -175,7 +239,7 @@ export function ExploreClient({ initialProjects, initialQuery }: ExploreClientPr
         section="explore"
         icon={Search}
         title="모든 프로젝트"
-        description="친구들이 만든 프로젝트를 찾아보고, 써 본 뒤 리뷰를 남겨요."
+        description="친구들이 만든 프로젝트를 찾아보고, 마음에 들면 하트를 눌러요."
         maxWidth="lg"
       >
         <div className="rise relative mt-5 w-full max-w-[640px] sm:mt-6" style={{ "--rise-delay": "180ms" } as CSSProperties}>
@@ -395,6 +459,8 @@ export function ExploreClient({ initialProjects, initialQuery }: ExploreClientPr
 
           {/* MAIN CONTENT / SEARCH & GRID */}
           <div className="flex-1 min-w-0">
+            {showFavorites && <FavoritesSection projects={favorites} renderCard={renderCard} />}
+
             <div className="mb-4 flex items-baseline justify-between gap-2">
               <p className="text-sm text-zinc-600 dark:text-zinc-400" aria-live="polite">
                 <b className="font-semibold text-zinc-900 tabular-nums dark:text-white">{filteredProjects.length}개</b>
@@ -425,7 +491,7 @@ export function ExploreClient({ initialProjects, initialQuery }: ExploreClientPr
             ) : (
               <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                 {filteredProjects.map((project) => (
-                  <ProjectCard key={project.id} project={project} mode="showcase" />
+                  renderCard(project)
                 ))}
               </div>
             )}
