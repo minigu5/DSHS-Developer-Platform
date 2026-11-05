@@ -23,6 +23,7 @@ import { normalizeName, validateName } from './name'
 import { getNaruClient, isSiteStep, NaruError, restoreNaruDns, shouldSkipVerify, toPickableServers, unbindNaruBestEffort, type NaruServer } from './naru'
 import { getRedirectClient, redirectConfigured } from './redirects'
 import { checkSite, type CheckResult } from './verify'
+import { banNoticeFor } from '@/lib/admin/guard'
 
 export type ActionResult<T = null> = { ok: true; data: T } | { ok: false; error: string }
 
@@ -137,6 +138,8 @@ export async function checkNameAvailable(raw: string): Promise<ActionResult<{ av
 export async function reserveSubdomain(projectId: string, rawName: string, opts?: { naru?: boolean }): Promise<ActionResult<{ id: string }>> {
   const user = await currentUser()
   if (!user) return LOGIN_REQUIRED
+  const banned = await banNoticeFor(user.id)
+  if (banned) return { ok: false, error: banned }
   const name = normalizeName(rawName)
   const v = validateName(name)
   if (!v.ok) return { ok: false, error: NAME_REASONS[v.reason] }

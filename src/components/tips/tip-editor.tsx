@@ -14,6 +14,9 @@ import { EditorTabs, TITLE_INPUT_CLASS, type EditorTab } from "@/components/shar
 import { ImageUploadInput } from "@/components/shared/image-upload-input";
 import { Markdown } from "@/components/shared/markdown";
 import { createTip, updateTip, type TipFormInput } from "@/lib/tips/actions";
+import { BannedNotice } from "@/components/shared/banned-notice";
+import { friendlyWriteError } from "@/lib/admin/ban";
+import { useMyBan } from "@/lib/admin/use-my-ban";
 
 export interface TipEditorDefaults {
   id?: string;
@@ -42,6 +45,7 @@ export function TipEditor({ mode, defaults = EMPTY }: TipEditorProps) {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [loading, setLoading] = useState(false);
+  const ban = useMyBan();
   const [tab, setTab] = useState<EditorTab>("write");
 
   const [title, setTitle] = useState(defaults.title);
@@ -103,7 +107,7 @@ export function TipEditor({ mode, defaults = EMPTY }: TipEditorProps) {
     setLoading(false);
 
     if ("error" in result) {
-      toast.error(result.error);
+      toast.error(friendlyWriteError(result.error, ban.until) ?? result.error);
       return;
     }
     toast.success(mode === "create" ? "팁이 등록되었습니다." : "팁이 수정되었습니다.");
@@ -238,6 +242,7 @@ export function TipEditor({ mode, defaults = EMPTY }: TipEditorProps) {
         </p>
       </section>
 
+      {ban.banned && <BannedNotice until={ban.until} />}
       <div className="flex flex-wrap items-center justify-end gap-2.5">
         <p className="mr-auto text-xs text-zinc-500 dark:text-zinc-400">
           {mode === "create" ? "발행하면 바로 목록에 올라가요. 수정은 나중에도 할 수 있어요." : "저장하면 바로 반영돼요."}
@@ -245,7 +250,7 @@ export function TipEditor({ mode, defaults = EMPTY }: TipEditorProps) {
         <Button type="button" variant="ghost" onClick={() => router.back()} className="h-11 rounded-full px-4">
           취소
         </Button>
-        <Button type="button" onClick={handleSubmit} disabled={loading} className={cn("h-11 rounded-full px-5", SECTION_COLORS.tips.button)}>
+        <Button type="button" onClick={handleSubmit} disabled={loading || ban.banned} className={cn("h-11 rounded-full px-5", SECTION_COLORS.tips.button)}>
           <PenLine className="mr-1.5 h-4 w-4" aria-hidden />
           {loading ? "저장 중…" : mode === "create" ? "팁 발행" : "저장"}
         </Button>

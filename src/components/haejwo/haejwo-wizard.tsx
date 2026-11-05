@@ -17,6 +17,9 @@ import { TYPE_ICONS, CATEGORY_ICONS } from "@/lib/type-icons";
 import { GUIDE_PROGRAM_TYPES } from "@/lib/constants";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { createIdea, updateIdea } from "@/lib/haejwo/actions";
+import { BannedNotice } from "@/components/shared/banned-notice";
+import { friendlyWriteError } from "@/lib/admin/ban";
+import { useMyBan } from "@/lib/admin/use-my-ban";
 
 type Step = "type" | "category" | "write";
 
@@ -45,6 +48,7 @@ export function HaejwoWizard({ mode = "create", defaults }: HaejwoWizardProps) {
   const [content, setContent] = useState(defaults?.content ?? "");
   const [editorTab, setEditorTab] = useState<EditorTab>("write");
   const [loading, setLoading] = useState(false);
+  const ban = useMyBan();
 
   const stepNumber = step === "type" ? 1 : step === "category" ? 2 : 3;
 
@@ -97,14 +101,14 @@ export function HaejwoWizard({ mode = "create", defaults }: HaejwoWizardProps) {
     if (mode === "edit" && defaults?.id) {
       const result = await updateIdea(defaults.id, { title, type, category, content });
       setLoading(false);
-      if ("error" in result) { toast.error(result.error); return; }
+      if ("error" in result) { toast.error(friendlyWriteError(result.error, ban.until) ?? result.error); return; }
       toast.success("아이디어가 수정되었습니다.");
       router.push(`/haejwo/${defaults.id}`);
       router.refresh();
     } else {
       const result = await createIdea({ title, type, category, content });
       setLoading(false);
-      if ("error" in result) { toast.error(result.error); return; }
+      if ("error" in result) { toast.error(friendlyWriteError(result.error, ban.until) ?? result.error); return; }
       toast.success("아이디어가 등록되었습니다!");
       router.push(`/haejwo/${result.id}`);
     }
@@ -246,6 +250,7 @@ export function HaejwoWizard({ mode = "create", defaults }: HaejwoWizardProps) {
               <p className="text-xs text-zinc-500 dark:text-zinc-400">Tab으로 들여쓰기, Shift+Tab으로 해제.</p>
             </div>
 
+            {ban.banned && <BannedNotice until={ban.until} />}
             <div className="flex justify-end gap-2.5">
               <Button
                 type="button"
@@ -255,7 +260,7 @@ export function HaejwoWizard({ mode = "create", defaults }: HaejwoWizardProps) {
               >
                 취소
               </Button>
-              <Button type="button" onClick={handleSubmit} disabled={loading} className={cn("h-11 rounded-full px-5", SECTION_COLORS.haejwo.button)}>
+              <Button type="button" onClick={handleSubmit} disabled={loading || ban.banned} className={cn("h-11 rounded-full px-5", SECTION_COLORS.haejwo.button)}>
                 <Megaphone className="mr-1.5 h-4 w-4" aria-hidden />
                 {loading ? (mode === "edit" ? "저장 중…" : "등록 중…") : mode === "edit" ? "저장" : "해줘! 등록"}
               </Button>

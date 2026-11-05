@@ -41,6 +41,9 @@ import { shouldFollowNext, withProject } from "@/lib/domains/next-path";
 import { createClient } from "@/lib/supabase/client";
 import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 import type { ProjectRow, UserContact } from "@/lib/types";
+import { BannedNotice } from "@/components/shared/banned-notice";
+import { friendlyWriteError } from "@/lib/admin/ban";
+import { useMyBan } from "@/lib/admin/use-my-ban";
 
 type Visibility = 'public' | 'private';
 type SourceType = 'open' | 'closed';
@@ -77,6 +80,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   const router = useRouter();
   const supabase = createClient();
   const [isLoading, setIsLoading] = useState(false);
+  const ban = useMyBan();
   const [errorMsg, setErrorMsg] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
@@ -761,6 +765,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         const e = err as { message?: string; details?: string; hint?: string; code?: string };
         msg = [e.message, e.details, e.hint, e.code && `(code: ${e.code})`].filter(Boolean).join(' / ') || msg;
       }
+      msg = friendlyWriteError(msg, ban.until) ?? msg;
       if (msg.includes('projects_duplicate_recent')) {
         msg = '방금 같은 이름으로 등록한 프로젝트가 있어요. 내 프로젝트에서 확인해 주세요.';
       }
@@ -1319,18 +1324,19 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
           </FormSection>
         )}
 
+        {ban.banned && <BannedNotice until={ban.until} />}
         <div className="flex items-center justify-end gap-2.5 pb-6 pt-1">
           <button type="button" onClick={() => router.back()} className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "h-11 rounded-full px-4 text-sm")}>
             취소
           </button>
           <button
             type="submit"
-            disabled={isLoading || shortDesc.length > 100}
+            disabled={isLoading || ban.banned || shortDesc.length > 100}
             className={cn(
               buttonVariants({ size: "lg" }),
               "h-11 rounded-full px-5 text-sm transition-[background-color,scale] active:scale-[0.96]",
               SECTION_COLORS.new.button,
-              (isLoading || shortDesc.length > 100) && "cursor-not-allowed opacity-50",
+              (isLoading || ban.banned || shortDesc.length > 100) && "cursor-not-allowed opacity-50",
             )}
           >
             {isLoading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden /> : <Rocket className="mr-1.5 h-4 w-4" aria-hidden />}

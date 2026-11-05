@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { ImageUploadInput } from "@/components/shared/image-upload-input";
 import { updateProfile, checkNicknameDuplicate } from "../actions";
+import { friendlyWriteError } from "@/lib/admin/ban";
 
 const CONTACT_TYPES: { value: UserContact['type']; label: string; icon: React.ElementType; placeholder: string }[] = [
   { value: 'github', label: 'GitHub', icon: GitBranch, placeholder: 'username' },
@@ -101,7 +102,9 @@ export function ProfileSettingsDialog({ userId, initialNickname, initialBio, ini
       router.refresh();
     } catch (err) {
       console.error(err);
-      toast.error(`프로필 업데이트에 실패했습니다. (${err instanceof Error ? err.message : String(err)})`);
+      const message = err instanceof Error ? err.message : String(err);
+      // 차단 중엔 닉네임·소개를 못 바꾼다(DB 트리거 user_banned) — 끝나는 날은 DB 함수 my_ban 이 아는데 여기선 문구만
+      toast.error(friendlyWriteError(message) ?? `프로필 업데이트에 실패했습니다. (${message})`);
     } finally {
       setLoading(false);
     }

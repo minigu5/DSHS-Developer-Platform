@@ -30,6 +30,8 @@ import { InsertLine } from "@/components/guide-wiki/editor/insert-line";
 import { SaveBar } from "@/components/guide-wiki/editor/save-bar";
 import { GoneStepCard, StepCard, stepDomId } from "@/components/guide-wiki/editor/step-card";
 import { WholePreview } from "@/components/guide-wiki/editor/whole-preview";
+import { BannedNotice } from "@/components/shared/banned-notice";
+import { useMyBan } from "@/lib/admin/use-my-ban";
 
 const SAVE_FAILED = "저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.";
 
@@ -55,6 +57,7 @@ export function GuideWikiEditor({ doc, baseRev: initialBaseRev, usages, stale, f
   const [state, dispatch] = useReducer(editorReducer, doc.steps, initEditorState);
   const [baseRev, setBaseRev] = useState(initialBaseRev);
   const [saving, setSaving] = useState(false);
+  const ban = useMyBan();
   const [conflict, setConflict] = useState<{ latestRev: number } | null>(null);
   const [leaveHref, setLeaveHref] = useState<string | null>(null);
 
@@ -325,6 +328,7 @@ export function GuideWikiEditor({ doc, baseRev: initialBaseRev, usages, stale, f
         </div>
       </div>
 
+      {ban.banned && <BannedNotice until={ban.until} />}
       <SaveBar
         changeText={
           dirty
@@ -333,7 +337,7 @@ export function GuideWikiEditor({ doc, baseRev: initialBaseRev, usages, stale, f
         }
         summary={state.summary}
         onSummary={(text) => dispatch({ type: "summary", text })}
-        canSave={canSave}
+        canSave={canSave && !ban.banned}
         saving={saving}
         onSave={() => void runSave(baseRev)}
         onCancel={() => requestLeave(exitHref)}

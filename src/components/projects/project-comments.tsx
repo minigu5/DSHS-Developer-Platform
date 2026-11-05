@@ -21,6 +21,9 @@ import { isMyComment, type CommentRowView } from "@/lib/comments";
 
 import { CommentForm } from "./comment-form";
 import { CommentList } from "./comment-list";
+import { BannedNotice } from "@/components/shared/banned-notice";
+import { friendlyWriteError } from "@/lib/admin/ban";
+import { useMyBan } from "@/lib/admin/use-my-ban";
 
 interface ProjectCommentsProps {
   projectId: string;
@@ -36,6 +39,7 @@ export function ProjectComments({ projectId, comments, viewerId, viewerOwnsProje
   const [editing, setEditing] = useState<CommentRowView | null>(null);
   const [deleting, setDeleting] = useState<CommentRowView | null>(null);
   const [deletePending, setDeletePending] = useState(false);
+  const ban = useMyBan();
 
   async function handleCreate(content: string): Promise<boolean> {
     if (!viewerId) return false;
@@ -45,7 +49,7 @@ export function ProjectComments({ projectId, comments, viewerId, viewerOwnsProje
       content,
     });
     if (error) {
-      toast.error("댓글을 남기지 못했어요.", { description: error.message });
+      toast.error(friendlyWriteError(error.message, ban.until) ?? "댓글을 남기지 못했어요.", { description: error.message });
       return false;
     }
     toast.success("댓글을 남겼어요.");
@@ -57,7 +61,7 @@ export function ProjectComments({ projectId, comments, viewerId, viewerOwnsProje
     if (!editing) return false;
     const { error } = await supabase.from("project_comments").update({ content }).eq("id", editing.id);
     if (error) {
-      toast.error("댓글을 고치지 못했어요.", { description: error.message });
+      toast.error(friendlyWriteError(error.message, ban.until) ?? "댓글을 고치지 못했어요.", { description: error.message });
       return false;
     }
     toast.success("댓글을 고쳤어요.");
@@ -108,6 +112,8 @@ export function ProjectComments({ projectId, comments, viewerId, viewerOwnsProje
               로그인
             </Link>
           </div>
+        ) : ban.banned ? (
+          <BannedNotice until={ban.until} />
         ) : (
           <CommentForm onSubmit={handleCreate} submitLabel="댓글 남기기" />
         )}

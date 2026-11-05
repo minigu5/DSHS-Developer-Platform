@@ -21,6 +21,9 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { cn, isExternalImage } from "@/lib/utils";
 import { SECTION_COLORS } from "@/lib/section-colors";
+import { BannedNotice } from "@/components/shared/banned-notice";
+import { friendlyWriteError } from "@/lib/admin/ban";
+import { useMyBan } from "@/lib/admin/use-my-ban";
 
 export interface TipCommentItem {
   id: string;
@@ -43,6 +46,7 @@ export function TipComments({ tipId, comments }: TipCommentsProps) {
   const [pending, setPending] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const ban = useMyBan();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id ?? null));
@@ -56,7 +60,7 @@ export function TipComments({ tipId, comments }: TipCommentsProps) {
       .insert({ tip_id: tipId, user_id: userId, content: text.trim() });
     setPending(false);
     if (error) {
-      toast.error("댓글 작성에 실패했습니다.", { description: error.message });
+      toast.error(friendlyWriteError(error.message, ban.until) ?? "댓글 작성에 실패했습니다.", { description: error.message });
       return;
     }
     setText("");
@@ -87,7 +91,11 @@ export function TipComments({ tipId, comments }: TipCommentsProps) {
       </h2>
 
       {/* 작성 */}
-      {userId ? (
+      {userId && ban.banned ? (
+        <div className="mb-8">
+          <BannedNotice until={ban.until} />
+        </div>
+      ) : userId ? (
         <div className="mb-8">
           <textarea
             value={text}

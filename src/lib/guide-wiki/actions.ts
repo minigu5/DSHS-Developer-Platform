@@ -26,6 +26,7 @@ import { loadSourceDoc, sourceHash } from '@/lib/guide-wiki/source'
 import type { RevisionStats, WikiDoc, WikiStep } from '@/lib/guide-wiki/types'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 import type { Json } from '@/lib/types'
+import { banNoticeFor } from '@/lib/admin/guard'
 
 export type SaveResult =
   | { revNo: number }
@@ -95,6 +96,8 @@ async function currentActor(): Promise<Actor | { error: string }> {
   } = await supabase.auth.getUser()
   if (!user) return { error: '로그인이 필요해요.' }
   if (!isAllowedEmail(user.email)) return { error: '학교 계정으로 로그인해야 저장할 수 있어요.' }
+  const banned = await banNoticeFor(user.id)
+  if (banned) return { error: banned }
   return { id: user.id }
 }
 
