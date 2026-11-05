@@ -17,7 +17,7 @@ paths:
 
 - 파일: `src/components/shared/page-nav.tsx` (`"use client"`, 두 컴포넌트 모두 export)
 - **5개 항목**(2026-10-24 6칸에서 병합해 4칸 → 2026-10-25 "도메인 마련하기" 추가): 모든 프로젝트(→ `/explore`), 프로젝트 등록(→ `/projects/new`), 나도 개발해볼래!(→ `/guide`), **도메인 마련하기(→ `/domains`, teal-700)**, **커뮤니티(→ `/tips`)**. 커뮤니티 = 개발 팁 + 해줘!(URL은 `/tips`·`/haejwo` 그대로, 두 목록 사이는 `CommunityTabs`로 오감). **공지사항은 내비 칸이 아니라 헤더 오른쪽 벨 아이콘**(`src/components/shared/announcements-link.tsx`, 프로필 옆, 글자·안 읽음 점 없음, 모바일 포함).
-- **미리 받기는 마우스를 올릴 때만**(2026-11-04): 예전엔 모든 Link가 `prefetch={true}`(화면에 보이면 미리 받기)였는데 페이지마다 요청이 25~30개라 학교 IP가 속도 제한(100회/10초)에 걸렸다. 지금은 사이트 공용 `Link`(`src/components/shared/link.tsx`)가 hover·터치·포커스 때만 `router.prefetch` — 「성능」 문서 참고.
+- **미리 받기는 마우스를 올릴 때만**(2026-11-04): 예전엔 모든 Link가 `prefetch={true}`(화면에 보이면 미리 받기)였는데 페이지마다 요청이 25~30개라 학교 IP가 속도 제한(100회/10초)에 걸렸다. 지금은 사이트 공용 `Link`(`src/components/shared/link.tsx`)가 hover·터치·포커스 때만 `router.prefetch` — 「성능」 문서 참고. **단, 메뉴 5칸(`PageNav`·`MobileNav`)은 `prefetchOnView`로 화면에 보일 때 미리 받는다**(2026-11-05) — 무료 Cloudflare는 한국 접속이 LA를 거쳐 왕복 1~2초라 폰에서 메뉴를 누를 때마다 멈췄다. 동적 페이지는 `loading.tsx` 뼈대까지만(각 3KB 이하), 비로그인은 `/projects/new`·`/domains`가 `/login` 리다이렉트까지 받아 첫 화면 RSC 8개, 이동 뒤엔 라우터 캐시라 거의 다시 안 받음(로컬 `next start` 실측).
 - **활성 버튼 판정**:
   - `/explore`, `/projects/*`(등록·수정 제외), `/developers/*` → "모든 프로젝트"
   - `/projects/new`, `*/edit` → "프로젝트 등록"

@@ -132,6 +132,7 @@ export function PageNav() {
               itemRefs.current[i] = el;
             }}
             href={href}
+            prefetchOnView
             onClick={onNavigate(href)}
             aria-label={label}
             aria-current={isActive ? "page" : undefined}
@@ -171,6 +172,7 @@ export function MobileNav() {
           <Link
             key={href}
             href={href}
+            prefetchOnView
             onClick={onNavigate(href)}
             aria-label={label}
             aria-current={isActive ? "page" : undefined}
