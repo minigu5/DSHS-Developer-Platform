@@ -130,6 +130,7 @@
 - Worker 배치는 `placement.region: aws:ap-northeast-2`(Supabase 옆, smart 모드는 트래픽이 쌓여야 작동).
 - `wrangler types` 결과(`cloudflare-env.d.ts`)는 두지 않는다 — 런타임 타입이 브라우저 `Response.json()`을 `unknown`으로 덮어 `tsc`가 깨짐.
 - `src/middleware.ts` 유지(OpenNext가 Next 16 `proxy.ts`를 아직 인식 못 한다는 보고). Next는 16.4.1 이상 필요(OpenNext peer).
+- **오류 화면**(2026-11-05): 배포 직후 몇 분 동안 Next 기본 영어 화면 "This page couldn't load"(브라우저 JS 오류)가 새로 고쳐도 반복됐다 — 서버 로그엔 오류 없음, 원인은 못 잡음(배포 엇갈림 추정). 그래서 `src/app/error.tsx`·`global-error.tsx`(공용 `ErrorScreen`)가 한국어 화면 + **오류 내용을 작게** 보여 주고(다음에 원인 확인용), JS 파일·서버 액션을 못 찾은 오류(`isStaleDeployError`, `src/lib/error-recovery.ts`)면 1분에 한 번만 자동 새로 고침한다.
 
 ---
 
