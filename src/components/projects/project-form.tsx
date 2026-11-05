@@ -38,6 +38,7 @@ import { closeDomainOfPrivateProject, deleteProject } from "@/lib/projects/actio
 import { addGithubToProfile } from "@/lib/profile/actions";
 import { domainOfferOf, previewAddressOf, quickToConnect } from "@/lib/domains/offer";
 import { shouldFollowNext, withProject } from "@/lib/domains/next-path";
+import { fixOldAddresses } from "@/lib/domains/old-address";
 import { createClient } from "@/lib/supabase/client";
 import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 import type { ProjectRow, UserContact } from "@/lib/types";
@@ -70,13 +71,15 @@ interface ProjectFormProps {
   canDelete?: boolean;
   /** 이 프로젝트에 살아 있는 주소(서브도메인) 이름 — 삭제하면 함께 반납돼요 */
   subdomainName?: string | null;
+  /** 연결된(active) 주소 이름과 옛 사이트 주소 후보 — 상세 설명에 옛 주소가 있으면 새 주소로 바꿀지 묻는다 */
+  oldAddress?: { name: string; prefixes: string[] } | null;
   /** 새 등록에서 종류를 미리 고른다(도메인 마련하기 → 대곽나루 흐름의 "웹사이트") */
   initialType?: string | null;
   /** 등록이 끝나면 돌아갈 /domains 경로(검증된 값). 있으면 권유 창 없이 그리로 가고, 방문 주소는 비워도 된다 */
   nextHref?: string | null;
 }
 
-export function ProjectForm({ initialData, isEdit = false, canDelete = true, subdomainName = null, initialType = null, nextHref = null }: ProjectFormProps) {
+export function ProjectForm({ initialData, isEdit = false, canDelete = true, subdomainName = null, oldAddress = null, initialType = null, nextHref = null }: ProjectFormProps) {
   const router = useRouter();
   const supabase = createClient();
   const [isLoading, setIsLoading] = useState(false);
@@ -124,6 +127,10 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   // 편집 탭 줄의 "GitHub README 가져오기" 버튼이 여는 창 — 링크 입력 + 자동 동기화 선택을 한곳에 모았다
   const [showReadmeDialog, setShowReadmeDialog] = useState(false);
   const [readmeSync, setReadmeSync] = useState<boolean>(initialData?.readme_sync ?? false);
+  // 설명 속 옛 사이트 주소 — 쓰는 대로 다시 찾는다. "괜찮아요"는 이 화면에서만 다시 안 묻고, 바꾼 뒤엔 저장 안내 한 줄
+  const oldFix = oldAddress ? fixOldAddresses(description, oldAddress.prefixes, oldAddress.name) : null;
+  const [oldAddressDismissed, setOldAddressDismissed] = useState(false);
+  const [oldAddressReplaced, setOldAddressReplaced] = useState(false);
   // 창 안의 "자동 동기화" 선택(기본 켜짐). 가져오기가 성공하면 (오픈소스일 때) 이 값대로 동기화를 켠다. 취소·실패하면 그대로 둔다.
   const [readmeSyncChoice, setReadmeSyncChoice] = useState(true);
 
@@ -965,6 +972,59 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
                   {description.trim() ? <Markdown>{description}</Markdown> : <p className="text-sm text-zinc-500">작성한 내용이 여기에 미리보기로 표시돼요.</p>}
                 </div>
               </div>
+            )}
+            {oldAddress && oldFix && oldFix.count > 0 && !oldAddressDismissed && (
+              <div className="rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 dark:border-teal-900 dark:bg-teal-950/40">
+                <p className="text-sm font-semibold text-teal-900 break-keep dark:text-teal-200">
+                  설명에 옛 주소가 남아 있어요. <span className="font-mono">{oldAddress.name}.dshs.dev</span>로 바꿀까요?
+                </p>
+                <ul className="mt-2 space-y-2">
+                  {oldFix.lines.slice(0, 3).map((line, i) => (
+                    <li key={i} className="rounded-xl bg-white px-3 py-2 text-xs dark:bg-zinc-900">
+                      <p className="line-clamp-2 break-all text-zinc-500 dark:text-zinc-400">
+                        <span className="sr-only">지금: </span>
+                        <del>{line.before}</del>
+                      </p>
+                      <p className="mt-1 line-clamp-2 break-all font-medium text-zinc-900 dark:text-white">
+                        <span className="sr-only">바꾸면: </span>
+                        {line.after}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+                {oldFix.lines.length > 3 && (
+                  <p className="mt-2 text-xs text-teal-900 dark:text-teal-200">외 {oldFix.lines.length - 3}줄도 같이 바뀌어요.</p>
+                )}
+                {descLocked && (
+                  <p className="mt-2 text-xs text-teal-900 break-keep dark:text-teal-200">
+                    README와 동기화 중이라 GitHub README도 고쳐야 해요. 안 고치면 README가 바뀔 때 옛 주소로 돌아가요.
+                  </p>
+                )}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDescription(oldFix.text);
+                      setOldAddressReplaced(true);
+                    }}
+                    className={cn("inline-flex h-9 items-center rounded-full px-4 text-sm font-semibold transition-colors", SECTION_COLORS.domains.button)}
+                  >
+                    새 주소로 바꾸기
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOldAddressDismissed(true)}
+                    className={cn(buttonVariants({ variant: "ghost" }), "h-9 rounded-full px-4 text-sm")}
+                  >
+                    괜찮아요
+                  </button>
+                </div>
+              </div>
+            )}
+            {oldAddress && oldAddressReplaced && oldFix?.count === 0 && (
+              <p className="text-xs font-medium text-teal-700 dark:text-teal-400">
+                설명의 주소를 <span className="font-mono">{oldAddress.name}.dshs.dev</span>로 바꿨어요. 저장하면 반영돼요.
+              </p>
             )}
             {descLocked ? (
               <p className={hintClass}>매일 밤 GitHub README로 다시 채워져서 여기서는 고칠 수 없어요. 고치려면 동기화를 끄세요.</p>

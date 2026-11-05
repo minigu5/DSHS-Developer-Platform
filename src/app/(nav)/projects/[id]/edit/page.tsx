@@ -5,7 +5,8 @@ import { Rocket } from "lucide-react";
 import { PageHero } from "@/components/shared/page-hero";
 import { ProjectForm } from "@/components/projects/project-form";
 import { isDeveloper } from "@/lib/constants";
-import { getLiveDomain } from "@/lib/domains/read";
+import { getLiveDomain, getOldAddressSource } from "@/lib/domains/read";
+import { oldAddressPrefixes } from "@/lib/domains/old-address";
 import { PROJECT_COLUMNS } from "@/lib/projects/columns";
 
 export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
@@ -43,12 +44,15 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
 
   const isAuthor = isOwnProject || userIsDeveloper;
   const subdomainName = isAuthor ? ((await getLiveDomain(project.id))?.name ?? null) : null;
+  // 연결된 주소가 있으면 설명 속 옛 사이트 주소를 폼이 찾아 바꿀지 묻는다(상세 페이지 OldAddressNudge 와 같은 조건)
+  const source = subdomainName ? await getOldAddressSource(project.id) : null;
+  const oldAddress = source ? { name: source.name, prefixes: oldAddressPrefixes(source) } : null;
 
   return (
     <div className="flex min-h-screen flex-col bg-white dark:bg-zinc-950">
       <PageHero section="new" icon={Rocket} title="프로젝트 수정" description="프로젝트의 최신 정보를 반영해요." />
       <main className="w-full flex-1 px-6 py-9">
-        <ProjectForm initialData={project} isEdit={true} canDelete={isAuthor} subdomainName={subdomainName} />
+        <ProjectForm initialData={project} isEdit={true} canDelete={isAuthor} subdomainName={subdomainName} oldAddress={oldAddress} />
       </main>
     </div>
   );
