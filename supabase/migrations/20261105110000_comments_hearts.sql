@@ -2,7 +2,7 @@
 --
 -- 설계: docs/superpowers/specs/2026-11-04-hearts-comments-design.md
 -- 이 파일은 "A" 단계다 — 운영의 옛 코드가 계속 읽을 수 있게 옛 이름 view reviews 와 rating 칸을 남긴다.
--- 새 코드 배포 뒤 20261105120000_comments_hearts_cleanup.sql(B)이 view·rating 을 지우고 user_id 읽기를 막는다.
+-- 새 코드 배포 뒤 20261105140000_comments_hearts_cleanup.sql(B)이 view·rating 을 지우고 user_id 읽기를 막는다.
 --
 -- 1) reviews → project_comments, comment → content(tip_comments 와 맞춤). 1인 1개 UNIQUE 를 풀어 여러 개 달 수 있게.
 --    정책식은 OID 로 저장돼 있어 이름만 바꾸면 그대로 동작한다.

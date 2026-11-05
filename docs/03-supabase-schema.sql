@@ -118,7 +118,7 @@ CREATE POLICY "projects_delete_own"
 
 
 -- 3. project_comments (옛 reviews — 2026-11-05 별점 삭제·이름 변경) / project_hearts
--- 실제 정의·트리거·정책은 supabase/migrations/20261105110000_comments_hearts.sql(+ 20261105120000 정리)이 기준.
+-- 실제 정의·트리거·정책은 supabase/migrations/20261105110000_comments_hearts.sql(+ 20261105140000 정리)이 기준.
 -- 익명 프로젝트 소유자의 댓글은 public_user_id 가 NULL(트리거), user_id 는 사용자 키로 못 읽음(칸 단위 GRANT).
 CREATE TABLE public.project_comments (
   id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
