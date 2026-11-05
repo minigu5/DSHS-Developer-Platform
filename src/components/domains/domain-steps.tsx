@@ -272,7 +272,7 @@ function SiteStep({
             id={`site-${domain.id}`}
             value={raw}
             onChange={(e) => setRaw(e.target.value)}
-            placeholder="https://이름.vercel.app"
+            placeholder="이름.vercel.app"
             autoComplete="off"
             spellCheck={false}
             aria-describedby={`site-hint-${domain.id}`}
@@ -291,7 +291,7 @@ function SiteStep({
             </span>
           ) : (
             <span className="text-red-600 dark:text-red-400">
-              Vercel·Netlify·Cloudflare·GitHub·GitLab·Render·Railway·Firebase가 준 기본 주소(https://…)만 넣을 수 있어요.
+              Vercel·Netlify·Cloudflare·GitHub·GitLab·Render·Railway·Firebase가 준 기본 주소만 넣을 수 있어요.
             </span>
           )}
         </p>

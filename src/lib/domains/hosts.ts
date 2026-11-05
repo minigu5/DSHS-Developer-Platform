@@ -291,11 +291,14 @@ export function targetBoundToSite(host: DomainHost): boolean {
  * ② 소유 확인에 쓰는 "내 사이트 원래 주소". 프리셋 10곳의 기본 주소만 받는다(③ 연결이 같은 판정을 쓰므로
  * 여기서 통과하면 ③에서 막히지 않는다). url 은 쿼리·해시를 버리고 끝을 / 로 맞춘다.
  * 경로는 GitHub/GitLab Pages 프로젝트 사이트(내아이디.github.io/저장소/)만 남긴다.
+ * https:// 없이 넣어도(omm.vercel.app) 받고, http:// 는 https 로 본다 — 이 호스트들은 모두 https 를 준다.
  */
 export function siteAddressFor(raw: string): { host: HostKey; hostname: string; url: string } | null {
+  const v = raw.trim()
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(v) ? v.replace(/^http:\/\//i, 'https://') : `https://${v}`
   let u: URL
   try {
-    u = new URL(raw.trim())
+    u = new URL(withScheme)
   } catch {
     return null
   }

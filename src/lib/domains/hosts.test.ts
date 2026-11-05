@@ -177,9 +177,24 @@ test('siteAddressFor: 호스트 기본 주소만 받고 쿼리·해시는 버린
   assert.deepEqual(siteAddressFor('https://g05.up.railway.app'), { host: 'railway', hostname: 'g05.up.railway.app', url: 'https://g05.up.railway.app/' })
 })
 
-test('siteAddressFor: http·우리 주소·내 도메인·미리보기 주소는 거절', () => {
+test('siteAddressFor: https:// 없이 넣어도, http:// 로 넣어도 https 주소로 받는다', () => {
+  assert.deepEqual(siteAddressFor('dorm-network-check.seong381400.workers.dev'), {
+    host: 'cloudflare-workers',
+    hostname: 'dorm-network-check.seong381400.workers.dev',
+    url: 'https://dorm-network-check.seong381400.workers.dev/',
+  })
+  assert.deepEqual(siteAddressFor(' Omm.vercel.app/x '), { host: 'vercel', hostname: 'omm.vercel.app', url: 'https://omm.vercel.app/' })
+  assert.deepEqual(siteAddressFor('me.github.io/repo'), { host: 'github-pages', hostname: 'me.github.io', url: 'https://me.github.io/repo/' })
+  assert.deepEqual(siteAddressFor('http://omm.vercel.app'), { host: 'vercel', hostname: 'omm.vercel.app', url: 'https://omm.vercel.app/' })
+  assert.deepEqual(siteAddressFor('HTTP://omm.vercel.app'), { host: 'vercel', hostname: 'omm.vercel.app', url: 'https://omm.vercel.app/' })
+})
+
+test('siteAddressFor: 다른 프로토콜·우리 주소·내 도메인·미리보기 주소는 거절', () => {
   for (const raw of [
-    'http://omm.vercel.app',
+    'ftp://omm.vercel.app',
+    'omm.vercel.app:8080',
+    'omm.dshs.dev',
+    'example.com',
     'https://omm.dshs.dev',
     'https://example.com',
     'https://a--b.web.app',
