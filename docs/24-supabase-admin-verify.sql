@@ -27,8 +27,24 @@ BEGIN
   VALUES (u, 'zz-verify-ban', 'x', 'closed', 'public', ARRAY['website'], 'team', 'zz', ARRAY[u2mail])
   RETURNING id INTO pid;
 
+  -- 대시보드 읽기 함수: 익명 프로젝트는 이름 없이, 몰아 올린 팁 3개는 한 묶음, 사용자 키로는 못 부름
+  INSERT INTO public.projects (author_id, title, description, source_type, visibility, types, author_role)
+  VALUES (u, 'zz-verify-anon', 'x', 'closed', 'public', ARRAY['website'], 'anonymous');
+  INSERT INTO public.tips (author_id, title, content) VALUES (u, 'zz-verify-t1', 'x'), (u, 'zz-verify-t2', 'x'), (u, 'zz-verify-t3', 'x');
+  log := log || 'feed_anon=' || coalesce((
+    SELECT (e ->> 'authorName' IS NULL)::text || '/' || (e ->> 'anonymous') || '/' || (e ->> 'authorId' IS NOT NULL)::text
+    FROM jsonb_array_elements(public.admin_recent_content(ARRAY['project'])) e WHERE e ->> 'title' = 'zz-verify-anon'), 'missing') || ';';
+  log := log || 'feed_kinds=' || (SELECT count(*) FROM jsonb_array_elements(public.admin_recent_content(ARRAY['tip'])) e WHERE e ->> 'kind' <> 'tip') || ';';
+  log := log || 'burst=' || (SELECT count(*) FROM jsonb_array_elements(public.admin_bursts()) g
+                             WHERE g ->> 'kind' = 'tip' AND (SELECT count(*) FROM jsonb_array_elements(g -> 'items') i WHERE i ->> 'title' LIKE 'zz-verify-t%') = 3) || ';';
+  log := log || 'stats=' || ((public.admin_site_stats() -> 'today' ->> 'tips')::int >= 3)::text || ';';
+  log := log || 'rpc_auth=' || has_function_privilege('authenticated', 'public.admin_site_stats()', 'EXECUTE')::text
+             || '/' || has_function_privilege('anon', 'public.admin_recent_content(text[],timestamptz,int)', 'EXECUTE')::text
+             || '/' || has_function_privilege('authenticated', 'public.admin_content(timestamptz)', 'EXECUTE')::text || ';';
+
   INSERT INTO public.user_bans (user_id, email_hash, until, reason)
   VALUES (u2, public.email_hash(u2mail), now() + interval '7 days', 'zz-verify');
+  log := log || 'bans_fn=' || jsonb_array_length(public.admin_bans() -> 'active')::text || ';';
 
   -- 1. 차단된 u2 의 새 글
   PERFORM set_config('request.jwt.claims', json_build_object('sub', u2, 'email', u2mail, 'role', 'authenticated')::text, true);
@@ -127,6 +143,7 @@ BEGIN
              || '/' || has_function_privilege('anon', 'public.my_ban()', 'EXECUTE')::text || ';';
 
   expect :=
+    'feed_anon=true/true/true;feed_kinds=0;burst=1;stats=true;rpc_auth=false/false/false;bans_fn=1;'
     'tip_insert=user_banned;member_update=user_banned;same_profile=ok;nick_change=user_banned;heart=ok;'
     'my_ban=1/false;bans_read=denied;owner_update=1;service_update=1;service_insert_for_banned=user_banned;'
     'my_ban_forever=true;hash_ban=true;hash_ban_ended=false;withdraw=1/true;fn=false/true/false;';

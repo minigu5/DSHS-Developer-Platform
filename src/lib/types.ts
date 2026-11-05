@@ -658,6 +658,27 @@ export type Database = {
         Args: { p_email: string };
         Returns: string;
       };
+      // 관리자 대시보드 읽기(service_role 전용, migration 20261106110000). jsonb 모양은 src/lib/admin/read.ts 에서 좁힌다
+      admin_recent_content: {
+        Args: { p_kinds?: string[] | null; p_before?: string | null; p_limit?: number };
+        Returns: Json;
+      };
+      admin_bursts: {
+        Args: { p_since?: string };
+        Returns: Json;
+      };
+      admin_guide_shrinks: {
+        Args: { p_since?: string };
+        Returns: Json;
+      };
+      admin_bans: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      admin_site_stats: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
       my_project_ids: {
         Args: Record<string, never>;
         Returns: string[];
