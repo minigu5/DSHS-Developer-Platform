@@ -15,7 +15,7 @@ paths:
   - ".github/workflows/sync-readmes.yml"
 ---
 
-# 프로젝트 등록·수정·상세·카드·리뷰
+# 프로젝트 등록·수정·상세·카드·댓글·하트
 
 > CLAUDE.md에서 옮겨 온 기능 문서(2026-11-02). 위 경로의 파일을 열면 자동으로 불러온다. 이 기능의 결정·변경 사항은 이 파일에 적는다.
 
@@ -49,10 +49,10 @@ paths:
   - 팀원 목록 표시: 이메일 pill → **아바타 + 닉네임/실명 + 이메일 세로 카드** 형태.
 
 ### 프로젝트 상세 (`src/app/(nav)/projects/[id]/(detail)/page.tsx`)
-- **머리(2026-10-24)**: "← 모든 프로젝트" → 아이콘 **스티커 112px**(모바일 72px, `ring-[3px]` + 그림자) + 종류 배지·태그 → h1(Plex) → 한 줄 설명 → 작성자 줄("· 개인/팀 프로젝트 · 등록일") → 알약 버튼(방문 blue / GitHub 보조 / 수정 ghost).
-- **수치 띠** `StatStrip`(`src/components/projects/stat-strip.tsx`): 별점(리뷰 0이면 "–"/"아직 리뷰가 없어요") · 방문(`url` 없으면 칸 생략 → 3칸) · 플랫폼(웹사이트+전체면 "Web / 모든 브라우저") · 소스코드("허용 N개"). 모바일 2열.
+- **머리(2026-10-24)**: "← 모든 프로젝트" → 아이콘 **스티커 112px**(모바일 72px, `ring-[3px]` + 그림자) + 종류 배지·태그 → h1(Plex) → 한 줄 설명 → 작성자 줄("· 개인/팀 프로젝트 · 등록일") → 알약 버튼(방문 blue / GitHub 보조 / 하트 `HeartButton` h-11 / 수정 ghost).
+- **수치 띠** `StatStrip`(`src/components/projects/stat-strip.tsx`): 하트(수 + "댓글 N개", 0이면 "아직 아무도 안 눌렀어요") · 방문(`url` 없으면 칸 생략 → 3칸) · 플랫폼(웹사이트+전체면 "Web / 모든 브라우저") · 소스코드("허용 N개"). 모바일 2열.
 - **본문**: `ReadingSurface`(마크다운) + 사이드 카드 3개 — 개발자(또는 팀+팀원), 라이선스(허용/제한), 정보(종류·플랫폼·공개 여부·등록일·최근 수정). 옛 "환경 및 플랫폼" 카드는 정보 카드로 합쳐짐.
-- **리뷰**: 카드 바깥 제목 "리뷰 N"(Plex) → 작성 폼 카드(별점 선택은 머리 오른쪽, 버튼 "리뷰 남기기") → 리뷰마다 카드.
+- **댓글**: 카드 바깥 제목 "댓글 N"(Plex) → 댓글마다 카드(오래된 것 위) → 맨 아래 작성 폼 카드(버튼 "댓글 남기기", 로그인하면 항상 보임).
 
 ### 프로젝트 상세 팀 정보
 - `author_role === 'team'`이면 `team_members` 이메일 배열로 `users` 테이블을 `.in('email', ...)` 쿼리해 프로필 일괄 조회.
@@ -74,7 +74,7 @@ paths:
 - **삭제는 소유자(author)·개발자 계정만 가능**: `edit/page.tsx`에서 `isAuthor` 여부를 계산해 `ProjectForm`에 `canDelete` prop으로 전달. 팀원(`canDelete=false`)에게는 "위험 구역" 섹션 미노출.
 - RLS(`projects_update_own`)가 `author_id = uid OR email = ANY(team_members)` 조건으로 DB 레벨에서도 팀원 UPDATE를 허용.
 
-### 리뷰 기능 (`src/components/projects/`)
-- **별점 선택 선택사항화**: `review-form.tsx`의 rating은 0(선택 안 함) 허용. 라벨 "별점 (선택)" 표시. 같은 별을 다시 클릭하면 해제. rating=0이면 DB에 null로 저장.
-- **rating=null 리뷰**: `review-list.tsx`에서 별점 없이 댓글만 표시. `ReviewItem.rating`은 `number | null`.
-- **DB**: `reviews.rating` 컬럼 NOT NULL 제거 + CHECK(rating IS NULL OR BETWEEN 1 AND 5) — 운영 적용 완료(2026-10-27 migration `20261027110000`).
+### 댓글·하트 (2026-11-05 — 별점 때문에 리뷰를 잘 안 써서 별점 삭제, 리뷰→댓글)
+- 설계 `docs/superpowers/specs/2026-11-04-hearts-comments-design.md`. DB `project_comments`(옛 `reviews`, `rating` 없음, 1인 여러 개)·`project_hearts`(PK project_id+user_id) — migration `20261105110000_comments_hearts.sql`(+ `20261105120000` 정리).
+- **댓글** `project-comments.tsx`(작성·수정 Dialog·삭제 확인 Dialog) + `comment-list.tsx` + `comment-form.tsx`(500자). 작성자 표시는 `commentAuthorView`(`src/lib/comments.ts`): **익명 프로젝트 소유자의 댓글은 `익명 · 만든 사람`**(이름·사진·링크 없음 — DB 트리거가 `public_user_id`를 NULL로, `user_id`는 사용자 키로 못 읽음), 그 밖의 소유자 댓글은 이름 옆 "만든 사람" 배지(`is_author`, 팀원은 아님). 수정·삭제 메뉴는 `isMyComment(c, viewerId, isOwner)` — 최종 권한은 RLS. 조회는 `users!project_comments_public_user_id_fkey(...)`로 사람을 붙이고 `user_id`를 고르지 않는다.
+- **하트**: 1인 1번, 누가 눌렀는지 공개(프로필 즐겨찾기). 만든 사람이 자기 익명 프로젝트에 누른 하트는 남에게 안 보임(`by_anonymous_owner`, 트리거) — 그래서 남이 보는 수가 1 적을 수 있다. 볼 수 없는 프로젝트엔 못 누른다(INSERT 정책). 비공개로 바뀌면 하트는 남고 RLS가 숨김.

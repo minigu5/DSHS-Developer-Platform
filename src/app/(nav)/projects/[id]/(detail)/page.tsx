@@ -3,16 +3,17 @@ export const dynamic = 'force-dynamic';
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "@/components/shared/link";
-import { Globe, Code2, Lock, Star, ExternalLink, ShieldCheck, ShieldAlert, ArrowLeft, ChevronRight } from "lucide-react";
+import { Globe, Code2, Lock, Heart, ExternalLink, ShieldCheck, ShieldAlert, ArrowLeft, ChevronRight } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn, isExternalImage } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { ProjectReviews } from "@/components/projects/project-reviews";
+import { ProjectComments } from "@/components/projects/project-comments";
+import { HeartButton } from "@/components/projects/heart-button";
 import { ProjectIcon } from "@/components/projects/project-icon";
 import { EditButton } from "@/components/projects/edit-button";
-import type { ReviewItem } from "@/components/projects/review-list";
+import type { CommentRowView } from "@/lib/comments";
 import { ANONYMOUS_AUTHOR, LICENSE_FEATURES, PLATFORMS, isDeveloper, projectTypeLabels } from "@/lib/constants";
 import { PROJECT_AUTHOR, PROJECT_COLUMNS } from "@/lib/projects/columns";
 import { SECTION_COLORS } from "@/lib/section-colors";
@@ -53,17 +54,25 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const queryClient = isDeveloper(user?.email) ? createAdminClient() : supabase;
 
   // 연결된 주소(<이름>.dshs.dev) — 이름은 공개 DNS 라 프로젝트를 볼 수 있으면 보여 줘도 된다
-  const [projectResult, reviewsResult, liveDomain] = await Promise.all([
+  const [projectResult, commentsResult, heartsResult, myHeartResult, liveDomain] = await Promise.all([
     queryClient
       .from('projects')
       .select(`${PROJECT_COLUMNS}, ${PROJECT_AUTHOR} (*)`)
       .eq('id', id)
       .single(),
+    // user_id 는 사용자 키로 못 읽는다 — 사람은 public_user_id 로만 붙인다(익명 프로젝트 소유자의 댓글은 NULL)
     queryClient
-      .from('reviews')
-      .select('id, rating, comment, created_at, user_id, user:users(*)')
+      .from('project_comments')
+      .select('id, content, created_at, is_author, public_user_id, user:users!project_comments_public_user_id_fkey(full_name, nickname, avatar_url)')
       .eq('project_id', id)
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: true }),
+    queryClient
+      .from('project_hearts')
+      .select('project_id', { count: 'exact', head: true })
+      .eq('project_id', id),
+    user
+      ? supabase.from('project_hearts').select('project_id').eq('project_id', id).eq('user_id', user.id).maybeSingle()
+      : Promise.resolve({ data: null }),
     getLiveDomain(id, true),
   ]);
 
@@ -73,7 +82,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     notFound();
   }
 
-  const { data: reviewsData } = reviewsResult;
+  const { data: commentsData } = commentsResult;
+  const heartCount = heartsResult.count ?? 0;
+  const hearted = !!myHeartResult.data;
 
   // 팀 프로젝트인 경우 팀원 프로필 조회
   const teamMemberProfiles: Array<{
@@ -91,21 +102,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     if (members) teamMemberProfiles.push(...members);
   }
 
-  const reviews: ReviewItem[] = (reviewsData ?? []).map((r) => ({
-    id: r.id,
-    rating: r.rating,
-    comment: r.comment,
-    created_at: r.created_at,
-    user_id: r.user_id,
-    user: Array.isArray(r.user) ? r.user[0] ?? null : r.user,
+  const comments: CommentRowView[] = (commentsData ?? []).map((c) => ({
+    ...c,
+    user: Array.isArray(c.user) ? c.user[0] ?? null : c.user,
   }));
-
-  const reviewCount = reviews.length;
-  const ratedReviews = reviews.filter((r) => r.rating != null);
-  const avgRating =
-    ratedReviews.length > 0
-      ? ratedReviews.reduce((sum, r) => sum + r.rating!, 0) / ratedReviews.length
-      : 0;
 
   const isAnonymous = project.author_role === 'anonymous';
   const authorName =
@@ -160,19 +160,14 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   const stats: StatStripItem[] = [
     {
-      label: "별점",
-      // 별점 없는 리뷰만 있으면 평균을 보여줄 수 없으므로 "–" (리뷰 수는 그대로)
-      value:
-        ratedReviews.length > 0 ? (
-          <>
-            <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden />
-            <span className="sr-only">5점 만점에 </span>
-            {avgRating.toFixed(1)}
-          </>
-        ) : (
-          "–"
-        ),
-      sub: reviewCount > 0 ? `리뷰 ${reviewCount}개` : "아직 리뷰가 없어요",
+      label: "하트",
+      value: (
+        <>
+          <Heart className="h-4 w-4 text-rose-500" aria-hidden />
+          {heartCount.toLocaleString("ko-KR")}
+        </>
+      ),
+      sub: heartCount > 0 ? `댓글 ${comments.length}개` : "아직 아무도 안 눌렀어요",
     },
     ...(project.url
       ? [{ label: "방문", value: (project.click_count ?? 0).toLocaleString("ko-KR"), sub: "회" }]
@@ -294,6 +289,14 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   <span className="sr-only"> (새 탭에서 열림)</span>
                 </a>
               )}
+              <HeartButton
+                projectId={project.id}
+                viewerId={user?.id ?? null}
+                count={heartCount}
+                hearted={hearted}
+                size="detail"
+                className="h-11 px-4 sm:px-5"
+              />
               {canEdit && <EditButton projectId={project.id} />}
             </div>
           </div>
@@ -513,7 +516,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           </aside>
         </div>
 
-        <ProjectReviews projectId={project.id} reviews={reviews} />
+        <ProjectComments
+          projectId={project.id}
+          comments={comments}
+          viewerId={user?.id ?? null}
+          viewerOwnsProject={isOwner}
+        />
       </main>
     </div>
   );

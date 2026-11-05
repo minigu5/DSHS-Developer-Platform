@@ -9,7 +9,7 @@ export type StatStripItem = {
 };
 
 /**
- * 프로젝트 상세 수치 띠 — 별점·방문·플랫폼·소스코드를 한 줄 카드에 칸으로 나눈다(앱스토어식).
+ * 프로젝트 상세 수치 띠 — 하트·방문·플랫폼·소스코드를 한 줄 카드에 칸으로 나눈다(앱스토어식).
  * 칸이 3개면(방문 수 없음) `sm:grid-cols-3`. 모바일은 2열.
  */
 export function StatStrip({ items, className }: { items: StatStripItem[]; className?: string }) {
