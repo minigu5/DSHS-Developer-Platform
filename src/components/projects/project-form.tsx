@@ -117,10 +117,11 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   // GitHub README 가져오기 · 자동 동기화 (저장소 링크는 아래 repoUrl 하나를 같이 쓴다)
   const [readmeLoading, setReadmeLoading] = useState(false);
   const [readmeError, setReadmeError] = useState("");
-  const [readmeNote, setReadmeNote] = useState("");
+  // 편집 탭 줄의 "GitHub README 가져오기" 버튼이 여는 창 — 링크 입력 + 자동 동기화 선택을 한곳에 모았다
   const [showReadmeDialog, setShowReadmeDialog] = useState(false);
   const [readmeSync, setReadmeSync] = useState<boolean>(initialData?.readme_sync ?? false);
-  // 동기화는 README 가져오기가 성공하면 (오픈소스일 때) 자동으로 켜진다. 취소·실패하면 꺼 둔 채로 둔다.
+  // 창 안의 "자동 동기화" 선택(기본 켜짐). 가져오기가 성공하면 (오픈소스일 때) 이 값대로 동기화를 켠다. 취소·실패하면 그대로 둔다.
+  const [readmeSyncChoice, setReadmeSyncChoice] = useState(true);
 
   // 작성자 정보
   const [authorRole, setAuthorRole] = useState<AuthorRole>(
@@ -294,10 +295,8 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   };
 
   const importReadme = async () => {
-    setShowReadmeDialog(false);
     setReadmeLoading(true);
     setReadmeError("");
-    setReadmeNote("");
     try {
       const res = await fetch(`/api/github-readme?url=${encodeURIComponent(repoUrl.trim())}`);
       const data = (await res.json()) as { markdown?: string; error?: string };
@@ -306,14 +305,9 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         return;
       }
       setDescription(data.markdown);
-      // 오픈소스면 가져오기와 함께 자동 동기화를 기본으로 켠다
-      const syncOn = sourceType === "open";
-      if (syncOn) setReadmeSync(true);
-      setReadmeNote(
-        syncOn
-          ? "README를 가져왔어요. 저장하면 매일 밤 README로 다시 채워져요."
-          : "README를 가져왔어요. 아래 칸에서 자유롭게 고칠 수 있어요.",
-      );
+      // 오픈소스면 창에서 고른 대로 자동 동기화를 켠다(기본 켜짐)
+      setReadmeSync(sourceType === "open" && readmeSyncChoice);
+      setShowReadmeDialog(false);
       void fillLicenseFromRepo(repoUrl);
       offerGithubFor(repoUrl);
     } catch {
@@ -323,32 +317,21 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
     }
   };
 
-  // 이미 쓴 설명이 있으면 덮어쓰기 전에 한 번 물어본다
+  const openReadmeDialog = () => {
+    setReadmeError("");
+    setReadmeSyncChoice(true);
+    setShowReadmeDialog(true);
+  };
+
+  // 이미 쓴 설명이 있으면 창 안에 덮어쓰기 경고를 보여 준다(따로 묻지 않음)
   const requestReadme = () => {
     if (readmeLoading) return;
     setReadmeError("");
-    setReadmeNote("");
     if (!parseGithubRepo(repoUrl)) {
       setReadmeError("GitHub 저장소 링크를 입력해 주세요. 예: https://github.com/username/repo");
       return;
     }
-    if (description.trim() && !readmeSync) {
-      setShowReadmeDialog(true);
-      return;
-    }
     void importReadme();
-  };
-
-  const cancelReadmeDialog = () => {
-    setShowReadmeDialog(false);
-  };
-
-  const toggleReadmeSync = () => {
-    if (readmeSync) {
-      setReadmeSync(false);
-      return;
-    }
-    requestReadme();
   };
 
   const addTeamMember = async () => {
@@ -908,55 +891,32 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         {/* 2. 상세 설명 */}
         <FormSection id="section-description" title="상세 설명" hint="마크다운">
           <div className="grid gap-2.5" id="description_section">
-            <div className="grid gap-1.5" id="readme_import">
-              <Label htmlFor="readme_url" className={labelClass}>GitHub에서 가져오기</Label>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <div className="relative flex-1">
-                  <Code2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" aria-hidden />
-                  <Input
-                    id="readme_url"
-                    value={repoUrl}
-                    onChange={e => setRepoUrl(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); requestReadme(); } }}
-                    placeholder="https://github.com/username/repo"
-                    className="h-11 rounded-xl pl-9"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={requestReadme}
-                  disabled={readmeLoading}
-                  className={cn(buttonVariants({ variant: "outline" }), "h-11 rounded-full px-4 text-sm", readmeLoading && "cursor-not-allowed opacity-50")}
-                >
-                  {readmeLoading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden /> : <Download className="mr-1.5 h-4 w-4" aria-hidden />}
-                  README 가져오기
-                </button>
-              </div>
-              {readmeError ? (
-                <p role="alert" className="text-xs font-medium text-rose-600 dark:text-rose-400">{readmeError}</p>
-              ) : (
-                <p className={hintClass} aria-live="polite">{readmeNote || "저장소 링크를 넣고 누르면 README가 상세 설명으로 채워져요."}</p>
-              )}
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                <ToggleChip
-                  pressed={descLocked}
-                  onToggle={toggleReadmeSync}
-                  label="README와 자동 동기화"
-                  icon={RefreshCw}
-                  disabled={sourceType !== "open" || readmeLoading}
-                />
-                <span className={hintClass}>
-                  {sourceType !== "open"
-                    ? "소스코드 공개를 ‘오픈소스’로 고르면 쓸 수 있어요."
-                    : descLocked
-                      ? "매일 밤 GitHub README로 상세 설명을 다시 채워요. 이 사이트에서는 설명을 고칠 수 없어요."
-                      : "켜 두면 README를 고칠 때마다 다음 날 밤 상세 설명도 따라 바뀌어요."}
-                </span>
-              </div>
-            </div>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <EditorTabs value={descTab} onChange={setDescTab} />
-              <span className={hintClass}>{descLocked ? "README와 동기화 중이라 읽기 전용이에요" : "Tab으로 두 칸 들여쓰기, Shift+Tab으로 해제"}</span>
+              {descLocked ? (
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300">
+                    <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+                    README와 동기화 중
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setReadmeSync(false)}
+                    className={cn(buttonVariants({ variant: "ghost" }), "h-7 rounded-full px-3 text-xs")}
+                  >
+                    끄기
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={openReadmeDialog}
+                  className={cn(buttonVariants({ variant: "outline" }), "h-7 rounded-full px-3 text-xs")}
+                >
+                  <Download className="mr-1 h-3.5 w-3.5" aria-hidden />
+                  GitHub README 가져오기
+                </button>
+              )}
             </div>
             {descTab === "write" && (
               <textarea
@@ -991,6 +951,11 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
                   {description.trim() ? <Markdown>{description}</Markdown> : <p className="text-sm text-zinc-500">작성한 내용이 여기에 미리보기로 표시돼요.</p>}
                 </div>
               </div>
+            )}
+            {descLocked ? (
+              <p className={hintClass}>매일 밤 GitHub README로 다시 채워져서 여기서는 고칠 수 없어요. 고치려면 동기화를 끄세요.</p>
+            ) : descTab !== "preview" && (
+              <p className={cn(hintClass, "hidden sm:block")}>Tab으로 두 칸 들여쓰기, Shift+Tab으로 해제</p>
             )}
           </div>
         </FormSection>
@@ -1450,20 +1415,64 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showReadmeDialog} onOpenChange={(open) => { if (!open) cancelReadmeDialog(); }}>
+      <Dialog open={showReadmeDialog} onOpenChange={(open) => { if (!open && !readmeLoading) setShowReadmeDialog(false); }}>
         <DialogContent showCloseButton={false} className="rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="text-lg">쓰던 설명을 README로 바꿀까요?</DialogTitle>
+            <DialogTitle className="text-lg">GitHub README 가져오기</DialogTitle>
             <DialogDescription>
-              지금 상세 설명에 적은 내용이 GitHub README로 바뀌어요. 되돌릴 수 없어요.
+              저장소의 README로 상세 설명을 채워요. 저장소 링크는 아래 ‘소스코드’ 칸에도 같이 들어가요.
             </DialogDescription>
           </DialogHeader>
+          <div className="grid min-w-0 gap-3">
+            <div className="grid gap-1.5">
+              <Label htmlFor="readme_url" className={labelClass}>저장소 링크</Label>
+              <div className="relative">
+                <Code2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" aria-hidden />
+                <Input
+                  id="readme_url"
+                  value={repoUrl}
+                  onChange={e => setRepoUrl(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); requestReadme(); } }}
+                  placeholder="https://github.com/username/repo"
+                  className="h-11 min-w-0 rounded-xl pl-9"
+                />
+              </div>
+              {readmeError && (
+                <p role="alert" className="text-xs font-medium text-rose-600 dark:text-rose-400">{readmeError}</p>
+              )}
+            </div>
+            <ChoiceRow
+              selected={sourceType === "open" && readmeSyncChoice}
+              onSelect={() => setReadmeSyncChoice(v => !v)}
+              icon={RefreshCw}
+              label="README와 자동 동기화"
+              description="README를 고치면 다음 날 밤 상세 설명도 따라 바뀌어요. 켜 두면 여기서는 설명을 고칠 수 없어요."
+              disabled={sourceType !== "open" || readmeLoading}
+              disabledReason={sourceType !== "open" ? "소스코드 공개를 ‘오픈소스’로 고르면 쓸 수 있어요." : null}
+            />
+            {description.trim() && !readmeSync && (
+              <p className="text-xs font-medium text-rose-600 dark:text-rose-400">
+                지금 상세 설명에 적은 내용이 README로 바뀌어요. 되돌릴 수 없어요.
+              </p>
+            )}
+          </div>
           <DialogFooter>
-            <button type="button" onClick={cancelReadmeDialog} className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}>
+            <button
+              type="button"
+              onClick={() => setShowReadmeDialog(false)}
+              disabled={readmeLoading}
+              className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}
+            >
               취소
             </button>
-            <button type="button" onClick={() => void importReadme()} className={cn(buttonVariants(), "rounded-xl")}>
-              바꾸기
+            <button
+              type="button"
+              onClick={requestReadme}
+              disabled={readmeLoading}
+              className={cn(buttonVariants(), "rounded-xl", readmeLoading && "cursor-not-allowed opacity-50")}
+            >
+              {readmeLoading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden /> : <Download className="mr-1.5 h-4 w-4" aria-hidden />}
+              {readmeLoading ? "가져오는 중…" : "가져오기"}
             </button>
           </DialogFooter>
         </DialogContent>
