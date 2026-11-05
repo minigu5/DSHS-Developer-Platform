@@ -124,7 +124,7 @@ CREATE TABLE public.project_comments (
   id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id     uuid NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
   user_id        uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  content        text NOT NULL,
+  content        text NOT NULL CHECK (char_length(content) BETWEEN 1 AND 500),
   created_at     timestamptz NOT NULL DEFAULT now(),
   is_author      boolean NOT NULL DEFAULT false,
   public_user_id uuid REFERENCES public.users(id) ON DELETE CASCADE
@@ -140,7 +140,10 @@ CREATE POLICY "project_comments_select_when_project_visible"
 
 CREATE POLICY "project_comments_insert_own"
   ON public.project_comments FOR INSERT
-  WITH CHECK ((SELECT auth.uid()) = user_id);
+  WITH CHECK (
+    (SELECT auth.uid()) = user_id
+    AND EXISTS (SELECT 1 FROM public.projects p WHERE p.id = project_id)
+  );
 
 CREATE POLICY "project_comments_update_own"
   ON public.project_comments FOR UPDATE
