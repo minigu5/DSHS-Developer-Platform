@@ -91,11 +91,11 @@ test('TXT 이름은 내 이름 아래만', () => {
   assert.equal(validateTxt('render', 'meal', { name: '_acme.meal.dshs.dev', value: 'x'.repeat(256) }), null)
 })
 
-test('프리셋 9개(연결 7 + 바로가기 2), 설정 링크와 안내가 있다', () => {
+test('프리셋 10개(연결 7 + 바로가기 3), 설정 링크와 안내가 있다', () => {
   assert.deepEqual(Object.keys(HOST_PRESETS).sort(), [
-    'cloudflare-pages', 'cloudflare-workers', 'firebase', 'github-pages', 'gitlab-pages', 'netlify', 'railway', 'render', 'vercel',
+    'chatgpt-sites', 'cloudflare-pages', 'cloudflare-workers', 'firebase', 'github-pages', 'gitlab-pages', 'netlify', 'railway', 'render', 'vercel',
   ])
-  assert.deepEqual(Object.values(HOST_PRESETS).filter((p) => p.mode === 'redirect').map((p) => p.key).sort(), ['cloudflare-workers', 'firebase'])
+  assert.deepEqual(Object.values(HOST_PRESETS).filter((p) => p.mode === 'redirect').map((p) => p.key).sort(), ['chatgpt-sites', 'cloudflare-workers', 'firebase'])
   for (const p of Object.values(HOST_PRESETS)) {
     assert.ok(p.settingsUrl.startsWith('https://'))
     assert.ok(p.steps.length >= 2)
@@ -208,4 +208,19 @@ test('naru 는 HOST_PRESETS 카드 목록과 siteAddressFor 에 없다', () => {
   assert.equal(isNaruHost('naru'), true)
   assert.equal(isNaruHost('vercel'), false)
   assert.equal(isNaruHost(null), false)
+})
+
+test('ChatGPT Sites 는 바로가기 — 사이트 주소만 받고, 내 도메인으로 보지 않는다', () => {
+  const url = 'https://jakal-office-online.ahnd6474.chatgpt.site/'
+  assert.deepEqual(detectHost(url), { host: 'chatgpt-sites', prefill: 'jakal-office-online.ahnd6474.chatgpt.site' })
+  assert.equal(customDomainOf(url), null)
+  assert.deepEqual(siteAddressFor(url), { host: 'chatgpt-sites', hostname: 'jakal-office-online.ahnd6474.chatgpt.site', url })
+  assert.equal(isRedirectHost('chatgpt-sites'), true)
+  assert.equal(validateTarget('chatgpt-sites', 'Site.chatgpt.site.'), 'site.chatgpt.site')
+  assert.equal(validateTarget('chatgpt-sites', 'chatgpt.site'), null)
+  assert.equal(validateTarget('chatgpt-sites', 'a.b.c.chatgpt.site'), null)
+  assert.equal(validateTarget('chatgpt-sites', 'x.chatgpt.site.evil.com'), null)
+  const notFound = HOST_PRESETS['chatgpt-sites'].notFound
+  assert.equal(notFound(404, new Headers(), '<h1 class="title">404 Not found</h1><p class="copy">No site here</p>'), true)
+  assert.equal(notFound(200, new Headers(), 'No site here'), false)
 })

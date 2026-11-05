@@ -36,8 +36,27 @@ export function buildVerifyPrompt(o: { name: string; token: string; host: Domain
   ].join('\n')
 }
 
+// 바로가기 호스트마다 "넣을 자리"와 "다시 배포하는 법"
+type RedirectHow = { where: string; deploy: string }
+const FIREBASE_HOW: RedirectHow = {
+  where: '  · Firebase Hosting: public/index.html',
+  deploy: '- 다 넣었으면 firebase deploy 로 다시 배포해 줘.',
+}
+const REDIRECT_HOW: Partial<Record<DomainHost, RedirectHow>> = {
+  'cloudflare-workers': {
+    where: '  · Cloudflare Workers: Worker가 돌려주는 HTML의 <head> (정적 자산을 쓰면 그 폴더의 index.html)',
+    deploy: '- 다 넣었으면 wrangler deploy(또는 연결된 Git에 푸시)로 다시 배포해 줘.',
+  },
+  firebase: FIREBASE_HOW,
+  // ChatGPT 에게 그대로 붙여 넣으면 사이트를 고쳐 다시 게시한다
+  'chatgpt-sites': {
+    where: '  · ChatGPT Sites: 사이트 HTML(index.html)의 <head>',
+    deploy: '- 다 넣었으면 사이트를 다시 게시(Publish)해 줘. 공개 범위는 로그인 없이 누구나 볼 수 있게 둬 줘.',
+  },
+}
+
 function buildRedirectPrompt(fqdn: string, token: string, host: DomainHost, siteUrl: string): string {
-  const workers = host === 'cloudflare-workers'
+  const how = REDIRECT_HOW[host] ?? FIREBASE_HOW
   return [
     `내 웹사이트(${siteUrl})에 https://${ROOT_DOMAIN} 서비스로 ${fqdn} 바로가기 주소를 붙이려고 해.`,
     SECOND_LINE,
@@ -50,13 +69,9 @@ function buildRedirectPrompt(fqdn: string, token: string, host: DomainHost, site
     '- 사이트를 열었을 때 서버가 처음부터 내려주는 HTML에 들어 있어야 해.',
     '  자바스크립트로 나중에 붙이면 안 돼. (React Helmet, document.head에 추가하는 방식 금지)',
     '- 이 프로젝트 구조에 맞는 자리에 넣어 줘.',
-    workers
-      ? '  · Cloudflare Workers: Worker가 돌려주는 HTML의 <head> (정적 자산을 쓰면 그 폴더의 index.html)'
-      : '  · Firebase Hosting: public/index.html',
+    how.where,
     '- 그 밖의 코드는 건드리지 마.',
-    workers
-      ? '- 다 넣었으면 wrangler deploy(또는 연결된 Git에 푸시)로 다시 배포해 줘.'
-      : '- 다 넣었으면 firebase deploy 로 다시 배포해 줘.',
+    how.deploy,
     `- 배포가 끝나면 ${siteUrl} 의 "페이지 소스 보기"(또는 curl)에서`,
     '  위 줄이 보이는지 확인하고, 보이는지 알려 줘.',
   ].join('\n')

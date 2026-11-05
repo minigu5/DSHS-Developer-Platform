@@ -47,3 +47,11 @@ test('바로가기(Firebase)는 firebase deploy 와 public/index.html', () => {
   assert.ok(p.includes('public/index.html'))
   assert.ok(p.includes('https://meal.web.app'))
 })
+
+test('바로가기(ChatGPT Sites)는 다시 게시와 공개 범위', () => {
+  const p = buildVerifyPrompt({ name: 'jakal', token: 't0k', host: 'chatgpt-sites', siteUrl: 'https://office.me.chatgpt.site/' })
+  assert.equal(p.split('\n')[0], '내 웹사이트(https://office.me.chatgpt.site/)에 https://dshs.dev 서비스로 jakal.dshs.dev 바로가기 주소를 붙이려고 해.')
+  assert.ok(p.includes('ChatGPT Sites: 사이트 HTML(index.html)의 <head>'))
+  assert.ok(p.includes('다시 게시(Publish)'))
+  assert.ok(!p.includes('firebase deploy'))
+})

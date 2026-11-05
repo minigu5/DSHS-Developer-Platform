@@ -51,7 +51,7 @@ export function suggestNameFrom(raw: string): string | null {
   return validateName(name).ok ? name : null
 }
 
-/** 도메인 마련하기를 권할 주소 — 프리셋 9곳의 무료 주소일 때만. 호스트 이름(표시용)과 짧은 이름 예시 */
+/** 도메인 마련하기를 권할 주소 — 프리셋 10곳의 무료 주소일 때만. 호스트 이름(표시용)과 짧은 이름 예시 */
 export function domainOfferOf(raw: string): { host: HostKey; hostLabel: string; hostname: string; suggestion: string | null } | null {
   const u = urlOf(raw)
   if (!u) return null

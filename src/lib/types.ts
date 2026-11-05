@@ -31,6 +31,8 @@ export type SubdomainHost =
   | 'railway'
   | 'cloudflare-workers'
   | 'firebase'
+  // ChatGPT Sites 바로가기 — supabase/migrations/20261105130000_subdomains_chatgpt_sites.sql
+  | 'chatgpt-sites'
   // 대곽나루 학생 서버 — supabase/migrations/20261101110000_subdomains_naru.sql
   | 'naru';
 

@@ -3,6 +3,7 @@
 // Cloudflare Pages: 다른 계정의 Pages 프로젝트에 DNS only CNAME 으로 붙는 것 확인(2026-10-25, 인증서 약 2분 30초).
 // 바로가기(mode 'redirect', 2026-10-26): Cloudflare Workers(커스텀 도메인은 존이 같은 계정에 있어야 함)·
 // Firebase Hosting(CNAME 대신 A 레코드 요구)은 연결 대신 <이름>.dshs.dev → 학생 사이트 302 로 보낸다.
+// ChatGPT Sites(2026-11-05)도 바로가기 — ChatGPT 쪽 도메인 연결은 유료 플랜이고 넣을 DNS 값이 앱 안에서만 보여 CNAME 프리셋을 만들 근거가 없다.
 // 설계 docs/superpowers/specs/2026-10-26-subdomain-redirects-design.md
 // 제외: Surge(모두 같은 CNAME 대상이라 가로채기 쉬움).
 // GitHub Pages 의 `_github-pages-challenge-*` TXT 는 dshs.dev 전체를 그 사용자 것으로 확인하므로 받지 않는다.
@@ -19,6 +20,7 @@ export type HostKey =
   | 'railway'
   | 'cloudflare-workers'
   | 'firebase'
+  | 'chatgpt-sites'
 
 /** DB host 열에 들어가는 값 = 학생이 고르는 호스트(HostKey) + 대곽나루 서버('naru'). 프리셋(HOST_PRESETS)은 HostKey 만 가진다 */
 export type DomainHost = HostKey | 'naru'
@@ -208,6 +210,25 @@ export const HOST_PRESETS: Record<HostKey, HostPreset> = {
     ],
     notFound: (status, _headers, body) => status === 404 && body.includes('<title>Site Not Found</title>'),
   },
+  'chatgpt-sites': {
+    key: 'chatgpt-sites',
+    mode: 'redirect',
+    label: 'ChatGPT Sites',
+    detect: /\.chatgpt\.site$/,
+    // 사이트.아이디.chatgpt.site(2026-11-05 실제 주소 모양) — 한 단계짜리 사이트.chatgpt.site 도 받는다
+    cnameTarget: /^[a-z0-9-]+(\.[a-z0-9-]+)?\.chatgpt\.site$/,
+    prefillFromUrl: true,
+    targetPlaceholder: '사이트.아이디.chatgpt.site',
+    txt: null,
+    settingsUrl: 'https://chatgpt.com/',
+    steps: [
+      '호스트 쪽에서 따로 할 일은 없어요. 아래 "보낼 곳 주소"가 내 사이트 주소(사이트.아이디.chatgpt.site)인지 확인해요.',
+      'ChatGPT Sites에서 사이트를 로그인 없이 누구나 볼 수 있게 게시해 둬야 확인돼요.',
+      '{fqdn}으로 들어오면 이 주소로 넘어가요. 주소창에는 chatgpt.site 주소가 보여요.',
+    ],
+    // 없는 사이트는 404 "No site here" 페이지(2026-11-05 실측)
+    notFound: (status, _headers, body) => status === 404 && body.includes('No site here'),
+  },
 }
 
 /**
@@ -267,7 +288,7 @@ export function targetBoundToSite(host: DomainHost): boolean {
 }
 
 /**
- * ② 소유 확인에 쓰는 "내 사이트 원래 주소". 프리셋 9곳의 기본 주소만 받는다(③ 연결이 같은 판정을 쓰므로
+ * ② 소유 확인에 쓰는 "내 사이트 원래 주소". 프리셋 10곳의 기본 주소만 받는다(③ 연결이 같은 판정을 쓰므로
  * 여기서 통과하면 ③에서 막히지 않는다). url 은 쿼리·해시를 버리고 끝을 / 로 맞춘다.
  * 경로는 GitHub/GitLab Pages 프로젝트 사이트(내아이디.github.io/저장소/)만 남긴다.
  */
