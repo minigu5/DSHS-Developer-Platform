@@ -1,6 +1,5 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
 
 import { PrivacyGate } from '@/components/privacy/privacy-gate';
 import { ThemeProvider } from '@/components/shared/theme-provider';
@@ -8,16 +7,6 @@ import { Toaster } from '@/components/ui/sonner';
 import { PRIVACY_POLICY_VERSION } from '@/lib/privacy/version';
 
 import './globals.css';
-
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
 
 export const metadata: Metadata = {
   title: 'DSHS Developer Platform',
@@ -32,12 +21,20 @@ export default function RootLayout({
   return (
     <html
       lang="ko"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className="h-full antialiased"
       suppressHydrationWarning
     >
       <head>
         {/* Supabase DB/Auth·제목 글꼴 연결 사전 준비 (기법 10: 프리커넥트) — fetch·글꼴은 CORS 요청이라 crossOrigin이 있어야 이 연결을 쓴다 */}
         <link rel="preconnect" href="https://aclcleemnsmxyixcfqro.supabase.co" crossOrigin="anonymous" />
+        {/* 본문 영문 글꼴(latin)은 거의 모든 화면에서 쓰니 CSS를 읽기 전에 미리 받는다 — next/font가 하던 preload */}
+        <link
+          rel="preload"
+          href="https://aclcleemnsmxyixcfqro.supabase.co/storage/v1/object/public/static/fonts/v1/geist-latin.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
         {/* 구글 프로필 사진 도메인 사전 준비 */}
         <link rel="preconnect" href="https://lh3.googleusercontent.com" crossOrigin="anonymous" />
         {/* DNS 조회 사전 캐시 — preconnect 미지원 구형 브라우저 대응 */}
