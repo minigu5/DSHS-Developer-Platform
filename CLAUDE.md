@@ -296,7 +296,7 @@ className={cn("... focus-visible:outline-none focus-visible:ring-2 focus-visible
   - hover 시 확대(`hover:scale-*`)·떠오름(`hover:-translate-y-*`)·컬러 글로우 그림자(`shadow-blue-500/20`), 섹션마다 거는 스크롤 리빌. 예외: 홈 중간·하단의 `RevealObserver` 리빌(2026-10-24 사용자 요청) — 다른 페이지엔 넣지 않는다
   - 제목 위 아이콘+섹션명 알약(eyebrow), `uppercase tracking-wider` 라벨, ✨ 환영 배지, 이모지 안내문, 마케팅 문구("새로움을 창조하세요")
   - `transition-all` 금지 — 바뀌는 속성만 지정(`transition-colors`, `transition-[color,background-color,border-color,scale]`)
-- **링크는 `@/components/shared/link`**(2026-11-04): `next/link`를 직접 import하지 않는다 — 화면에 보이는 링크를 다 미리 받아 학교 IP가 Cloudflare 속도 제한에 걸렸다. 공용 `Link`는 hover·터치·포커스 때만 미리 받는다(`.claude/rules/performance.md`).
+- **링크는 `@/components/shared/link`**(2026-11-04): `next/link`를 직접 import하지 않는다 — 화면에 보이는 링크를 다 미리 받아 학교 IP가 Cloudflare 속도 제한에 걸렸다. 공용 `Link`는 미리 받지 않는다(메뉴 5칸 `prefetchOnView`만) — 2026-11-05 hover 미리 받기가 끝나기 전에 누르면 뼈대 없이 빈 화면이 떠서 껐다(`.claude/rules/performance.md`).
 - **카피**: 기능을 쉬운 말로 설명하는 해요체. 빈 상태엔 다음 행동 링크 제공. 로딩 문구는 `…`(말줄임표 문자).
 - **반응형**: 모든 페이지는 모바일에서도 최적화돼야 함. 데스크탑(`sm:`+)은 유지하고 모바일만 보강 (자세한 규칙은 「📱 반응형 / 모바일 최적화」 참고).
 - **Documentation**: `CLAUDE.md`·`.claude/rules/*.md` 및 `AGENTS.md`를 항상 최신 상태로 유지(기능별 내용은 해당 rules 파일에). — 외부 서비스 정보, 진행 상황, 결정 사항이 바뀌면 즉시 반영
