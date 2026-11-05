@@ -1,6 +1,6 @@
 'use server'
 
-// 프로젝트 삭제 · 비공개 전환 시 주소 닫기. 주소(서브도메인)가 있으면 먼저 반납하고 DNS 레코드를 지운다 —
+// 프로젝트 삭제 · 비공개 전환 시 주소 닫기 · 설명 속 옛 주소 바꾸기. 주소(서브도메인)가 있으면 먼저 반납하고 DNS 레코드를 지운다 —
 // DB 트리거(projects_block_delete_with_subdomain)가 주소가 남은 프로젝트의 삭제를 막는다.
 // (nav) 밖에 둔다 — Turbopack client→server action 바인딩 문제.
 
@@ -10,6 +10,8 @@ import { nameMatches } from '@/lib/confirm-name'
 import { isAllowedEmail, isDeveloper } from '@/lib/constants'
 import { removeCloudflare } from '@/lib/domains/cleanup'
 import { getNaruClient, unbindNaruBestEffort } from '@/lib/domains/naru'
+import { fixOldAddresses, oldAddressPrefixes } from '@/lib/domains/old-address'
+import { getOldAddressSource } from '@/lib/domains/read'
 import { releaseLiveDomainWith } from '@/lib/domains/release'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 
@@ -100,6 +102,37 @@ export async function closeDomainOfPrivateProject(projectId: string): Promise<Pr
   }
 
   revalidatePath('/domains', 'layout')
+  revalidatePath(`/projects/${projectId}`)
+  return { ok: true }
+}
+
+/**
+ * 상세 설명에 남은 옛 사이트 주소(README 를 그대로 가져온 "접속 주소: https://…web.app" 등)를 연결된 <이름>.dshs.dev 로 바꾼다.
+ * 상세 페이지 안내의 "바꾸기"가 부른다. 소유자만, 연결이 확인된(active) 주소가 있을 때만. 바꿀 곳은 서버에서 다시 찾는다.
+ */
+export async function replaceOldAddressesInDescription(projectId: string): Promise<ProjectActionResult> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user?.email || !isAllowedEmail(user.email)) return { ok: false, error: '학교 계정으로 로그인해야 해요.' }
+
+  const admin = createAdminClient()
+  const { data: project } = await admin.from('projects').select('author_id, description').eq('id', projectId).maybeSingle()
+  if (!project || project.author_id !== user.id) return { ok: false, error: '내 프로젝트만 바꿀 수 있어요.' }
+
+  const source = await getOldAddressSource(projectId)
+  if (!source) return { ok: false, error: '연결된 주소가 없어요.' }
+  const fix = fixOldAddresses(project.description ?? '', oldAddressPrefixes(source), source.name)
+  if (fix.count === 0) return { ok: true }
+
+  // 저장은 사용자 권한(RLS)으로
+  const { error } = await supabase.from('projects').update({ description: fix.text }).eq('id', projectId)
+  if (error) {
+    console.error('[projects] 옛 주소 바꾸기 실패', error)
+    return { ok: false, error: '바꾸지 못했어요. 잠시 뒤 다시 시도해 주세요.' }
+  }
+
   revalidatePath(`/projects/${projectId}`)
   return { ok: true }
 }

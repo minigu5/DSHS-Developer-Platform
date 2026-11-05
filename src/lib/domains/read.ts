@@ -4,6 +4,7 @@ import { createAdminClient, createClient } from '@/lib/supabase/server'
 import type { Json, SubdomainHost, SubdomainStatus } from '@/lib/types'
 
 import { isRedirectHost, type TxtInput } from './hosts'
+import type { OldAddressSource } from './old-address'
 
 /** 화면에 넘기는 주소 정보 — Cloudflare 레코드 id 같은 내부 값은 빼고 */
 export type DomainView = {
@@ -160,6 +161,18 @@ export async function getLiveDomain(projectId: string, onlyActive = false): Prom
     .in('status', onlyActive ? ['active'] : LIVE)
     .maybeSingle()
   return data ? { name: data.name, redirect: isRedirectHost(data.host) } : null
+}
+
+/** 연결된(active) 주소와 옛 사이트 주소 후보 — 상세 페이지의 "설명 속 옛 주소" 안내·바꾸기용. 호출하는 쪽이 소유자 확인을 먼저 한다. */
+export async function getOldAddressSource(projectId: string): Promise<OldAddressSource | null> {
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from('subdomains')
+    .select('name, host, target, site_url, previous_url')
+    .eq('project_id', projectId)
+    .eq('status', 'active')
+    .maybeSingle()
+  return data ? { name: data.name, host: data.host, target: data.target, siteUrl: data.site_url, previousUrl: data.previous_url } : null
 }
 
 /** 홈 소개 카드용 — 연결이 확인된(active) 공개 프로젝트의 주소 수와 최근 주소. 비공개 프로젝트는 숫자에도 안 센다.

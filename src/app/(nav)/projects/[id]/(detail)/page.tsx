@@ -16,9 +16,11 @@ import type { ReviewItem } from "@/components/projects/review-list";
 import { ANONYMOUS_AUTHOR, LICENSE_FEATURES, PLATFORMS, isDeveloper, projectTypeLabels } from "@/lib/constants";
 import { PROJECT_AUTHOR, PROJECT_COLUMNS } from "@/lib/projects/columns";
 import { SECTION_COLORS } from "@/lib/section-colors";
-import { getLiveDomain } from "@/lib/domains/read";
+import { getLiveDomain, getOldAddressSource } from "@/lib/domains/read";
+import { fixOldAddresses, oldAddressPrefixes } from "@/lib/domains/old-address";
 import { domainOfferOf, previewAddressOf, quickToConnect } from "@/lib/domains/offer";
 import { DomainNudge } from "@/components/projects/domain-nudge";
+import { OldAddressNudge } from "@/components/projects/old-address-nudge";
 import { RedirectPill } from "@/components/domains/redirect-pill";
 import { StatStrip, type StatStripItem } from "@/components/projects/stat-strip";
 import { ReadingSurface } from "@/components/shared/reading-surface";
@@ -136,6 +138,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         .eq('owner_id', user.id)
         .in('status', ['reserved', 'pending', 'active', 'broken']);
       if (mine && mine.length < 3 && !mine.some((row) => row.project_id === project.id)) ownerOffer = offer;
+    }
+  }
+  // 소유자에게만: 주소를 연결했는데 상세 설명에 옛 사이트 주소가 남아 있으면 바꿀지 묻는다
+  let ownerOldAddress: { fqdn: string; lines: { before: string; after: string }[] } | null = null;
+  if (isOwner && project.description) {
+    const source = await getOldAddressSource(project.id);
+    if (source) {
+      const fix = fixOldAddresses(project.description, oldAddressPrefixes(source), source.name);
+      if (fix.count > 0) ownerOldAddress = { fqdn: `${source.name}.dshs.dev`, lines: fix.lines };
     }
   }
   const tags = project.features || [];
@@ -306,6 +317,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         )}
         {ownerOffer && (
           <DomainNudge projectId={project.id} hostname={ownerOffer.hostname} suggestion={ownerOffer.suggestion} quick={quickToConnect(ownerOffer.host)} />
+        )}
+
+        {ownerOldAddress && (
+          <OldAddressNudge projectId={project.id} fqdn={ownerOldAddress.fqdn} lines={ownerOldAddress.lines} readmeSync={!!project.readme_sync} />
         )}
 
         <StatStrip items={stats} className="mt-8" />
