@@ -50,6 +50,8 @@ export type Database = {
           interests: string[];
           contacts: UserContact[];
           created_at: string;
+          // 닉네임·소개가 바뀐 시각(트리거가 채움) — 관리자 대시보드 최신 글용
+          profile_updated_at: string | null;
         };
         Insert: {
           id: string;
@@ -514,6 +516,55 @@ export type Database = {
           },
         ];
       };
+      // 관리자 대시보드 — 셋 다 서비스 키 전용(RLS 켜고 정책 없음). migration 20261106100000
+      user_bans: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          email_hash: string;
+          until: string | null; // null = 무제한
+          reason: string | null;
+          from_anonymous: boolean;
+          created_at: string;
+          created_by: string | null;
+        };
+        Insert: {
+          user_id?: string | null;
+          email_hash: string;
+          until?: string | null;
+          reason?: string | null;
+          from_anonymous?: boolean;
+          created_by?: string | null;
+        };
+        Update: { until?: string | null; reason?: string | null };
+        Relationships: [];
+      };
+      admin_dismissals: {
+        Row: { kind: string; item_id: string; dismissed_at: string };
+        Insert: { kind: string; item_id: string; dismissed_at?: string };
+        Update: { dismissed_at?: string };
+        Relationships: [];
+      };
+      admin_actions: {
+        Row: {
+          id: number;
+          action: 'delete' | 'ban' | 'unban' | 'private' | 'dismiss' | 'revert';
+          target_kind: string | null;
+          target_id: string | null;
+          target_user_id: string | null;
+          detail: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          action: 'delete' | 'ban' | 'unban' | 'private' | 'dismiss' | 'revert';
+          target_kind?: string | null;
+          target_id?: string | null;
+          target_user_id?: string | null;
+          detail?: Json | null;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
       privacy_consents: {
         Row: {
           id: string;
@@ -595,6 +646,18 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      is_banned: {
+        Args: { p_uid: string };
+        Returns: boolean;
+      };
+      my_ban: {
+        Args: Record<string, never>;
+        Returns: { until: string | null; unlimited: boolean }[];
+      };
+      email_hash: {
+        Args: { p_email: string };
+        Returns: string;
+      };
       my_project_ids: {
         Args: Record<string, never>;
         Returns: string[];
