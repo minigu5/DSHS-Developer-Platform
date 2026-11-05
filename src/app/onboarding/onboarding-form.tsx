@@ -17,6 +17,7 @@ import { ToggleChip } from "@/components/forms/toggle-chip";
 import { AUTH_TITLE_CLASS, AUTH_LEAD_CLASS, riseDelay } from "@/components/auth/auth-shell";
 import { cn } from "@/lib/utils";
 import { SECTION_COLORS } from "@/lib/section-colors";
+import { friendlyWriteError } from "@/lib/admin/ban";
 
 const onboardingSchema = z.object({
   nickname: z.string().min(2, "닉네임은 2자 이상이어야 합니다.").max(20, "닉네임은 20자 이하이어야 합니다."),
@@ -104,7 +105,7 @@ export function OnboardingForm({ user }: { user: User }) {
 
       if (result.error) {
         setLoading(false);
-        toast.error(result.error);
+        toast.error(friendlyWriteError(result.error) ?? result.error);
       } else {
         toast.success("프로필을 저장했어요.");
         // 닉네임 업데이트 후 캐시 반영을 위해 refresh 후 이동

@@ -31,3 +31,31 @@ export function banNotice(until: string | null): string {
 export function friendlyWriteError(message: string, until?: string | null): string | null {
   return message.includes('user_banned') ? banNotice(until ?? null) : null
 }
+
+/** 관리자 화면의 차단 한 줄. 사용자 id 는 넣지 않는다 — 익명 글에서 건 차단이면 RSC 페이로드의 id 로 누구인지 드러난다 */
+export type BanView = {
+  banId: string
+  name: string | null
+  anonymous: boolean
+  until: string | null
+  reason: string | null
+  createdAt: string
+}
+
+export function toBanView(row: BanView & { userId?: string | null }): BanView {
+  return {
+    banId: row.banId,
+    name: row.anonymous ? null : row.name,
+    anonymous: row.anonymous,
+    until: row.until,
+    reason: row.reason,
+    createdAt: row.createdAt,
+  }
+}
+
+/** 살아 있는 차단 줄들 중 가장 늦게 끝나는 시각. 무제한(null)이 있으면 null, 줄이 없으면 undefined */
+export function latestBanUntil(rows: { until: string | null }[]): string | null | undefined {
+  if (rows.length === 0) return undefined
+  if (rows.some((r) => r.until === null)) return null
+  return rows.map((r) => r.until as string).sort().at(-1)
+}

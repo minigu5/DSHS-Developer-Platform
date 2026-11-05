@@ -18,6 +18,9 @@ import {
   updateAnnouncement,
   type AnnouncementFormInput,
 } from "@/lib/announcements/actions";
+import { BannedNotice } from "@/components/shared/banned-notice";
+import { friendlyWriteError } from "@/lib/admin/ban";
+import { useMyBan } from "@/lib/admin/use-my-ban";
 
 export interface AnnouncementEditorDefaults {
   id?: string;
@@ -38,6 +41,7 @@ const EMPTY: AnnouncementEditorDefaults = { title: "", category: "", content: ""
 export function AnnouncementEditor({ mode, defaults = EMPTY, isAdmin = false }: AnnouncementEditorProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const ban = useMyBan();
   const [tab, setTab] = useState<EditorTab>("write");
   const [title, setTitle] = useState(defaults.title);
   const [category, setCategory] = useState(defaults.category);
@@ -90,7 +94,7 @@ export function AnnouncementEditor({ mode, defaults = EMPTY, isAdmin = false }: 
     setLoading(false);
 
     if ("error" in result) {
-      toast.error(result.error);
+      toast.error(friendlyWriteError(result.error, ban.until) ?? result.error);
       return;
     }
     toast.success(mode === "create" ? "공지사항이 등록되었습니다." : "공지사항이 수정되었습니다.");
@@ -228,6 +232,7 @@ export function AnnouncementEditor({ mode, defaults = EMPTY, isAdmin = false }: 
         </p>
       </section>
 
+      {ban.banned && <BannedNotice until={ban.until} />}
       <div className="flex flex-wrap items-center justify-end gap-2.5">
         <p className="mr-auto text-xs text-zinc-500 dark:text-zinc-400">
           {mode === "create" ? "올리면 홈 티커와 목록에 바로 보여요." : "저장하면 바로 반영돼요."}
@@ -235,7 +240,7 @@ export function AnnouncementEditor({ mode, defaults = EMPTY, isAdmin = false }: 
         <Button type="button" variant="ghost" onClick={() => router.back()} className="h-11 rounded-full px-4">
           취소
         </Button>
-        <Button type="button" onClick={handleSubmit} disabled={loading} className={cn("h-11 rounded-full px-5", SECTION_COLORS.announcements.button)}>
+        <Button type="button" onClick={handleSubmit} disabled={loading || ban.banned} className={cn("h-11 rounded-full px-5", SECTION_COLORS.announcements.button)}>
           <PenLine className="mr-1.5 h-4 w-4" aria-hidden />
           {loading ? "저장 중…" : mode === "create" ? "공지 올리기" : "저장"}
         </Button>

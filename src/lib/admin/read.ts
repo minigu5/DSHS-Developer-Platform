@@ -7,6 +7,7 @@ import { listAllSubdomains, type AdminDomainRow } from '@/lib/domains/read'
 import { createAdminClient } from '@/lib/supabase/server'
 import type { Json } from '@/lib/types'
 
+import { toBanView, type BanView } from './ban'
 import { buildTodayItems, type Burst, type ContentKind, type EndedBan, type FeedItem, type GuideShrink, type TodayItem } from './today'
 
 export type Counts = {
@@ -21,15 +22,7 @@ export type Counts = {
 }
 export type SiteStats = { today: Counts; yesterday: Counts; week: Counts; activeDomains: number; activeBans: number }
 
-export type BanRow = {
-  banId: string
-  userId: string | null
-  name: string | null
-  anonymous: boolean
-  until: string | null
-  reason: string | null
-  createdAt: string
-}
+export type BanRow = BanView
 
 /** 화면에 넘기는 오늘 확인할 것 — 위키 되돌리기에 필요한 값만 덧붙인다 */
 export type AdminTodayItem = TodayItem & { guide?: { docKey: string; revNo: number } }
@@ -38,7 +31,7 @@ export type AdminDashboard = {
   today: AdminTodayItem[]
   stats: SiteStats
   feed: FeedItem[]
-  bans: BanRow[]
+  bans: BanView[]
   domains: AdminDomainRow[]
 }
 
@@ -87,7 +80,7 @@ export async function loadAdminDashboard(): Promise<AdminDashboard> {
   const feedItems = asArray<RpcFeedItem>(feed.data).map(stripAuthor)
   const burstGroups = asArray<Burst>(bursts.data).map((b) => ({ ...b, items: b.items.map(stripAuthor) }))
   const guideShrinks = asArray<RpcGuideShrink>(shrinks.data)
-  const banData = (bans.data ?? {}) as unknown as { active?: BanRow[]; ended?: EndedBan[] }
+  const banData = (bans.data ?? {}) as unknown as { active?: (BanView & { userId: string | null })[]; ended?: EndedBan[] }
 
   const today = buildTodayItems({
     feed: feedItems,
@@ -106,7 +99,7 @@ export async function loadAdminDashboard(): Promise<AdminDashboard> {
     today,
     stats: stats.data as unknown as SiteStats,
     feed: feedItems,
-    bans: banData.active ?? [],
+    bans: (banData.active ?? []).map(toBanView),
     domains,
   }
 }

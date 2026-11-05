@@ -75,11 +75,28 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN log := log || 'nick_change=' || SQLERRM || ';';
   END;
 
+  -- 공지로 우회 못 함
+  BEGIN
+    INSERT INTO public.announcements (author_id, title, category, content) VALUES (u2, 'zz-verify', 'general', 'x');
+    log := log || 'announce=ok;';
+  EXCEPTION WHEN insufficient_privilege THEN log := log || 'announce=' || SQLERRM || ';';
+  END;
+
   -- 5. 하트는 막지 않는다
   BEGIN
     INSERT INTO public.project_hearts (project_id, user_id) VALUES (pid, u2);
     log := log || 'heart=ok;';
   EXCEPTION WHEN insufficient_privilege THEN log := log || 'heart=' || SQLERRM || ';';
+  END;
+
+  -- 닉네임이 비어 있으면 처음 정하는 건 허용(재가입·관리자가 비운 뒤 온보딩에 갇히지 않게)
+  EXECUTE 'RESET ROLE';
+  UPDATE public.users SET nickname = NULL WHERE id = u2;
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  BEGIN
+    UPDATE public.users SET nickname = 'zz-verify-first' WHERE id = u2;
+    log := log || 'nick_first=ok;';
+  EXCEPTION WHEN insufficient_privilege THEN log := log || 'nick_first=' || SQLERRM || ';';
   END;
 
   -- 7. 내 차단 안내
@@ -146,9 +163,9 @@ BEGIN
 
   expect :=
     'feed_anon=true/true/true;feed_kinds=0;burst=1;stats=true;rpc_auth=false/false/false;bans_fn=1;'
-    'tip_insert=user_banned;member_update=user_banned;same_profile=ok;nick_change=user_banned;heart=ok;'
+    'tip_insert=user_banned;member_update=user_banned;same_profile=ok;nick_change=user_banned;announce=user_banned;heart=ok;nick_first=ok;'
     'my_ban=1/false;bans_read=denied;owner_update=1;service_update=1;service_insert_for_banned=user_banned;'
-    'my_ban_forever=true;hash_ban=true;hash_ban_ended=false;actions_forgot=0;withdraw=1/true;fn=false/true/false;';
+    'my_ban_forever=true;hash_ban=true;hash_ban_ended=false;actions_forgot=0;withdraw=1/true;fn=false/false/false;';
 
   IF log = expect THEN
     RAISE EXCEPTION 'VERIFY OK';
