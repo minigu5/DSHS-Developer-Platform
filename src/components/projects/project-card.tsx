@@ -1,12 +1,14 @@
 import Link from "@/components/shared/link";
 import Image from "next/image";
-import { Globe, Lock, Star, MessageSquare, Pencil } from "lucide-react";
+import { Globe, Heart, Lock, MessageSquare, Pencil } from "lucide-react";
 
 import { cn, isExternalImage } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProjectIcon } from "@/components/projects/project-icon";
 import { ANONYMOUS_AUTHOR, PLATFORMS, projectTypeLabels } from "@/lib/constants";
+import { heartCountOf } from "@/lib/hearts";
+import { HeartButton } from "@/components/projects/heart-button";
 
 // projects 테이블에서 카드 표시에 필요한 최소 컬럼들.
 // users join 결과는 supabase 가 객체 또는 배열로 줄 수 있어 둘 다 허용.
@@ -24,8 +26,11 @@ export type ProjectCardData = {
   public_author_id: string | null;
   visibility?: 'public' | 'private' | null;
   users: { full_name: string | null; nickname: string | null; avatar_url: string | null } | { full_name: string | null; nickname: string | null; avatar_url: string | null }[] | null;
-  reviews?: { rating: number }[] | null;
-  click_count?: number | null;  // ← 추가
+  /** PostgREST 집계 project_hearts(count) */
+  project_hearts?: { count: number }[] | null;
+  /** PostgREST 집계 project_comments(count) */
+  project_comments?: { count: number }[] | null;
+  click_count?: number | null;
 };
 
 function resolveAuthorName(p: ProjectCardData, fallback = '알 수 없음'): string {
@@ -50,21 +55,19 @@ interface ProjectCardProps {
   mode?: 'showcase' | 'manage';
   /** manage 모드에서 author 정보가 없을 때 보여줄 fallback 이름 (보통 로그인 사용자명) */
   authorFallback?: string;
+  /**
+   * 하트 버튼. 없으면 숫자만 보인다(홈 등).
+   * onToggle·count 가 있으면 제어 모드(탐색), 없으면 버튼이 스스로 저장한다.
+   */
+  heart?: { viewerId: string | null; hearted: boolean; onToggle?: (next: boolean) => void; count?: number };
 }
 
-function resolveReviewStats(project: ProjectCardData): { avg: number | null; count: number } {
-  const reviews = project.reviews ?? [];
-  const count = reviews.length;
-  const rated = reviews.filter((r) => r.rating != null);
-  const avg = rated.length > 0 ? rated.reduce((s, r) => s + r.rating!, 0) / rated.length : null;
-  return { avg, count };
-}
-
-export function ProjectCard({ project, mode = 'showcase', authorFallback }: ProjectCardProps) {
+export function ProjectCard({ project, mode = 'showcase', authorFallback, heart }: ProjectCardProps) {
   const authorName = resolveAuthorName(project, authorFallback);
   const authorAvatar = resolveAuthorAvatar(project);
   const tags = (project.features ?? []).slice(0, 2);
-  const { avg: avgRating, count: reviewCount } = resolveReviewStats(project);
+  const heartCount = heart?.count ?? heartCountOf(project);
+  const commentCount = project.project_comments?.[0]?.count ?? 0;
 
   const isWebsite = project.types?.includes('website') ?? false;
   const hasAllPlatforms = (project.platforms?.length ?? 0) >= PLATFORMS.length;
@@ -79,7 +82,7 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
 
   const inner = (
     <>
-      <CardHeader className="pt-4 pb-3">
+      <CardHeader className="pt-4 pb-3 pr-16">
         <div className="flex items-start gap-4">
           <ProjectIcon
             src={project.icon_url}
@@ -126,23 +129,12 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
               </span>
             ))}
           </div>
-          {(avgRating !== null || reviewCount > 0) && (
-            <div className="flex items-center gap-2 shrink-0 text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
-              {avgRating !== null && (
-                <span className="flex items-center gap-0.5">
-                  <Star className="w-3 h-3 fill-amber-400 text-amber-400" aria-hidden />
-                  <span className="sr-only">평균 별점</span>
-                  {avgRating.toFixed(1)}
-                </span>
-              )}
-              {reviewCount > 0 && (
-                <span className="flex items-center gap-0.5">
-                  <MessageSquare className="w-3 h-3" aria-hidden />
-                  <span className="sr-only">리뷰</span>
-                  {reviewCount}
-                </span>
-              )}
-            </div>
+          {commentCount > 0 && (
+            <span className="flex items-center gap-0.5 shrink-0 text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+              <MessageSquare className="w-3 h-3" aria-hidden />
+              <span className="sr-only">댓글</span>
+              {commentCount}
+            </span>
           )}
         </div>
       </CardContent>
@@ -220,6 +212,25 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback }: Proj
           </div>
         )}
       </CardFooter>
+
+      {/* 하트 — 덮개 링크(z-10) 위에 둔다. 링크 안에 버튼을 넣지 않는다 */}
+      <div className="absolute top-4 right-4 z-20">
+        {heart ? (
+          <HeartButton
+            projectId={project.id}
+            viewerId={heart.viewerId}
+            count={heartCount}
+            hearted={heart.hearted}
+            onToggle={heart.onToggle}
+          />
+        ) : heartCount > 0 ? (
+          <span className="inline-flex h-7 items-center gap-1 px-1 text-xs font-semibold tabular-nums text-zinc-500 dark:text-zinc-400">
+            <Heart className="h-3.5 w-3.5" aria-hidden />
+            <span className="sr-only">하트</span>
+            {heartCount}
+          </span>
+        ) : null}
+      </div>
 
       {/* 
         This absolute link covers the whole card (including footer background). 

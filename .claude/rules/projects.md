@@ -66,7 +66,7 @@ paths:
 - **웹사이트 + 전체 플랫폼**: `types`에 `website`가 있고 모든 플랫폼이 선택된 경우 카드에서는 "Web" 하나만 표시 (DB 실제 값은 유지).
 - **아이콘**: `mt-[5px]`로 텍스트 영역보다 5px 아래에 위치.
 - **아이콘 바탕·움직임**(2026-11-02 사용자 요청, `ProjectIcon`): 이미지 아이콘 바탕은 다크 모드에서도 `bg-white`(투명 배경 검은 그림이 어두운 카드에서 안 보였음). 움직이는 이미지(`.gif`·`.webp`·`.apng`)는 첫 장면만 — Cloudinary 주소는 `pg_1` 변환을 끼우고(받는 크기도 줄어듦), 바깥 주소는 숨긴 `<img>`로 받아 `<canvas>`에 첫 장면을 그린다. 업로드는 막지 않는다.
-- **별점/리뷰 수**: 쿼리에 `reviews(rating)` 포함 시 플랫폼 칩 옆에 평균 별점(`Star` 아이콘 + 소수 1자리)과 리뷰 수(`MessageSquare` 아이콘)를 작게 표시. rating=null 리뷰는 별점 평균 계산에서 제외.
+- **하트·댓글 수**(2026-11-05, 별점 삭제): 카드 오른쪽 위 `absolute top-4 right-4 z-20`(덮개 링크 z-10 위, 헤더는 `pr-16`)에 하트. `heart` prop이 있으면 `HeartButton`(`src/components/projects/heart-button.tsx`, rose 알약 — 제어 모드 `onToggle`+`count`는 탐색, 없으면 스스로 저장), 없으면 숫자만(0이면 숨김). 숫자는 쿼리의 `project_hearts(count)`(`heartCountOf`, `src/lib/hearts.ts`). 플랫폼 칩 옆엔 댓글 수(`project_comments(count)`, `MessageSquare`)만. 저장은 `setHeart`(`src/lib/hearts-client.ts`, 23505는 성공).
 
 ### 팀 프로젝트 수정 권한
 - **팀원도 프로젝트 수정 가능**: `team_members` 배열에 이메일이 있는 사용자는 수정 페이지 접근·저장 가능.
