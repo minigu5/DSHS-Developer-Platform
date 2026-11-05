@@ -53,7 +53,8 @@ export function AdminDomainTable({ rows }: { rows: AdminDomainRow[] }) {
           {error}
         </p>
       )}
-      <div className="overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800">
+      {/* relative: 안쪽 sr-only(absolute) 칸이 스크롤 상자 밖 기준으로 잡혀 모바일에서 페이지가 가로로 밀리던 것 */}
+      <div className="relative overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-zinc-50 text-xs text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
             <tr>

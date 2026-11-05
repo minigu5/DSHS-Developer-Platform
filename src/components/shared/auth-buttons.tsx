@@ -3,7 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "@/components/shared/link";
 import { useRouter } from "next/navigation";
-import { LogOut, Moon, Sun, User as UserIcon } from "lucide-react";
+import { LogOut, Moon, ShieldCheck, Sun, User as UserIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import type { User } from "@supabase/supabase-js";
 
@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { isDeveloper } from "@/lib/constants";
 
 // 모바일(sm 미만) 여부 — 모바일에서는 헤더의 다크모드 토글이 숨겨져 프로필 메뉴에 테마 항목을 둔다.
 // 메뉴 항목을 sm:hidden으로 숨기면 데스크탑에서 화살표 키 이동이 숨은 항목에 걸릴 수 있어 아예 렌더하지 않는다.
@@ -117,6 +118,12 @@ export function AuthButtons() {
             <UserIcon className="mr-2 h-4 w-4" aria-hidden />
             <span>내 페이지</span>
           </DropdownMenuItem>
+          {isDeveloper(user.email) && (
+            <DropdownMenuItem onClick={() => router.push('/admin')} className="cursor-pointer">
+              <ShieldCheck className="mr-2 h-4 w-4" aria-hidden />
+              <span>관리자</span>
+            </DropdownMenuItem>
+          )}
           {isMobile && (
             <DropdownMenuItem onClick={() => setTheme(isDark ? "light" : "dark")} className="cursor-pointer">
               {isDark ? <Sun className="mr-2 h-4 w-4" aria-hidden /> : <Moon className="mr-2 h-4 w-4" aria-hidden />}
