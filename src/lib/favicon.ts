@@ -1,12 +1,12 @@
 // 사이트 URL에서 favicon/대표 이미지를 찾아 검증된 URL을 반환.
-// /api/favicon 라우트와 백필 스크립트가 공유.
+// /api/favicon 라우트와 백필·매일 동기화 스크립트가 공유(스크립트가 node로 바로 돌리므로 상대 경로 import).
 
-import { assertSafePublicUrl } from '@/lib/ssrf-guard';
+import { assertSafePublicUrl } from './ssrf-guard.ts';
 
 const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
-async function isImageOk(u: string): Promise<boolean> {
+export async function isImageOk(u: string): Promise<boolean> {
   const safe = await assertSafePublicUrl(u);
   if (!safe.ok) return false;
   try {
@@ -84,6 +84,13 @@ function findMetaImage(html: string): string | null {
     if (match?.[1]) return match[1];
   }
   return null;
+}
+
+// 사이트가 서버 요청을 막을 때 쓰는 공개 favicon 서비스(맨 마지막 후보)
+const FALLBACK_SERVICE = /^https:\/\/(www\.google\.com\/s2\/favicons|icons\.duckduckgo\.com\/ip3\/)/;
+
+export function isFallbackFaviconService(u: string): boolean {
+  return FALLBACK_SERVICE.test(u);
 }
 
 export async function resolveFavicon(rawUrl: string): Promise<string | null> {
