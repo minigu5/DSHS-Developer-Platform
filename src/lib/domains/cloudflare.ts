@@ -7,6 +7,11 @@
 const API = 'https://api.cloudflare.com/client/v4'
 export const RECORD_COMMENT_PREFIX = 'dshs-subdomain:'
 
+// Cloudflare 레코드·목록 항목 id 는 늘 32자. 개발(next dev)은 운영 DB 에 쓰면서 Cloudflare 는 가짜라
+// `fake-1`·`fake-redirect-1` 같은 id 가 운영 행에 남을 수 있다 — Cloudflare 는 이런 id 삭제를 400/405 로 거절해
+// 운영의 재연결·반납이 통째로 실패했다(2026-11-05 dorm). 실제로 없는 것이므로 지울 때 건너뛴다.
+export const isCloudflareId = (id: string) => /^[a-zA-Z0-9]{32}$/.test(id)
+
 // proxied 를 주지 않으면 AAAA 만 proxied(바로가기용). 대곽나루 주소는 CNAME 을 proxied 로 만든다(요청이 Cloudflare 터널을 거쳐야 하므로)
 export type DnsRecordInput = { type: 'CNAME' | 'TXT' | 'AAAA'; name: string; content: string; proxied?: boolean }
 export type ManagedRecord = { id: string; name: string; comment: string; createdOn: string }
@@ -79,7 +84,7 @@ export function createDnsClient(opts: { token: string; zoneId: string; fetch?: t
     },
 
     async remove(ids) {
-      for (const id of ids) {
+      for (const id of ids.filter(isCloudflareId)) {
         const { status, data } = await call('DELETE', `${base}/${encodeURIComponent(id)}`)
         if (status === 404 || data?.success) continue
         throw new DnsError(describe(status, data))

@@ -17,6 +17,9 @@ function fakeFetch(handler: (c: Call, i: number) => { status: number; json: unkn
 
 const ok = (result: unknown) => ({ status: 200, json: { success: true, errors: [], result } })
 const BASE = 'https://api.cloudflare.com/client/v4/zones/zone1/dns_records'
+// Cloudflare id 는 32자 — 모양이 다른 id 는 remove 가 건너뛴다
+const REC0 = 'rec0'.padEnd(32, '0')
+const X = 'x'.padEnd(32, '0')
 
 test('레코드는 DNS only·자동 TTL·우리 표시(comment)로 만든다', async () => {
   const { f, calls } = fakeFetch((c, i) => ok({ id: `rec${i}` }))
@@ -41,7 +44,7 @@ test('레코드는 DNS only·자동 TTL·우리 표시(comment)로 만든다', a
 
 test('중간에 실패하면 이미 만든 레코드를 지우고 DnsError', async () => {
   const { f, calls } = fakeFetch((c, i) =>
-    i === 1 ? { status: 400, json: { success: false, errors: [{ code: 81053, message: 'exists' }] } } : ok({ id: 'rec0' }),
+    i === 1 ? { status: 400, json: { success: false, errors: [{ code: 81053, message: 'exists' }] } } : ok({ id: REC0 }),
   )
   const dns = createDnsClient({ token: 't', zoneId: 'zone1', fetch: f })
   await assert.rejects(
@@ -54,7 +57,7 @@ test('중간에 실패하면 이미 만든 레코드를 지우고 DnsError', asy
     ),
     DnsError,
   )
-  assert.deepEqual(calls.map((c) => `${c.method} ${c.url}`), [`POST ${BASE}`, `POST ${BASE}`, `DELETE ${BASE}/rec0`])
+  assert.deepEqual(calls.map((c) => `${c.method} ${c.url}`), [`POST ${BASE}`, `POST ${BASE}`, `DELETE ${BASE}/${REC0}`])
 })
 
 test('지울 때 이미 없는 레코드(404)는 성공으로 본다', async () => {
@@ -66,7 +69,14 @@ test('지울 때 이미 없는 레코드(404)는 성공으로 본다', async () 
 test('지우기 실패(404 말고)는 DnsError', async () => {
   const { f } = fakeFetch(() => ({ status: 500, json: { success: false, errors: [] } }))
   const dns = createDnsClient({ token: 't', zoneId: 'zone1', fetch: f })
-  await assert.rejects(dns.remove(['x']), DnsError)
+  await assert.rejects(dns.remove([X]), DnsError)
+})
+
+test('개발이 남긴 가짜 id(fake-1)는 요청하지 않고 건너뛴다', async () => {
+  const { f, calls } = fakeFetch(() => ({ status: 405, json: { success: false, errors: [{ code: 10405, message: 'Method not allowed' }] } }))
+  const dns = createDnsClient({ token: 't', zoneId: 'zone1', fetch: f })
+  await dns.remove(['fake-1'])
+  assert.equal(calls.length, 0)
 })
 
 test('우리가 만든 레코드 목록은 페이지를 넘겨 모은다', async () => {

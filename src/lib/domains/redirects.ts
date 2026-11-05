@@ -6,7 +6,7 @@
 // 같은 source_url 을 다시 넣으면 새 항목이 아니라 기존 항목을 덮어쓴다(같은 id, 2026-10-26 실측).
 // 설계: docs/superpowers/specs/2026-10-26-subdomain-redirects-design.md 4.4
 
-import { RECORD_COMMENT_PREFIX } from './cloudflare.ts'
+import { isCloudflareId, RECORD_COMMENT_PREFIX } from './cloudflare.ts'
 
 const API = 'https://api.cloudflare.com/client/v4'
 const ATTEMPTS = 3
@@ -120,7 +120,9 @@ export function createRedirectClient(opts: {
       return found.id
     },
 
-    async remove(ids) {
+    async remove(all) {
+      // 개발이 남긴 가짜 id(fake-redirect-N)는 목록에 없다 — 보내면 요청 전체가 400 이라 뺀다(isCloudflareId 참고)
+      const ids = all.filter(isCloudflareId)
       if (!ids.length) return
       await waitFor(await startOperation('DELETE', { items: ids.map((id) => ({ id })) }))
     },

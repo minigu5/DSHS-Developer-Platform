@@ -19,6 +19,9 @@ const ok = (result: unknown, extra: Record<string, unknown> = {}) => ({ status: 
 const fail = (status: number, message: string) => ({ status, json: { success: false, errors: [{ code: 1, message }], result: null } })
 const BASE = 'https://api.cloudflare.com/client/v4/accounts/acc1/rules/lists'
 const opts = { token: 't', accountId: 'acc1', listId: 'list1', pollMs: 1, maxWaitMs: 50 }
+// 목록 항목 id 는 32자 — 모양이 다른 id 는 remove 가 건너뛴다
+const A = 'a'.repeat(32)
+const B = 'b'.repeat(32)
 
 test('목록 항목은 302·경로·쿼리 보존·우리 표시로 만든다', () => {
   assert.deepEqual(redirectItemBody('meal.dshs.dev/', 'https://meal.acct.workers.dev/', 'row-1'), {
@@ -91,22 +94,30 @@ test('목록에 진행 중 작업이 있어 거절되면 다시 시도한다', a
 
 test('계속 거절되면 3번 시도 뒤 RedirectError', async () => {
   const { f, calls } = fakeFetch(() => fail(400, 'nope'))
-  await assert.rejects(createRedirectClient({ ...opts, fetch: f }).remove(['a']), RedirectError)
+  await assert.rejects(createRedirectClient({ ...opts, fetch: f }).remove([A]), RedirectError)
   assert.equal(calls.length, 3)
 })
 
 test('remove 는 id 목록을 DELETE 본문으로 보낸다', async () => {
   const { f, calls } = fakeFetch((c, i) => (i === 0 ? ok({ operation_id: 'op2' }) : ok({ id: 'op2', status: 'completed' })))
-  await createRedirectClient({ ...opts, fetch: f }).remove(['a', 'b'])
+  await createRedirectClient({ ...opts, fetch: f }).remove([A, B])
   assert.equal(calls[0].method, 'DELETE')
   assert.equal(calls[0].url, `${BASE}/list1/items`)
-  assert.deepEqual(calls[0].body, { items: [{ id: 'a' }, { id: 'b' }] })
+  assert.deepEqual(calls[0].body, { items: [{ id: A }, { id: B }] })
 })
 
 test('remove 빈 배열이면 요청하지 않는다', async () => {
   const { f, calls } = fakeFetch(() => ok(null))
   await createRedirectClient({ ...opts, fetch: f }).remove([])
   assert.equal(calls.length, 0)
+})
+
+test('개발이 남긴 가짜 id(fake-redirect-1)는 빼고, 남는 게 없으면 요청하지 않는다', async () => {
+  const { f, calls } = fakeFetch((c, i) => (i === 0 ? ok({ operation_id: 'op3' }) : ok({ id: 'op3', status: 'completed' })))
+  await createRedirectClient({ ...opts, fetch: f }).remove(['fake-redirect-1'])
+  assert.equal(calls.length, 0)
+  await createRedirectClient({ ...opts, fetch: f }).remove(['fake-redirect-2', A])
+  assert.deepEqual(calls[0].body, { items: [{ id: A }] })
 })
 
 test('listManaged 는 cursor 를 따라가고 우리 항목만', async () => {
