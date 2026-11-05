@@ -39,10 +39,13 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
     const dataUri = `data:${file.type};base64,${buffer.toString("base64")}`;
 
+    // SVG는 변환하지 않는다 — fetch_format:auto 가 SVG 자체 크기(아이콘은 보통 24px)의 PNG로 바꿔서 흐려졌다.
+    // 화면에는 <img>로만 보여 주므로 SVG 속 스크립트는 실행되지 않는다.
+    const isSvg = file.type === "image/svg+xml";
     const result = await cloudinary.uploader.upload(dataUri, {
       folder: "dshs",
       resource_type: "image",
-      transformation: [{ quality: "auto:good", fetch_format: "auto" }],
+      ...(isSvg ? {} : { transformation: [{ quality: "auto:good", fetch_format: "auto" }] }),
     });
 
     return NextResponse.json({ url: result.secure_url });
