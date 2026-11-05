@@ -33,7 +33,7 @@
 
 | 파일 | 내용 |
 |---|---|
-| `projects.md` | 등록·수정 폼 UX(README·라이선스 가져오기, 이탈 경고, 등록 직후 권유, 팀원), 상세·카드, 팀 수정 권한·삭제 확인, 리뷰 |
+| `projects.md` | 등록·수정 폼 UX(README·라이선스 가져오기, 이탈 경고, 등록 직후 권유, 팀원), 상세·카드, 팀 수정 권한·삭제 확인, 댓글·하트 |
 | `domains.md` | 도메인 마련하기 전체(확인 먼저, 호스트 프리셋, 바로가기, 대곽나루, DB 함수, 매일 점검, 비공개 전환 시 반납) |
 | `guide.md` | 바이브 코딩 가이드(위저드·스테퍼·조각 표기·설치 링크 규칙), 가이드 위키 편집 |
 | `community.md` | 개발 팁(공용 `Markdown` 렌더 포함)·해줘!·공지사항·홈 공지 티커 |
@@ -60,7 +60,7 @@
 | Role | 권한 |
 |---|---|
 | **Guest** (비로그인) | Public 프로젝트 열람, 검색/필터링 |
-| **User** (로그인) | 위 + 프로젝트 게시/수정/삭제, 댓글/별점 작성. Private 프로젝트는 작성자 또는 `allowed_users`에 포함된 사용자만 접근 |
+| **User** (로그인) | 위 + 프로젝트 게시/수정/삭제, 댓글 작성·하트(즐겨찾기). Private 프로젝트는 작성자 또는 `allowed_users`에 포함된 사용자만 접근 |
 
 ### 보호 라우트 (`src/middleware.ts`)
 - `/projects/new`, `/projects/[id]/edit`, `/tips/new`, `/haejwo/new`, `/me`, `/guide-wiki/[key]/edit`, `/domains`(관리자 화면 `/domains/admin` 포함)
@@ -89,7 +89,7 @@
   - `projects.author_id`는 anon/authenticated가 **읽을 수 없다**(칸 단위 GRANT). `select('*')`도 막히므로 사용자 키로는 칸을 적어 읽는다 — 상세·수정은 `PROJECT_COLUMNS`(`src/lib/projects/columns.ts`). **projects에 새 칸을 만들면 migration에서 `GRANT SELECT (새 칸) ON public.projects TO anon, authenticated`와 `PROJECT_COLUMNS` 추가 필수.** 서비스 키·SECURITY DEFINER 함수는 그대로 `author_id`를 쓴다.
   - 화면의 작성자는 자동 계산 칸 `public_author_id`(익명이면 NULL)로만: 링크 `/developers/<public_author_id>`, 사용자 붙이기는 **`users!projects_public_author_id_fkey(...)`**(관계가 둘이라 이름 필수 — 그냥 `users(...)`는 PGRST201).
   - 내 프로젝트(익명 포함)는 `rpc('my_project_ids')`(본인 것만, authenticated 전용) — 수정 페이지 소유자 판정, 상세 "수정하기"(이제 서버에서 판단, `EditButton`은 링크만), 본인 프로필 목록(익명도 '익명'으로 보임), `/domains` 목록.
-  - reviews 조회 정책은 다른 표의 `author_id`를 읽으면 권한 오류라 `EXISTS (SELECT 1 FROM projects WHERE id = project_id)`(= projects RLS에 맡김)로 바꿈.
+  - 댓글(`project_comments`, 옛 reviews) 조회 정책은 다른 표의 `author_id`를 읽으면 권한 오류라 `EXISTS (SELECT 1 FROM projects WHERE id = project_id)`(= projects RLS에 맡김)로 바꿈.
   - 해줘 "구현완료" 연결은 익명 프로젝트를 받지 않고(`public_author_id = 나`만), 연결 뒤 익명으로 바꾼 프로젝트는 해줘 목록·상세에서 숨긴다(글쓴이 = 만든 사람이라 익명이 풀림).
   - 한계: 설명·저장소 링크(GitHub 아이디)·사이트 내용으로는 알 수 있음(폼 안내 문구). 개발자 계정도 화면에서는 '익명'으로 본다(DB에서 확인).
 
@@ -101,12 +101,13 @@
 ### 주요 테이블 구조
 - **`users`**: `id`, `email`, `full_name`, `nickname`, `bio`, `interests`, `avatar_url`, `contacts`(JSONB, `docs/14-supabase-users-contacts.sql` 적용 필요)
 - **`projects`**: `id`, `author_id`, `title`, `description`, `types`(text[], `docs/17` 1·2단계 모두 운영 적용 — 옛 `type` 칸은 2026-10-27 migration `20261027120000`으로 삭제), `platforms`, `source_type`, `repo_url`, `url`, `license_features`, `visibility`, `allowed_users`, `icon_url`, `readme_sync`·`readme_etag`·`readme_synced_at`(`docs/20-supabase-projects-readme-sync.sql`, 적용 완료)
-- **`reviews`**: `id`, `project_id`, `user_id`, `rating`(nullable — `docs/15` 내용은 2026-10-27 migration `20261027110000`으로 운영 적용, 그 전엔 운영이 NOT NULL이라 별점 없는 리뷰가 저장 실패했음), UNIQUE(`project_id`,`user_id`) — 프로젝트마다 한 사람 1개, `comment`
+- **`project_comments`**(옛 `reviews`, 2026-11-05 별점 삭제·1인 여러 개): `id`, `project_id`, `user_id`(사용자 키로 못 읽음), `content`, `is_author`, `public_user_id`(익명 프로젝트 소유자 댓글이면 NULL — 화면은 `users!project_comments_public_user_id_fkey`로만 사람을 붙임), `created_at`. 자세히는 `.claude/rules/projects.md` 「댓글·하트」
+- **`project_hearts`**: PK(`project_id`,`user_id`), `created_at`, `by_anonymous_owner` — 하트 = 즐겨찾기, 누가 눌렀는지 공개(만든 사람이 자기 익명 프로젝트에 누른 것만 남에게 숨김). 나중 팔로잉 피드용 인덱스 `(user_id, created_at DESC)`
 
 ### RLS 정책 요약
 - **`users`**: 누구나 조회 가능, 본인만 수정 가능.
 - **`projects`**: Public은 누구나, Private은 소유자 및 허용된 사용자만. 생성/삭제는 소유자만. **수정은 소유자 또는 `team_members`에 이메일이 포함된 팀원**도 가능(`docs/13-supabase-projects-team-edit.sql` 적용 후).
-- **`reviews`**: 프로젝트 접근 권한자만 조회 가능, 본인만 생성/수정/삭제 가능.
+- **`project_comments`·`project_hearts`**: 프로젝트 접근 권한자만 조회 가능, 본인만 생성/삭제(댓글은 글만 수정). 볼 수 없는 프로젝트엔 하트를 못 누름.
 
 ## 🌏 인프라 및 배포 설정
 
@@ -154,7 +155,7 @@
 - **모바일 하단 탭바**: `MobileNav`(`sm:hidden`)가 뷰포트 바닥에 고정. 아이콘 전용, 활성 항목은 원형 컬러 배경+흰색 아이콘으로 강조. 콘텐츠가 가려지지 않도록 `(nav)/layout.tsx`에서 `pb-16 sm:pb-0` 여백 처리.
 - **큰 제목**: 모바일에서 한 단계 작게. 홈 히어로 `text-3xl sm:text-6xl`, 페이지 머리(`PageHero`) h1 `text-3xl sm:text-[40px]`(compact `text-2xl sm:text-[28px]`). 모바일 머리는 설명 문장을 숨긴다.
 - **카드/섹션 패딩**: `p-6 sm:p-8` (모바일 24px, 데스크탑 32px).
-- **세로 스택 전환**: 좁은 폭에서 잘리는 행은 `flex-col sm:flex-row`로 전환 (예: 프로젝트 리뷰의 "이미 작성하셨습니다" 행).
+- **세로 스택 전환**: 좁은 폭에서 잘리는 행은 `flex-col sm:flex-row`로 전환 (예: 상세 댓글 칸의 "로그인이 필요해요" 행).
 - **섹션 헤더 정렬**: `flex-col sm:flex-row justify-between` 컨테이너에서 `items-start sm:items-end` 패턴 사용 — 모바일(`flex-col`)에서 `items-end`를 쓰면 콘텐츠가 오른쪽으로 붙어버림.
 - **홈 CTA 버튼**: 모바일에서 `max-w-[280px] sm:max-w-none` 제한 — `w-full`만 두면 전체 너비로 늘어나 이상해 보임.
 - **홈 섹션별 카드 수**: 모바일에서 최대 3개만 표시. 프로젝트 fetch는 6개(데스크탑 3열 채움)이나 index ≥ 3 항목에 `hidden sm:block` 적용.
@@ -241,7 +242,7 @@ src/
 │   ├── forms/            # select-card, toggle-chip, choice-row(선택 UI, tone="neutral"|섹션 키), form-section, form-rail(등록 폼 카드·목차)
 │   ├── auth/             # google-login-button, auth-shell(로그인·온보딩·접근 거부 공통 틀)
 │   ├── home/             # icon-shelf, reveal-observer, section-header, home-project-card, how-it-works, recent-posts, guide-teaser, domain-teaser, closing-cta, site-footer
-│   ├── projects/         # project-card, project-form, project-icon, project-reviews, stat-strip 등
+│   ├── projects/         # project-card, project-form, project-icon, project-comments, heart-button, stat-strip 등
 │   ├── explore/          # explore-client, mobile-filter-bar
 │   ├── guide/            # guide-wizard, guide-viewer(스테퍼), guide-step-body(단계 렌더러), guide-chapter-tools
 │   ├── guide-wiki/       # 가이드 위키 편집: editor/(카드 편집기·reducer), history-list, revert-dialog, step-diff-view, doc-render, stale-banner

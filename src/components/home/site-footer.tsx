@@ -44,7 +44,7 @@ export function SiteFooter() {
         <div>
           <p className="font-heading text-[15px] font-bold text-zinc-900 dark:text-white">DSHS Developer Platform</p>
           <p className="mt-1.5 max-w-[34ch] leading-relaxed break-keep">
-            대구과학고 학생들이 만든 프로그램을 모아 두는 곳이에요. 써 보고, 리뷰하고, 내 것도 올려요.
+            대구과학고 학생들이 만든 프로그램을 모아 두는 곳이에요. 써 보고, 댓글 남기고, 내 것도 올려요.
           </p>
         </div>
         <nav aria-label="푸터 메뉴" className="grid grid-cols-2 gap-6 sm:grid-cols-3">

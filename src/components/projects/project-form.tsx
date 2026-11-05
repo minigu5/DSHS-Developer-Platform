@@ -1303,7 +1303,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         {showDanger && (
           <FormSection id="section-danger" title="위험 구역" hint="수정 페이지에서만" danger>
             <div className="flex flex-wrap items-center justify-between gap-4">
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">삭제하면 리뷰까지 함께 사라지고 되돌릴 수 없어요.</p>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">삭제하면 댓글·하트까지 함께 사라지고 되돌릴 수 없어요.</p>
               <button
                 type="button"
                 onClick={() => setShowDeleteDialog(true)}

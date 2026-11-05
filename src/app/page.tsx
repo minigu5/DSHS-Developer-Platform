@@ -1,5 +1,5 @@
 // 빌드 때 한 번 그려 두는 정적 페이지 — 요청마다 서버가 그리면 Cloudflare Workers 무료 요금제의 CPU 한도(요청당 10ms)를 넘겨 503이 났다.
-// 목록 데이터(공지·프로젝트·글·리뷰·도메인 현황)는 모두 공개 데이터라 브라우저가 읽는다 — home-slots.tsx / home-data.ts.
+// 목록 데이터(공지·프로젝트·글·댓글·도메인 현황)는 모두 공개 데이터라 브라우저가 읽는다 — home-slots.tsx / home-data.ts.
 export const dynamic = "force-static";
 
 import type { CSSProperties } from "react";
@@ -46,7 +46,7 @@ export default function HomePage() {
               className="rise mt-6 max-w-2xl text-base sm:text-xl text-zinc-600 dark:text-zinc-400 leading-relaxed break-keep"
               style={riseDelay(90)}
             >
-              친구가 만든 웹사이트와 앱을 써 보고 리뷰를 남겨요. 내가 만든 프로그램도 올려서 피드백을 받아요.
+              친구가 만든 웹사이트와 앱을 써 보고 하트와 댓글을 남겨요. 내가 만든 프로그램도 올려서 피드백을 받아요.
             </p>
             <div
               className="rise mt-8 sm:mt-10 flex flex-col sm:flex-row gap-3 w-full max-w-[280px] sm:max-w-none sm:w-auto"

@@ -46,10 +46,11 @@ type IdeaJoined = {
   author: Person;
 };
 
-type ReviewJoined = {
-  comment: string;
-  rating: number | null;
-  users: Person;
+type CommentJoined = {
+  content: string;
+  is_author: boolean;
+  public_user_id: string | null;
+  user: Person;
   projects: { title: string; icon_url: string | null } | null;
 };
 
@@ -77,7 +78,7 @@ async function fetchHomeData(): Promise<HomeData> {
     { data: shelfRaw },
     { data: tipsRaw },
     { data: ideasRaw },
-    { data: reviewRaw },
+    { data: commentRaw },
     { data: showcaseRaw },
   ] = await Promise.all([
     supabase
@@ -101,7 +102,8 @@ async function fetchHomeData(): Promise<HomeData> {
         features,
         public_author_id,
         users!projects_public_author_id_fkey (full_name, nickname, avatar_url),
-        reviews(rating)
+        project_hearts(count),
+        project_comments(count)
       `)
       .eq("visibility", "public")
       .order("created_at", { ascending: false })
@@ -128,15 +130,14 @@ async function fetchHomeData(): Promise<HomeData> {
       .order("created_at", { ascending: false })
       .limit(3)
       .returns<IdeaJoined[]>(),
-    // "이렇게 써요" 2단계 예시 — 공개 프로젝트에 달린 가장 최근 리뷰 한 개
+    // "이렇게 써요" 2단계 예시 — 공개 프로젝트에 달린 가장 최근 댓글 한 개(사람은 public_user_id 로만)
     supabase
-      .from("reviews")
-      .select("comment, rating, users(nickname, full_name), projects!inner(title, icon_url)")
+      .from("project_comments")
+      .select("content, is_author, public_user_id, user:users!project_comments_public_user_id_fkey(nickname, full_name), projects!inner(title, icon_url)")
       .eq("projects.visibility", "public")
-      .neq("comment", "")
       .order("created_at", { ascending: false })
       .limit(1)
-      .returns<ReviewJoined[]>(),
+      .returns<CommentJoined[]>(),
     // 도메인 마련하기 소개 카드의 "벌써 N개" — 실패하면 null 이라 카드만 조용히 줄어든다
     supabase.rpc("domain_showcase", { p_limit: 6 }),
   ]);
@@ -155,7 +156,7 @@ async function fetchHomeData(): Promise<HomeData> {
 
   const latest = recentProjects[0];
   const latestUser = latest ? (Array.isArray(latest.users) ? latest.users[0] : latest.users) : null;
-  const review = reviewRaw?.[0];
+  const comment = commentRaw?.[0];
 
   return {
     ticker,
@@ -185,14 +186,18 @@ async function fetchHomeData(): Promise<HomeData> {
             typeLabel: projectTypeLabels(latest.types, true).join(" · "),
           }
         : null,
-      latestReview:
-        review && review.projects
+      latestComment:
+        comment && comment.projects
           ? {
-              comment: review.comment,
-              rating: review.rating,
-              reviewerName: personName(review.users),
-              projectTitle: review.projects.title,
-              projectIcon: review.projects.icon_url,
+              content: comment.content,
+              // 익명 프로젝트 만든 사람의 댓글은 이름이 오지 않는다
+              authorName: comment.public_user_id
+                ? personName(comment.user)
+                : comment.is_author
+                  ? `${ANONYMOUS_AUTHOR} · 만든 사람`
+                  : "알 수 없음",
+              projectTitle: comment.projects.title,
+              projectIcon: comment.projects.icon_url,
             }
           : null,
       latestIdea: ideas[0] ? { title: ideas[0].title, statusLabel: IDEA_STATUS_LABEL[ideas[0].status] } : null,
@@ -208,7 +213,7 @@ const EMPTY: HomeData = {
   tips: [],
   ideas: [],
   recentAnnouncements: [],
-  examples: { latestProject: null, latestReview: null, latestIdea: null },
+  examples: { latestProject: null, latestComment: null, latestIdea: null },
   showcase: null,
 };
 

@@ -39,7 +39,7 @@
 | Role | 권한 |
 |---|---|
 | **Guest** (비로그인) | Public 프로젝트 열람, 검색/필터링 |
-| **User** (로그인) | 위 + 프로젝트 게시/수정/삭제, 댓글/별점 작성. Private 프로젝트는 허용된 사용자만 접근 |
+| **User** (로그인) | 위 + 프로젝트 게시/수정/삭제, 댓글 작성·하트(즐겨찾기). Private 프로젝트는 허용된 사용자만 접근 |
 
 ---
 
@@ -90,15 +90,24 @@
 | `created_at` | `timestamptz` | |
 | `updated_at` | `timestamptz` | |
 
-### `reviews`
+### `project_comments` (옛 `reviews`, 2026-11-05 별점 삭제)
 | 컬럼 | 타입 | 비고 |
 |---|---|---|
 | `id` | `uuid` (PK) | |
 | `project_id` | `uuid` (FK → projects.id) | |
-| `user_id` | `uuid` (FK → users.id) | |
-| `rating` | `int` | 1~5 |
-| `comment` | `text` | |
+| `user_id` | `uuid` (FK → users.id) | 사용자 키로 못 읽음 |
+| `content` | `text` | 한 사람이 여러 개 |
+| `is_author` | `boolean` | 쓴 사람 = 프로젝트 소유자(트리거) |
+| `public_user_id` | `uuid` (FK → users.id) | 익명 프로젝트 소유자 댓글이면 NULL(트리거) |
 | `created_at` | `timestamptz` | |
+
+### `project_hearts`
+| 컬럼 | 타입 | 비고 |
+|---|---|---|
+| `project_id` | `uuid` (PK, FK → projects.id) | |
+| `user_id` | `uuid` (PK, FK → users.id) | 누가 눌렀는지 공개 |
+| `created_at` | `timestamptz` | |
+| `by_anonymous_owner` | `boolean` | 만든 사람이 자기 익명 프로젝트에 누름 → 남에게 숨김(트리거) |
 
 ### RLS 정책 요약
 
@@ -106,8 +115,8 @@
 - **SELECT:** `visibility='public'`은 모두 허용 / `visibility='private'`은 작성자(+허락된 사용자)만
 - **INSERT/UPDATE/DELETE:** `author_id = auth.uid()`인 경우만
 
-#### `reviews`
-- **SELECT:** 해당 프로젝트가 SELECT 가능한 사용자만
+#### `project_comments` / `project_hearts`
+- **SELECT:** 해당 프로젝트가 SELECT 가능한 사용자만(하트는 `by_anonymous_owner`면 본인만)
 - **INSERT:** 로그인 사용자 (`auth.uid()` 일치)
 - **UPDATE/DELETE:** 작성자 본인만
 

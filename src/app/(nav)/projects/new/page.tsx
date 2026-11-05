@@ -14,7 +14,7 @@ export default async function NewProjectPage({ searchParams }: { searchParams: P
         section="new"
         icon={Rocket}
         title="프로젝트 등록하기"
-        description="직접 만든 프로그램을 올리면 다른 학생들이 써 보고 리뷰를 남길 수 있어요."
+        description="직접 만든 프로그램을 올리면 다른 학생들이 써 보고 하트와 댓글을 남길 수 있어요."
       />
       <main className="w-full flex-1 px-6 py-9">
         <ProjectForm initialType={type === "website" ? "website" : null} nextHref={nextHref} />

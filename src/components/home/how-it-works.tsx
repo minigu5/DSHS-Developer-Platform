@@ -1,13 +1,13 @@
 import type { CSSProperties } from "react";
-import { Megaphone, Star } from "lucide-react";
+import { Megaphone } from "lucide-react";
 
 import { ProjectIcon } from "@/components/projects/project-icon";
 
 export type HowItWorksExamples = {
   /** 가장 최근 등록된 공개 프로젝트 */
   latestProject: { title: string; icon_url: string | null; authorName: string; typeLabel: string } | null;
-  /** 가장 최근 리뷰 */
-  latestReview: { comment: string; rating: number | null; reviewerName: string; projectTitle: string; projectIcon: string | null } | null;
+  /** 가장 최근 댓글 */
+  latestComment: { content: string; authorName: string; projectTitle: string; projectIcon: string | null } | null;
   /** 가장 최근 해줘! 요청 */
   latestIdea: { title: string; statusLabel: string } | null;
 };
@@ -19,11 +19,11 @@ function trim(text: string, max: number): string {
   return t.length > max ? `${t.slice(0, max)}…` : t;
 }
 
-/** 홈 "이렇게 써요" — 올리기 → 써 보고 리뷰 → 해줘로 요청, 각 칸 아래에 실제 최근 예시 한 줄.
+/** 홈 "이렇게 써요" — 올리기 → 써 보고 하트·댓글 → 해줘로 요청, 각 칸 아래에 실제 최근 예시 한 줄.
  * `examples`가 null이면 아직 받는 중 — 예시 줄 자리에 회색 막대를 둔다. */
 export function HowItWorks({ examples }: { examples: HowItWorksExamples | null }) {
   const loading = examples === null;
-  const { latestProject, latestReview, latestIdea } = examples ?? { latestProject: null, latestReview: null, latestIdea: null };
+  const { latestProject, latestComment, latestIdea } = examples ?? { latestProject: null, latestComment: null, latestIdea: null };
 
   const steps = [
     {
@@ -42,25 +42,18 @@ export function HowItWorks({ examples }: { examples: HowItWorksExamples | null }
       ),
     },
     {
-      title: "써 보고 리뷰를 남겨요",
-      body: "친구가 만든 프로그램을 써 보고 별점이나 한마디를 남겨요. 만든 사람에게 가장 큰 피드백이에요.",
-      example: latestReview ? (
+      title: "써 보고 하트를 눌러요",
+      body: "친구가 만든 프로그램을 써 보고 하트를 누르거나 댓글을 남겨요. 만든 사람에게 가장 큰 피드백이에요.",
+      example: latestComment ? (
         <>
-          <ProjectIcon src={latestReview.projectIcon} title={latestReview.projectTitle} decorative className="h-[34px] w-[34px] shrink-0 rounded-[22%] ring-2 ring-white shadow-[0_8px_20px_-8px_rgba(0,0,0,0.25)] dark:ring-zinc-900" />
+          <ProjectIcon src={latestComment.projectIcon} title={latestComment.projectTitle} decorative className="h-[34px] w-[34px] shrink-0 rounded-[22%] ring-2 ring-white shadow-[0_8px_20px_-8px_rgba(0,0,0,0.25)] dark:ring-zinc-900" />
           <span className="min-w-0 truncate">
-            {latestReview.rating != null && (
-              <span className="mr-1 inline-flex items-center gap-0.5 align-middle text-amber-500" aria-label={`별점 ${latestReview.rating}점`}>
-                {Array.from({ length: latestReview.rating }).map((_, i) => (
-                  <Star key={i} className="h-3 w-3 fill-current" aria-hidden />
-                ))}
-              </span>
-            )}
-            {`"${trim(latestReview.comment, 22)}" · `}
-            <b className="font-semibold text-zinc-900 dark:text-white">{latestReview.reviewerName}</b>
+            {`"${trim(latestComment.content, 22)}" · `}
+            <b className="font-semibold text-zinc-900 dark:text-white">{latestComment.authorName}</b>
           </span>
         </>
       ) : (
-        <span>아직 리뷰가 없어요. 써 본 프로젝트에 한마디 남겨 보세요.</span>
+        <span>아직 댓글이 없어요. 써 본 프로젝트에 한마디 남겨 보세요.</span>
       ),
     },
     {

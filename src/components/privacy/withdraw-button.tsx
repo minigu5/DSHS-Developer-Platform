@@ -68,7 +68,7 @@ export function WithdrawButton() {
 
           <ul className="list-disc space-y-1 pl-5 text-[13px] leading-relaxed text-zinc-700 dark:text-zinc-300">
             <li>내 계정과 프로필</li>
-            <li>내가 올린 프로젝트(팀 프로젝트라면 다른 팀원도 볼 수 없게 돼요), 리뷰, 팁, 댓글, 좋아요, 해줘!, 공지</li>
+            <li>내가 올린 프로젝트(팀 프로젝트라면 다른 팀원도 볼 수 없게 돼요), 댓글, 하트, 팁, 좋아요, 해줘!, 공지</li>
             <li>올린 이미지(프로필 사진·프로젝트 아이콘·팁 대표 이미지)</li>
           </ul>
 
