@@ -1297,7 +1297,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
             </div>
             {authorRole === "anonymous" && (
               <p className="text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
-                다른 사람에게는 만든 사람이 &lsquo;익명&rsquo;으로 보이고, 내 프로필과 이름 검색에는 나오지 않아요. 수정·삭제는 지금처럼 나만 할 수 있어요.
+                다른 사람에게는 만든 사람이 &lsquo;익명&rsquo;으로 보이고, 내 프로필과 이름 검색에는 나오지 않아요. 수정·삭제는 지금처럼 나만 할 수 있어요. 사이트 관리자는 누가 만들었는지 볼 수 있어요.
                 설명·저장소 링크·사이트에 이름이나 GitHub 아이디가 있으면 거기서는 알 수 있어요.
               </p>
             )}

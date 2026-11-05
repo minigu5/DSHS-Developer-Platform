@@ -24,11 +24,11 @@ test('DB 차단 오류만 안내 문구로 바꾼다', () => {
   assert.equal(friendlyWriteError('other'), null)
 })
 
-test('차단 목록을 화면으로 넘길 때 사용자 id 를 빼고, 익명 글에서 건 차단은 이름도 뺀다', () => {
+test('차단 목록을 화면으로 넘길 때 사용자 id 를 뺀다 — 익명 글에서 건 차단도 이름은 남긴다', () => {
   const row = { banId: 'b1', userId: 'u1', name: '민규', anonymous: true, until: null, reason: '도배', createdAt: '2026-11-05T00:00:00Z' }
   const view = toBanView(row)
   assert.equal('userId' in view, false)
-  assert.equal(view.name, null)
+  assert.equal(view.name, '민규')
   assert.deepEqual(toBanView({ ...row, anonymous: false }), { banId: 'b1', name: '민규', anonymous: false, until: null, reason: '도배', createdAt: '2026-11-05T00:00:00Z' })
 })
 

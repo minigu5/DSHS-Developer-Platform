@@ -27,6 +27,8 @@ import { RedirectPill } from "@/components/domains/redirect-pill";
 import { StatStrip, type StatStripItem } from "@/components/projects/stat-strip";
 import { ReadingSurface } from "@/components/shared/reading-surface";
 import { Markdown } from "@/components/shared/markdown";
+import { LikersCard } from "@/components/admin/likers-card";
+import { personLabel } from "@/lib/admin/people";
 
 const LICENSE_LABELS: Record<string, string> = {
   commercial: "상업적 이용",
@@ -115,6 +117,18 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       : project.author_role === 'team'
         ? project.team_name
         : project.users?.nickname || project.users?.full_name) ?? '알 수 없음';
+
+  // 관리자(개발자 계정)에게만 익명 프로젝트의 실제 주인을 보여 준다(2026-11-05 사용자 요청). queryClient 가 서비스 키라 author_id 를 읽을 수 있다
+  const isAdmin = isDeveloper(user?.email);
+  let anonymousOwner: { id: string; name: string } | null = null;
+  if (isAdmin && isAnonymous) {
+    const { data } = await queryClient
+      .from('projects')
+      .select('author_id, owner:users!projects_author_id_fkey(nickname, full_name)')
+      .eq('id', project.id)
+      .single();
+    if (data) anonymousOwner = { id: data.author_id, name: personLabel(Array.isArray(data.owner) ? data.owner[0] : data.owner) };
+  }
 
   // 수정 버튼: 소유자·팀원·개발자 계정. 익명 프로젝트는 소유자를 화면에서 알 수 없으니 my_project_ids() 로 본인 것인지 확인한다
   const isOwner =
@@ -232,6 +246,14 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                     {authorName.charAt(0)}
                   </span>
                   <b className="font-semibold text-zinc-900 dark:text-white">{authorName}</b>
+                  {anonymousOwner && (
+                    <Link
+                      href={`/developers/${anonymousOwner.id}`}
+                      className="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 underline-offset-4 hover:underline dark:bg-rose-950/40 dark:text-rose-300"
+                    >
+                      관리자만 보임 · {anonymousOwner.name}
+                    </Link>
+                  )}
                 </span>
               ) : (
                 <Link href={`/developers/${project.public_author_id}`} className="group/author inline-flex items-center gap-2 rounded-full">
@@ -322,6 +344,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         )}
 
         <StatStrip items={stats} className="mt-8" />
+        {isAdmin && <LikersCard kind="project" id={project.id} className="mt-4" />}
 
         <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3">
           {/* 본문 */}

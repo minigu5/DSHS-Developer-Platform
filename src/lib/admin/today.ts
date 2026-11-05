@@ -11,6 +11,8 @@ export type FeedItem = {
   createdAt: string
   authorName: string | null
   anonymous: boolean
+  /** 익명 글의 실제 작성자(관리자 화면 전용, 서버가 채움) */
+  realName?: string | null
   title: string | null
   body: string
   href: string

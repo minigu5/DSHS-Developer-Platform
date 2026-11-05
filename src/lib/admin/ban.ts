@@ -32,7 +32,7 @@ export function friendlyWriteError(message: string, until?: string | null): stri
   return message.includes('user_banned') ? banNotice(until ?? null) : null
 }
 
-/** 관리자 화면의 차단 한 줄. 사용자 id 는 넣지 않는다 — 익명 글에서 건 차단이면 RSC 페이로드의 id 로 누구인지 드러난다 */
+/** 관리자 화면의 차단 한 줄. 사용자 id 는 넣지 않는다(차단 풀기는 banId 로). 익명 글에서 건 차단도 이름은 보여 준다 — 관리자는 익명 작성자를 알 수 있다(2026-11-05) */
 export type BanView = {
   banId: string
   name: string | null
@@ -45,7 +45,7 @@ export type BanView = {
 export function toBanView(row: BanView & { userId?: string | null }): BanView {
   return {
     banId: row.banId,
-    name: row.anonymous ? null : row.name,
+    name: row.name,
     anonymous: row.anonymous,
     until: row.until,
     reason: row.reason,

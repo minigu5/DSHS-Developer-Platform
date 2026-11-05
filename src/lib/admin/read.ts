@@ -8,6 +8,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 import type { Json } from '@/lib/types'
 
 import { toBanView, type BanView } from './ban'
+import { personLabel } from './people'
 import { buildTodayItems, type Burst, type ContentKind, type EndedBan, type FeedItem, type GuideShrink, type TodayItem } from './today'
 
 export type Counts = {
@@ -38,14 +39,18 @@ export type AdminDashboard = {
 type RpcFeedItem = FeedItem & { authorId?: string | null }
 type RpcGuideShrink = GuideShrink & { revNo: number; authorId: string | null }
 
-/** 작성자 id 는 차단 액션이 서버에서 다시 찾으므로 화면으로 넘기지 않는다(익명 작성자 보호) */
-export function stripAuthor<T extends RpcFeedItem>(item: T): FeedItem {
+/**
+ * 작성자 id 는 차단 액션이 서버에서 다시 찾으므로 화면으로 넘기지 않는다.
+ * 익명 글은 관리자에게만 실제 작성자 이름(realName)을 붙인다(2026-11-05 사용자 결정) — names 는 namesOf() 결과.
+ */
+export function stripAuthor<T extends RpcFeedItem>(item: T, names?: Map<string, string>): FeedItem {
   return {
     kind: item.kind,
     id: item.id,
     createdAt: item.createdAt,
     authorName: item.anonymous ? null : item.authorName,
     anonymous: item.anonymous,
+    ...(item.anonymous && item.authorId ? { realName: names?.get(item.authorId) ?? null } : {}),
     title: item.title,
     body: item.body,
     href: item.href,
@@ -54,10 +59,23 @@ export function stripAuthor<T extends RpcFeedItem>(item: T): FeedItem {
 
 const asArray = <T>(v: Json | null): T[] => (Array.isArray(v) ? (v as unknown as T[]) : [])
 
+/** 사용자 id → 관리자 화면용 이름(닉네임 (실명)). 없는 id 는 빠진다 */
+async function namesOf(ids: (string | null | undefined)[]): Promise<Map<string, string>> {
+  const unique = [...new Set(ids.filter((id): id is string => !!id))]
+  if (unique.length === 0) return new Map()
+  const { data, error } = await createAdminClient().from('users').select('id, nickname, full_name').in('id', unique)
+  if (error) throw error
+  return new Map((data ?? []).map((u) => [u.id, personLabel(u)]))
+}
+
+const anonymousAuthorIds = (items: RpcFeedItem[]) => items.filter((i) => i.anonymous).map((i) => i.authorId)
+
 export async function loadFeed(kinds: ContentKind[] | null, before: string | null): Promise<FeedItem[]> {
   const { data, error } = await createAdminClient().rpc('admin_recent_content', { p_kinds: kinds, p_before: before, p_limit: 50 })
   if (error) throw error
-  return asArray<RpcFeedItem>(data).map(stripAuthor)
+  const items = asArray<RpcFeedItem>(data)
+  const names = await namesOf(anonymousAuthorIds(items))
+  return items.map((i) => stripAuthor(i, names))
 }
 
 export async function loadAdminDashboard(): Promise<AdminDashboard> {
@@ -77,10 +95,19 @@ export async function loadAdminDashboard(): Promise<AdminDashboard> {
   ])
   for (const r of [stats, feed, bursts, shrinks, bans, dismissals]) if (r.error) throw r.error
 
-  const feedItems = asArray<RpcFeedItem>(feed.data).map(stripAuthor)
-  const burstGroups = asArray<Burst>(bursts.data).map((b) => ({ ...b, items: b.items.map(stripAuthor) }))
+  const rpcFeed = asArray<RpcFeedItem>(feed.data)
+  const rpcBursts = asArray<Burst & { items: RpcFeedItem[] }>(bursts.data)
   const guideShrinks = asArray<RpcGuideShrink>(shrinks.data)
   const banData = (bans.data ?? {}) as unknown as { active?: (BanView & { userId: string | null })[]; ended?: EndedBan[] }
+  // 익명 글·익명 글에서 건 차단도 관리자에게는 누구인지 보여 준다 — DB 함수는 이름을 비워 보내므로 id 로 다시 찾는다
+  const names = await namesOf([
+    ...anonymousAuthorIds(rpcFeed),
+    ...rpcBursts.flatMap((b) => anonymousAuthorIds(b.items)),
+    ...(banData.active ?? []).map((b) => b.userId),
+  ])
+
+  const feedItems = rpcFeed.map((i) => stripAuthor(i, names))
+  const burstGroups = rpcBursts.map((b) => ({ ...b, items: b.items.map((i) => stripAuthor(i, names)) }))
 
   const today = buildTodayItems({
     feed: feedItems,
@@ -99,7 +126,7 @@ export async function loadAdminDashboard(): Promise<AdminDashboard> {
     today,
     stats: stats.data as unknown as SiteStats,
     feed: feedItems,
-    bans: (banData.active ?? []).map(toBanView),
+    bans: (banData.active ?? []).map((b) => toBanView({ ...b, name: (b.userId && names.get(b.userId)) || b.name })),
     domains,
   }
 }

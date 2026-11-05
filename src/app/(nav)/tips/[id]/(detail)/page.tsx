@@ -14,6 +14,7 @@ import { Markdown } from "@/components/shared/markdown";
 import { TipLikeButton } from "@/components/tips/tip-like-button";
 import { TipComments, type TipCommentItem } from "@/components/tips/tip-comments";
 import { TipOwnerActions } from "@/components/tips/tip-owner-actions";
+import { LikersCard } from "@/components/admin/likers-card";
 
 type TipDetailRow = {
   id: string;
@@ -130,6 +131,9 @@ export default async function TipDetailPage({ params }: { params: Promise<{ id: 
         >
           <Markdown>{tip.content}</Markdown>
         </ReadingSurface>
+
+        {/* 관리자에게만 보인다 — 스스로 세션을 보고 판단(이 페이지는 서버에서 사용자를 확인하지 않음) */}
+        <LikersCard kind="tip" id={tip.id} className="mt-4" />
 
         <TipComments tipId={tip.id} comments={comments} />
       </main>

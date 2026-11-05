@@ -35,10 +35,11 @@ export function BanList({ bans }: { bans: BanRow[] }) {
             <li key={b.banId} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  {b.anonymous ? "익명 작성자" : b.name ?? "탈퇴한 사람"}
+                  {b.name ?? (b.anonymous ? "익명 작성자" : "탈퇴한 사람")}
                 </p>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">
                   {untilLabel(b.until)}
+                  {b.anonymous && " · 익명 글에서 차단"}
                   {b.reason && ` · ${b.reason}`}
                 </p>
               </div>

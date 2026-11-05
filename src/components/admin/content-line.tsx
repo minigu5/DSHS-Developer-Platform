@@ -28,7 +28,7 @@ function Highlighted({ text }: { text: string }) {
   );
 }
 
-/** 글 한 줄 — 종류·작성자(익명은 '익명')·시각·내용(비속어 빨갛게)·버튼 */
+/** 글 한 줄 — 종류·작성자(익명 글은 실제 작성자 + '익명으로 올림')·시각·내용(비속어 빨갛게)·버튼 */
 export function ContentLine({ item, actions }: { item: FeedItem; actions?: ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-2 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
@@ -37,7 +37,12 @@ export function ContentLine({ item, actions }: { item: FeedItem; actions?: React
           <span className="rounded-full bg-zinc-100 px-2 py-0.5 font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
             {CONTENT_KIND_LABELS[item.kind]}
           </span>
-          <span className="font-medium text-zinc-700 dark:text-zinc-300">{item.anonymous ? ANONYMOUS_AUTHOR : item.authorName ?? "알 수 없음"}</span>
+          <span className="font-medium text-zinc-700 dark:text-zinc-300">
+            {item.anonymous ? item.realName ?? ANONYMOUS_AUTHOR : item.authorName ?? "알 수 없음"}
+          </span>
+          {item.anonymous && item.realName && (
+            <span className="rounded-full bg-rose-50 px-2 py-0.5 font-medium text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">익명으로 올림</span>
+          )}
           <time dateTime={item.createdAt}>{formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: ko })}</time>
         </p>
         {item.title && (

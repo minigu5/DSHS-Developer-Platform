@@ -15,6 +15,7 @@ import type { Database, Json } from '@/lib/types'
 
 import { banUntil, type BanDuration } from './ban'
 import { requireAdmin } from './guard'
+import { personLabel } from './people'
 import { loadFeed } from './read'
 import type { ContentKind, FeedItem } from './today'
 
@@ -265,4 +266,38 @@ export async function loadMoreFeed(kinds: ContentKind[] | null, before: string):
   if (kinds && !kinds.every((k) => CONTENT_KINDS.includes(k))) return []
   if (Number.isNaN(Date.parse(before))) return []
   return loadFeed(kinds, before)
+}
+
+export type Liker = { userId: string; name: string; at: string; anonymousOwner: boolean }
+
+/**
+ * 하트(프로젝트)·좋아요(팁)를 누른 사람 — 관리자만(2026-11-05 사용자 요청). 관리자가 아니면 null.
+ * 만든 사람이 자기 익명 프로젝트에 누른 하트(남에게 숨김)도 anonymousOwner 로 표시해 보여 준다.
+ */
+export async function adminListLikers(kind: 'project' | 'tip', id: string): Promise<Liker[] | null> {
+  const actor = await requireAdmin()
+  if (!actor || !UUID.test(id)) return null
+  const admin = createAdminClient()
+  const rows =
+    kind === 'project'
+      ? (
+          await admin
+            .from('project_hearts')
+            .select('user_id, created_at, by_anonymous_owner, user:users(nickname, full_name)')
+            .eq('project_id', id)
+            .order('created_at', { ascending: false })
+        ).data?.map((r) => ({ ...r, anonymousOwner: r.by_anonymous_owner }))
+      : (
+          await admin
+            .from('tip_likes')
+            .select('user_id, created_at, user:users(nickname, full_name)')
+            .eq('tip_id', id)
+            .order('created_at', { ascending: false })
+        ).data?.map((r) => ({ ...r, anonymousOwner: false }))
+  return (rows ?? []).map((r) => ({
+    userId: r.user_id,
+    name: personLabel(Array.isArray(r.user) ? r.user[0] : r.user),
+    at: r.created_at,
+    anonymousOwner: r.anonymousOwner,
+  }))
 }
