@@ -2,6 +2,30 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* 제목(h1·h2·로고) 글꼴 IBM Plex Sans KR 600·700 — 자주 쓰는 한글 2,350자(KS X 1001)+라틴만 남긴 파일 2개(각 ~270KB, 원본 src/app/fonts/).
+   dshs.dev에서 주지 않고 Supabase 저장소(공개 버킷 static)에서 받는다 — 무료 Cloudflare는 KT 접속이 LA를 거쳐
+   이 파일이 7~14초 걸렸는데, Supabase는 서울(ICN)에서 0.1~0.3초(2026-11-05). 파일을 바꾸면 fonts/v2/로 새로 올릴 것(1년 캐시).
+   빠진 글자는 --font-heading의 다음 글꼴로 보인다. */
+@font-face {
+  font-family: "IBM Plex Sans KR Subset";
+  src: url("https://aclcleemnsmxyixcfqro.supabase.co/storage/v1/object/public/static/fonts/v1/IBMPlexSansKR-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans KR Subset";
+  src: url("https://aclcleemnsmxyixcfqro.supabase.co/storage/v1/object/public/static/fonts/v1/IBMPlexSansKR-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-plex-kr: "IBM Plex Sans KR Subset";
+}
+
 html {
   scrollbar-gutter: stable;
   color-scheme: light;

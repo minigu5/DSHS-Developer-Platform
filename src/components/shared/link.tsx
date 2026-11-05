@@ -6,9 +6,9 @@ import { useRouter } from "next/navigation";
 
 type Props = Omit<ComponentProps<typeof NextLink>, "prefetch"> & {
   /**
-   * true 면 next/link 기본값대로 화면에 보일 때 미리 받는다 — 위쪽·아래쪽 메뉴 5칸에만 쓴다.
+   * true 면 화면에 보일 때 페이지 내용까지 통째로 미리 받는다(prefetch={true}) — 위쪽·아래쪽 메뉴 5칸에만 쓴다.
    * 무료 Cloudflare는 한국 접속이 LA를 거쳐 서버 왕복이 1~2초라, 미리 안 받으면 폰에서 메뉴를 누를 때마다 그만큼 멈췄다(2026-11-05).
-   * 동적 페이지는 loading.tsx 뼈대까지만 받아 가볍고, 라우터가 staleTimes 동안 캐시해 페이지마다 다시 받지 않는다.
+   * 뼈대만 받는 기본값(auto)은 뼈대 뒤에 또 1~2초 기다려서 11-04 전처럼 내용까지 받는다. 라우터가 staleTimes 동안 캐시한다.
    */
   prefetchOnView?: boolean;
 };
@@ -29,7 +29,7 @@ export default function Link({ href, prefetchOnView, onMouseEnter, onTouchStart,
     if (target && target.startsWith("/") && !target.startsWith("//")) router.prefetch(target);
   }
 
-  if (prefetchOnView) return <NextLink href={href} onMouseEnter={onMouseEnter} onTouchStart={onTouchStart} onFocus={onFocus} {...rest} />;
+  if (prefetchOnView) return <NextLink href={href} prefetch onMouseEnter={onMouseEnter} onTouchStart={onTouchStart} onFocus={onFocus} {...rest} />;
 
   return (
     <NextLink
