@@ -101,9 +101,7 @@ async function fetchHomeData(): Promise<HomeData> {
         icon_url,
         features,
         public_author_id,
-        users!projects_public_author_id_fkey (full_name, nickname, avatar_url),
-        project_hearts(count),
-        project_comments(count)
+        users!projects_public_author_id_fkey (full_name, nickname, avatar_url)
       `)
       .eq("visibility", "public")
       .order("created_at", { ascending: false })

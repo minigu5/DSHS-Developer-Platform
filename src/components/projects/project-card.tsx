@@ -28,8 +28,11 @@ export type ProjectCardData = {
   users: { full_name: string | null; nickname: string | null; avatar_url: string | null } | { full_name: string | null; nickname: string | null; avatar_url: string | null }[] | null;
   /** PostgREST 집계 project_hearts(count) */
   project_hearts?: { count: number }[] | null;
-  /** PostgREST 집계 project_comments(count) */
-  project_comments?: { count: number }[] | null;
+  /**
+   * 댓글 id 목록 project_comments(id) — 개수만 쓴다. (count) 집계는 행 전체를 읽어서
+   * user_id 칸 읽기를 막은 뒤(20261105140000) 권한 오류가 난다.
+   */
+  project_comments?: { id: string }[] | null;
   click_count?: number | null;
 };
 
@@ -67,7 +70,7 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback, heart 
   const authorAvatar = resolveAuthorAvatar(project);
   const tags = (project.features ?? []).slice(0, 2);
   const heartCount = heart?.count ?? heartCountOf(project);
-  const commentCount = project.project_comments?.[0]?.count ?? 0;
+  const commentCount = project.project_comments?.length ?? 0;
 
   const isWebsite = project.types?.includes('website') ?? false;
   const hasAllPlatforms = (project.platforms?.length ?? 0) >= PLATFORMS.length;

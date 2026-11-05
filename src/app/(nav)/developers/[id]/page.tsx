@@ -62,7 +62,7 @@ const riseDelay = (ms: number) => ({ "--rise-delay": `${ms}ms` }) as React.CSSPr
  * 머리는 홈 히어로의 축소판(아바타 스티커 → 닉네임 → 자기소개 → 연락처 알약 → 관심분야). 실명·이메일은 머리에 두지 않는다.
  */
 const CARD_COLUMNS = `id, title, short_description, types, platforms, author_role, team_name, icon_url, features, public_author_id, visibility,
-  users!projects_public_author_id_fkey (*), project_hearts(count), project_comments(count)`;
+  users!projects_public_author_id_fkey (*), project_hearts(count), project_comments(id)`;
 
 type FavoriteRow = { created_at: string; projects: ProjectCardData | null };
 

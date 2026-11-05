@@ -21,7 +21,7 @@ const PROJECT_SELECT = `
   click_count,
   users!projects_public_author_id_fkey (*),
   project_hearts(count),
-  project_comments(count)
+  project_comments(id)
 `;
 
 export default async function ExplorePage({
