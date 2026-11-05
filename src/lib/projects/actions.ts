@@ -8,45 +8,15 @@ import { revalidatePath } from 'next/cache'
 
 import { nameMatches } from '@/lib/confirm-name'
 import { isAllowedEmail, isDeveloper } from '@/lib/constants'
-import { removeCloudflare } from '@/lib/domains/cleanup'
-import { getNaruClient, unbindNaruBestEffort } from '@/lib/domains/naru'
 import { fixOldAddresses, oldAddressPrefixes } from '@/lib/domains/old-address'
 import { getOldAddressSource } from '@/lib/domains/read'
-import { releaseLiveDomainWith } from '@/lib/domains/release'
+import { releaseLiveDomain } from '@/lib/projects/release-domain'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 
 export type ProjectActionResult = { ok: true } | { ok: false; error: string }
 export type DeleteProjectResult = ProjectActionResult
 
 const FAILED = '삭제하지 못했어요. 잠시 뒤 다시 시도해 주세요.'
-
-/** 프로젝트에 살아 있는 주소가 있으면 반납하고 Cloudflare 레코드(바로가기 항목 포함)를 지운다. 없으면 true, 조회·DB 반납이 실패하면 false. */
-function releaseLiveDomain(
-  admin: ReturnType<typeof createAdminClient>,
-  actorId: string,
-  projectId: string,
-  reason: string,
-): Promise<boolean> {
-  return releaseLiveDomainWith({
-    findLive: async () => {
-      const { data, error } = await admin
-        .from('subdomains')
-        .select('id, host, naru_server_id, owner_id')
-        .eq('project_id', projectId)
-        .in('status', ['reserved', 'pending', 'active', 'broken'])
-        .maybeSingle()
-      return { data: data && { id: data.id, host: data.host, naruServerId: data.naru_server_id, ownerId: data.owner_id }, error }
-    },
-    release: async (id) => admin.rpc('subdomain_release', { p_actor: actorId, p_id: id, p_reason: reason }),
-    removeCloudflare,
-    // 대곽나루 서버 주소면 DNS 를 지운 뒤 허브 묶음도 푼다(최선 노력). 주인 이메일은 users 에서 — 반납하는 사람이 관리자일 수 있어서
-    unbindNaru: async (live) => {
-      const { data: owner } = live.ownerId ? await admin.from('users').select('email').eq('id', live.ownerId).maybeSingle() : { data: null }
-      await unbindNaruBestEffort(getNaruClient(), { host: live.host ?? null, naruServerId: live.naruServerId ?? null, ownerEmail: owner?.email ?? null })
-    },
-    log: (message, detail) => console.error(message, detail),
-  })
-}
 
 export async function deleteProject(projectId: string, confirmTitle: string): Promise<ProjectActionResult> {
   const supabase = await createClient()
