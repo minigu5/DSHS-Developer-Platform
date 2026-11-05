@@ -4,7 +4,7 @@
 
 import { FEATURES, PLATFORMS, PROJECT_TYPES } from './constants.ts';
 
-export type ExploreSort = 'newest' | 'clicks' | 'rating';
+export type ExploreSort = 'newest' | 'clicks' | 'hearts';
 
 export interface ExploreQuery {
   q: string;
@@ -22,7 +22,7 @@ export const EMPTY_EXPLORE_QUERY: ExploreQuery = {
   sort: 'newest',
 };
 
-const SORTS: readonly ExploreSort[] = ['newest', 'clicks', 'rating'];
+const SORTS: readonly ExploreSort[] = ['newest', 'clicks', 'hearts'];
 const Q_MAX = 100;
 
 type Raw = string | string[] | undefined | null;
