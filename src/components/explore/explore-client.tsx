@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { Search, Filter, ChevronDown, ArrowUpDown, X } from "lucide-react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, MouseEvent } from "react";
 
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { favoritesInHeartOrder, heartCountOf, shouldShowFavorites } from "@/lib/
 import { setHeart } from "@/lib/hearts-client";
 import { createClient } from "@/lib/supabase/client";
 import { FavoritesSection } from "@/components/explore/favorites-section";
+import { markLeavingExplore } from "@/lib/explore-return";
 
 
 interface ExploreClientProps {
@@ -233,8 +234,15 @@ export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeart
     </div>
   );
 
+  // 프로젝트를 열 때 적어 두면 상세의 "← 모든 프로젝트"가 뒤로 가기로 돌아와 스크롤·필터가 그대로다
+  function rememberProjectClick(e: MouseEvent<HTMLDivElement>) {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const link = (e.target as Element).closest<HTMLAnchorElement>('a[href^="/projects/"]');
+    if (link) markLeavingExplore(link.pathname);
+  }
+
   return (
-    <div className="flex flex-col min-h-screen bg-white dark:bg-zinc-950">
+    <div className="flex flex-col min-h-screen bg-white dark:bg-zinc-950" onClickCapture={rememberProjectClick}>
       <PageHero
         section="explore"
         icon={Search}

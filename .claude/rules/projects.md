@@ -50,6 +50,7 @@ paths:
 
 ### 프로젝트 상세 (`src/app/(nav)/projects/[id]/(detail)/page.tsx`)
 - **머리(2026-10-24)**: "← 모든 프로젝트" → 아이콘 **스티커 112px**(모바일 72px, `ring-[3px]` + 그림자) + 종류 배지·태그 → h1(Plex) → 한 줄 설명 → 작성자 줄("· 개인/팀 프로젝트 · 등록일") → 알약 버튼(방문 blue / GitHub 보조 / 하트 `HeartButton` h-11 / 수정 ghost).
+- **"← 모든 프로젝트" = 뒤로 가기**(2026-11-05 사용자 요청 — 누르면 탐색 맨 위로 가서 보던 자리를 잃었다): `BackToExplore`(`src/components/projects/back-to-explore.tsx`). 탐색에서 프로젝트 링크를 누르면 `ExploreClient`가 `markLeavingExplore`로 목적지를 sessionStorage에 적고, 상세에 도착하면 그 기록 칸 `history.state`에 `__dshsFromExplore` 표시(`src/lib/explore-return.ts`). 표시가 있으면 `router.back()`(스크롤·필터 그대로), 없으면(홈·프로필·주소 직접 입력·새 탭) 평범하게 `/explore`. 표시는 기록 칸마다라 다른 데 갔다가 브라우저로 돌아와도 맞다. Next가 `router.refresh()` 때 기록 칸을 다시 쓰며 지울 수 있어 컴포넌트 ref에도 들고 있는다.
 - **수치 띠** `StatStrip`(`src/components/projects/stat-strip.tsx`): 하트(수 + "댓글 N개", 0이면 "아직 아무도 안 눌렀어요") · 방문(`url` 없으면 칸 생략 → 3칸) · 플랫폼(웹사이트+전체면 "Web / 모든 브라우저") · 소스코드("허용 N개"). 모바일 2열.
 - **본문**: `ReadingSurface`(마크다운) + 사이드 카드 3개 — 개발자(또는 팀+팀원), 라이선스(허용/제한), 정보(종류·플랫폼·공개 여부·등록일·최근 수정). 옛 "환경 및 플랫폼" 카드는 정보 카드로 합쳐짐.
 - **댓글**: 카드 바깥 제목 "댓글 N"(Plex) → 댓글마다 카드(오래된 것 위) → 맨 아래 작성 폼 카드(버튼 "댓글 남기기", 로그인하면 항상 보임).

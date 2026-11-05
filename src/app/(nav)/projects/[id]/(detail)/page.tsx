@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "@/components/shared/link";
-import { Globe, Code2, Lock, Heart, ExternalLink, ShieldCheck, ShieldAlert, ArrowLeft, ChevronRight } from "lucide-react";
+import { Globe, Code2, Lock, Heart, ExternalLink, ShieldCheck, ShieldAlert, ChevronRight } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn, isExternalImage } from "@/lib/utils";
@@ -13,6 +13,7 @@ import { ProjectComments } from "@/components/projects/project-comments";
 import { HeartButton } from "@/components/projects/heart-button";
 import { ProjectIcon } from "@/components/projects/project-icon";
 import { EditButton } from "@/components/projects/edit-button";
+import { BackToExplore } from "@/components/projects/back-to-explore";
 import type { CommentRowView } from "@/lib/comments";
 import { ANONYMOUS_AUTHOR, LICENSE_FEATURES, PLATFORMS, isDeveloper, projectTypeLabels } from "@/lib/constants";
 import { PROJECT_AUTHOR, PROJECT_COLUMNS } from "@/lib/projects/columns";
@@ -191,13 +192,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   return (
     <div className="flex min-h-screen flex-col bg-white dark:bg-zinc-950">
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-7">
-        <Link
-          href="/explore"
-          className="inline-flex items-center gap-1 rounded-sm text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          모든 프로젝트
-        </Link>
+        <BackToExplore className="inline-flex items-center gap-1 rounded-sm text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white" />
 
         {/* 머리 — 아이콘 스티커 + 제목·설명·작성자·버튼 */}
         <div className="mt-5 flex flex-col items-start gap-4 sm:flex-row sm:gap-7">
