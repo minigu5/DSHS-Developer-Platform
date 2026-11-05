@@ -5,9 +5,9 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// Next 이미지 최적화(/_next/image)를 거칠 호스트. 구글·GitHub 프로필 사진은 넣지 않는다 —
+// 이미 작은 크기로 오고 서울 CDN에서 바로 받는데, 최적화를 거치면 장마다 Worker(무료 망은 LA 경유)를 1.6~2초 들렀다(2026-11-05).
 const ALLOWED_IMAGE_HOSTS = [
-  'lh3.googleusercontent.com',
-  'avatars.githubusercontent.com',
   'i.ibb.co',
 ];
 

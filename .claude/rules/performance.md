@@ -40,6 +40,7 @@ paths:
 ### 이미지 포맷 최적화 — `next.config.ts`
 - `images.formats: ['image/avif', 'image/webp']` 설정으로 브라우저 지원 시 AVIF(WebP 대비 ~50% 작음) → WebP 순으로 자동 변환 제공.
 - `images.remotePatterns`에 `i.ibb.co`, `ibb.co`, `res.cloudinary.com` 추가 → 각 이미지 소스도 Next.js 이미지 최적화 파이프라인 적용 가능.
+- 실제로 최적화를 거치는 건 `isExternalImage`(`src/lib/utils.ts`)의 `ALLOWED_IMAGE_HOSTS`(지금 `i.ibb.co`만)·Supabase·로컬 이미지뿐, 나머지는 `unoptimized`. **구글·GitHub 프로필 사진은 2026-11-05에 뺐다** — 원본이 이미 작고(구글 `=s96-c`) 서울 CDN인데 `/_next/image`를 거치면 장마다 Worker(LA 경유) 1.6~2초에 `fill`+`sizes` 없음이라 `w=1920`으로 불렀다.
 
 ### 패키지 import 최적화 — `next.config.ts`
 - `experimental.optimizePackageImports: ['lucide-react', 'date-fns']` 설정.
