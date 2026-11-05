@@ -132,6 +132,11 @@ BEGIN
   BEGIN PERFORM public.subdomain_set_url(u, b); log := log || 'url_reserved=ok;';
   EXCEPTION WHEN raise_exception THEN log := log || 'url_reserved=' || SQLERRM || ';'; END;
 
+  -- 설명 속 주소도 반납 때 되돌린다(20261106140000) — 경로·해시 유지, 스킴 없이 적은 주소는 스킴 없이, 다른 주소의 일부는 그대로
+  UPDATE public.projects
+  SET description = '접속 https://zz-verify-a.dshs.dev/app#x 또 zz-verify-a.dshs.dev 와 sub.zz-verify-a.dshs.dev zz-verify-a.dshs.dev.evil.com'
+  WHERE id = p[1];
+
   -- 반납: 다른 사람은 못 하고, 소유자는 레코드 id 를 돌려받는다
   BEGIN PERFORM public.subdomain_release(u2, a, 'x'); log := log || 'release_other=ok;';
   EXCEPTION WHEN raise_exception THEN log := log || 'release_other=' || SQLERRM || ';'; END;
@@ -139,6 +144,7 @@ BEGIN
   log := log || 'released=' || array_to_string(ids, ',') || '/' || (SELECT status FROM public.subdomains WHERE id = a) || ';';
   -- 반납하면 방문 주소를 받기 전 주소로 되돌린다(같은 이름을 다른 학생이 받을 수 있어서)
   log := log || 'url_restored=' || (SELECT url FROM public.projects WHERE id = p[1]) || ';';
+  log := log || 'desc_restored=' || (SELECT description FROM public.projects WHERE id = p[1]) || ';';
   d := public.subdomain_reserve(u, p[4], 'zz-verify-a');
   log := log || 'reuse=' || (d IS NOT NULL)::text || ';';
   DELETE FROM public.projects WHERE id = p[1];
@@ -281,7 +287,9 @@ BEGIN
     'bad_target=target_invalid;bad_txt=txt_invalid;connect_other=not_owner;connected=pending/vercel/2/true;ph_connected=records_exist;'
     'pending_fail=pending;ok=active/true;broken=broken/true;reconnect_fail=broken/true;'
     'url=https://zz-verify-a.dshs.dev;url_reserved=not_active;'
-    'release_other=not_owner;released=rec1,rec2/released;url_restored=https://zz-verify-1.vercel.app;reuse=true;delete_after_release=true;history_kept=true;'
+    'release_other=not_owner;released=rec1,rec2/released;url_restored=https://zz-verify-1.vercel.app;'
+    'desc_restored=접속 https://zz-verify-1.vercel.app/app#x 또 zz-verify-1.vercel.app 와 sub.zz-verify-a.dshs.dev zz-verify-a.dshs.dev.evil.com;'
+    'reuse=true;delete_after_release=true;history_kept=true;'
     'service_release=released/never_connected_7d;'
     'naru_nourl=reserved;naru_target=true/false/false/false;naru_bad_target=target_invalid;naru_bad_server=target_invalid;'
     'naru_other=not_owner;naru_generic=host_mismatch;naru_connected=active/naru/naru/fa4e0001/true/true/true/n1;'
