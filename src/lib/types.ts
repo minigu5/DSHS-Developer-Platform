@@ -4,6 +4,8 @@
 // 추후 Supabase CLI 로 자동 생성한 결과로 교체 가능:
 //   npx supabase gen types typescript --project-id <id> --schema public > src/lib/types.ts
 
+import type { PosterArtOrder, PosterMessage, PosterVersion } from '@/lib/posters/config';
+
 export type UserContact = {
   type: 'github' | 'email' | 'instagram' | 'discord' | 'website';
   value: string;
@@ -516,6 +518,48 @@ export type Database = {
           },
         ];
       };
+      // AI 포스터 만들기 — 서비스 키 전용(RLS 켜고 정책 없음). migration 20261106150000
+      project_posters: {
+        Row: {
+          id: string;
+          project_id: string;
+          created_by: string | null;
+          html: string | null;
+          art_url: string | null;
+          art_order: Json | null;
+          versions: Json;
+          messages: Json;
+          band_tone: 'light' | 'dark';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          project_id: string;
+          created_by?: string | null;
+          html?: string | null;
+          art_url?: string | null;
+          art_order?: Json | null;
+          versions?: Json;
+          messages?: Json;
+          band_tone?: 'light' | 'dark';
+        };
+        Update: {
+          html?: string | null;
+          art_url?: string | null;
+          art_order?: Json | null;
+          versions?: Json;
+          messages?: Json;
+          band_tone?: 'light' | 'dark';
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      ai_usage: {
+        Row: { kind: 'text' | 'art'; user_id: string; day: string; count: number };
+        Insert: Record<string, never>;
+        Update: Record<string, never>;
+        Relationships: [];
+      };
       // 관리자 대시보드 — 셋 다 서비스 키 전용(RLS 켜고 정책 없음). migration 20261106100000
       user_bans: {
         Row: {
@@ -646,6 +690,14 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      reserve_ai_usage: {
+        Args: { p_kind: 'text' | 'art'; p_user: string; p_user_limit: number; p_site_limit: number };
+        Returns: 'ok' | 'user_limit' | 'site_limit';
+      };
+      release_ai_usage: {
+        Args: { p_kind: 'text' | 'art'; p_user: string };
+        Returns: undefined;
+      };
       is_banned: {
         Args: { p_uid: string };
         Returns: boolean;
@@ -802,3 +854,10 @@ export type IdeaRow = Database['public']['Tables']['ideas']['Row'];
 export type IdeaInsert = Database['public']['Tables']['ideas']['Insert'];
 export type IdeaUpdate = Database['public']['Tables']['ideas']['Update'];
 export type GuideRevisionRow = Database['public']['Tables']['guide_revisions']['Row'];
+
+// AI 포스터 — art_order·versions·messages 는 jsonb 라 화면·서버에선 이 모양으로 읽는다(src/lib/posters/config.ts).
+export type ProjectPosterRow = Omit<Database['public']['Tables']['project_posters']['Row'], 'art_order' | 'versions' | 'messages'> & {
+  art_order: PosterArtOrder | null;
+  versions: PosterVersion[];
+  messages: PosterMessage[];
+};
