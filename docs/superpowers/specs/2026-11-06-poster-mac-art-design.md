@@ -6,7 +6,7 @@
 
 사용자(사이트 관리자)가 직접 포스터를 만들어 보다가 그림 한도에 막혔다. 지금 그림은 Workers AI 무료 할당량(계정 전체 10,000 neurons/일)에 묶여 **사이트 전체 하루 6장**이다.
 
-학교에 Mac mini 4대(M4 Pro 32GB로 기억 — 확인 필요)를 Thunderbolt로 묶은 클러스터가 있다. 이 클러스터는 사용자가 직접 만든 오픈소스 `omm`(`~/Project/Localfit`)의 `omm cluster`(exo)로 돌아간다. 이 Mac들이 그림을 그리게 하면 한도는 기계가 처리할 수 있는 양만큼 늘어난다.
+학교에 Mac mini 4대(**M4 Pro 64GB** — 2026-11-06 Localfit 세션 확인)를 Thunderbolt로 묶은 클러스터가 있다. 단 Node1·3·4는 다른 계정의 ML 작업이 GPU를 76~99% 쓰고 있고, Node2만 GPU가 비어 있다(3%, CPU 시뮬레이션만) — 그림 속도·lease 180초 안에 끝나는지는 실측으로 정한다. 이 클러스터는 사용자가 직접 만든 오픈소스 `omm`(`~/Project/Localfit`)의 `omm cluster`(exo)로 돌아간다. 이 Mac들이 그림을 그리게 하면 한도는 기계가 처리할 수 있는 양만큼 늘어난다.
 
 ## 2. 목표 · 비목표 · 안 되는 것
 
@@ -181,7 +181,7 @@
 
 **그림**
 - 크기: 일감의 `width`·`height`(넓이 ≤ 786,432, 비율 유지). mflux가 요구하는 배수(16 또는 64)에 맞게 내림하고, 사이트는 받은 크기를 그대로 쓴다.
-- 모델: 상업적 이용까지 허용되는 라이선스로 고른다. 예: FLUX.1 schnell(Apache-2.0, 4단계). FLUX.1 dev·FLUX.2 klein 9B는 비상업 라이선스라 피한다. mflux가 지원하는 Apache 계열 FLUX.2 klein 4B가 있으면 품질을 비교해 골라도 된다.
+- 모델: 상업적 이용까지 허용되는 라이선스로 고른다. FLUX.1 dev·FLUX.2 klein 9B는 비상업 라이선스라 피한다. FLUX.1 schnell(Apache-2.0)은 Hugging Face에서 gated(로그인 필요)라, 2026-11-06 기준 Localfit 세션은 로그인 없이 받는 **FLUX.2 klein 4B(Apache-2.0)**로 시험 중이고 Z-Image-Turbo(Apache-2.0)도 후보다.
 - 프롬프트는 데이터로만 쓴다. 셸 명령에 끼워 넣지 말고, mflux를 파이썬 안에서 부르거나 인자 배열로 넘긴다.
 
 **메모리 · 전원**
