@@ -18,11 +18,12 @@ export default async function PosterListPage({ params }: { params: Promise<{ id:
   if (typeof access === "string") notFound();
 
   // 서비스 키 전용 표 — 위에서 권한을 확인했다
-  const { data } = await createAdminClient()
-    .from("project_posters")
-    .select("id, html, art_url, band_tone, updated_at")
-    .eq("project_id", id)
-    .order("updated_at", { ascending: false });
+  const admin = createAdminClient();
+  const today = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10); // KST 날짜
+  const [{ data }, { data: madeToday }] = await Promise.all([
+    admin.from("project_posters").select("id, html, art_url, band_tone, updated_at").eq("project_id", id).order("updated_at", { ascending: false }),
+    admin.from("project_poster_days").select("day").eq("project_id", id).eq("day", today).maybeSingle(),
+  ]);
   const posters = data ?? [];
 
   return (
@@ -32,7 +33,7 @@ export default async function PosterListPage({ params }: { params: Promise<{ id:
         icon={Megaphone}
         variant="compact"
         title={`${access.project.title} 포스터`}
-        actions={<NewPosterButton projectId={id} full={posters.length >= POSTER_LIMITS.perProject} />}
+        actions={<NewPosterButton projectId={id} full={posters.length >= POSTER_LIMITS.perProject} madeToday={!!madeToday} />}
       />
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-9">
         {posters.length === 0 ? (

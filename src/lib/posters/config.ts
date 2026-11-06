@@ -10,6 +10,8 @@ export function posterAllowed(isAdmin: boolean): boolean {
 
 export const POSTER_LIMITS = {
   perProject: 3,
+  // 새 포스터는 프로젝트마다 하루(KST) 1개 — 지웠다 다시 만들어도 막힘(DB project_poster_days, 사용자 결정 2026-11-06)
+  newPerProjectPerDay: 1,
   textPerUserPerDay: 20,
   textSitePerDay: 200,
   artPerUserPerDay: 5,

@@ -554,6 +554,12 @@ export type Database = {
         };
         Relationships: [];
       };
+      project_poster_days: {
+        Row: { project_id: string; day: string };
+        Insert: Record<string, never>;
+        Update: Record<string, never>;
+        Relationships: [];
+      };
       ai_usage: {
         Row: { kind: 'text' | 'art'; user_id: string; day: string; count: number };
         Insert: Record<string, never>;

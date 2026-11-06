@@ -9,13 +9,13 @@ import { createPoster, deletePoster } from "@/lib/posters/actions";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { cn } from "@/lib/utils";
 
-export function NewPosterButton({ projectId, full }: { projectId: string; full: boolean }) {
+export function NewPosterButton({ projectId, full, madeToday }: { projectId: string; full: boolean; madeToday: boolean }) {
   const [pending, start] = useTransition();
   return (
     <div className="flex flex-col items-center gap-2">
       <Button
         className={cn("h-11 rounded-full px-5", SECTION_COLORS.new.button)}
-        disabled={full || pending}
+        disabled={full || madeToday || pending}
         onClick={() =>
           start(async () => {
             const result = await createPoster(projectId);
@@ -25,7 +25,11 @@ export function NewPosterButton({ projectId, full }: { projectId: string; full: 
       >
         <Plus className="mr-1 h-4 w-4" aria-hidden /> {pending ? "만드는 중…" : "새로 만들기"}
       </Button>
-      {full && <p className="text-sm text-zinc-500">포스터는 3개까지예요. 하나를 지우면 새로 만들 수 있어요.</p>}
+      {full ? (
+        <p className="text-sm text-zinc-500">포스터는 3개까지예요. 하나를 지우면 새로 만들 수 있어요.</p>
+      ) : (
+        madeToday && <p className="text-sm text-zinc-500">새 포스터는 하루에 하나예요. 만든 포스터는 계속 고칠 수 있어요.</p>
+      )}
     </div>
   );
 }

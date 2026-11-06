@@ -30,7 +30,11 @@ export async function createPoster(projectId: string): Promise<{ error: string }
     .insert({ project_id: projectId, created_by: access.userId })
     .select('id')
     .single()
-  if (error || !data) return { error: error?.message.includes('poster_limit') ? POSTER_COPY.limit : '포스터를 만들지 못했어요. 잠시 뒤 다시 해 주세요.' }
+  if (error || !data) {
+    if (error?.message.includes('poster_daily')) return { error: POSTER_COPY.daily }
+    if (error?.message.includes('poster_limit')) return { error: POSTER_COPY.limit }
+    return { error: '포스터를 만들지 못했어요. 잠시 뒤 다시 해 주세요.' }
+  }
   revalidatePath(`/projects/${projectId}/poster`)
   redirect(`/projects/${projectId}/poster/${data.id}`)
 }
