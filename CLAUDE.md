@@ -44,6 +44,7 @@
 | `home.md` | 홈 구성·섹션·아이콘 나열·로딩 시퀀스·스크롤 리빌 |
 | `admin.md` | 관리자 대시보드 `/admin`(오늘 확인할 것·현황·최신 글·비속어·기간 차단·주소 관리), 차단 DB 트리거 |
 | `nav.md` | `PageNav`/`MobileNav`·활성 판정·섹션 색·커뮤니티 탭 |
+| `posters.md` | AI 포스터 만들기(Gemini HTML + Workers AI 그림, 1단계 관리자만, 횟수·내보내기) |
 
 ---
 
@@ -64,7 +65,7 @@
 | **User** (로그인) | 위 + 프로젝트 게시/수정/삭제, 댓글 작성·하트(즐겨찾기). Private 프로젝트는 작성자 또는 `allowed_users`에 포함된 사용자만 접근 |
 
 ### 보호 라우트 (`src/middleware.ts`)
-- `/projects/new`, `/projects/[id]/edit`, `/tips/new`, `/haejwo/new`, `/me`, `/guide-wiki/[key]/edit`, `/domains`, `/admin`(관리자 대시보드 — `/domains/admin`은 `/admin#domains`로)
+- `/projects/new`, `/projects/[id]/edit`, `/projects/[id]/poster`(AI 포스터), `/tips/new`, `/haejwo/new`, `/me`, `/guide-wiki/[key]/edit`, `/domains`, `/admin`(관리자 대시보드 — `/domains/admin`은 `/admin#domains`로)
 - 비로그인 시 `/login?next=<원래경로+쿼리>` 로 리다이렉트 (쿼리 보존 — 가이드 편집기의 `?from=` 복귀용)
 - 이미 로그인된 사용자가 `/login` 진입 시 홈으로
 
@@ -127,6 +128,7 @@
 - **ISR 캐시 없음**: `revalidate` 페이지도 쿠키를 읽어 실제로는 동적(ƒ). `open-next.config.ts`는 정적 자산 캐시만. 쿠키 없는 ISR 페이지를 만들면 R2 캐시로 바꿀 것.
 - **무료 요금제 CPU 10 ms/요청** — 넘으면 빈 본문 503(`wrangler tail`의 `outcome: exceededCpu`), 사이트 전체에서 간헐적으로 났다(2026-11-01, 24시간 987건 중 53건). 사용자 결정: 결제 전에 최적화부터 — **보안과 상관없는 표시 작업은 브라우저로**(마크다운 렌더, 공개 데이터만 쓰는 홈 목록). 권한 판단·서비스 키·비공개 필터는 서버에 둔다. 남는 해결책은 Workers Paid($5/월, 계정 단위).
 - **한국 접속은 LAX 경유**(무료 망): 첫 응답 0.8~2초(Vercel icn1은 0.1~0.4초). 무료로는 못 고친다 — 체감은 로딩 뼈대로 가린다(아래 「로딩 뼈대」).
+- **`AI` 바인딩**(`wrangler.jsonc`, AI 포스터 그림): Workers AI 무료 10,000 neurons/일은 계정 전체 공유(00:00 UTC 리셋). `next dev`에서도 원격으로 붙는다. 자세히는 `.claude/rules/posters.md`.
 - `wrangler.jsonc` `keep_names: false` 필수 — 켜 두면 esbuild `__name()`이 next-themes 인라인 스크립트에 섞여 브라우저에서 `__name is not defined`.
 - Worker 배치는 `placement.region: aws:ap-northeast-2`(Supabase 옆, smart 모드는 트래픽이 쌓여야 작동).
 - `wrangler types` 결과(`cloudflare-env.d.ts`)는 두지 않는다 — 런타임 타입이 브라우저 `Response.json()`을 `unknown`으로 덮어 `tsc`가 깨짐.
@@ -215,6 +217,8 @@ Claude Code는 `.claudeignore`를 읽지 않는다(2026-11-02 삭제). 대신 �
 | `CLOUDFLARE_ZONE_ID` | `c9fac6d72c704d4836b837590f18e144`(dshs.dev). Workers `vars`, Actions Secrets |
 | `CLOUDFLARE_LISTS_API_TOKEN` | 바로가기 주소용 별도 계정 토큰 — **Account Filter Lists · Edit + Mass URL Redirects · Write**(범위 Entire Account — 목록·Bulk Redirects는 계정 리소스라 도메인 범위로는 안 됨, 사용자가 망설이다 동의). Workers `wrangler secret put`, Actions Secrets |
 | `CLOUDFLARE_ACCOUNT_ID` | dshs.dev가 있는 Cloudflare 계정 id(비밀 아님). Workers `vars`, Actions Secrets |
+| `GEMINI_API_KEY` | AI 포스터 글·배치(Gemini 무료 키, 사용자 개인 Google 계정). Workers `wrangler secret put` |
+| `CLOUDFLARE_BROWSER_API_TOKEN` | AI 포스터 PNG·PDF — 계정 토큰 **Browser Rendering · Edit만**. Workers `wrangler secret put` |
 | `CLOUDFLARE_REDIRECT_LIST_ID` | Bulk Redirect 목록 `dshs_subdomain_redirects`의 id(`node scripts/create-redirect-list.mts`가 출력). Workers `vars`, Actions Secrets |
 
 ## ⚠️ 보안 및 주의사항

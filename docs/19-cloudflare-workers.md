@@ -83,3 +83,8 @@ Cloudflare Workers·Firebase Hosting 학생 사이트로 `<이름>.dshs.dev`를 
 3. 같은 스크립트가 목록을 쓰는 Bulk Redirect 규칙도 만든다(Mass URL Redirects 권한이 없으면 대시보드 → Bulk Redirects → Create Bulk Redirect Rule에서 손으로). **배포 전에** 있어야 한다. 2026-10-26 둘 다 생성 완료.
 4. 운영: `npx wrangler secret put CLOUDFLARE_LISTS_API_TOKEN` + `wrangler.jsonc` `vars`에 `CLOUDFLARE_ACCOUNT_ID`·`CLOUDFLARE_REDIRECT_LIST_ID`. GitHub 저장소 Secrets에도 세 개(매일 점검용).
 5. 개발 서버는 가짜 목록을 쓴다(`DOMAINS_REAL_DNS=1`일 때만 진짜).
+
+## AI 포스터 — 2026-11-06
+1. `wrangler.jsonc`에 `"ai": { "binding": "AI" }`(그림, Workers AI 무료 10,000 neurons/일·계정 공유).
+2. 비밀 두 개: `npx wrangler secret put GEMINI_API_KEY`, `npx wrangler secret put CLOUDFLARE_BROWSER_API_TOKEN`(계정 토큰, 권한 Browser Rendering · Edit만). 로컬은 `.env.local`.
+3. 자세한 구조·제한은 `.claude/rules/posters.md`.
