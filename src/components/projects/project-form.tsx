@@ -156,6 +156,13 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(() =>
     initialData?.types?.includes('website') ? PLATFORMS.map(p => p.value) : (initialData?.platforms ?? []),
   );
+  // 웹사이트를 고르기 전 플랫폼 — 웹사이트를 빼면 이 값으로 되돌린다.
+  // 처음부터 웹사이트인 프로젝트는 일부만 저장된 옛 값이 있으면 그것, 전체면 빈 값
+  const platformsBeforeWebsiteRef = useRef<string[]>(
+    initialData?.types?.includes('website') && (initialData.platforms?.length ?? 0) < PLATFORMS.length
+      ? (initialData.platforms ?? [])
+      : [],
+  );
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>(initialData?.features ?? []);
   const [featureCustom, setFeatureCustom] = useState<string>(initialData?.feature_custom ?? "");
 
@@ -446,7 +453,14 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   const toggleType = (value: string) => {
     const adding = !types.includes(value);
     setTypes(adding ? [...types, value] : types.filter(t => t !== value));
-    if (adding && value === 'website') setSelectedPlatforms(PLATFORMS.map(p => p.value));
+    if (value !== 'website') return;
+    if (adding) {
+      platformsBeforeWebsiteRef.current = selectedPlatforms;
+      setSelectedPlatforms(PLATFORMS.map(p => p.value));
+    } else {
+      // 웹사이트를 빼면 자동으로 켠 플랫폼을 고르기 전 상태로 되돌린다
+      setSelectedPlatforms(platformsBeforeWebsiteRef.current);
+    }
   };
 
   // 편집 모드: 기존 팀원 프로필 로드

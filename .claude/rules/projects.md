@@ -24,7 +24,7 @@ paths:
 
 ### 프로젝트 등록 폼 UX (`src/components/projects/project-form.tsx`)
 - **프로그램 종류 선택**: `<Select>` 드롭다운 대신 다른 항목들과 동일한 **카드 그리드 UI** (다중 선택, 최소 1개). 5개 항목, 2~3열 배치. 저장 시 `PROJECT_TYPES` 순서로 정렬.
-- **플랫폼 자동 선택**: `types`에 `website`가 포함되면 `useEffect`로 모든 플랫폼을 자동 선택하고 카드를 비활성화(`pointer-events-none`). "웹사이트는 모든 플랫폼의 브라우저에서 열 수 있어서 전체 플랫폼이 자동으로 선택돼요." 안내 표시. 웹사이트를 빼면 잠금 해제. `app`이 포함되면 플랫폼 1개 이상 필수.
+- **플랫폼 자동 선택**: `types`에 `website`가 포함되면 `useEffect`로 모든 플랫폼을 자동 선택하고 카드를 비활성화(`pointer-events-none`). "웹사이트는 모든 플랫폼의 브라우저에서 열 수 있어서 전체 플랫폼이 자동으로 선택돼요." 안내 표시. 웹사이트를 빼면 잠금 해제하고 플랫폼을 웹사이트 고르기 전 값으로 되돌린다(2026-11-06 사용자 요청, `platformsBeforeWebsiteRef` — 처음부터 웹사이트인 수정 화면은 일부만 저장된 옛 값, 전체였으면 빈 값). `app`이 포함되면 플랫폼 1개 이상 필수.
 - 플랫폼 힌트 문구(웹사이트 제외)는 제거됨 — 사용자가 직접 선택.
 - **아이콘 link 모드**: `ImageUploadInput` 컴포넌트 사용 — 파일 드래그·선택 업로드 + URL 직접 입력 폴백. 업로드된 이미지는 Cloudinary에 자동 저장.
 - **아이콘 auto 모드 = 파비콘 자동 동기화**(2026-11-05 사용자 요청 — 사이트 파비콘이 바뀌어도 등록 때 주소가 그대로 남았음): `.github/workflows/sync-favicons.yml`이 **매일 03:15 KST**(UTC 18:15, 수동 `workflow_dispatch` + `dry_run`)에 `scripts/sync-favicons.mts`를 돌린다. 서비스 키로 `icon_type='auto'`·`url` 있는 프로젝트를 읽어 `resolveFavicon`(`src/lib/favicon.ts`, `/api/favicon`과 같은 로직)을 다시 돌리고 달라졌으면 `icon_url` 갱신(저장 조건에 `icon_type='auto'`도 걸어 그사이 직접 올리기로 바꾼 건 안 덮음). 판단 로직 `src/lib/favicon-sync.ts`(테스트 `favicon-sync.test.ts`): 못 찾으면 지우지 않고, **결과가 공개 favicon 서비스(Google s2·DuckDuckGo)인데 기존 직접 아이콘이 아직 열리면 유지**(Actions 러너 IP를 사이트가 막으면 공개 서비스로 떨어지므로). 실패 exit 1은 DB 저장 실패만. 비공개 프로젝트는 로그에 제목·주소 대신 id 앞부분. `favicon.ts`는 스크립트가 node로 바로 읽으려고 `./ssrf-guard.ts` 상대 import. 직접 올리기(`link`)는 건드리지 않는다. DB 변경 없음. 로컬 점검 `node scripts/sync-favicons.mts --dry-run`.
