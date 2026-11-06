@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { Search, Filter, ChevronDown, ArrowUpDown, X } from "lucide-react";
+import { Search, Filter, ChevronDown, ArrowUpDown, X, Heart } from "lucide-react";
 import type { CSSProperties, MouseEvent } from "react";
 
 import { cn } from "@/lib/utils";
@@ -13,10 +13,9 @@ import { TYPE_ICONS, PLATFORM_ICONS, CATEGORY_ICONS } from "@/lib/type-icons";
 import { PageHero } from "@/components/shared/page-hero";
 import { MobileFilterBar } from "@/components/explore/mobile-filter-bar";
 import { exploreQueryString, type ExploreQuery, type ExploreSort } from "@/lib/explore-query";
-import { favoritesInHeartOrder, heartCountOf, shouldShowFavorites } from "@/lib/hearts";
+import { heartCountOf } from "@/lib/hearts";
 import { setHeart } from "@/lib/hearts-client";
 import { createClient } from "@/lib/supabase/client";
-import { FavoritesSection } from "@/components/explore/favorites-section";
 import { markLeavingExplore } from "@/lib/explore-return";
 
 
@@ -26,7 +25,7 @@ interface ExploreClientProps {
   initialQuery: ExploreQuery;
   /** 로그인한 사람(없으면 하트를 누를 때 로그인으로) */
   viewerId: string | null;
-  /** 내가 하트를 누른 프로젝트 id(최신 먼저) — 맨 위 즐겨찾기 칸 */
+  /** 내가 하트를 누른 프로젝트 id — "즐겨찾기만" 필터 */
   myHeartIds: string[];
 }
 
@@ -42,15 +41,16 @@ export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeart
   const [platformOpen, setPlatformOpen] = useState(false);
   const [sortBy, setSortBy] = useState<ExploreSort>(initialQuery.sort);
   const [sortOpen, setSortOpen] = useState(false);
+  // 하트 누른 것만 보기(2026-11-06 — 맨 위 즐겨찾기 칸이 늘 떠서 필터로 바꿈). 비로그인이면 주소에 있어도 끈다.
+  const [onlyFavorites, setOnlyFavorites] = useState(initialQuery.favorites && viewerId !== null);
 
-  // 하트 상태는 여기 하나 — 즐겨찾기 칸과 아래 목록에 같은 카드가 있어도 같이 바뀐다
+  // 하트 상태는 여기 하나 — "즐겨찾기만" 필터도 이걸 본다
   const [hearts, setHearts] = useState<HeartState>(() => {
     const mine = new Set(myHeartIds);
     return Object.fromEntries(
       initialProjects.map((p) => [p.id, { hearted: mine.has(p.id), count: heartCountOf(p) }]),
     );
   });
-  const [heartOrder, setHeartOrder] = useState<string[]>(myHeartIds);
   const [heartPending, setHeartPending] = useState<Set<string>>(() => new Set());
 
   const applyHeart = useCallback((id: string, on: boolean) => {
@@ -59,7 +59,6 @@ export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeart
       if (cur.hearted === on) return h;
       return { ...h, [id]: { hearted: on, count: Math.max(0, cur.count + (on ? 1 : -1)) } };
     });
-    setHeartOrder((o) => (on ? [id, ...o.filter((x) => x !== id)] : o.filter((x) => x !== id)));
   }, []);
 
   const toggleHeart = useCallback(
@@ -146,7 +145,9 @@ export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeart
         selectedCategories.length === 0 ||
         selectedCategories.some(cat => tags.includes(cat));
 
-      return matchesSearch && matchesPlatform && matchesType && matchesCategory;
+      const matchesFavorite = !onlyFavorites || (hearts[project.id]?.hearted ?? false);
+
+      return matchesSearch && matchesPlatform && matchesType && matchesCategory && matchesFavorite;
     });
 
     if (sortBy === 'clicks') {
@@ -158,13 +159,7 @@ export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeart
     }
     // newest: 서버에서 created_at DESC로 정렬되어 옴
     return filtered;
-  }, [searchQuery, selectedPlatforms, selectedTypes, selectedCategories, initialProjects, sortBy, hearts]);
-
-  const favorites = useMemo(() => favoritesInHeartOrder(initialProjects, heartOrder), [initialProjects, heartOrder]);
-  const showFavorites = shouldShowFavorites(
-    { q: searchQuery, types: selectedTypes, categories: selectedCategories, platforms: selectedPlatforms },
-    favorites.length,
-  );
+  }, [searchQuery, selectedPlatforms, selectedTypes, selectedCategories, onlyFavorites, initialProjects, sortBy, hearts]);
 
   // 검색어·필터·정렬을 주소에 남긴다 — 새로고침·뒤로 가기·링크 공유에도 같은 결과.
   // 기록은 쌓지 않고(replaceState) 타자 칠 때마다 쓰지 않게 잠깐 모았다 쓴다(Safari는 30초에 100번 넘으면 막음).
@@ -176,13 +171,14 @@ export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeart
         categories: selectedCategories,
         platforms: selectedPlatforms,
         sort: sortBy,
+        favorites: onlyFavorites,
       });
       if (qs !== window.location.search && !(qs === "" && window.location.search === "?")) {
         window.history.replaceState(null, "", `${window.location.pathname}${qs}${window.location.hash}`);
       }
     }, 300);
     return () => window.clearTimeout(t);
-  }, [searchQuery, selectedTypes, selectedCategories, selectedPlatforms, sortBy]);
+  }, [searchQuery, selectedTypes, selectedCategories, selectedPlatforms, sortBy, onlyFavorites]);
 
   useEffect(() => {
     if (!sortOpen) return;
@@ -191,7 +187,15 @@ export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeart
     return () => document.removeEventListener('click', handler);
   }, [sortOpen]);
 
-  const activeFilterCount = selectedTypes.length + selectedCategories.length + selectedPlatforms.length;
+  const activeFilterCount =
+    selectedTypes.length + selectedCategories.length + selectedPlatforms.length + (onlyFavorites ? 1 : 0);
+
+  const resetFilters = () => {
+    setSelectedTypes([]);
+    setSelectedCategories([]);
+    setSelectedPlatforms([]);
+    setOnlyFavorites(false);
+  };
 
   const sortButton = (
     <div className="relative shrink-0">
@@ -281,11 +285,8 @@ export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeart
         onToggleType={handleTypeChange}
         onToggleCategory={handleCategoryChange}
         onTogglePlatform={handlePlatformChange}
-        onReset={() => {
-          setSelectedTypes([]);
-          setSelectedCategories([]);
-          setSelectedPlatforms([]);
-        }}
+        favorites={viewerId ? { active: onlyFavorites, onToggle: () => setOnlyFavorites(o => !o) } : null}
+        onReset={resetFilters}
         sortButton={sortButton}
       />
 
@@ -300,6 +301,24 @@ export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeart
                 </h2>
 
                 <div className="space-y-1">
+                  {/* 즐겨찾기만 — 로그인했을 때만 */}
+                  {viewerId && (
+                    <button
+                      type="button"
+                      onClick={() => setOnlyFavorites(o => !o)}
+                      aria-pressed={onlyFavorites}
+                      className={cn(
+                        "mb-2 w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors text-left",
+                        onlyFavorites
+                          ? "bg-blue-500/12 text-blue-700 dark:text-blue-300"
+                          : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-800 dark:hover:text-zinc-200"
+                      )}
+                    >
+                      <Heart className={cn("w-4 h-4 shrink-0 transition-colors", onlyFavorites ? "fill-current text-blue-600 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500")} aria-hidden />
+                      즐겨찾기만
+                    </button>
+                  )}
+
                   {/* 프로그램 종류 */}
                   <div>
                     <button
@@ -450,11 +469,7 @@ export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeart
                   {activeFilterCount > 0 && (
                     <button
                       type="button"
-                      onClick={() => {
-                        setSelectedTypes([]);
-                        setSelectedCategories([]);
-                        setSelectedPlatforms([]);
-                      }}
+                      onClick={resetFilters}
                       className="rounded-sm text-sm font-medium text-zinc-600 dark:text-zinc-400 underline-offset-4 hover:underline hover:text-zinc-900 dark:hover:text-white px-1 pt-2"
                     >
                       필터 초기화
@@ -467,8 +482,6 @@ export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeart
 
           {/* MAIN CONTENT / SEARCH & GRID */}
           <div className="flex-1 min-w-0">
-            {showFavorites && <FavoritesSection projects={favorites} renderCard={renderCard} />}
-
             <div className="mb-4 flex items-baseline justify-between gap-2">
               <p className="text-sm text-zinc-600 dark:text-zinc-400" aria-live="polite">
                 <b className="font-semibold text-zinc-900 tabular-nums dark:text-white">{filteredProjects.length}개</b>
@@ -480,15 +493,17 @@ export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeart
 
             {filteredProjects.length === 0 ? (
               <div className="text-center py-16 px-6 rounded-3xl border border-dashed border-zinc-300 dark:border-zinc-700">
-                <p className="text-zinc-600 dark:text-zinc-400">조건에 맞는 프로젝트가 없어요.</p>
+                <p className="text-zinc-600 dark:text-zinc-400">
+                  {onlyFavorites && !Object.values(hearts).some(h => h.hearted)
+                    ? "아직 하트를 누른 프로젝트가 없어요. 마음에 드는 프로젝트에 하트를 눌러 보세요."
+                    : "조건에 맞는 프로젝트가 없어요."}
+                </p>
                 {(activeFilterCount > 0 || searchQuery) && (
                   <button
                     type="button"
                     onClick={() => {
                       setSearchQuery("");
-                      setSelectedTypes([]);
-                      setSelectedCategories([]);
-                      setSelectedPlatforms([]);
+                      resetFilters();
                     }}
                     className="mt-3 text-sm font-medium text-blue-700 dark:text-blue-400 underline underline-offset-4"
                   >

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown, Heart, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -17,6 +17,8 @@ type MobileFilterBarProps = {
   onToggleType: (value: string, checked: boolean) => void;
   onToggleCategory: (value: string, checked: boolean) => void;
   onTogglePlatform: (value: string, checked: boolean) => void;
+  /** "즐겨찾기만" 토글 — 비로그인이면 null(버튼 안 보임) */
+  favorites: { active: boolean; onToggle: () => void } | null;
   onReset: () => void;
   /** 정렬 드롭다운(상태는 부모가 가짐) — 바 오른쪽 끝에 놓인다 */
   sortButton: ReactNode;
@@ -35,7 +37,7 @@ const GROUPS: Array<{
 
 /**
  * 탐색 모바일 필터 바 — 머리 아래 헤더 밑에 고정. 데스크탑 사이드바 대신 가로 스크롤 한 줄:
- * [종류 ▾][카테고리 ▾][플랫폼 ▾] | 선택된 값 칩(× 해제) … [정렬].
+ * [♥ 즐겨찾기][종류 ▾][카테고리 ▾][플랫폼 ▾] | 선택된 값 칩(× 해제) … [정렬].
  * 드롭다운은 `absolute top-full` 패널이라 아래 내용이 밀리지 않는다. 바깥 클릭·Esc로 닫힌다.
  */
 export function MobileFilterBar({
@@ -45,6 +47,7 @@ export function MobileFilterBar({
   onToggleType,
   onToggleCategory,
   onTogglePlatform,
+  favorites,
   onReset,
   sortButton,
 }: MobileFilterBarProps) {
@@ -82,7 +85,7 @@ export function MobileFilterBar({
       Icon: g.icons[value],
     })),
   );
-  const activeCount = activeChips.length;
+  const activeCount = activeChips.length + (favorites?.active ? 1 : 0);
 
   return (
     <div
@@ -92,6 +95,22 @@ export function MobileFilterBar({
       {/* 정렬은 스크롤 상자 밖에 둔다 — 안에 두면 열린 정렬 메뉴가 overflow 에 잘린다 */}
       <div className="flex h-14 items-center pr-6">
         <div className="flex h-full min-w-0 flex-1 items-center gap-2 overflow-x-auto pl-6 pr-6 [mask-image:linear-gradient(to_right,#000_calc(100%-24px),transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {favorites && (
+            <button
+              type="button"
+              onClick={favorites.onToggle}
+              aria-pressed={favorites.active}
+              className={cn(
+                "inline-flex h-[34px] shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-medium whitespace-nowrap transition-colors",
+                favorites.active
+                  ? "border-blue-600 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-950 dark:text-blue-300"
+                  : "border-zinc-200 bg-white text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300",
+              )}
+            >
+              <Heart className={cn("h-3.5 w-3.5", favorites.active && "fill-current")} aria-hidden />
+              즐겨찾기
+            </button>
+          )}
           {GROUPS.map((g) => {
             const count = selectedOf(g.key).length;
             const isOpen = open === g.key;

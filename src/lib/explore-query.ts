@@ -1,4 +1,4 @@
-// 탐색(/explore) 검색어·필터·정렬 ↔ 주소 쿼리. 새로고침·링크 공유·뒤로 가기에도 같은 결과가 보이게
+// 탐색(/explore) 검색어·필터(즐겨찾기만 포함)·정렬 ↔ 주소 쿼리. 새로고침·링크 공유·뒤로 가기에도 같은 결과가 보이게
 // 화면 상태를 주소에 남긴다(2026-11-01). 서버 페이지가 읽어 첫 화면부터 거른 목록을 그리고,
 // ExploreClient가 바뀔 때마다 history.replaceState로 다시 쓴다. node:test로 검증한다.
 
@@ -12,6 +12,8 @@ export interface ExploreQuery {
   categories: string[];
   platforms: string[];
   sort: ExploreSort;
+  /** 하트 누른 프로젝트만(`?fav=1`) — 로그인했을 때만 쓴다 */
+  favorites: boolean;
 }
 
 export const EMPTY_EXPLORE_QUERY: ExploreQuery = {
@@ -20,6 +22,7 @@ export const EMPTY_EXPLORE_QUERY: ExploreQuery = {
   categories: [],
   platforms: [],
   sort: 'newest',
+  favorites: false,
 };
 
 const SORTS: readonly ExploreSort[] = ['newest', 'clicks', 'hearts'];
@@ -53,6 +56,7 @@ export function parseExploreQuery(params: URLSearchParams | Record<string, Raw>)
     categories: pick(get('category'), FEATURES),
     platforms: pick(get('platform'), PLATFORMS),
     sort: SORTS.includes(sort) ? sort : 'newest',
+    favorites: first(get('fav')) === '1',
   };
 }
 
@@ -67,6 +71,7 @@ export function exploreQueryString(query: ExploreQuery): string {
   if (types.length) p.set('type', types.join(','));
   if (categories.length) p.set('category', categories.join(','));
   if (platforms.length) p.set('platform', platforms.join(','));
+  if (query.favorites) p.set('fav', '1');
   if (query.sort !== 'newest') p.set('sort', query.sort);
   const s = p.toString();
   return s ? `?${s}` : '';

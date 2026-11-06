@@ -55,7 +55,7 @@ export default async function ExplorePage({
     projects = data;
   }
 
-  // 맨 위 즐겨찾기 칸 — 내 하트(최신 먼저). 개발자 계정도 본인 것만이라 사용자 클라이언트로.
+  // "즐겨찾기만" 필터·하트 표시용 내 하트. 개발자 계정도 본인 것만이라 사용자 클라이언트로.
   let myHeartIds: string[] = [];
   if (user) {
     const { data } = await supabase
