@@ -14,6 +14,91 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_actions: {
+        Row: {
+          action: string
+          created_at: string
+          detail: Json | null
+          id: number
+          target_id: string | null
+          target_kind: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          detail?: Json | null
+          id?: number
+          target_id?: string | null
+          target_kind?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          detail?: Json | null
+          id?: number
+          target_id?: string | null
+          target_kind?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_actions_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_dismissals: {
+        Row: {
+          dismissed_at: string
+          item_id: string
+          kind: string
+        }
+        Insert: {
+          dismissed_at?: string
+          item_id: string
+          kind: string
+        }
+        Update: {
+          dismissed_at?: string
+          item_id?: string
+          kind?: string
+        }
+        Relationships: []
+      }
+      ai_usage: {
+        Row: {
+          count: number
+          day: string
+          kind: string
+          user_id: string
+        }
+        Insert: {
+          count?: number
+          day: string
+          kind: string
+          user_id: string
+        }
+        Update: {
+          count?: number
+          day?: string
+          kind?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcements: {
         Row: {
           author_id: string
@@ -168,6 +253,115 @@ export type Database = {
           },
         ]
       }
+      poster_art_jobs: {
+        Row: {
+          attempts: number
+          claimed_at: string | null
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          height: number
+          id: string
+          job_secret_hash: string | null
+          kind: string
+          lease_until: string | null
+          poster_id: string
+          prompt: string
+          result_url: string | null
+          status: string
+          user_id: string
+          width: number
+          worker_id: string | null
+        }
+        Insert: {
+          attempts?: number
+          claimed_at?: string | null
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          height: number
+          id?: string
+          job_secret_hash?: string | null
+          kind?: string
+          lease_until?: string | null
+          poster_id: string
+          prompt: string
+          result_url?: string | null
+          status?: string
+          user_id: string
+          width: number
+          worker_id?: string | null
+        }
+        Update: {
+          attempts?: number
+          claimed_at?: string | null
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          height?: number
+          id?: string
+          job_secret_hash?: string | null
+          kind?: string
+          lease_until?: string | null
+          poster_id?: string
+          prompt?: string
+          result_url?: string | null
+          status?: string
+          user_id?: string
+          width?: number
+          worker_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poster_art_jobs_poster_id_fkey"
+            columns: ["poster_id"]
+            isOneToOne: false
+            referencedRelation: "project_posters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poster_art_jobs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poster_art_jobs_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "poster_art_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poster_art_workers: {
+        Row: {
+          created_at: string
+          id: string
+          last_seen_at: string | null
+          name: string
+          revoked_at: string | null
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_seen_at?: string | null
+          name: string
+          revoked_at?: string | null
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_seen_at?: string | null
+          name?: string
+          revoked_at?: string | null
+          token_hash?: string
+        }
+        Relationships: []
+      }
       privacy_consents: {
         Row: {
           consented_at: string
@@ -247,7 +441,6 @@ export type Database = {
           is_author: boolean
           project_id: string
           public_user_id: string | null
-          rating: number | null
           user_id: string
         }
         Insert: {
@@ -257,7 +450,6 @@ export type Database = {
           is_author?: boolean
           project_id: string
           public_user_id?: string | null
-          rating?: number | null
           user_id: string
         }
         Update: {
@@ -267,7 +459,6 @@ export type Database = {
           is_author?: boolean
           project_id?: string
           public_user_id?: string | null
-          rating?: number | null
           user_id?: string
         }
         Relationships: [
@@ -326,6 +517,99 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_poster_days: {
+        Row: {
+          day: string
+          project_id: string
+        }
+        Insert: {
+          day: string
+          project_id: string
+        }
+        Update: {
+          day?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_poster_days_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_posters: {
+        Row: {
+          art_job_id: string | null
+          art_order: Json | null
+          art_url: string | null
+          band_position: string
+          band_tone: string
+          created_at: string
+          created_by: string | null
+          html: string | null
+          id: string
+          messages: Json
+          project_id: string
+          updated_at: string
+          versions: Json
+        }
+        Insert: {
+          art_job_id?: string | null
+          art_order?: Json | null
+          art_url?: string | null
+          band_position?: string
+          band_tone?: string
+          created_at?: string
+          created_by?: string | null
+          html?: string | null
+          id?: string
+          messages?: Json
+          project_id: string
+          updated_at?: string
+          versions?: Json
+        }
+        Update: {
+          art_job_id?: string | null
+          art_order?: Json | null
+          art_url?: string | null
+          band_position?: string
+          band_tone?: string
+          created_at?: string
+          created_by?: string | null
+          html?: string | null
+          id?: string
+          messages?: Json
+          project_id?: string
+          updated_at?: string
+          versions?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_posters_art_job_id_fkey"
+            columns: ["art_job_id"]
+            isOneToOne: false
+            referencedRelation: "poster_art_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_posters_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_posters_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -672,6 +956,54 @@ export type Database = {
           },
         ]
       }
+      user_bans: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email_hash: string
+          from_anonymous: boolean
+          id: string
+          reason: string | null
+          until: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email_hash: string
+          from_anonymous?: boolean
+          id?: string
+          reason?: string | null
+          until?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email_hash?: string
+          from_anonymous?: boolean
+          id?: string
+          reason?: string | null
+          until?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_bans_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_bans_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           avatar_url: string | null
@@ -683,6 +1015,7 @@ export type Database = {
           id: string
           interests: string[]
           nickname: string | null
+          profile_updated_at: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -694,6 +1027,7 @@ export type Database = {
           id: string
           interests?: string[]
           nickname?: string | null
+          profile_updated_at?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -705,62 +1039,99 @@ export type Database = {
           id?: string
           interests?: string[]
           nickname?: string | null
+          profile_updated_at?: string | null
         }
         Relationships: []
       }
     }
     Views: {
-      reviews: {
-        Row: {
-          comment: string | null
-          created_at: string | null
-          id: string | null
-          project_id: string | null
-          rating: number | null
-          user_id: string | null
-        }
-        Insert: {
-          comment?: string | null
-          created_at?: string | null
-          id?: string | null
-          project_id?: string | null
-          rating?: number | null
-          user_id?: string | null
-        }
-        Update: {
-          comment?: string | null
-          created_at?: string | null
-          id?: string | null
-          project_id?: string | null
-          rating?: number | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "reviews_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reviews_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       _guide_validate_doc: {
         Args: { p_stats: Json; p_steps: Json; p_title: string }
         Returns: string
       }
+      admin_bans: { Args: never; Returns: Json }
+      admin_bursts: { Args: { p_since?: string }; Returns: Json }
+      admin_content: {
+        Args: { p_after: string }
+        Returns: {
+          anonymous: boolean
+          author_id: string
+          author_name: string
+          body: string
+          created_at: string
+          href: string
+          id: string
+          kind: string
+          title: string
+        }[]
+      }
+      admin_guide_shrinks: { Args: { p_since?: string }; Returns: Json }
+      admin_item_json: {
+        Args: {
+          p_anonymous: boolean
+          p_author_id: string
+          p_author_name: string
+          p_body: string
+          p_created_at: string
+          p_href: string
+          p_id: string
+          p_kind: string
+          p_title: string
+        }
+        Returns: Json
+      }
+      admin_recent_content: {
+        Args: { p_before?: string; p_kinds?: string[]; p_limit?: number }
+        Returns: Json
+      }
+      admin_site_stats: { Args: never; Returns: Json }
+      ai_usage_day: { Args: { p_kind: string }; Returns: string }
+      claim_poster_art_job: {
+        Args: { p_token: string }
+        Returns: {
+          height: number
+          id: string
+          job_secret: string
+          prompt: string
+          width: number
+        }[]
+      }
       domain_showcase: { Args: { p_limit?: number }; Returns: Json }
+      email_hash: { Args: { p_email: string }; Returns: string }
       is_admin: { Args: never; Returns: boolean }
+      is_banned: { Args: { p_uid: string }; Returns: boolean }
+      my_ban: {
+        Args: never
+        Returns: {
+          unlimited: boolean
+          until: string
+        }[]
+      }
       my_project_ids: { Args: never; Returns: string[] }
+      poster_art_ping: { Args: { p_token: string }; Returns: undefined }
+      project_live_domain: {
+        Args: { p_project_id: string }
+        Returns: {
+          host: string
+          name: string
+        }[]
+      }
+      release_ai_usage: {
+        Args: { p_kind: string; p_user: string }
+        Returns: undefined
+      }
+      reserve_ai_usage: {
+        Args: {
+          p_kind: string
+          p_site_limit: number
+          p_user: string
+          p_user_limit: number
+        }
+        Returns: string
+      }
       save_guide_revision: {
         Args: {
           p_author_id: string
