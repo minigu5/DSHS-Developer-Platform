@@ -21,6 +21,7 @@ paths:
 ## 보안
 - AI HTML은 `<iframe sandbox="" srcDoc>`에만(`PosterPreview`). `allow-same-origin`·`allow-scripts` 금지. 저장 전 `sanitizePosterHtml`(script·on*·javascript:·iframe/object/embed/form/base·meta refresh·Google Fonts 외 link).
 - `project_posters`·`ai_usage`는 RLS 켜고 정책 없음 — 서버가 `getPosterAccess` 뒤 서비스 키로만. API는 `guardPosterRequest`(isSameOrigin → 포스터 → 권한).
+- 띠는 밝게/어둡게(`band_tone`)·위/아래(`band_position`, 사용자 요청 2026-11-06) — 스튜디오 세그먼트, 미리보기는 `flex-col-reverse`, 내보내기는 `posterExportPage(…, position)`.
 - 띠·QR은 우리 코드(`posterBandHtml`, 원본 CSS `docs/superpowers/specs/2026-11-05-ai-poster/dshs-band.css`). Gemini에 사이트 주소를 보내지 않는다(가짜 주소를 지어냈음).
 
 ## 권한·제한
@@ -34,4 +35,5 @@ paths:
 - PNG·PDF = Cloudflare Browser Rendering REST(`/browser-rendering/screenshot`·`/pdf`, 무료 요금제 됨, 연속 요청 429). `waitForTimeout: 2000` — Google Fonts `display=swap`이라 없으면 대체 글꼴로 찍힌다. 토큰 `CLOUDFLARE_BROWSER_API_TOKEN`(Browser Rendering · Edit만).
 
 ## 확인 도구
+- 실패 이유는 Workers 로그에 `[poster] …`로 남는다(상태 코드·오류 문구만, 키·프롬프트는 안 남김). `npx wrangler tail --format pretty`로 보면서 다시 눌러 보면 된다.
 - `.superpowers/pipeline.mts`(커밋 안 함) 같은 스크립트로 Gemini → 정리 → 띠 합성 → PNG를 로그인 없이 확인할 수 있다. 로그인 화면 확인은 사용자 몫.

@@ -9,7 +9,7 @@ import { redirect } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/server'
 
 import { getPosterAccess } from './access'
-import type { PosterTone } from './config'
+import type { PosterBandPosition, PosterTone } from './config'
 import { POSTER_COPY } from './messages'
 import { loadPoster, savePosterState, toPosterView } from './poster-db'
 import { undoPosterState, type PosterView } from './store'
@@ -58,13 +58,15 @@ export async function undoPoster(posterId: string): Promise<{ error?: string; po
   return { poster: toPosterView(saved) }
 }
 
-export async function setPosterTone(posterId: string, tone: PosterTone): Promise<{ error?: string }> {
-  if (tone !== 'light' && tone !== 'dark') return { error: '띠 색을 다시 골라 주세요.' }
+export async function setPosterBand(posterId: string, band: { tone: PosterTone; position: PosterBandPosition }): Promise<{ error?: string }> {
+  if ((band.tone !== 'light' && band.tone !== 'dark') || (band.position !== 'top' && band.position !== 'bottom')) {
+    return { error: '띠를 다시 골라 주세요.' }
+  }
   const found = await posterWithAccess(posterId)
   if ('error' in found) return { error: found.error }
   const { error } = await createAdminClient()
     .from('project_posters')
-    .update({ band_tone: tone, updated_at: new Date().toISOString() })
+    .update({ band_tone: band.tone, band_position: band.position, updated_at: new Date().toISOString() })
     .eq('id', posterId)
-  return error ? { error: '띠 색을 바꾸지 못했어요.' } : {}
+  return error ? { error: '띠를 바꾸지 못했어요.' } : {}
 }

@@ -35,3 +35,11 @@ test('띠 이름의 작은따옴표·큰따옴표는 각각 맞게 이스케이�
   const band = posterBandHtml({ title: `Kim's "App"`, tone: 'light', qrSvg: '' })
   assert.match(band, /Kim&#39;s &quot;App&quot;/)
 })
+
+test('띠 위치: 위면 data-position="top", 내보내기 문서에서 iframe 앞에', () => {
+  assert.match(posterBandHtml({ title: 'a', tone: 'light', position: 'top', qrSvg: '' }), /data-position="top"/)
+  const top = posterExportPage('<p>x</p>', '<footer class="dshs-band"></footer>', 'top')
+  assert.ok(top.indexOf('<footer') < top.indexOf('<iframe'))
+  const bottom = posterExportPage('<p>x</p>', '<footer class="dshs-band"></footer>', 'bottom')
+  assert.ok(bottom.indexOf('<iframe') < bottom.indexOf('<footer'))
+})

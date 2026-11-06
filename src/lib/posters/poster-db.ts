@@ -39,6 +39,7 @@ export function toPosterView(row: ProjectPosterRow): PosterView {
     html: row.html,
     artUrl: row.art_url,
     tone: row.band_tone,
+    position: row.band_position ?? 'bottom',
     messages: row.messages ?? [],
     canUndo: (row.versions ?? []).length > 0,
     canRedraw: !!row.art_order && !!row.html && hasArtSlot(row.html),

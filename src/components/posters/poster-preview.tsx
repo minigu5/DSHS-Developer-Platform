@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { POSTER_CANVAS, type PosterTone } from "@/lib/posters/config";
+import { POSTER_CANVAS, type PosterBandPosition, type PosterTone } from "@/lib/posters/config";
 import { posterSrcdoc } from "@/lib/posters/document";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +20,7 @@ export function PosterPreview({
   title,
   projectId,
   tone,
+  position,
   className,
 }: {
   html: string | null;
@@ -27,6 +28,7 @@ export function PosterPreview({
   title: string;
   projectId: string;
   tone: PosterTone;
+  position: PosterBandPosition;
   className?: string;
 }) {
   const box = useRef<HTMLDivElement>(null);
@@ -49,7 +51,7 @@ export function PosterPreview({
     >
       {scale > 0 && (
         <div
-          className="absolute top-0 left-0 flex flex-col"
+          className={cn("absolute top-0 left-0 flex", position === "top" ? "flex-col-reverse" : "flex-col")}
           style={{ width: POSTER_CANVAS.width, height: TOTAL, transform: `scale(${scale})`, transformOrigin: "top left" }}
         >
           {html ? (
@@ -67,7 +69,7 @@ export function PosterPreview({
               부탁을 보내면 AI가 포스터를 만들어요
             </div>
           )}
-          <PosterBand title={title} projectId={projectId} tone={tone} />
+          <PosterBand title={title} projectId={projectId} tone={tone} position={position} />
         </div>
       )}
     </div>

@@ -55,6 +55,8 @@ export interface PosterVersion {
 }
 
 export type PosterTone = 'light' | 'dark'
+// 띠를 포스터 위·아래 어디에 붙일지(사용자 요청 2026-11-06)
+export type PosterBandPosition = 'top' | 'bottom'
 
 // Gemini 에 보내는 공개 정보만. 이메일·실명·팀원은 넣지 않는다.
 export interface PosterProjectInfo {

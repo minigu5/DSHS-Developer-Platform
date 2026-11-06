@@ -1,7 +1,7 @@
 // AI HTML 을 sandbox iframe 의 srcdoc 으로 만들기 + 띠까지 합친 내보내기용 한 장 문서.
 
 import { POSTER_BAND_CSS } from './band.ts'
-import { POSTER_CANVAS } from './config.ts'
+import { POSTER_CANVAS, type PosterBandPosition } from './config.ts'
 
 export const POSTER_CSP =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src https://res.cloudinary.com data:"
@@ -17,8 +17,9 @@ export function posterSrcdoc(html: string, artUrl: string | null): string {
   return /<head\b[^>]*>/i.test(withArt) ? withArt.replace(/<head\b[^>]*>/i, (m) => m + CSP_META) : CSP_META + withArt
 }
 
-export function posterExportPage(srcdoc: string, bandHtml: string): string {
+export function posterExportPage(srcdoc: string, bandHtml: string, position: PosterBandPosition = 'bottom'): string {
   const total = POSTER_CANVAS.height + POSTER_CANVAS.bandHeight
+  const frame = `<iframe sandbox="" srcdoc="${escapeAttr(srcdoc)}"></iframe>`
   return `<!doctype html><html lang="ko"><head><meta charset="utf-8">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@600&family=IBM+Plex+Sans+KR:wght@500;600;700&display=block" rel="stylesheet">
 <style>@page { size: ${POSTER_CANVAS.width}px ${total}px; margin: 0 }
@@ -26,5 +27,5 @@ html, body { margin: 0 }
 #page { width: ${POSTER_CANVAS.width}px; height: ${total}px; display: flex; flex-direction: column; overflow: hidden; background: #fff }
 #page iframe { width: ${POSTER_CANVAS.width}px; height: ${POSTER_CANVAS.height}px; border: 0; display: block; flex: none }
 ${POSTER_BAND_CSS}</style>
-</head><body><div id="page"><iframe sandbox="" srcdoc="${escapeAttr(srcdoc)}"></iframe>${bandHtml}</div></body></html>`
+</head><body><div id="page">${position === 'top' ? bandHtml + frame : frame + bandHtml}</div></body></html>`
 }

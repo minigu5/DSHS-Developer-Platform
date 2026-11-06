@@ -24,7 +24,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (!token || !account) return NextResponse.json({ error: '지금은 파일을 만들 수 없어요.' }, { status: 503 })
 
   const qrSvg = await QRCode.toString(`https://dshs.dev/projects/${access.project.id}`, { type: 'svg', margin: 0 })
-  const html = posterExportPage(posterSrcdoc(poster.html, poster.art_url), posterBandHtml({ title: access.project.title, tone: poster.band_tone, qrSvg }))
+  const position = poster.band_position ?? 'bottom'
+  const html = posterExportPage(
+    posterSrcdoc(poster.html, poster.art_url),
+    posterBandHtml({ title: access.project.title, tone: poster.band_tone, position, qrSvg }),
+    position,
+  )
   const body =
     format === 'png'
       ? { html, viewport: { width: 1240, height: 1754, deviceScaleFactor: 2 }, gotoOptions: GOTO, waitForTimeout: WAIT_FONTS_MS, screenshotOptions: { type: 'png' } }

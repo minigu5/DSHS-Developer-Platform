@@ -5,6 +5,7 @@ import {
   POSTER_VERSIONS_KEPT,
   type PosterArtOrder,
   type PosterMessage,
+  type PosterBandPosition,
   type PosterTone,
   type PosterVersion,
 } from './config.ts'
@@ -15,6 +16,7 @@ export interface PosterView {
   html: string | null
   artUrl: string | null
   tone: PosterTone
+  position: PosterBandPosition
   messages: PosterMessage[]
   canUndo: boolean
   canRedraw: boolean

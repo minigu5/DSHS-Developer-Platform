@@ -530,6 +530,7 @@ export type Database = {
           versions: Json;
           messages: Json;
           band_tone: 'light' | 'dark';
+          band_position: 'top' | 'bottom';
           created_at: string;
           updated_at: string;
         };
@@ -542,6 +543,7 @@ export type Database = {
           versions?: Json;
           messages?: Json;
           band_tone?: 'light' | 'dark';
+          band_position?: 'top' | 'bottom';
         };
         Update: {
           html?: string | null;
@@ -550,6 +552,7 @@ export type Database = {
           versions?: Json;
           messages?: Json;
           band_tone?: 'light' | 'dark';
+          band_position?: 'top' | 'bottom';
           updated_at?: string;
         };
         Relationships: [];

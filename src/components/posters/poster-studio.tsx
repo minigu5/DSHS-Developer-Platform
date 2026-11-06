@@ -5,8 +5,8 @@ import { Download, ImageIcon, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { setPosterTone, undoPoster } from "@/lib/posters/actions";
-import type { PosterTone } from "@/lib/posters/config";
+import { setPosterBand, undoPoster } from "@/lib/posters/actions";
+import type { PosterBandPosition, PosterTone } from "@/lib/posters/config";
 import { parseHeartbeatBody } from "@/lib/posters/heartbeat";
 import { MAX_REQUEST } from "@/lib/posters/messages";
 import type { PosterView } from "@/lib/posters/store";
@@ -77,12 +77,12 @@ export function PosterStudio({ initial, projectTitle }: { initial: PosterView; p
     else setPoster(result.poster);
   }
 
-  async function changeTone(tone: PosterTone) {
-    const before = poster.tone;
-    setPoster((p) => ({ ...p, tone }));
-    const result = await setPosterTone(poster.id, tone);
+  async function changeBand(band: { tone: PosterTone; position: PosterBandPosition }) {
+    const before = { tone: poster.tone, position: poster.position };
+    setPoster((p) => ({ ...p, ...band }));
+    const result = await setPosterBand(poster.id, band);
     if (result.error) {
-      setPoster((p) => ({ ...p, tone: before }));
+      setPoster((p) => ({ ...p, ...before }));
       toast.error(result.error);
     }
   }
@@ -113,23 +113,21 @@ export function PosterStudio({ initial, projectTitle }: { initial: PosterView; p
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
       <div className="lg:sticky lg:top-20">
-        <PosterPreview html={poster.html} artUrl={poster.artUrl} title={projectTitle} projectId={poster.projectId} tone={poster.tone} />
+        <PosterPreview html={poster.html} artUrl={poster.artUrl} title={projectTitle} projectId={poster.projectId} tone={poster.tone} position={poster.position} />
         <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-          <div className="flex gap-1 rounded-full bg-zinc-100 p-1 dark:bg-zinc-900" role="group" aria-label="띠 색">
-            {(["light", "dark"] as const).map((tone) => (
-              <button
-                key={tone}
-                type="button"
-                aria-pressed={poster.tone === tone}
-                onClick={() => changeTone(tone)}
-                className={cn(
-                  "h-7 rounded-full px-3 text-sm transition-colors",
-                  poster.tone === tone ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white" : "text-zinc-600 dark:text-zinc-400",
-                )}
-              >
-                {tone === "light" ? "밝은 띠" : "어두운 띠"}
-              </button>
-            ))}
+          <div className="flex flex-wrap gap-2">
+            <Segment
+              label="띠 색"
+              value={poster.tone}
+              options={[["light", "밝은 띠"], ["dark", "어두운 띠"]]}
+              onChange={(tone) => changeBand({ tone, position: poster.position })}
+            />
+            <Segment
+              label="띠 위치"
+              value={poster.position}
+              options={[["bottom", "아래"], ["top", "위"]]}
+              onChange={(position) => changeBand({ tone: poster.tone, position })}
+            />
           </div>
           <div className="flex gap-2">
             {(["png", "pdf"] as const).map((format) => (
@@ -201,6 +199,37 @@ export function PosterStudio({ initial, projectTitle }: { initial: PosterView; p
           </Button>
         </div>
       </section>
+    </div>
+  );
+}
+
+function Segment<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: [T, string][];
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="flex gap-1 rounded-full bg-zinc-100 p-1 dark:bg-zinc-900" role="group" aria-label={label}>
+      {options.map(([key, text]) => (
+        <button
+          key={key}
+          type="button"
+          aria-pressed={value === key}
+          onClick={() => value !== key && onChange(key)}
+          className={cn(
+            "h-7 rounded-full px-3 text-sm transition-colors",
+            value === key ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white" : "text-zinc-600 dark:text-zinc-400",
+          )}
+        >
+          {text}
+        </button>
+      ))}
     </div>
   );
 }
