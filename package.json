@@ -10,7 +10,7 @@
     "build": "next build",
     "start": "next start",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "deploy": "bash scripts/deploy.sh",
     "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
     "lint": "eslint",
     "test": "node --test \"src/**/*.test.ts\"",

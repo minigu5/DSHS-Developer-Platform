@@ -12,6 +12,8 @@ const SECURITY_HEADERS = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // 정적 파일(/_next/static)을 서울에서 응답하는 *.pages.dev에서 받는다 — scripts/deploy.sh가 배포 때 넣는다(없으면 예전처럼 같은 주소)
+  assetPrefix: process.env.ASSET_PREFIX || undefined,
   async headers() {
     return [{ source: '/:path*', headers: SECURITY_HEADERS }];
   },

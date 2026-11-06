@@ -55,6 +55,12 @@ paths:
 - `<link rel="preconnect" href="https://lh3.googleusercontent.com" />` — 구글 프로필 사진 도메인 사전 준비.
 - `<link rel="dns-prefetch" />` — preconnect 미지원 구형 브라우저 대응.
 
+### 정적 파일은 pages.dev에서 (2026-11-06)
+- 문제: 새 브라우저로 홈에 처음 들어오면 HTML은 1.1초인데 `/_next/static` JS 20개를 dshs.dev(LA)에서 다 받는 데 **13.7초**(KT → Cloudflare 무료 = LAX, `lesson-lax-network-slow` 메모). `*.pages.dev`는 같은 회선에서 서울(ICN) 응답.
+- `npm run deploy` = `scripts/deploy.sh`(Workers Builds도 이걸 돈다): `ASSET_PREFIX=https://d<UTC시각>.dshs-assets.pages.dev`로 OpenNext 빌드(`next.config.ts` `assetPrefix`) → `.open-next/assets/_next/static`을 Pages 프로젝트 `dshs-assets`(계정 370e521d…, `wrangler pages project create … --force`로 만듦 — `--force` 없으면 wrangler 4가 Workers로 넘겨 workers.dev=LAX)의 **배포마다 새 브랜치**에 올리고(옛 화면이 옛 파일을 찾아도 404 없음) 한 파일이 열리는지 확인 → 실패하면 접두사 없이 다시 빌드(예전처럼 Worker가 줌). `_headers`로 `Access-Control-Allow-Origin: *`(CSS 속 글꼴)·1년 immutable.
+- 사이트 주소·HTML·RSC·API·`public/` 파일·`/_next/image`는 그대로 dshs.dev. 영화대교·대곽나루와 같은 방식.
+- 운영 HTML의 `<script src>`가 `dshs-assets.pages.dev`인지로 켜졌는지 확인한다(Workers Builds 토큰에 Pages 권한이 없으면 조용히 예전 방식으로 배포됨).
+
 ### 요청 수 줄이기 — Cloudflare 속도 제한(2026-11-04)
 - 문제: 사용자가 Cloudflare에 IP당 속도 제한(사용자는 100회로 기억했으나 실제 200회/10초)을 걸어 뒀는데 학교는 IP 하나라 자주 걸렸다. 실측(로그아웃, 첫 방문): 10초 안에 dshs.dev 요청 131개 — 글꼴 103·스크립트 17·RSC 미리 받기 ~30. 두 번째 페이지부터도 ~33개(대부분 미리 받기 = Worker 호출이라 CPU 10ms 한도도 같이 씀).
 - **제목 글꼴 직접 두기** (`src/app/layout.tsx`, `src/app/fonts/`): `next/font/google`의 `IBM_Plex_Sans_KR`은 한글이 조각 ~100개(unicode-range)로 나뉘어 있고 제목 글자가 거의 모든 조각에 흩어져 preload를 꺼도 ~100개를 받았다. 지금은 `next/font/local`로 600·700 woff2 2개(각 ~270KB, 라이선스 `IBMPlexSansKR-OFL.txt`). 한글은 KS X 1001 완성형 2,350자만 — 빠진 글자는 `--font-heading`의 다음 글꼴(Apple SD Gothic Neo 등)로 보인다.
