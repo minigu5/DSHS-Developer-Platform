@@ -8,7 +8,7 @@ export const POSTER_BAND_CSS = ".dshs-band {\n  --band-bg: #ffffff;\n  --band-fg
 const LOGO_SVG = "<svg class=\"dshs-band__logo\" aria-hidden=\"true\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\"><rect width=\"512\" height=\"512\" rx=\"150\" fill=\"#000000\"/><path d=\"M 190 190 L 110 256 L 190 322\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"48\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M 322 190 L 402 256 L 322 322\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"48\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M 286 130 L 226 382\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"48\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>"
 
 const escapeHtml = (s: string) =>
-  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&quot;')
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 
 export function posterBandHtml({ title, tone, qrSvg }: { title: string; tone: PosterTone; qrSvg: string }): string {
   return (

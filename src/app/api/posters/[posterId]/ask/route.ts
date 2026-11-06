@@ -8,7 +8,7 @@ import { MAX_REQUEST, POSTER_COPY } from '@/lib/posters/messages'
 import { savePosterState, toPosterView } from '@/lib/posters/poster-db'
 import { buildPosterContents } from '@/lib/posters/prompt'
 import { parsePosterReply } from '@/lib/posters/reply'
-import { guardPosterRequest } from '@/lib/posters/route-guard'
+import { guardPosterRequest, keepAliveAfterDisconnect } from '@/lib/posters/route-guard'
 import { sanitizePosterHtml } from '@/lib/posters/sanitize'
 import { nextPosterState } from '@/lib/posters/store'
 import { releaseUsage, reserveUsage } from '@/lib/posters/usage'
@@ -80,5 +80,5 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const saved = await savePosterState(poster.id, state)
     if (!saved) return { ok: false, error: POSTER_COPY.failed }
     return { ok: true, poster: toPosterView(saved), notice }
-  })
+  }, undefined, keepAliveAfterDisconnect())
 }

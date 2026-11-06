@@ -101,7 +101,8 @@ export function PosterStudio({ initial, projectTitle }: { initial: PosterView; p
       a.href = url;
       a.download = `${projectTitle} 포스터.${format}`;
       a.click();
-      URL.revokeObjectURL(url);
+      // Safari 는 바로 해제하면 받기가 취소된다
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } finally {
       setBusy(null);
     }

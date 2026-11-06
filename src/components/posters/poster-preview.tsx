@@ -12,7 +12,7 @@ const TOTAL = POSTER_CANVAS.height + POSTER_CANVAS.bandHeight;
 
 /**
  * A4 포스터 미리보기. AI HTML 은 sandbox iframe(srcdoc, 스크립트·same-origin 없음) 안에만 두고 사이트 DOM 에 넣지 않는다.
- * 1240×1754 원본을 컨테이너 폭에 맞춰 축소한다.
+ * 1240×1754 원본을 컨테이너 폭에 맞춰 축소한다. iframe 은 클릭을 받지 않는다 — 목록에서 카드 링크로 열리고, AI HTML 속 링크로 iframe 이 딴 페이지로 가지 않게.
  */
 export function PosterPreview({
   html,
@@ -59,7 +59,7 @@ export function PosterPreview({
               title="포스터 미리보기"
               width={POSTER_CANVAS.width}
               height={POSTER_CANVAS.height}
-              className="block flex-none border-0"
+              className="pointer-events-none block flex-none border-0"
               tabIndex={-1}
             />
           ) : (

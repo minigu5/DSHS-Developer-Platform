@@ -30,3 +30,8 @@ test('내보내기 문서는 sandbox iframe + 띠, srcdoc 따옴표 이스케이
   assert.match(page, /<iframe sandbox="" srcdoc="&lt;p class=&quot;a&quot;&gt;x&lt;\/p&gt;"/)
   assert.match(page, /@page\s*\{\s*size:\s*1240px 1754px;\s*margin:\s*0/)
 })
+
+test('띠 이름의 작은따옴표·큰따옴표는 각각 맞게 이스케이프', () => {
+  const band = posterBandHtml({ title: `Kim's "App"`, tone: 'light', qrSvg: '' })
+  assert.match(band, /Kim&#39;s &quot;App&quot;/)
+})

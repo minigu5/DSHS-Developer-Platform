@@ -5,7 +5,7 @@ import { planArtAction } from '@/lib/posters/decide'
 import { heartbeatJson } from '@/lib/posters/heartbeat'
 import { POSTER_COPY } from '@/lib/posters/messages'
 import { savePosterState, toPosterView } from '@/lib/posters/poster-db'
-import { guardPosterRequest } from '@/lib/posters/route-guard'
+import { guardPosterRequest, keepAliveAfterDisconnect } from '@/lib/posters/route-guard'
 import { nextPosterState } from '@/lib/posters/store'
 import { releaseUsage, reserveUsage } from '@/lib/posters/usage'
 
@@ -43,5 +43,5 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const saved = await savePosterState(poster.id, state)
     if (!saved) return { ok: false, error: POSTER_COPY.failed }
     return { ok: true, poster: toPosterView(saved) }
-  })
+  }, undefined, keepAliveAfterDisconnect())
 }

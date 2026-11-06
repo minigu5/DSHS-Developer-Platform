@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { isSameOrigin } from '@/lib/same-origin'
@@ -23,4 +24,14 @@ export async function guardPosterRequest(
   if (access === 'login') return NextResponse.json({ ok: false, error: '로그인이 필요해요.' }, { status: 401 })
   if (typeof access === 'string') return NextResponse.json({ ok: false, error: POSTER_COPY.noPermission }, { status: 403 })
   return { poster, access }
+}
+
+/** 탭을 닫아도 AI 결과 저장까지 끝나게 Workers ctx.waitUntil 에 맡긴다(heartbeatJson 세 번째 인자) */
+export function keepAliveAfterDisconnect(): ((job: Promise<unknown>) => void) | undefined {
+  try {
+    const { ctx } = getCloudflareContext()
+    return (job) => ctx.waitUntil(job)
+  } catch {
+    return undefined
+  }
 }
