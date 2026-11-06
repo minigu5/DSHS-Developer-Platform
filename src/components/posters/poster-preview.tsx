@@ -21,6 +21,7 @@ export function PosterPreview({
   projectId,
   tone,
   position,
+  pending = false,
   className,
 }: {
   html: string | null;
@@ -29,6 +30,8 @@ export function PosterPreview({
   projectId: string;
   tone: PosterTone;
   position: PosterBandPosition;
+  // 학교 Mac 이 그림을 그리는 중
+  pending?: boolean;
   className?: string;
 }) {
   const box = useRef<HTMLDivElement>(null);
@@ -57,7 +60,7 @@ export function PosterPreview({
           {html ? (
             <iframe
               sandbox=""
-              srcDoc={posterSrcdoc(html, artUrl)}
+              srcDoc={posterSrcdoc(html, artUrl, pending)}
               title="포스터 미리보기"
               width={POSTER_CANVAS.width}
               height={POSTER_CANVAS.height}
@@ -71,6 +74,15 @@ export function PosterPreview({
           )}
           <PosterBand title={title} projectId={projectId} tone={tone} position={position} />
         </div>
+      )}
+      {/* 다시 그리는 중엔 옛 그림을 두고 작은 알림만 — 처음 그리는 중은 그림 자리 글자가 대신한다 */}
+      {pending && artUrl && (
+        <p
+          aria-live="polite"
+          className="absolute top-3 right-3 rounded-full bg-zinc-900 px-3 py-1 text-xs font-medium text-white dark:bg-white dark:text-zinc-900"
+        >
+          새 그림 그리는 중…
+        </p>
       )}
     </div>
   );

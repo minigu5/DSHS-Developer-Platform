@@ -10,10 +10,15 @@ const CSP_META = `<meta http-equiv="Content-Security-Policy" content="${POSTER_C
 // 그림을 아직 못 그렸을 때 자리 — zinc-200 사각형
 const EMPTY_ART = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="4" height="3"><rect width="4" height="3" fill="#e4e4e7"/></svg>')}`
 
+// 학교 Mac 이 그리는 중일 때 자리 — 같은 회색 + zinc-500 글자(img 안 SVG 라 시스템 글꼴)
+const DRAWING_ART = `data:image/svg+xml,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="#e4e4e7"/><text x="200" y="158" text-anchor="middle" font-family="sans-serif" font-size="22" fill="#71717a">그림 그리는 중…</text></svg>',
+)}`
+
 const escapeAttr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-export function posterSrcdoc(html: string, artUrl: string | null): string {
-  const withArt = html.replace(/\bsrc\s*=\s*(["'])ART\1/gi, `src="${escapeAttr(artUrl ?? EMPTY_ART)}"`)
+export function posterSrcdoc(html: string, artUrl: string | null, pending = false): string {
+  const withArt = html.replace(/\bsrc\s*=\s*(["'])ART\1/gi, `src="${escapeAttr(artUrl ?? (pending ? DRAWING_ART : EMPTY_ART))}"`)
   return /<head\b[^>]*>/i.test(withArt) ? withArt.replace(/<head\b[^>]*>/i, (m) => m + CSP_META) : CSP_META + withArt
 }
 

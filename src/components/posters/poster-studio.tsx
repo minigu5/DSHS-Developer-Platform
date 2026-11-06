@@ -6,9 +6,9 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { setPosterBand, undoPoster } from "@/lib/posters/actions";
-import type { PosterBandPosition, PosterTone } from "@/lib/posters/config";
+import { POSTER_MAC, type PosterBandPosition, type PosterTone } from "@/lib/posters/config";
 import { parseHeartbeatBody } from "@/lib/posters/heartbeat";
-import { MAX_REQUEST } from "@/lib/posters/messages";
+import { MAX_REQUEST, POSTER_COPY } from "@/lib/posters/messages";
 import type { PosterView } from "@/lib/posters/store";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,7 @@ import { Segment } from "./segment";
 
 type Busy = null | "ask" | "redraw" | "undo" | "png" | "pdf";
 type AskResult = { ok: true; poster: PosterView; notice?: string } | { ok: false; error: string };
+type ArtStatus = { ok: true; status: "none" | "pending" | "done" | "expired" | "failed"; poster: PosterView } | { ok: false; error: string };
 
 const SMALL_BUTTON = "h-9 rounded-full px-3 text-sm";
 
@@ -28,6 +29,8 @@ export function PosterStudio({ initial, projectTitle }: { initial: PosterView; p
   const [busy, setBusy] = useState<Busy>(null);
   const [elapsed, setElapsed] = useState(0);
   const log = useRef<HTMLOListElement>(null);
+  const busyRef = useRef<Busy>(null);
+  busyRef.current = busy;
   const firstMake = !poster.html;
 
   useEffect(() => {
@@ -39,6 +42,38 @@ export function PosterStudio({ initial, projectTitle }: { initial: PosterView; p
   useEffect(() => {
     log.current?.lastElementChild?.scrollIntoView({ block: "nearest" });
   }, [poster.messages.length]);
+
+  // 학교 Mac 이 그리는 동안 3초마다 확인. 막혔다고 오면(expired·failed) 한 번만 클라우드로 다시 그린다.
+  useEffect(() => {
+    if (!poster.artPending) return;
+    let stopped = false;
+    const started = Date.now();
+    const timer = setInterval(async () => {
+      if (Date.now() - started > POSTER_MAC.pollStopMs) {
+        clearInterval(timer);
+        return;
+      }
+      try {
+        const res = await fetch(`/api/posters/${poster.id}/art`, { cache: "no-store" });
+        const result = (await res.json()) as ArtStatus;
+        if (stopped || !result.ok || result.status === "pending") return;
+        clearInterval(timer);
+        setPoster(result.poster);
+        if (result.status === "expired" || result.status === "failed") {
+          if (busyRef.current) toast(POSTER_COPY.artGaveUp);
+          else void callAi("redraw", { via: "cloud" });
+        }
+      } catch {
+        // 잠깐 끊겨도 다음 확인에서 다시 묻는다
+      }
+    }, POSTER_MAC.pollMs);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+    // callAi 는 매 렌더 새로 만들어지지만 poster.id 가 같으면 같은 일을 한다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [poster.artPending, poster.id]);
 
   async function callAi(path: "ask" | "redraw", body?: object) {
     setElapsed(0);
@@ -114,7 +149,15 @@ export function PosterStudio({ initial, projectTitle }: { initial: PosterView; p
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
       <div className="lg:sticky lg:top-20">
-        <PosterPreview html={poster.html} artUrl={poster.artUrl} title={projectTitle} projectId={poster.projectId} tone={poster.tone} position={poster.position} />
+        <PosterPreview
+          html={poster.html}
+          artUrl={poster.artUrl}
+          title={projectTitle}
+          projectId={poster.projectId}
+          tone={poster.tone}
+          position={poster.position}
+          pending={poster.artPending}
+        />
         <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
           <div className="flex flex-wrap gap-2">
             <Segment
@@ -132,7 +175,7 @@ export function PosterStudio({ initial, projectTitle }: { initial: PosterView; p
           </div>
           <div className="flex gap-2">
             {(["png", "pdf"] as const).map((format) => (
-              <Button key={format} variant="outline" className={SMALL_BUTTON} disabled={!poster.html || !!busy} onClick={() => download(format)}>
+              <Button key={format} variant="outline" className={SMALL_BUTTON} disabled={!poster.html || poster.artPending || !!busy} onClick={() => download(format)}>
                 <Download className="mr-1 h-4 w-4" aria-hidden />
                 {busy === format ? "만드는 중…" : `${format.toUpperCase()}로 받기`}
               </Button>

@@ -43,3 +43,11 @@ test('띠 위치: 위면 data-position="top", 내보내기 문서에서 iframe �
   const bottom = posterExportPage('<p>x</p>', '<footer class="dshs-band"></footer>', 'bottom')
   assert.ok(bottom.indexOf('<iframe') < bottom.indexOf('<footer'))
 })
+
+test('그리는 중이면 글자 있는 자리', () => {
+  const doc = posterSrcdoc('<img src="ART">', null, true)
+  assert.match(decodeURIComponent(doc), /그림 그리는 중/)
+})
+
+test('그림이 있으면 pending 이어도 그 그림', () =>
+  assert.match(posterSrcdoc('<img src="ART">', 'https://res.cloudinary.com/x.png', true), /res\.cloudinary\.com\/x\.png/))
