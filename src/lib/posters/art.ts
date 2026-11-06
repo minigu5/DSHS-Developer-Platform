@@ -37,6 +37,7 @@ export async function drawPosterArt(order: PosterArtOrder): Promise<{ ok: true; 
     })
     return { ok: true, url: uploaded.secure_url }
   } catch (e) {
+    console.error('[poster] art 실패', String(e).slice(0, 200))
     return { ok: false, reason: classifyArtError(String(e)) }
   }
 }

@@ -15,7 +15,7 @@ export async function loadPoster(posterId: string): Promise<ProjectPosterRow | n
 }
 
 export async function savePosterState(posterId: string, state: PosterState): Promise<ProjectPosterRow | null> {
-  const { data } = await createAdminClient()
+  const { data, error } = await createAdminClient()
     .from('project_posters')
     .update({
       html: state.html,
@@ -28,6 +28,7 @@ export async function savePosterState(posterId: string, state: PosterState): Pro
     .eq('id', posterId)
     .select('*')
     .single()
+  if (!data) console.error('[poster] savePosterState', error?.message)
   return (data as ProjectPosterRow | null) ?? null
 }
 

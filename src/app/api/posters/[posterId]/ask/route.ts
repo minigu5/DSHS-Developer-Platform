@@ -43,6 +43,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
     const parsed = parsePosterReply(reply.text)
     if (!parsed.html) {
+      console.error('[poster] html 없음', reply.text.length, JSON.stringify(reply.text.slice(0, 120)), JSON.stringify(reply.text.slice(-120)))
       await releaseUsage('text', access.userId)
       return { ok: false, error: POSTER_COPY.failed }
     }
@@ -78,7 +79,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       now: new Date().toISOString(),
     })
     const saved = await savePosterState(poster.id, state)
-    if (!saved) return { ok: false, error: POSTER_COPY.failed }
+    if (!saved) {
+      console.error('[poster] 저장 실패', poster.id)
+      return { ok: false, error: POSTER_COPY.failed }
+    }
     return { ok: true, poster: toPosterView(saved), notice }
   }, undefined, keepAliveAfterDisconnect())
 }

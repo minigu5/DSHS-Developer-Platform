@@ -16,7 +16,10 @@ export async function generatePosterReply(
   contents: GeminiContent[],
 ): Promise<{ ok: true; text: string } | { ok: false; reason: 'busy' | 'blocked' | 'error' }> {
   const key = process.env.GEMINI_API_KEY
-  if (!key) return { ok: false, reason: 'error' }
+  if (!key) {
+    console.error('[poster] GEMINI_API_KEY 없음')
+    return { ok: false, reason: 'error' }
+  }
   for (const model of POSTER_TEXT_MODELS) {
     let status: number
     let body: unknown
@@ -33,10 +36,16 @@ export async function generatePosterReply(
       })
       status = res.status
       body = await res.json().catch(() => ({}))
-    } catch {
+    } catch (e) {
+      console.error('[poster] gemini fetch 실패', model, String(e).slice(0, 200))
       return { ok: false, reason: 'busy' }
     }
     const kind = classifyGeminiResponse(status, body)
+    if (kind !== 'ok') {
+      // 실패 이유만 남긴다(키·프롬프트는 안 남김) — 2026-11-06 운영에서만 실패해서 추가
+      const b = body as { error?: { message?: string }; candidates?: { finishReason?: string }[]; promptFeedback?: { blockReason?: string } }
+      console.error('[poster] gemini', model, status, kind, b.error?.message?.slice(0, 200) ?? '', b.candidates?.[0]?.finishReason ?? '', b.promptFeedback?.blockReason ?? '')
+    }
     if (kind === 'next-model') continue
     if (kind !== 'ok') return { ok: false, reason: kind }
     const text = ((body as GeminiReply).candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? '').join('')
