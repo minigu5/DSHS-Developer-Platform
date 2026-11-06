@@ -14,6 +14,7 @@ paths:
 ## 구조 — 섞기(사용자 결정 2026-11-06)
 - **글·배치 = Gemini**(`POSTER_TEXT_MODELS`, `generateContent` 한 번에 받기 — 스트림 조각 파싱은 CPU를 씀). 응답 = ```json 그림 주문(선택) + ```html. HTML의 큰 그림은 `<img src="ART">` 자리 하나.
 - **그림 = Workers AI `flux-2-klein-9b`**(`AI` 바인딩, `src/lib/posters/art.ts`). 주문 비율 그대로, 넓이만 `POSTER_ART_MAX_AREA`까지 줄여 요청(`fitArtSize`). base64는 디코딩하지 않고 data URI로 Cloudinary `dshs/posters`에 올려 URL만 저장.
+- **보내는 정보**(Gemini): 이름·종류·플랫폼·소개 요약(한 줄 소개+상세 설명 1200자)·학생 부탁, 고칠 땐 현재 HTML+최근 부탁 4개. **처음 만들 때 소스코드 공개 + GitHub 저장소면** 저장소 설명·토픽(8개)·주 언어 + README(마크다운 정리 3000자, 있으면 상세 설명 요약 대신)를 더한다(`repo-fetch.ts`·`repo-context.ts`, 사용자 요청 2026-11-06). 사이트 주소·이메일·실명·팀원은 안 보냄. Workers AI에는 Gemini가 쓴 영어 그림 프롬프트+크기만.
 - 이미지 AI에 포스터 통째(한글)를 맡기지 않는다 — 글자가 깨진다. Gemini 이미지 모델은 무료 키 `limit: 0`, Pollinations 탈락, 계정 여러 개로 할당량 늘리기는 약관 위반이라 안 함(사이트 Cloudflare 계정이 정지될 수 있음).
 - **그림은 아껴 쓴다**: 처음 만들 때·Gemini가 새 주문을 줄 때(HTML에 `ART` 자리가 있을 때만, `planArtAction`)·"그림 다시 그리기" 버튼에서만. 글·색·배치 수정은 HTML만 고친다.
 - 저장 HTML엔 늘 `ART` 표시, 보여 줄 때 `posterSrcdoc`이 URL로 바꾸고 CSP meta(`POSTER_CSP`)를 넣는다.

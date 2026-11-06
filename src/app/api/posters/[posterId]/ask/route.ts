@@ -8,6 +8,8 @@ import { MAX_REQUEST, POSTER_COPY } from '@/lib/posters/messages'
 import { savePosterState, toPosterView } from '@/lib/posters/poster-db'
 import { buildPosterContents } from '@/lib/posters/prompt'
 import { parsePosterReply } from '@/lib/posters/reply'
+import { withRepoContext } from '@/lib/posters/repo-context'
+import { fetchRepoContext } from '@/lib/posters/repo-fetch'
 import { guardPosterRequest, keepAliveAfterDisconnect } from '@/lib/posters/route-guard'
 import { sanitizePosterHtml } from '@/lib/posters/sanitize'
 import { nextPosterState } from '@/lib/posters/store'
@@ -34,8 +36,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   return heartbeatJson(async () => {
+    // 처음 만들 때만 공개 GitHub 저장소 내용(설명·토픽·언어·README)을 더한다 — 고칠 땐 이미 만든 HTML 이 있다
+    const info =
+      firstMake && access.repoUrl
+        ? withRepoContext(access.project, access.shortDescription, await fetchRepoContext(access.repoUrl))
+        : access.project
     const reply = await generatePosterReply(
-      buildPosterContents({ info: access.project, currentHtml: poster.html, recent: poster.messages ?? [], request: message }),
+      buildPosterContents({ info, currentHtml: poster.html, recent: poster.messages ?? [], request: message }),
     )
     if (!reply.ok) {
       await releaseUsage('text', access.userId)

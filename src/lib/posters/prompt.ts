@@ -45,6 +45,9 @@ function projectBlock(info: PosterProjectInfo): string {
     `- 종류: ${info.types.join(', ') || '없음'}`,
     `- 플랫폼: ${info.platforms.join(', ') || '없음'}`,
     `- 소개(요약): ${info.summary || '없음'}`,
+    ...(info.repo?.description ? [`- 저장소 설명: ${info.repo.description}`] : []),
+    ...(info.repo?.topics.length ? [`- 토픽: ${info.repo.topics.join(', ')}`] : []),
+    ...(info.repo?.language ? [`- 주 언어: ${info.repo.language}`] : []),
   ].join('\n')
 }
 

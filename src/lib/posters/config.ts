@@ -66,4 +66,12 @@ export interface PosterProjectInfo {
   types: string[]
   platforms: string[]
   url: string | null
+  // 공개 GitHub 저장소 정보(처음 만들 때만 가져온다, 2026-11-06 사용자 요청)
+  repo?: PosterRepoMeta | null
+}
+
+export interface PosterRepoMeta {
+  description: string | null
+  topics: string[]
+  language: string | null
 }

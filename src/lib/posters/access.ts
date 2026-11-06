@@ -12,6 +12,9 @@ export interface PosterAccess {
   userId: string
   isAdmin: boolean
   project: PosterProjectInfo
+  // 처음 만들 때 저장소 내용을 더하려고(Gemini 에 직접 보내지는 않음). 소스코드 공개일 때만
+  shortDescription: string | null
+  repoUrl: string | null
 }
 
 /**
@@ -30,7 +33,7 @@ export async function getPosterAccess(projectId: string): Promise<PosterAccess |
   const reader = isAdmin ? createAdminClient() : supabase
   const { data: project } = await reader
     .from('projects')
-    .select('id, title, short_description, description, types, platforms, url, visibility, team_members')
+    .select('id, title, short_description, description, types, platforms, url, visibility, team_members, source_type, repo_url')
     .eq('id', projectId)
     .maybeSingle()
   if (!project) return 'not_found'
@@ -54,6 +57,8 @@ export async function getPosterAccess(projectId: string): Promise<PosterAccess |
   return {
     userId: user.id,
     isAdmin,
+    shortDescription: project.short_description ?? null,
+    repoUrl: project.source_type === 'open' ? (project.repo_url ?? null) : null,
     project: {
       id: project.id,
       title: project.title,

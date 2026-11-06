@@ -25,3 +25,15 @@ test('summarizeDescription: 링크·마크다운 기호 제거, 길이 제한', 
   assert.equal(summarizeDescription('# 제목\n[여기](https://x.y) **굵게**'), '제목 여기 굵게')
   assert.equal(summarizeDescription('가'.repeat(2000)).length, 1200)
 })
+
+test('저장소 정보가 있으면 프로젝트 정보에 설명·토픽·주 언어 줄', () => {
+  const t = buildPosterContents({ info: { ...info, repo: { description: 'GPU 서버 대여', topics: ['gpu', 'remote'], language: 'Python' } }, currentHtml: null, recent: [], request: '' })[0].parts[0].text
+  assert.match(t, /- 저장소 설명: GPU 서버 대여/)
+  assert.match(t, /- 토픽: gpu, remote/)
+  assert.match(t, /- 주 언어: Python/)
+})
+
+test('저장소 정보가 없으면 그 줄들이 없음', () => {
+  const t = buildPosterContents({ info, currentHtml: null, recent: [], request: '' })[0].parts[0].text
+  assert.doesNotMatch(t, /저장소 설명|토픽|주 언어/)
+})
