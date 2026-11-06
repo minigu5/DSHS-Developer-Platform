@@ -13,6 +13,8 @@ import { ProjectComments } from "@/components/projects/project-comments";
 import { HeartButton } from "@/components/projects/heart-button";
 import { ProjectIcon } from "@/components/projects/project-icon";
 import { EditButton } from "@/components/projects/edit-button";
+import { PosterButton } from "@/components/posters/poster-button";
+import { posterAllowed } from "@/lib/posters/config";
 import { BackToExplore } from "@/components/projects/back-to-explore";
 import type { CommentRowView } from "@/lib/comments";
 import { ANONYMOUS_AUTHOR, LICENSE_FEATURES, PLATFORMS, isDeveloper, projectTypeLabels } from "@/lib/constants";
@@ -315,6 +317,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 className="h-11 px-4 sm:px-5"
               />
               {canEdit && <EditButton projectId={project.id} />}
+              {canEdit && project.visibility === 'public' && posterAllowed(isAdmin) && <PosterButton projectId={project.id} />}
             </div>
           </div>
         </div>
