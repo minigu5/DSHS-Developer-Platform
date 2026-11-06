@@ -108,11 +108,10 @@ export function OnboardingForm({ user }: { user: User }) {
         toast.error(friendlyWriteError(result.error) ?? result.error);
       } else {
         toast.success("프로필을 저장했어요.");
-        // 닉네임 업데이트 후 캐시 반영을 위해 refresh 후 이동
-        router.refresh();
-        setTimeout(() => {
-          router.push("/");
-        }, 500); // 넉넉하게 500ms 대기
+        // 바로 홈으로 — updateProfile 의 revalidatePath('/', 'layout') 가 캐시를 비운다.
+        // 예전엔 router.refresh() + 0.5초 뒤 push 였는데, dshs.dev 가 LA 를 거쳐 요청이 줄줄이 밀려
+        // 처음 가입하는 사람은 몇 초 동안 "2 / 2단계"에서 안 넘어가는 것처럼 보였다(2026-11-06 제보)
+        router.replace("/");
       }
     } catch {
       setLoading(false);
