@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { classifyArtError, classifyGeminiResponse, decidePosterAccess, planArtAction } from './decide.ts'
+import { classifyArtError, classifyGeminiResponse, decideBandAccess, decidePosterAccess, planArtAction } from './decide.ts'
 
 const base = { loggedIn: true, isAdmin: true, isOwner: false, isTeamMember: false, isPublic: true, banned: false }
 
@@ -32,4 +32,14 @@ test('그림 계획', () => {
   assert.equal(planArtAction({ html: '<p>no slot</p>', order }), 'keep')
   assert.equal(planArtAction({ html: '<img src="ART">', order: null }), 'keep')
   assert.equal(planArtAction({ html: '<img src="ART">', order }), 'draw')
+})
+
+test('띠 받기: 관리자가 아니어도 소유자·팀원이면 ok', () => {
+  const s = { loggedIn: true, isAdmin: false, isOwner: false, isTeamMember: false, isPublic: true, banned: false }
+  assert.equal(decideBandAccess({ ...s, isOwner: true }), 'ok')
+  assert.equal(decideBandAccess({ ...s, isTeamMember: true }), 'ok')
+  assert.equal(decideBandAccess(s), 'forbidden')
+  assert.equal(decideBandAccess({ ...s, isOwner: true, isPublic: false }), 'not_found')
+  assert.equal(decideBandAccess({ ...s, isOwner: true, banned: true }), 'forbidden')
+  assert.equal(decideBandAccess({ ...s, loggedIn: false }), 'login')
 })

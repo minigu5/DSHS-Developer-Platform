@@ -22,6 +22,10 @@ export const POSTER_SYSTEM = [
   '- 고치기 요청에는 HTML 전체를 다시 준다. 부탁받지 않은 부분은 그대로 둔다.',
 ].join('\n')
 
+// 그림 AI 할당량이 없을 때 덧붙인다 — 큰 그림도 SVG 로(실험 때 Gemini SVG 도 포스터 수준은 나왔음)
+const NO_ART_NOTE =
+  '오늘은 그림 AI를 쓸 수 없다. ART 자리와 json 블록을 쓰지 말고, 큰 그림도 인라인 SVG로 직접 그린다(서비스 이름의 뜻이나 장점을 은유하는 장면 하나, 밝은 바탕, 2~3가지 색).'
+
 export interface GeminiContent {
   role: 'user' | 'model'
   parts: { text: string }[]
@@ -56,15 +60,19 @@ export function buildPosterContents({
   currentHtml,
   recent,
   request,
+  artAvailable = true,
 }: {
   info: PosterProjectInfo
   currentHtml: string | null
   recent: PosterMessage[]
   request: string
+  // 오늘 그림 할당량이 없으면 false — 회색 자리 대신 Gemini 가 SVG 로 직접 그린다
+  artAvailable?: boolean
 }): GeminiContent[] {
   const ask = request.trim()
+  const noArt = artAvailable ? '' : `\n\n${NO_ART_NOTE}`
   if (!currentHtml) {
-    return [{ role: 'user', parts: [{ text: `${projectBlock(info)}\n\n학생의 부탁: ${ask || '없음'}` }] }]
+    return [{ role: 'user', parts: [{ text: `${projectBlock(info)}\n\n학생의 부탁: ${ask || '없음'}${noArt}` }] }]
   }
   const earlier = recent
     .filter((m) => m.role === 'user' && m.text.trim())
@@ -76,6 +84,7 @@ export function buildPosterContents({
     `지금 포스터 HTML:\n${FENCE}html\n${currentHtml}\n${FENCE}`,
     earlier.length ? `\n이전 부탁:\n${earlier.join('\n')}` : '',
     `\n이번 부탁: ${ask}`,
+    noArt,
   ].join('\n')
   return [{ role: 'user', parts: [{ text }] }]
 }

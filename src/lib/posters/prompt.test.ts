@@ -37,3 +37,11 @@ test('저장소 정보가 없으면 그 줄들이 없음', () => {
   const t = buildPosterContents({ info, currentHtml: null, recent: [], request: '' })[0].parts[0].text
   assert.doesNotMatch(t, /저장소 설명|토픽|주 언어/)
 })
+
+test('그림 AI를 못 쓰면 SVG로 직접 그리라고 덧붙임', () => {
+  const t = buildPosterContents({ info, currentHtml: null, recent: [], request: '', artAvailable: false })[0].parts[0].text
+  assert.match(t, /그림 AI를 쓸 수 없/)
+  assert.match(t, /인라인 SVG/)
+  const normal = buildPosterContents({ info, currentHtml: null, recent: [], request: '' })[0].parts[0].text
+  assert.doesNotMatch(normal, /그림 AI를 쓸 수 없/)
+})

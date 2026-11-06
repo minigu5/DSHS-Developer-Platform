@@ -3,21 +3,30 @@
 import { posterAllowed, type PosterArtOrder } from './config.ts'
 import { hasArtSlot } from './sanitize.ts'
 
-export function decidePosterAccess(i: {
+export interface AccessInput {
   loggedIn: boolean
   isAdmin: boolean
   isOwner: boolean
   isTeamMember: boolean
   isPublic: boolean
   banned: boolean
-}): 'ok' | 'login' | 'forbidden' | 'not_found' {
+}
+
+/** 포스터 띠 받기 — 수정할 수 있는 사람이면 누구나(관리자 제한 없음, AI 를 안 쓴다). */
+export function decideBandAccess(i: AccessInput): 'ok' | 'login' | 'forbidden' | 'not_found' {
   if (!i.loggedIn) return 'login'
   if (i.banned) return 'forbidden'
-  // 비공개 프로젝트는 QR 이 외부인에게 404 라 포스터가 쓸모없다(설계 §10-1). 포스터는 지우지 않고 숨김
+  // 비공개 프로젝트는 QR 이 외부인에게 404 라 띠·포스터가 쓸모없다(설계 §10-1). 포스터는 지우지 않고 숨김
   if (!i.isPublic) return 'not_found'
-  if (!posterAllowed(i.isAdmin)) return 'forbidden'
   if (!(i.isAdmin || i.isOwner || i.isTeamMember)) return 'forbidden'
   return 'ok'
+}
+
+/** AI 포스터 만들기 — 띠 받기 조건 + 1단계 관리자 전용 */
+export function decidePosterAccess(i: AccessInput): 'ok' | 'login' | 'forbidden' | 'not_found' {
+  const band = decideBandAccess(i)
+  if (band !== 'ok') return band
+  return posterAllowed(i.isAdmin) ? 'ok' : 'forbidden'
 }
 
 interface GeminiBody {

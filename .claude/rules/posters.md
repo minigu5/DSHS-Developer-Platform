@@ -11,11 +11,17 @@ paths:
 
 설계 `docs/superpowers/specs/2026-11-05-ai-poster-design.md`(11-06 개정 §5-1·§10-2·§11-0), 계획 `docs/superpowers/plans/2026-11-06-ai-poster.md`.
 
+## 페이지 구성 (2026-11-06 사용자 결정 — 띠 받기가 기본, AI 포스터는 부가)
+- 상세 버튼 "홍보 포스터"(canEdit·공개) → `/projects/[id]/poster`: 맨 위 **포스터 띠 받기**(`PosterBandDownload`, 수정할 수 있는 사람 누구나 — `getBandAccess`/`decideBandAccess`, 관리자 제한 없음), 그 아래 **AI로 포스터 만들기 [실험]**은 `access.canUseAi`(1단계 관리자)일 때만.
+- 띠 PNG는 **브라우저 캔버스**로 그린다(`band-canvas.ts`, 2480×472, 서버·Browser Rendering 안 씀). 모양은 `dshs-band.css` 좌표를 그대로 옮김, 글꼴은 사이트의 `IBM Plex Sans KR Subset`·`Geist Mono`, 긴 이름은 `bandHint` 16자에서 자름. 띠 CSS를 바꾸면 캔버스 좌표도 같이.
+- 직접 API 키 붙여넣기는 안 함(부족한 건 그림 할당량이라 Gemini 키로는 안 늘고, 학생 장벽·키 보관 부담).
+
 ## 구조 — 섞기(사용자 결정 2026-11-06)
 - **글·배치 = Gemini**(`POSTER_TEXT_MODELS`, `generateContent` 한 번에 받기 — 스트림 조각 파싱은 CPU를 씀). 응답 = ```json 그림 주문(선택) + ```html. HTML의 큰 그림은 `<img src="ART">` 자리 하나.
 - **그림 = Workers AI `flux-2-klein-9b`**(`AI` 바인딩, `src/lib/posters/art.ts`). 주문 비율 그대로, 넓이만 `POSTER_ART_MAX_AREA`까지 줄여 요청(`fitArtSize`). base64는 디코딩하지 않고 data URI로 Cloudinary `dshs/posters`에 올려 URL만 저장.
 - **보내는 정보**(Gemini): 이름·종류·플랫폼·소개 요약(한 줄 소개+상세 설명 1200자)·학생 부탁, 고칠 땐 현재 HTML+최근 부탁 4개. **처음 만들 때 소스코드 공개 + GitHub 저장소면** 저장소 설명·토픽(8개)·주 언어 + README(마크다운 정리 3000자, 있으면 상세 설명 요약 대신)를 더한다(`repo-fetch.ts`·`repo-context.ts`, 사용자 요청 2026-11-06). 사이트 주소·이메일·실명·팀원은 안 보냄. Workers AI에는 Gemini가 쓴 영어 그림 프롬프트+크기만.
 - 이미지 AI에 포스터 통째(한글)를 맡기지 않는다 — 글자가 깨진다. Gemini 이미지 모델은 무료 키 `limit: 0`, Pollinations 탈락, 계정 여러 개로 할당량 늘리기는 약관 위반이라 안 함(사이트 Cloudflare 계정이 정지될 수 있음).
+- **그림 할당량이 없을 때**: 처음 만들 때 그림 횟수를 먼저 잡고(`reserveUsage('art')`), 못 잡으면 `artAvailable: false`로 Gemini가 큰 그림도 SVG로 직접 그린다. 우리 숫자는 남았는데 Cloudflare가 할당량 바닥(4006)이면 그 자리에서 Gemini에 "ART를 SVG로 바꿔 줘"를 한 번 더(글 횟수 안 셈). 고칠 때는 기존 그림 유지.
 - **그림은 아껴 쓴다**: 처음 만들 때·Gemini가 새 주문을 줄 때(HTML에 `ART` 자리가 있을 때만, `planArtAction`)·"그림 다시 그리기" 버튼에서만. 글·색·배치 수정은 HTML만 고친다.
 - 저장 HTML엔 늘 `ART` 표시, 보여 줄 때 `posterSrcdoc`이 URL로 바꾸고 CSP meta(`POSTER_CSP`)를 넣는다.
 
