@@ -24,6 +24,9 @@
   // next/image 최적화
   "images": { "binding": "IMAGES" },
 
+  // AI 포스터 그림(flux-2-klein) — 무료 10,000 neurons/일, 계정 전체 공유
+  "ai": { "binding": "AI" },
+
   // 비밀이 아닌 런타임 값. 비밀은 `npx wrangler secret put <이름>`으로.
   "vars": {
     "ALLOWED_EMAIL_DOMAIN": "ts.hs.kr",
