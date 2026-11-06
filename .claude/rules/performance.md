@@ -59,7 +59,7 @@ paths:
 - 문제: 새 브라우저로 홈에 처음 들어오면 HTML은 1.1초인데 `/_next/static` JS 20개를 dshs.dev(LA)에서 다 받는 데 **13.7초**(KT → Cloudflare 무료 = LAX, `lesson-lax-network-slow` 메모). `*.pages.dev`는 같은 회선에서 서울(ICN) 응답.
 - `npm run deploy` = `scripts/deploy.sh`(Workers Builds도 이걸 돈다): `ASSET_PREFIX=https://d<UTC시각>.dshs-assets.pages.dev`로 OpenNext 빌드(`next.config.ts` `assetPrefix`) → `.open-next/assets/_next/static`을 Pages 프로젝트 `dshs-assets`(계정 370e521d…, `wrangler pages project create … --force`로 만듦 — `--force` 없으면 wrangler 4가 Workers로 넘겨 workers.dev=LAX)의 **배포마다 새 브랜치**에 올리고(옛 화면이 옛 파일을 찾아도 404 없음) 한 파일이 열리는지 확인 → 실패하면 접두사 없이 다시 빌드(예전처럼 Worker가 줌). `_headers`로 `Access-Control-Allow-Origin: *`(CSS 속 글꼴)·1년 immutable.
 - 사이트 주소·HTML·RSC·API·`public/` 파일·`/_next/image`는 그대로 dshs.dev. 영화대교·대곽나루와 같은 방식.
-- 운영 HTML의 `<script src>`가 `dshs-assets.pages.dev`인지로 켜졌는지 확인한다(Workers Builds 토큰에 Pages 권한이 없으면 조용히 예전 방식으로 배포됨).
+- 운영 HTML의 `<script src>`가 `dshs-assets.pages.dev`인지로 켜졌는지 확인한다(안 켜지면 조용히 예전 방식). 필요한 대시보드 설정(2026-11-06 완료): Workers Builds Build command 비움 + Deploy command `npm run deploy`, 빌드 토큰("dorm-network-check build token" — dshs가 같이 씀)에 Account · Cloudflare Pages · Edit. 확인은 빌드 로그의 "Executing user deploy command" 줄.
 
 ### 요청 수 줄이기 — Cloudflare 속도 제한(2026-11-04)
 - 문제: 사용자가 Cloudflare에 IP당 속도 제한(사용자는 100회로 기억했으나 실제 200회/10초)을 걸어 뒀는데 학교는 IP 하나라 자주 걸렸다. 실측(로그아웃, 첫 방문): 10초 안에 dshs.dev 요청 131개 — 글꼴 103·스크립트 17·RSC 미리 받기 ~30. 두 번째 페이지부터도 ~33개(대부분 미리 받기 = Worker 호출이라 CPU 10ms 한도도 같이 씀).
