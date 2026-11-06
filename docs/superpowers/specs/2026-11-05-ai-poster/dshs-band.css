@@ -1,0 +1,109 @@
+/*
+  DSHS Developer Platform 홍보 띠 — 어떤 프로젝트 포스터에도 그대로 붙이는 공통 템플릿.
+  기준 캔버스: 폭 1240px(A4 세로 150dpi). 2배로 찍으면 A4 300dpi 인쇄용.
+
+  <footer class="dshs-band" data-tone="light|dark" data-position="bottom|top">
+    <img class="dshs-band__logo" src="dshs-logo.svg" alt="">
+    <div class="dshs-band__text">
+      <p class="dshs-band__lead">대곽 개발자 플랫폼에서 만나요</p>
+      <p class="dshs-band__sub"><b>DSHS Developer Platform</b> · 학생이 만든 프로그램을 한곳에서</p>
+    </div>
+    <div class="dshs-band__go">
+      <p class="dshs-band__url">dshs.dev</p>
+      <p class="dshs-band__hint">‘{{프로젝트 이름}}’ 검색 또는 QR</p>
+    </div>
+    <img class="dshs-band__qr" src="{{프로젝트 페이지 QR}}" alt="">
+  </footer>
+
+  바꾸는 곳은 {{프로젝트 이름}}과 QR(https://dshs.dev/projects/<id>) 두 군데뿐.
+*/
+
+.dshs-band {
+  --band-bg: #ffffff;
+  --band-fg: #18181b;
+  --band-muted: #52525b;
+  --band-line: #e4e4e7;
+  --band-qr-bg: #ffffff;
+
+  flex: none;
+  box-sizing: border-box;
+  height: 236px;
+  padding: 0 72px;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  column-gap: 28px;
+  background: var(--band-bg);
+  color: var(--band-fg);
+  border-top: 2px solid var(--band-line);
+  font-family: "IBM Plex Sans KR", "Pretendard Variable", system-ui, sans-serif;
+}
+.dshs-band[data-position="top"] {
+  border-top: 0;
+  border-bottom: 2px solid var(--band-line);
+}
+.dshs-band[data-tone="dark"] {
+  --band-bg: #09090b;
+  --band-fg: #fafafa;
+  --band-muted: #a1a1aa;
+  --band-line: #27272a;
+}
+
+.dshs-band p { margin: 0; }
+
+.dshs-band__logo {
+  width: 84px;
+  height: 84px;
+  border-radius: 25px;
+  box-shadow: 0 0 0 2px var(--band-line);
+}
+.dshs-band[data-tone="dark"] .dshs-band__logo {
+  box-shadow: 0 0 0 3px #3f3f46;
+}
+
+.dshs-band__lead {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+.dshs-band__sub {
+  margin-top: 10px !important;
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--band-muted);
+}
+.dshs-band__sub b {
+  font-weight: 700;
+  color: var(--band-fg);
+}
+
+.dshs-band__go {
+  text-align: right;
+  padding-right: 4px;
+}
+.dshs-band__url {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+.dshs-band__hint {
+  margin-top: 8px !important;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--band-muted);
+  white-space: nowrap;
+}
+
+.dshs-band__qr {
+  width: 140px;
+  height: 140px;
+  box-sizing: border-box;
+  padding: 12px;
+  border-radius: 18px;
+  background: var(--band-qr-bg);
+  box-shadow: 0 0 0 2px var(--band-line);
+}
