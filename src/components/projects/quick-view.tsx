@@ -163,9 +163,15 @@ export function QuickViewHost({ children }: { children: ReactNode }) {
       .then(({ data: { session } }) => {
         viewerIsAdmin = isDeveloper(session?.user.email);
       });
+    // 본문 마크다운을 그리는 코드(Markdown 의 dynamic import 와 같은 조각)를 한가할 때 미리 받아 둔다 —
+    // 안 받아 두면 누른 뒤에야 dshs.dev(LA)에서 받아 본문만 0.6초쯤 늦게 떴다
+    const preload = () => void import("@/components/shared/markdown-render");
+    const idle = window.requestIdleCallback ? window.requestIdleCallback(preload, { timeout: 3000 }) : window.setTimeout(preload, 1500);
     window.addEventListener("pointerdown", onPointerDown, true);
     window.addEventListener("click", onClick, true);
     return () => {
+      if (window.cancelIdleCallback) window.cancelIdleCallback(idle);
+      else window.clearTimeout(idle);
       window.removeEventListener("pointerdown", onPointerDown, true);
       window.removeEventListener("click", onClick, true);
     };
