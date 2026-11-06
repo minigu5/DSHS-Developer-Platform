@@ -15,6 +15,9 @@ PAGES_PROJECT=dshs-assets
 # Workers Builds는 CLOUDFLARE_ACCOUNT_ID를 넣어 준다. 로컬은 로그인한 계정이 여러 개라 직접 정한다(비밀 아님, wrangler.jsonc와 같음).
 export CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-370e521d89a70d895de8448a36449b93}"
 export WRANGLER_SEND_METRICS=false
+# 로컬 배포는 .env.local(NEXT_PUBLIC_SITE_URL=http://localhost:3000)이 빌드에 박혀 이미지 업로드·포스터의 같은 출처 검사가
+# 전부 실패했다(2026-11-06). 셸 환경 변수가 .env 파일보다 우선하므로 여기서 운영 주소로 고정한다(Workers Builds는 빌드 변수 그대로).
+export NEXT_PUBLIC_SITE_URL="${NEXT_PUBLIC_SITE_URL:-https://dshs.dev}"
 
 ID="d$(date -u +%Y%m%d%H%M%S)"
 ASSET_ORIGIN="https://$ID.$PAGES_PROJECT.pages.dev"
