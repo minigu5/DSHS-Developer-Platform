@@ -28,6 +28,7 @@ import {
 } from "@/lib/projects/detail";
 import { ProjectDetailView } from "@/components/projects/project-detail-view";
 import { ProjectDetailSkeleton } from "@/components/shared/page-skeleton";
+import { preloadMarkdown } from "@/components/shared/markdown";
 
 const PROJECT_PATH =
   /^\/projects\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/?$/i;
@@ -163,10 +164,10 @@ export function QuickViewHost({ children }: { children: ReactNode }) {
       .then(({ data: { session } }) => {
         viewerIsAdmin = isDeveloper(session?.user.email);
       });
-    // 본문 마크다운을 그리는 코드(Markdown 의 dynamic import 와 같은 조각)를 한가할 때 미리 받아 둔다 —
-    // 안 받아 두면 누른 뒤에야 dshs.dev(LA)에서 받아 본문만 0.6초쯤 늦게 떴다
-    const preload = () => void import("@/components/shared/markdown-render");
-    const idle = window.requestIdleCallback ? window.requestIdleCallback(preload, { timeout: 3000 }) : window.setTimeout(preload, 1500);
+    // 본문 마크다운을 그리는 코드를 한가할 때 미리 받아 둔다 — 안 받아 두면 누른 뒤에야 dshs.dev(LA)에서 받아 본문만 0.6초쯤 늦게 떴다
+    const idle = window.requestIdleCallback
+      ? window.requestIdleCallback(preloadMarkdown, { timeout: 3000 })
+      : window.setTimeout(preloadMarkdown, 1500);
     window.addEventListener("pointerdown", onPointerDown, true);
     window.addEventListener("click", onClick, true);
     return () => {
