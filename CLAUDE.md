@@ -142,7 +142,7 @@
 ### 페이지별 캐시 전략
 - 홈(`/`): `force-static`(2026-11-01) — 빌드 때 만든 틀만 내려주고, 목록(공지 띠·아이콘 나열·최근 프로젝트·이렇게 써요 예시·요즘 글·도메인 현황·마무리 아이콘)은 `home-slots.tsx`의 슬롯들이 `home-data.ts`(`useHomeData`, 요청 하나를 나눠 씀, 30초 캐시)로 브라우저에서 anon 키로 읽는다. 받기 전엔 같은 크기 회색 자리. `RevealObserver`는 나중에 붙는 `.reveal`도 MutationObserver로 잡는다.
 - 팁 목록·상세(`/tips`, `/tips/[id]`), 해줘 목록(`/haejwo`): `revalidate = 30` (ISR, 30초)
-- 탐색(`/explore`), 프로젝트 상세(`/projects/[id]`): `force-dynamic` — RLS 기반 사용자별 콘텐츠(개발자 계정은 비공개 프로젝트까지 조회)이므로 서버 캐시 사용 불가
+- 탐색(`/explore`), 프로젝트 상세(`/projects/[id]`): `force-dynamic` — RLS 기반 사용자별 콘텐츠(개발자 계정은 비공개 프로젝트까지 조회)이므로 서버 캐시 사용 불가. 단 목록에서 누른 프로젝트 상세는 서버를 거치지 않고 브라우저가 Supabase로 바로 그린다(빠른 상세, 2026-11-06 — `.claude/rules/projects.md`)
 
 ### 로딩 뼈대 (`loading.tsx` + `src/components/shared/page-skeleton.tsx`, 2026-10-24)
 - 문제: Cloudflare 무료 망은 한국 접속이 LAX를 거쳐 서버 왕복이 0.8~2초 — 링크를 누르면 1초쯤 아무 반응이 없었다.

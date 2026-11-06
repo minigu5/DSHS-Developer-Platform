@@ -748,6 +748,10 @@ export type Database = {
         Args: { p_limit?: number };
         Returns: Json;
       };
+      project_live_domain: {
+        Args: { p_project_id: string };
+        Returns: { name: string; host: string }[];
+      };
       save_guide_revision: {
         Args: {
           p_author_id: string;

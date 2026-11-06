@@ -1,0 +1,452 @@
+// 프로젝트 상세 화면 — 서버 페이지(/projects/[id])와 브라우저의 빠른 상세 화면(quick-view)이 같이 그린다.
+// "use client" 를 달지 않는다: 서버 페이지에선 서버 컴포넌트로, 빠른 상세 화면에선 클라이언트 컴포넌트로 쓰인다(서버 전용 코드 import 금지).
+import type { ReactNode } from "react";
+import Image from "next/image";
+import Link from "@/components/shared/link";
+import { Globe, Code2, Lock, Heart, ExternalLink, ShieldCheck, ShieldAlert, ChevronRight } from "lucide-react";
+
+import { buttonVariants } from "@/components/ui/button";
+import { cn, isExternalImage } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { ProjectComments } from "@/components/projects/project-comments";
+import { HeartButton } from "@/components/projects/heart-button";
+import { ProjectIcon } from "@/components/projects/project-icon";
+import { EditButton } from "@/components/projects/edit-button";
+import { PosterButton } from "@/components/posters/poster-button";
+import { BackToExplore } from "@/components/projects/back-to-explore";
+import { ANONYMOUS_AUTHOR, LICENSE_FEATURES, PLATFORMS, projectTypeLabels } from "@/lib/constants";
+import { SECTION_COLORS } from "@/lib/section-colors";
+import { quickToConnect } from "@/lib/domains/offer";
+import { DomainNudge } from "@/components/projects/domain-nudge";
+import { OldAddressNudge } from "@/components/projects/old-address-nudge";
+import { RedirectPill } from "@/components/domains/redirect-pill";
+import { StatStrip, type StatStripItem } from "@/components/projects/stat-strip";
+import { ReadingSurface } from "@/components/shared/reading-surface";
+import { Markdown } from "@/components/shared/markdown";
+import { LikersCard } from "@/components/admin/likers-card";
+import type { ProjectDetail } from "@/lib/projects/detail";
+
+const LICENSE_LABELS: Record<string, string> = {
+  commercial: "상업적 이용",
+  modify: "수정",
+  distribute: "배포",
+  private: "개인적 이용",
+  liability: "법적 책임(Author)",
+  warranty: "보증 제공"
+};
+
+const RESTRICTED_LABELS: Record<string, string> = {
+  commercial: "상업적 이용 불가",
+  modify: "수정 불가",
+  distribute: "배포 불가",
+  private: "개인적 이용 제한",
+  liability: "법적 책임 무관",
+  warranty: "보증 미제공"
+};
+
+export type ProjectDetailViewProps = {
+  detail: ProjectDetail;
+  viewerId: string | null;
+  isAdmin: boolean;
+  /** 연결된 주소(<이름>.dshs.dev) — 이름은 공개 DNS 라 프로젝트를 볼 수 있으면 보여 줘도 된다 */
+  liveDomain: { name: string; redirect: boolean } | null;
+  /** 관리자(개발자 계정)에게만: 익명 프로젝트의 실제 주인 */
+  anonymousOwner: { id: string; name: string } | null;
+  /** "← 모든 프로젝트" 자리 — 빠른 상세 화면은 뒤로 가기(닫기) 버튼을 넣는다 */
+  back?: ReactNode;
+  /** 댓글을 쓰고·고치고·지운 뒤 — 빠른 상세 화면은 router.refresh() 대신 브라우저가 다시 받는다 */
+  onCommentsChanged?: () => void;
+};
+
+export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anonymousOwner, back, onCommentsChanged }: ProjectDetailViewProps) {
+  const { project, comments, heartCount, hearted, teamMemberProfiles, isOwner, canEdit, ownerPreview, ownerOffer, ownerOldAddress } = detail;
+  const isAnonymous = project.author_role === 'anonymous';
+  const authorName =
+    (isAnonymous
+      ? ANONYMOUS_AUTHOR
+      : project.author_role === 'team'
+        ? project.team_name
+        : project.users?.nickname || project.users?.full_name) ?? '알 수 없음';
+
+  const tags = project.features || [];
+
+  const platformLabels: string[] = (project.platforms ?? []).map(
+    (v: string) => PLATFORMS.find((p) => p.value === v)?.label ?? v,
+  );
+  const isWebsiteAll = (project.types ?? []).includes("website") && platformLabels.length >= PLATFORMS.length;
+  const allowedCount = (project.license_features ?? []).length;
+  const createdLabel = new Date(project.created_at).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
+
+  const stats: StatStripItem[] = [
+    {
+      label: "하트",
+      value: (
+        <>
+          <Heart className="h-4 w-4 text-rose-500" aria-hidden />
+          {heartCount.toLocaleString("ko-KR")}
+        </>
+      ),
+      sub: heartCount > 0 ? `댓글 ${comments.length}개` : "아직 아무도 안 눌렀어요",
+    },
+    ...(project.url
+      ? [{ label: "방문", value: (project.click_count ?? 0).toLocaleString("ko-KR"), sub: "회" }]
+      : []),
+    {
+      label: "플랫폼",
+      value: isWebsiteAll ? "Web" : (platformLabels[0] ?? "–"),
+      sub: isWebsiteAll ? "모든 브라우저" : platformLabels.length > 1 ? `외 ${platformLabels.length - 1}개` : undefined,
+    },
+    {
+      label: "소스코드",
+      value: project.source_type === "open" ? "오픈소스" : "비공개",
+      // 비공개 소스는 라이선스를 고를 수 없으니 "허용 0개"를 보여 주지 않는다
+      sub: project.source_type === "open" ? `허용 ${allowedCount}개` : undefined,
+    },
+  ];
+
+  const sideCard = "rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900";
+  const sideTitle = "mb-3.5 text-[13px] font-semibold text-zinc-900 dark:text-white";
+
+  return (
+    <div className="flex min-h-screen flex-col bg-white dark:bg-zinc-950">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-7">
+        {back ?? <BackToExplore className="inline-flex items-center gap-1 rounded-sm text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white" />}
+
+        {/* 머리 — 아이콘 스티커 + 제목·설명·작성자·버튼 */}
+        <div className="mt-5 flex flex-col items-start gap-4 sm:flex-row sm:gap-7">
+          <ProjectIcon
+            src={project.icon_url}
+            title={project.title}
+            className="h-[72px] w-[72px] shrink-0 rounded-[22%] ring-[3px] ring-white shadow-[0_8px_20px_-8px_rgba(0,0,0,0.25)] dark:ring-zinc-950 sm:h-28 sm:w-28"
+            decorative
+          />
+          <div className="w-full min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {projectTypeLabels(project.types, true).map((label) => (
+                <Badge key={label} variant="secondary" className="h-5 rounded-md bg-blue-50 px-1.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                  {label}
+                </Badge>
+              ))}
+              {tags.map((tag: string) => (
+                <Badge key={tag} variant="outline" className="h-5 rounded-full border-zinc-200 px-2 text-[11px] text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+
+            <h1 className="mt-2.5 font-heading text-[26px] font-bold leading-[1.15] tracking-tight text-zinc-900 break-keep dark:text-white sm:text-[38px]">
+              {project.title}
+            </h1>
+            {project.short_description && (
+              <p className="mt-2 max-w-[40em] text-[15px] leading-relaxed text-zinc-600 break-keep dark:text-zinc-400 sm:text-[17px]">
+                {project.short_description}
+              </p>
+            )}
+
+            <div className="mt-3.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-zinc-600 dark:text-zinc-400">
+              {project.author_role === "team" || isAnonymous ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200" aria-hidden>
+                    {authorName.charAt(0)}
+                  </span>
+                  <b className="font-semibold text-zinc-900 dark:text-white">{authorName}</b>
+                  {anonymousOwner && (
+                    <Link
+                      href={`/developers/${anonymousOwner.id}`}
+                      className="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 underline-offset-4 hover:underline dark:bg-rose-950/40 dark:text-rose-300"
+                    >
+                      관리자만 보임 · {anonymousOwner.name}
+                    </Link>
+                  )}
+                </span>
+              ) : (
+                <Link href={`/developers/${project.public_author_id}`} className="group/author inline-flex items-center gap-2 rounded-full">
+                  <span className="relative h-7 w-7 overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800">
+                    {project.users?.avatar_url ? (
+                      <Image src={project.users.avatar_url} alt="" fill sizes="28px" className="object-cover" unoptimized={isExternalImage(project.users.avatar_url)} />
+                    ) : (
+                      <span className="flex h-full w-full items-center justify-center text-[10px] font-bold text-zinc-700 dark:text-zinc-200" aria-hidden>
+                        {authorName.charAt(0)}
+                      </span>
+                    )}
+                  </span>
+                  <b className="font-semibold text-zinc-900 underline-offset-4 group-hover/author:underline dark:text-white">{authorName}</b>
+                </Link>
+              )}
+              {/* 점과 뒤 글을 한 덩어리로 — 줄이 바뀔 때 점만 앞 줄 끝에 남지 않게 */}
+              <span className="inline-flex gap-2 whitespace-nowrap">
+                <span aria-hidden>·</span>
+                {isAnonymous ? "익명 프로젝트" : project.author_role === "team" ? "팀 프로젝트" : "개인 프로젝트"}
+              </span>
+              <span className="inline-flex gap-2 whitespace-nowrap">
+                <span aria-hidden>·</span>
+                {createdLabel} 등록
+              </span>
+            </div>
+
+            <div className="mt-5 flex flex-wrap items-center gap-2.5">
+              {project.url && (
+                <a
+                  href={`/api/track?project=${project.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={cn(buttonVariants({ size: "lg" }), "h-11 flex-1 rounded-full px-4 text-sm sm:flex-none sm:px-5", SECTION_COLORS.explore.button)}
+                >
+                  <ExternalLink className="mr-1.5 h-4 w-4" aria-hidden /> 웹사이트 방문
+                  <span className="sr-only"> (새 탭에서 열림)</span>
+                </a>
+              )}
+              {project.source_type === "open" && project.repo_url && (
+                <a
+                  href={project.repo_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "lg" }),
+                    "h-11 flex-1 rounded-full border-zinc-300 bg-white px-4 text-sm hover:bg-zinc-100 sm:flex-none sm:px-5 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800",
+                  )}
+                >
+                  <Code2 className="mr-1.5 h-4 w-4" aria-hidden /> GitHub 저장소
+                  <span className="sr-only"> (새 탭에서 열림)</span>
+                </a>
+              )}
+              <HeartButton
+                projectId={project.id}
+                viewerId={viewerId}
+                count={heartCount}
+                hearted={hearted}
+                size="detail"
+                className="h-11 px-4 sm:px-5"
+              />
+              {canEdit && <EditButton projectId={project.id} />}
+              {canEdit && project.visibility === 'public' && <PosterButton projectId={project.id} />}
+            </div>
+          </div>
+        </div>
+
+        {ownerPreview && (
+          <div role="alert" className="mt-8 rounded-3xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700 sm:p-6 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
+            <p className="text-rose-600 dark:text-rose-400">나에게만 보이는 안내예요</p>
+            <h2 className="font-heading mt-1 text-lg font-bold tracking-tight break-keep text-rose-800 dark:text-rose-200">방문 주소가 며칠 뒤 사라지는 미리보기 주소예요</h2>
+            <p className="mt-1 break-keep">
+              {ownerPreview.host} 미리보기 주소는 기한이 지나면 안 열려요. 원래 주소(<span className="font-mono">{ownerPreview.live}</span>)로 바꿔 두면 계속 열리고, 짧은 주소도 받을 수 있어요.
+            </p>
+            <Link
+              href={`/projects/${project.id}/edit`}
+              className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-full border border-rose-300 bg-white px-4 font-semibold text-rose-700 transition-colors hover:bg-rose-100 dark:border-rose-800 dark:bg-zinc-900 dark:text-rose-300 dark:hover:bg-rose-950"
+            >
+              주소 고치기
+              <ChevronRight className="h-4 w-4" aria-hidden />
+            </Link>
+          </div>
+        )}
+        {ownerOffer && (
+          <DomainNudge projectId={project.id} hostname={ownerOffer.hostname} suggestion={ownerOffer.suggestion} quick={quickToConnect(ownerOffer.host)} />
+        )}
+
+        {ownerOldAddress && (
+          <OldAddressNudge projectId={project.id} fqdn={ownerOldAddress.fqdn} lines={ownerOldAddress.lines} readmeSync={!!project.readme_sync} />
+        )}
+
+        <StatStrip items={stats} className="mt-8" />
+        {isAdmin && <LikersCard kind="project" id={project.id} className="mt-4" />}
+
+        <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+          {/* 본문 */}
+          <div className="md:col-span-2">
+            <ReadingSurface>
+              <h2 className="mb-5 font-heading text-xl font-bold text-zinc-900 dark:text-white">프로젝트 상세</h2>
+              <Markdown>{project.description ?? ""}</Markdown>
+            </ReadingSurface>
+          </div>
+
+          {/* 사이드 */}
+          <aside className="grid content-start gap-4">
+            {/* 개발자 */}
+            <div className={sideCard}>
+              <h2 className={sideTitle}>{project.author_role === "team" ? "팀" : "개발자"}</h2>
+              {isAnonymous ? (
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[13px] font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200" aria-hidden>
+                    {authorName.charAt(0)}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold text-zinc-900 dark:text-white">{authorName}</div>
+                    <div className="text-xs text-zinc-500 dark:text-zinc-400">만든 사람이 이름을 밝히지 않았어요</div>
+                  </div>
+                </div>
+              ) : project.author_role === "team" ? (
+                <div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[13px] font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200" aria-hidden>
+                      {authorName.charAt(0)}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-zinc-900 dark:text-white">{authorName}</div>
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400">팀 프로젝트</div>
+                    </div>
+                  </div>
+                  {teamMemberProfiles.length > 0 && (
+                    <ul className="mt-4 grid gap-2.5 border-t border-zinc-100 pt-4 dark:border-zinc-800">
+                      {teamMemberProfiles.map((member) => {
+                        const memberName = member.nickname || member.full_name || member.email;
+                        return (
+                          <li key={member.id}>
+                            <Link href={`/developers/${member.id}`} className="group/member flex items-center gap-2.5 rounded-full">
+                              <span className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 text-xs font-bold text-zinc-700 dark:border-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
+                                {member.avatar_url ? (
+                                  <Image src={member.avatar_url} alt="" fill sizes="32px" className="object-cover" unoptimized={isExternalImage(member.avatar_url)} />
+                                ) : (
+                                  memberName.charAt(0)
+                                )}
+                              </span>
+                              <span className="truncate text-sm font-medium text-zinc-900 underline-offset-4 group-hover/member:underline dark:text-white">{memberName}</span>
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 text-[13px] font-bold text-zinc-700 dark:border-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
+                      {project.users?.avatar_url ? (
+                        <Image src={project.users.avatar_url} alt="" fill sizes="36px" className="object-cover" unoptimized={isExternalImage(project.users.avatar_url)} />
+                      ) : (
+                        authorName.charAt(0)
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-zinc-900 dark:text-white">{authorName}</div>
+                      {project.users?.email && <div className="truncate text-xs text-zinc-500 dark:text-zinc-400">{project.users.email}</div>}
+                    </div>
+                  </div>
+                  <Link
+                    href={`/developers/${project.public_author_id}`}
+                    className="mt-4 inline-flex items-center gap-0.5 rounded-sm text-[13px] font-medium text-blue-700 hover:underline underline-offset-4 dark:text-blue-300"
+                  >
+                    프로필 보기
+                    <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* 라이선스 */}
+            <div className={sideCard}>
+              <h2 className={sideTitle}>라이선스</h2>
+              <div className="mb-2.5 flex items-center gap-2 text-[13px] font-bold text-zinc-900 dark:text-white">
+                <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden />
+                허용됨
+              </div>
+              {allowedCount > 0 ? (
+                <ul className="grid gap-2">
+                  {(project.license_features ?? []).map((lf: string) => (
+                    <li key={lf} className="flex items-center text-[13px] text-zinc-600 dark:text-zinc-400">
+                      <span className="mr-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+                      {LICENSE_LABELS[lf] || lf}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-zinc-500">허용된 항목이 없어요.</p>
+              )}
+
+              <div className="mb-2.5 mt-5 flex items-center gap-2 text-[13px] font-bold text-zinc-900 dark:text-white">
+                <ShieldAlert className="h-4 w-4 text-rose-600 dark:text-rose-400" aria-hidden />
+                제한 / 조건
+              </div>
+              {(() => {
+                const allowed: string[] = project.license_features || [];
+                const restricted = LICENSE_FEATURES.filter((f) => !allowed.includes(f.value));
+                if (restricted.length === 0) return <p className="text-xs text-zinc-500">모든 항목이 허용돼요.</p>;
+                return (
+                  <ul className="grid gap-2">
+                    {restricted.map((f) => (
+                      <li key={f.value} className="flex items-center text-[13px] text-zinc-600 dark:text-zinc-400">
+                        <span className="mr-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-300 dark:bg-zinc-700" aria-hidden />
+                        {RESTRICTED_LABELS[f.value] || f.label}
+                      </li>
+                    ))}
+                  </ul>
+                );
+              })()}
+
+              {project.license_custom && (
+                <div className="mt-4 border-t border-zinc-100 pt-4 dark:border-zinc-800">
+                  <div className="mb-1.5 text-xs font-semibold text-zinc-500">추가 조건</div>
+                  <p className="text-[13px] text-zinc-600 dark:text-zinc-400">{project.license_custom}</p>
+                </div>
+              )}
+            </div>
+
+            {/* 정보 */}
+            <div className={sideCard}>
+              <h2 className={sideTitle}>정보</h2>
+              <dl className="grid gap-2.5 text-[13px]">
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-zinc-500 dark:text-zinc-400">종류</dt>
+                  <dd className="text-right font-medium text-zinc-900 dark:text-white">{projectTypeLabels(project.types, true).join(" · ") || "–"}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-zinc-500 dark:text-zinc-400">플랫폼</dt>
+                  <dd className="text-right font-medium text-zinc-900 dark:text-white">{isWebsiteAll ? "Web (모든 브라우저)" : platformLabels.join(" · ") || "–"}</dd>
+                </div>
+                {liveDomain && (
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-zinc-500 dark:text-zinc-400">주소</dt>
+                    <dd className="flex min-w-0 items-center justify-end gap-1.5 text-right">
+                      {liveDomain.redirect && <RedirectPill />}
+                      <a
+                        href={`https://${liveDomain.name}.dshs.dev`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="min-w-0 truncate font-mono text-xs font-medium text-zinc-900 underline-offset-2 hover:underline dark:text-white"
+                      >
+                        {liveDomain.name}.dshs.dev
+                      </a>
+                    </dd>
+                  </div>
+                )}
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-zinc-500 dark:text-zinc-400">공개 여부</dt>
+                  <dd>
+                    {project.visibility === "private" ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                        <Lock className="h-3 w-3" aria-hidden /> 비공개
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                        <Globe className="h-3 w-3" aria-hidden /> 공개
+                      </span>
+                    )}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-zinc-500 dark:text-zinc-400">등록일</dt>
+                  <dd className="font-medium text-zinc-900 tabular-nums dark:text-white">{new Date(project.created_at).toLocaleDateString("ko-KR")}</dd>
+                </div>
+                {project.updated_at && (
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-zinc-500 dark:text-zinc-400">최근 수정</dt>
+                    <dd className="font-medium text-zinc-900 tabular-nums dark:text-white">{new Date(project.updated_at).toLocaleDateString("ko-KR")}</dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+          </aside>
+        </div>
+
+        <ProjectComments
+          projectId={project.id}
+          comments={comments}
+          viewerId={viewerId}
+          viewerOwnsProject={isOwner}
+          onChanged={onCommentsChanged}
+        />
+      </main>
+    </div>
+  );
+}

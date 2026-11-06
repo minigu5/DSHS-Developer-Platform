@@ -31,10 +31,13 @@ interface ProjectCommentsProps {
   viewerId: string | null;
   /** 내 프로젝트인지(익명이면 my_project_ids로 판단) — 익명 작성자 댓글이 내 것인지 가린다 */
   viewerOwnsProject: boolean;
+  /** 댓글이 바뀐 뒤 — 없으면 router.refresh(). 빠른 상세 화면은 서버 페이지로 바뀌지 않게 브라우저가 다시 받는다 */
+  onChanged?: () => void;
 }
 
-export function ProjectComments({ projectId, comments, viewerId, viewerOwnsProject }: ProjectCommentsProps) {
+export function ProjectComments({ projectId, comments, viewerId, viewerOwnsProject, onChanged }: ProjectCommentsProps) {
   const router = useRouter();
+  const refresh = onChanged ?? (() => router.refresh());
   const supabase = createClient();
   const [editing, setEditing] = useState<CommentRowView | null>(null);
   const [deleting, setDeleting] = useState<CommentRowView | null>(null);
@@ -53,7 +56,7 @@ export function ProjectComments({ projectId, comments, viewerId, viewerOwnsProje
       return false;
     }
     toast.success("댓글을 남겼어요.");
-    router.refresh();
+    refresh();
     return true;
   }
 
@@ -66,7 +69,7 @@ export function ProjectComments({ projectId, comments, viewerId, viewerOwnsProje
     }
     toast.success("댓글을 고쳤어요.");
     setEditing(null);
-    router.refresh();
+    refresh();
     return true;
   }
 
@@ -81,7 +84,7 @@ export function ProjectComments({ projectId, comments, viewerId, viewerOwnsProje
     }
     toast.success("댓글을 지웠어요.");
     setDeleting(null);
-    router.refresh();
+    refresh();
   }
 
   return (
