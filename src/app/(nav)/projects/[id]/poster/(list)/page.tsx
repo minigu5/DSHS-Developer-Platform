@@ -9,6 +9,7 @@ import { PosterPreview } from "@/components/posters/poster-preview";
 import { DeletePosterButton, NewPosterButton } from "@/components/posters/poster-list-actions";
 import { getPosterAccess } from "@/lib/posters/access";
 import { POSTER_LIMITS } from "@/lib/posters/config";
+import { kstDate } from "@/lib/posters/kst";
 import { createAdminClient } from "@/lib/supabase/server";
 
 export default async function PosterListPage({ params }: { params: Promise<{ id: string }> }) {
@@ -19,7 +20,7 @@ export default async function PosterListPage({ params }: { params: Promise<{ id:
 
   // 서비스 키 전용 표 — 위에서 권한을 확인했다
   const admin = createAdminClient();
-  const today = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10); // KST 날짜
+  const today = kstDate();
   const [{ data }, { data: madeToday }] = await Promise.all([
     admin.from("project_posters").select("id, html, art_url, band_tone, updated_at").eq("project_id", id).order("updated_at", { ascending: false }),
     admin.from("project_poster_days").select("day").eq("project_id", id).eq("day", today).maybeSingle(),
