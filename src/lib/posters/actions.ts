@@ -9,6 +9,7 @@ import { redirect } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/server'
 
 import { getPosterAccess } from './access'
+import { cancelArtJob } from './art-jobs'
 import type { PosterBandPosition, PosterTone } from './config'
 import { POSTER_COPY } from './messages'
 import { loadPoster, savePosterState, toPosterView } from './poster-db'
@@ -53,6 +54,8 @@ export async function undoPoster(posterId: string): Promise<{ error?: string; po
   if ('error' in found) return { error: found.error }
   const state = undoPosterState(found.poster)
   if (!state) return { error: '되돌릴 버전이 없어요.' }
+  // 기다리던 학교 Mac 그림은 취소 — 늦게 와도 되돌린 포스터에 붙지 않는다
+  if (found.poster.art_job_id) await cancelArtJob(found.poster.art_job_id)
   const saved = await savePosterState(posterId, state)
   if (!saved) return { error: '되돌리지 못했어요. 잠시 뒤 다시 해 주세요.' }
   return { poster: toPosterView(saved) }

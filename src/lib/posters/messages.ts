@@ -20,6 +20,11 @@ export const POSTER_COPY = {
   made: '포스터를 만들었어요.',
   edited: '포스터를 고쳤어요.',
   redrawn: '그림을 새로 그렸어요.',
+  // 학교 Mac mini 그림(설계 2026-11-06-poster-mac-art)
+  artDrawing: '그림은 학교 컴퓨터가 그리고 있어요. 다 그리면 바로 바뀌어요.',
+  artBusy: '그림을 그리는 중이에요. 다 그린 뒤에 다시 눌러 주세요.',
+  artLocalUserLimit: '오늘 그림을 20장 다 그렸어요. 내일 다시 그릴 수 있어요.',
+  artGaveUp: '그림을 못 그렸어요. 잠시 뒤 "그림 다시 그리기"를 눌러 주세요.',
 } as const
 
 export const MAX_REQUEST = 500
