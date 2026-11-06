@@ -13,3 +13,12 @@ export async function setHeart(
   if (error && error.code !== "23505") return { error: error.message };
   return { error: null };
 }
+
+/** 하트 버튼이 바뀐 수를 알리는 브라우저 이벤트 — 같은 화면의 다른 자리(상세 수치 띠)가 받아 바로 바꾼다. */
+export const HEART_CHANGE_EVENT = "project-heart-change";
+
+export type HeartChangeDetail = { projectId: string; count: number; hearted: boolean };
+
+export function emitHeartChange(detail: HeartChangeDetail) {
+  window.dispatchEvent(new CustomEvent<HeartChangeDetail>(HEART_CHANGE_EVENT, { detail }));
+}

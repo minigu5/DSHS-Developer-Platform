@@ -6,7 +6,7 @@ import { Heart } from "lucide-react";
 import { toast } from "sonner";
 
 import { createClient } from "@/lib/supabase/client";
-import { setHeart } from "@/lib/hearts-client";
+import { emitHeartChange, setHeart } from "@/lib/hearts-client";
 import { cn } from "@/lib/utils";
 
 interface HeartButtonProps {
@@ -41,11 +41,15 @@ export function HeartButton({ projectId, viewerId, count, hearted, onToggle, siz
     }
     if (pending) return;
     setPending(true);
-    setLocal((s) => ({ hearted: next, count: s.count + (next ? 1 : -1) }));
+    const before = local;
+    const after = { hearted: next, count: before.count + (next ? 1 : -1) };
+    setLocal(after);
+    emitHeartChange({ projectId, ...after });
     const { error } = await setHeart(createClient(), projectId, viewerId, next);
     setPending(false);
     if (error) {
-      setLocal((s) => ({ hearted: !next, count: s.count + (next ? -1 : 1) }));
+      setLocal(before);
+      emitHeartChange({ projectId, ...before });
       toast.error("하트를 누르지 못했어요.", { description: error });
     }
   }

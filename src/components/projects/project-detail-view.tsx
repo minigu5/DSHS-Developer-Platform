@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "@/components/shared/link";
-import { Globe, Code2, Lock, Heart, ExternalLink, ShieldCheck, ShieldAlert, ChevronRight } from "lucide-react";
+import { Globe, Code2, Lock, ExternalLink, ShieldCheck, ShieldAlert, ChevronRight } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn, isExternalImage } from "@/lib/utils";
@@ -21,6 +21,7 @@ import { DomainNudge } from "@/components/projects/domain-nudge";
 import { OldAddressNudge } from "@/components/projects/old-address-nudge";
 import { RedirectPill } from "@/components/domains/redirect-pill";
 import { StatStrip, type StatStripItem } from "@/components/projects/stat-strip";
+import { HeartStatSub, HeartStatValue } from "@/components/projects/heart-stat";
 import { ReadingSurface } from "@/components/shared/reading-surface";
 import { Markdown } from "@/components/shared/markdown";
 import { LikersCard } from "@/components/admin/likers-card";
@@ -80,13 +81,8 @@ export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anony
   const stats: StatStripItem[] = [
     {
       label: "하트",
-      value: (
-        <>
-          <Heart className="h-4 w-4 text-rose-500" aria-hidden />
-          {heartCount.toLocaleString("ko-KR")}
-        </>
-      ),
-      sub: heartCount > 0 ? `댓글 ${comments.length}개` : "아직 아무도 안 눌렀어요",
+      value: <HeartStatValue projectId={project.id} count={heartCount} />,
+      sub: <HeartStatSub projectId={project.id} count={heartCount} commentCount={comments.length} />,
     },
     ...(project.url
       ? [{ label: "방문", value: (project.click_count ?? 0).toLocaleString("ko-KR"), sub: "회" }]

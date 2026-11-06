@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 export type StatStripItem = {
   label: string;
   value: ReactNode;
-  sub?: string;
+  sub?: ReactNode;
 };
 
 /**
