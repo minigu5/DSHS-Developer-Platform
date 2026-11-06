@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { releaseJobUsage } from '@/lib/posters/art-jobs'
 import { authArtWorker } from '@/lib/posters/art-worker-auth'
-import { releaseUsage } from '@/lib/posters/usage'
 import { createAdminClient } from '@/lib/supabase/server'
 
 // 학교 Mac 이 그리지 못했을 때(설계 2026-11-06-poster-mac-art §5-3). 쿠키 없는 기계 전용 경로라 isSameOrigin 대상이 아니다.
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     .eq('id', jobId)
     .eq('status', 'working')
     .select('id')
-  if (changed?.length) await releaseUsage('art_local', auth.job.user_id)
+  if (changed?.length) await releaseJobUsage(jobId, auth.job.user_id)
   console.log('[poster] art fail', jobId)
   return NextResponse.json({ ok: true })
 }

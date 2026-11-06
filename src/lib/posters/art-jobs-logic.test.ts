@@ -1,5 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { POSTER_MAC } from './config.ts'
 import { hashToken, judgeResult, judgeStuck, parseBearer, shouldApplyResult, sniffImageType } from './art-jobs-logic.ts'
 
 test('hashToken = SHA-256 hex', async () =>
@@ -50,3 +51,6 @@ test('shouldApplyResult', () => {
   assert.equal(shouldApplyResult('j2', 'j1'), false)
   assert.equal(shouldApplyResult(null, 'j1'), false)
 })
+
+test('브라우저 폴링은 가장 늦은 막힘 판정(줄 5분 + lease + 유예)보다 오래 간다', () =>
+  assert.ok(POSTER_MAC.pollStopMs > POSTER_MAC.queueMaxMs + POSTER_MAC.leaseMs + POSTER_MAC.leaseGraceMs))

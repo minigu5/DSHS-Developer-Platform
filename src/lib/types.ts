@@ -599,9 +599,10 @@ export type Database = {
           error: string | null;
           created_at: string;
           finished_at: string | null;
+          usage_released_at: string | null; // art_local 횟수를 돌려준 시각(한 번만, migration 20261106200000)
         };
         Insert: { poster_id: string; user_id: string; prompt: string; width: number; height: number };
-        Update: { status?: PosterArtJobStatus; result_url?: string | null; error?: string | null; finished_at?: string | null };
+        Update: { status?: PosterArtJobStatus; result_url?: string | null; error?: string | null; finished_at?: string | null; usage_released_at?: string | null };
         Relationships: [];
       };
       // 관리자 대시보드 — 셋 다 서비스 키 전용(RLS 켜고 정책 없음). migration 20261106100000

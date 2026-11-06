@@ -37,6 +37,20 @@ export async function enqueueArtJob(i: { posterId: string; userId: string; order
   return data.id
 }
 
+/**
+ * 이 일감의 art_local 횟수를 한 번만 돌려준다 — usage_released_at 을 조건부로 채운 요청만 release.
+ * 정리·취소·실패가 겹치거나, 글만 고치는 요청이 이미 정리된 일감 id 를 포스터에 다시 써도 두 번 돌려주지 않는다.
+ */
+export async function releaseJobUsage(jobId: string, userId: string): Promise<void> {
+  const { data } = await createAdminClient()
+    .from('poster_art_jobs')
+    .update({ usage_released_at: new Date().toISOString() })
+    .eq('id', jobId)
+    .is('usage_released_at', null)
+    .select('id')
+  if (data?.length) await releaseUsage('art_local', userId)
+}
+
 /** 기다리던 일감 취소(되돌리기·새 주문). 아직 아무 Mac 도 안 잡았으면 횟수를 돌려준다 */
 export async function cancelArtJob(jobId: string): Promise<void> {
   const admin = createAdminClient()
@@ -48,7 +62,7 @@ export async function cancelArtJob(jobId: string): Promise<void> {
     .eq('id', jobId)
     .eq('status', job.status)
     .select('id')
-  if (changed?.length && job.status === 'queued') await releaseUsage('art_local', job.user_id)
+  if (changed?.length && job.status === 'queued') await releaseJobUsage(jobId, job.user_id)
 }
 
 export type ArtSettleStatus = 'none' | 'pending' | 'done' | 'expired' | 'failed'
@@ -67,7 +81,7 @@ async function clearPosterJob(posterId: string, jobId: string, artUrl?: string):
 
 /**
  * 기다리는 그림의 지금 상태. 막혔으면(judgeStuck) 일감을 expired 로 확정하고 횟수를 돌려주고 art_job_id 를 비운다.
- * 횟수는 art_job_id 를 실제로 비운 요청만 돌려준다 — 브라우저 GET 과 서버 페이지가 겹쳐도 두 번 돌려주지 않게.
+ * 횟수는 releaseJobUsage 로 일감마다 한 번만 — 브라우저 GET 과 서버 페이지가 겹쳐도 두 번 돌려주지 않게.
  */
 export async function settleArtJob(poster: ProjectPosterRow): Promise<{ status: ArtSettleStatus; poster: ProjectPosterRow }> {
   const jobId = poster.art_job_id
@@ -103,6 +117,6 @@ export async function settleArtJob(poster: ProjectPosterRow): Promise<{ status: 
     if (!changed?.length) return { status: 'pending', poster }
   }
   const cleared = await clearPosterJob(poster.id, jobId)
-  if (cleared && verdict.release) await releaseUsage('art_local', job.user_id)
+  if (verdict.release) await releaseJobUsage(jobId, job.user_id)
   return { status: job.status === 'failed' ? 'failed' : 'expired', poster: cleared ?? { ...poster, art_job_id: null } }
 }

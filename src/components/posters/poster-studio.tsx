@@ -51,6 +51,7 @@ export function PosterStudio({ initial, projectTitle }: { initial: PosterView; p
     const timer = setInterval(async () => {
       if (Date.now() - started > POSTER_MAC.pollStopMs) {
         clearInterval(timer);
+        toast(POSTER_COPY.artSlow);
         return;
       }
       try {

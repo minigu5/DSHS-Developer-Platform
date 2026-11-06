@@ -118,7 +118,7 @@
 
 - `PosterView`에 `artPending: boolean`(= `art_job_id`가 있음)을 더한다.
 - 미리보기의 그림 자리는 기다리는 동안 "그림 그리는 중…" 표시가 있는 자리로 보인다(지금의 `EMPTY_ART` 자리와 구별). PNG·PDF 내보내기와 "그림 다시 그리기"는 기다리는 동안 꺼 둔다.
-- `GET /api/posters/[posterId]/art`(`guardPosterRequest`): `{ status: 'pending' | 'done' | 'expired' | 'failed', poster? }`. 브라우저는 `artPending`일 때만 3초마다 부르고, 6분이 지나면 그만 부른다. 페이지를 새로 열었을 때 `artPending`이면 다시 부르기 시작한다.
+- `GET /api/posters/[posterId]/art`(`guardPosterRequest`): `{ status: 'pending' | 'done' | 'expired' | 'failed', poster? }`. 브라우저는 `artPending`일 때만 3초마다 부르고, 9분(가장 늦은 막힘 판정 8.5분보다 길게, 최종 리뷰로 6분→9분)이 지나면 그만 부르고 "새로 고침해 주세요"를 띄운다. 페이지를 새로 열었을 때 `artPending`이면 다시 부르기 시작한다.
 - **넘어가기 판정은 이 GET에서** 한다. 아래 중 하나면 "막힘"이다(제 결정).
   - `queued`이고 60초가 지났는데, 최근 30초 안에 연락한 Mac이 없다(모두 꺼짐).
   - `queued`이고 5분이 지났다. Mac은 살아 있지만 줄이 너무 길다. 바쁘다고 바로 클라우드로 넘기면 Workers AI 하루 6장이 금방 바닥나서 더 기다린다.

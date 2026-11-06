@@ -30,10 +30,13 @@ export const POSTER_MAC = {
   unclaimedMs: 60_000,
   // Mac 은 살아 있지만 줄이 길 때 최대 기다림(바로 넘기면 Workers AI 하루 6장이 금방 바닥)
   queueMaxMs: 300_000,
-  // lease(DB 180초)가 끝난 뒤에도 결과를 받아 주는 시간
+  // Mac 이 일감을 쥐는 시간 — DB claim_poster_art_job 의 interval '180 seconds' 와 같게
+  leaseMs: 180_000,
+  // lease 가 끝난 뒤에도 결과를 받아 주는 시간
   leaseGraceMs: 30_000,
   pollMs: 3_000,
-  pollStopMs: 360_000,
+  // 가장 늦은 막힘 판정(줄 5분 + lease + 유예 = 8.5분)보다 길게
+  pollStopMs: 540_000,
   maxUploadBytes: 4 * 1024 * 1024,
   promptMax: 1000,
 } as const
