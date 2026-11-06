@@ -17,6 +17,25 @@ export const POSTER_LIMITS = {
   artPerUserPerDay: 5,
   // Workers AI 무료 10,000 neurons/일 ÷ klein 한 장(~1,360) − 여유 1장
   artSitePerDay: 6,
+  // 학교 Mac mini 그림(KST 자정) — Mac 처리량을 실측해서 조정(설계 2026-11-06-poster-mac-art §5-5)
+  artLocalPerUserPerDay: 20,
+  artLocalSitePerDay: 100,
+} as const
+
+// 학교 Mac mini 그림 대기 목록의 시간·크기 값(설계 2026-11-06-poster-mac-art). 바꾸면 설계 문서와 posters.md 에도 적는다.
+export const POSTER_MAC = {
+  // 이 안에 연락한 Mac 이 있으면 "살아 있음"
+  aliveMs: 30_000,
+  // Mac 이 모두 꺼졌는데 아무도 안 잡은 일감 → 클라우드로
+  unclaimedMs: 60_000,
+  // Mac 은 살아 있지만 줄이 길 때 최대 기다림(바로 넘기면 Workers AI 하루 6장이 금방 바닥)
+  queueMaxMs: 300_000,
+  // lease(DB 180초)가 끝난 뒤에도 결과를 받아 주는 시간
+  leaseGraceMs: 30_000,
+  pollMs: 3_000,
+  pollStopMs: 360_000,
+  maxUploadBytes: 4 * 1024 * 1024,
+  promptMax: 1000,
 } as const
 
 // 503·404면 다음 모델로(설계 §5)
