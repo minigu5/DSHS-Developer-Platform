@@ -14,6 +14,36 @@ interface AiEnv {
 }
 
 /**
+ * 학교 Mac 이 올린 그림 바이트를 Cloudinary 에 그대로 넘기고 URL.
+ * base64 로 바꾸지 않는다(Workers CPU 10ms) — Blob 을 FormData 에 넣어 REST 업로드, 서명만 Worker 에서.
+ */
+export async function uploadPosterArtBlob(body: Blob): Promise<string | null> {
+  const cloud = process.env.CLOUDINARY_CLOUD_NAME
+  const apiKey = process.env.CLOUDINARY_API_KEY
+  const secret = process.env.CLOUDINARY_API_SECRET
+  if (!cloud || !apiKey || !secret) return null
+  // drawPosterArt 의 transformation 과 같은 변환
+  const params = { folder: 'dshs/posters', timestamp: Math.round(Date.now() / 1000), transformation: 'f_auto,q_auto:good' }
+  const form = new FormData()
+  form.append('file', body)
+  form.append('api_key', apiKey)
+  form.append('signature', cloudinary.utils.api_sign_request(params, secret))
+  for (const [key, value] of Object.entries(params)) form.append(key, String(value))
+  try {
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/image/upload`, { method: 'POST', body: form })
+    if (!res.ok) {
+      console.error('[poster] art 업로드 실패', res.status)
+      return null
+    }
+    const uploaded = (await res.json()) as { secure_url?: string }
+    return uploaded.secure_url ?? null
+  } catch (e) {
+    console.error('[poster] art 업로드 실패', String(e).slice(0, 200))
+    return null
+  }
+}
+
+/**
  * Workers AI(flux-2-klein)로 글자 없는 그림 한 장 → Cloudinary 에 올리고 URL.
  * 비율은 Gemini 가 정한 그림 자리 그대로, 넓이만 줄인다. base64 는 디코딩하지 않고 data URI 로 넘긴다(CPU 절약).
  */

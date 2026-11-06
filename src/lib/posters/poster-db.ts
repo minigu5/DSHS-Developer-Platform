@@ -21,6 +21,7 @@ export async function savePosterState(posterId: string, state: PosterState): Pro
       html: state.html,
       art_url: state.art_url,
       art_order: state.art_order as unknown as Json,
+      art_job_id: state.art_job_id,
       versions: state.versions as unknown as Json,
       messages: state.messages as unknown as Json,
       updated_at: new Date().toISOString(),
@@ -42,7 +43,8 @@ export function toPosterView(row: ProjectPosterRow): PosterView {
     position: row.band_position ?? 'bottom',
     messages: row.messages ?? [],
     canUndo: (row.versions ?? []).length > 0,
-    canRedraw: !!row.art_order && !!row.html && hasArtSlot(row.html),
+    canRedraw: !row.art_job_id && !!row.art_order && !!row.html && hasArtSlot(row.html),
+    artPending: !!row.art_job_id,
     updatedAt: row.updated_at,
   }
 }

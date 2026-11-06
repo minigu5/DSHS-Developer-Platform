@@ -38,6 +38,8 @@ export type SubdomainHost =
   // 대곽나루 학생 서버 — supabase/migrations/20261101110000_subdomains_naru.sql
   | 'naru';
 
+export type PosterArtJobStatus = 'queued' | 'working' | 'done' | 'failed' | 'canceled' | 'expired';
+
 export type Database = {
   public: {
     Tables: {
@@ -531,6 +533,7 @@ export type Database = {
           messages: Json;
           band_tone: 'light' | 'dark';
           band_position: 'top' | 'bottom';
+          art_job_id: string | null; // 기다리는 학교 Mac 그림 일감(migration 20261106190000)
           created_at: string;
           updated_at: string;
         };
@@ -553,6 +556,7 @@ export type Database = {
           messages?: Json;
           band_tone?: 'light' | 'dark';
           band_position?: 'top' | 'bottom';
+          art_job_id?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -564,9 +568,40 @@ export type Database = {
         Relationships: [];
       };
       ai_usage: {
-        Row: { kind: 'text' | 'art'; user_id: string; day: string; count: number };
+        Row: { kind: 'text' | 'art' | 'art_local'; user_id: string; day: string; count: number };
         Insert: Record<string, never>;
         Update: Record<string, never>;
+        Relationships: [];
+      };
+      // 학교 Mac mini 그림 — 둘 다 서비스 키 전용(RLS 켜고 정책 없음), Mac 은 RPC 로만. migration 20261106190000
+      poster_art_workers: {
+        Row: { id: string; name: string; token_hash: string; created_at: string; last_seen_at: string | null; revoked_at: string | null };
+        Insert: { name: string; token_hash: string };
+        Update: { revoked_at?: string | null };
+        Relationships: [];
+      };
+      poster_art_jobs: {
+        Row: {
+          id: string;
+          kind: 'art';
+          poster_id: string;
+          user_id: string;
+          prompt: string;
+          width: number;
+          height: number;
+          status: PosterArtJobStatus;
+          worker_id: string | null;
+          job_secret_hash: string | null;
+          claimed_at: string | null;
+          lease_until: string | null;
+          attempts: number;
+          result_url: string | null;
+          error: string | null;
+          created_at: string;
+          finished_at: string | null;
+        };
+        Insert: { poster_id: string; user_id: string; prompt: string; width: number; height: number };
+        Update: { status?: PosterArtJobStatus; result_url?: string | null; error?: string | null; finished_at?: string | null };
         Relationships: [];
       };
       // 관리자 대시보드 — 셋 다 서비스 키 전용(RLS 켜고 정책 없음). migration 20261106100000
@@ -700,11 +735,19 @@ export type Database = {
     Views: Record<string, never>;
     Functions: {
       reserve_ai_usage: {
-        Args: { p_kind: 'text' | 'art'; p_user: string; p_user_limit: number; p_site_limit: number };
+        Args: { p_kind: 'text' | 'art' | 'art_local'; p_user: string; p_user_limit: number; p_site_limit: number };
         Returns: 'ok' | 'user_limit' | 'site_limit';
       };
       release_ai_usage: {
-        Args: { p_kind: 'text' | 'art'; p_user: string };
+        Args: { p_kind: 'text' | 'art' | 'art_local'; p_user: string };
+        Returns: undefined;
+      };
+      claim_poster_art_job: {
+        Args: { p_token: string };
+        Returns: { id: string; prompt: string; width: number; height: number; job_secret: string }[];
+      };
+      poster_art_ping: {
+        Args: { p_token: string };
         Returns: undefined;
       };
       is_banned: {
@@ -851,6 +894,7 @@ export type Database = {
 
 // 자주 쓰는 단축 alias
 export type UserRow = Database['public']['Tables']['users']['Row'];
+export type PosterArtJobRow = Database['public']['Tables']['poster_art_jobs']['Row'];
 export type ProjectRow = Database['public']['Tables']['projects']['Row'];
 export type ProjectInsert = Database['public']['Tables']['projects']['Insert'];
 export type ProjectUpdate = Database['public']['Tables']['projects']['Update'];

@@ -2,7 +2,8 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { nextPosterState, undoPosterState } from './store.ts'
 
-const prev = { html: '<p>1</p>', art_url: 'u1', art_order: null, versions: [], messages: [] }
+const prev = { html: '<p>1</p>', art_url: 'u1', art_order: null, art_job_id: null, versions: [], messages: [] }
+const change = { html: '<p>2</p>', artUrl: 'u2', artOrder: null, userText: '', modelText: '', now: 't' }
 
 test('이전 상태가 버전으로, 메시지 둘 추가', () => {
   const n = nextPosterState(prev, { html: '<p>2</p>', artUrl: 'u2', artOrder: null, userText: '크게', modelText: '고쳤어요', now: 't' })
@@ -34,4 +35,14 @@ test('되돌리기: 마지막 버전 복원, 없으면 null', () => {
   assert.equal(u.art_url, 'u1')
   assert.equal(u.versions.length, 0)
   assert.equal(undoPosterState(prev), null)
+})
+
+test('nextPosterState 는 artJobId 를 싣고, 없으면 null', () => {
+  assert.equal(nextPosterState(prev, { ...change, artJobId: 'j1' }).art_job_id, 'j1')
+  assert.equal(nextPosterState({ ...prev, art_job_id: 'old' }, change).art_job_id, null)
+})
+
+test('undoPosterState 는 기다리던 그림을 비운다', () => {
+  const n = nextPosterState(prev, { ...change, artJobId: 'j1' })
+  assert.equal(undoPosterState(n)?.art_job_id, null)
 })
