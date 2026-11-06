@@ -4,7 +4,8 @@
 // dshs.dev 는 한국 통신사가 LA 로 보내 왕복만 1~2초라(서버 DB 작업은 0.1초 남짓), 서버 페이지를 브라우저용으로 바꾸는 것만으론 안 빨라졌다.
 // 주소창만 history.pushState 로 /projects/<id> 로 바꾸고(Next 가 usePathname 과 맞춰 준다), 원래 페이지는 숨겨 둔 채 위에 상세를 그린다.
 // 뒤로 가기 = 상세가 닫히고 원래 페이지가 스크롤·필터 그대로. 새로 고침·주소 직접 입력·새 탭은 평소처럼 서버 페이지.
-// 관리자(익명 주인 보기에 서비스 키)·못 찾음·오류는 router.refresh()로 서버 페이지를 불러온다 — 서버 페이지의 QuickViewRealPage 가 이 화면을 닫는다.
+// 관리자(익명 주인 보기에 서비스 키)는 가로채지 않는다. 못 찾음·오류는 주소를 되돌리고 서버 페이지로 평범하게 이동한다.
+// (router.refresh()로 받으면 그 뒤 메뉴 링크가 안 먹었다 — pushState 로 바꾼 주소에서 refresh 하면 Next 상태가 꼬임, 2026-11-06)
 
 import {
   useEffect,
@@ -12,7 +13,6 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
-  useTransition,
   type ReactNode,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -35,6 +35,8 @@ const PROJECT_PATH =
 // ── 지금 열린 상세(페이지마다 하나라 모듈 변수로 둔다) ──
 type Opened = { id: string; from: string; scrollY: number };
 let opened: Opened | null = null;
+// 관리자 계정이면 가로채지 않는다(클릭 순간에 알아야 해서 처음에 한 번 읽어 둔다)
+let viewerIsAdmin = false;
 const listeners = new Set<() => void>();
 function setOpened(next: Opened | null) {
   opened = next;
@@ -150,12 +152,17 @@ export function QuickViewHost({ children }: { children: ReactNode }) {
       if (id) prefetchQuickView(id);
     }
     function onClick(e: MouseEvent) {
-      if (e.defaultPrevented) return;
+      if (e.defaultPrevented || viewerIsAdmin) return;
       const id = quickTargetOf(e);
       if (!id) return;
       e.preventDefault();
       openQuickView(id);
     }
+    createClient()
+      .auth.getSession()
+      .then(({ data: { session } }) => {
+        viewerIsAdmin = isDeveloper(session?.user.email);
+      });
     window.addEventListener("pointerdown", onPointerDown, true);
     window.addEventListener("click", onClick, true);
     return () => {
@@ -215,17 +222,14 @@ function QuickProjectDetail({ id, from }: { id: string; from: string }) {
     };
   }, [id]);
 
-  // 서버 페이지가 필요하면 지금 주소(/projects/<id>)를 서버에서 다시 받는다. 받는 동안은 뼈대, 다 받으면 이 화면을 닫아 서버가 그린 것(상세·없는 페이지)을 보인다
-  const [refreshing, startRefresh] = useTransition();
-  const askedServer = useRef(false);
+  // 서버 페이지가 필요하면(관리자·못 찾음·오류) pushState 로 바꾼 주소를 원래대로 되돌리고 서버 페이지로 평범하게 이동한다.
+  // router.replace 라 기록은 [원래 페이지, 상세] 그대로. 이동하는 동안은 상세 뼈대(loading.tsx)가 뜬다
   useEffect(() => {
-    if (loaded?.kind !== "server" || askedServer.current) return;
-    askedServer.current = true;
-    startRefresh(() => router.refresh());
-  }, [loaded, router]);
-  useEffect(() => {
-    if (askedServer.current && !refreshing) setOpened(null);
-  }, [refreshing]);
+    if (loaded?.kind !== "server") return;
+    window.history.replaceState(null, "", from);
+    setOpened(null);
+    router.replace(`/projects/${id}`);
+  }, [loaded, router, id, from]);
 
   // 누른 링크는 숨겨져 포커스가 사라지므로 상세로 옮긴다(키보드·화면 읽기 사용자)
   const box = useRef<HTMLDivElement>(null);
