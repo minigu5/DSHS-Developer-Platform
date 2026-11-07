@@ -9,6 +9,7 @@ import { loadProjectDetail } from "@/lib/projects/detail";
 import { ProjectDetailView } from "@/components/projects/project-detail-view";
 import { QuickViewRealPage } from "@/components/projects/quick-view";
 import { personLabel } from "@/lib/admin/people";
+import { getProjectLock } from "@/lib/projects/lock";
 
 // 화면은 ProjectDetailView 가 그린다 — 목록에서 누르면 브라우저가 같은 화면을 Supabase 로 바로 그린다(quick-view.tsx).
 // 여기는 주소 직접 입력·새로 고침·새 탭·관리자용.
@@ -39,6 +40,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     if (data) anonymousOwner = { id: data.author_id, name: personLabel(Array.isArray(data.owner) ? data.owner[0] : data.owner) };
   }
 
+  // 관리자 잠금은 주인·팀원·관리자에게만 이유까지 보여 준다(project_locks 는 서비스 키 전용). 잠기면 늘 비공개라 공개 프로젝트는 안 본다
+  const lock = detail.canEdit && detail.project.visibility === 'private' ? await getProjectLock(id) : null;
+
   return (
     <>
       <QuickViewRealPage />
@@ -48,6 +52,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         isAdmin={isAdmin}
         liveDomain={liveDomain}
         anonymousOwner={anonymousOwner}
+        lock={lock}
       />
     </>
   );

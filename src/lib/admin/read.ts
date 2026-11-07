@@ -36,7 +36,11 @@ export type AdminDashboard = {
   domains: AdminDomainRow[]
   /** 상세 페이지에 걸린 포스터 최근 20개 — 올리면 바로 걸리고 관리자가 나중에 본다(2026-11-07 사용자 결정) */
   hungPosters: HungPosterView[]
+  /** 관리자가 비공개로 잠근 프로젝트 — 주인은 다시 공개할 수 없다(2026-11-07) */
+  lockedProjects: LockedProjectView[]
 }
+
+export type LockedProjectView = { projectId: string; title: string; reason: string | null; lockedAt: string }
 
 export type HungPosterView = { projectId: string; title: string; imageUrl: string; isAi: boolean; hungAt: string }
 
@@ -88,7 +92,7 @@ export async function loadAdminDashboard(): Promise<AdminDashboard> {
   // 탈퇴한 사람의 차단 기록은 차단이 끝나면 파기한다(처리방침)
   await admin.from('user_bans').delete().is('user_id', null).lt('until', new Date().toISOString())
 
-  const [stats, feed, bursts, shrinks, bans, dismissals, domains, hung] = await Promise.all([
+  const [stats, feed, bursts, shrinks, bans, dismissals, domains, hung, locks] = await Promise.all([
     admin.rpc('admin_site_stats'),
     admin.rpc('admin_recent_content', { p_limit: 50 }),
     admin.rpc('admin_bursts'),
@@ -102,8 +106,13 @@ export async function loadAdminDashboard(): Promise<AdminDashboard> {
       .not('poster_image_url', 'is', null)
       .order('poster_hung_at', { ascending: false })
       .limit(20),
+    admin.from('project_locks').select('project_id, reason, created_at').order('created_at', { ascending: false }),
   ])
-  for (const r of [stats, feed, bursts, shrinks, bans, dismissals, hung]) if (r.error) throw r.error
+  for (const r of [stats, feed, bursts, shrinks, bans, dismissals, hung, locks]) if (r.error) throw r.error
+  const lockRows = locks.data ?? []
+  const lockTitles = lockRows.length
+    ? new Map(((await admin.from('projects').select('id, title').in('id', lockRows.map((l) => l.project_id))).data ?? []).map((p) => [p.id, p.title]))
+    : new Map<string, string>()
 
   const rpcFeed = asArray<RpcFeedItem>(feed.data)
   const rpcBursts = asArray<Burst & { items: RpcFeedItem[] }>(bursts.data)
@@ -144,6 +153,12 @@ export async function loadAdminDashboard(): Promise<AdminDashboard> {
       imageUrl: p.poster_image_url ?? '',
       isAi: p.poster_is_ai,
       hungAt: p.poster_hung_at ?? '',
+    })),
+    lockedProjects: lockRows.map((l) => ({
+      projectId: l.project_id,
+      title: lockTitles.get(l.project_id) ?? '(제목 없음)',
+      reason: l.reason,
+      lockedAt: l.created_at,
     })),
   }
 }

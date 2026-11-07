@@ -679,10 +679,16 @@ export type Database = {
         Update: { dismissed_at?: string };
         Relationships: [];
       };
+      project_locks: {
+        Row: { project_id: string; reason: string | null; created_by: string | null; created_at: string };
+        Insert: { project_id: string; reason?: string | null; created_by?: string | null; created_at?: string };
+        Update: { reason?: string | null };
+        Relationships: [];
+      };
       admin_actions: {
         Row: {
           id: number;
-          action: 'delete' | 'ban' | 'unban' | 'private' | 'dismiss' | 'revert' | 'unhang';
+          action: 'delete' | 'ban' | 'unban' | 'private' | 'dismiss' | 'revert' | 'unhang' | 'lock' | 'unlock';
           target_kind: string | null;
           target_id: string | null;
           target_user_id: string | null;
@@ -690,7 +696,7 @@ export type Database = {
           created_at: string;
         };
         Insert: {
-          action: 'delete' | 'ban' | 'unban' | 'private' | 'dismiss' | 'revert' | 'unhang';
+          action: 'delete' | 'ban' | 'unban' | 'private' | 'dismiss' | 'revert' | 'unhang' | 'lock' | 'unlock';
           target_kind?: string | null;
           target_id?: string | null;
           target_user_id?: string | null;

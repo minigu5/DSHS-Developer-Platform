@@ -4,6 +4,7 @@ import { ShieldCheck } from "lucide-react";
 import { BanList } from "@/components/admin/ban-list";
 import { ContentFeed } from "@/components/admin/content-feed";
 import { HungPosters } from "@/components/admin/hung-posters";
+import { LockedProjects } from "@/components/admin/locked-projects";
 import { StatGrid } from "@/components/admin/stat-grid";
 import { TodayList } from "@/components/admin/today-list";
 import { AdminDomainTable } from "@/components/domains/admin-domain-table";
@@ -58,6 +59,10 @@ export default async function AdminPage() {
         <section>
           <SectionTitle id="posters" title="걸린 포스터" note="올리면 바로 걸려요 · 최근 20개" />
           <HungPosters posters={data.hungPosters} />
+        </section>
+        <section>
+          <SectionTitle id="locks" title="잠긴 프로젝트" note="만든 사람은 다시 공개할 수 없어요" />
+          <LockedProjects locks={data.lockedProjects} />
         </section>
         <section>
           <SectionTitle id="bans" title="차단" />

@@ -226,18 +226,40 @@ export async function adminDismiss(key: string): Promise<AdminActionResult> {
   return done()
 }
 
-export async function adminMakeProjectPrivate(projectId: string): Promise<AdminActionResult> {
+/** 비공개로 바꾸고 잠근다 — 주인·팀원은 보고 고칠 수 있지만 다시 공개할 수 없다(DB 가드 projects_guard_locked). 이유는 주인에게 보인다 */
+export async function adminLockProject(projectId: string, reason: string): Promise<AdminActionResult> {
   const actor = await requireAdmin()
   if (!actor) return NOT_ADMIN
   if (!UUID.test(projectId)) return FAILED
   const admin = createAdminClient()
   const { error } = await admin.from('projects').update({ visibility: 'private' }).eq('id', projectId)
   if (error) return FAILED
-  // 비공개가 되면 주소도 닫는다(소유자 흐름과 같음, 관리자도 부를 수 있음)
+  const { error: lockError } = await admin
+    .from('project_locks')
+    .upsert({ project_id: projectId, reason: reason.trim().slice(0, 300) || null, created_by: actor.id })
+  if (lockError) {
+    console.error('[admin] 잠금 실패', lockError.message)
+    return { ok: false, error: '비공개로 바꿨지만 잠그지는 못했어요. 다시 시도해 주세요.' }
+  }
+  // 비공개가 되면 주소도 닫는다(소유자 흐름과 같음)
   const closed = await closeDomainOfPrivateProject(projectId)
-  await record(admin, { action: 'private', target_kind: 'project', target_id: projectId })
+  await record(admin, { action: 'lock', target_kind: 'project', target_id: projectId })
   revalidatePath('/explore')
-  if (!closed.ok) return { ok: false, error: `비공개로 바꿨지만 주소는 닫지 못했어요. ${closed.error}` }
+  revalidatePath(`/projects/${projectId}`)
+  if (!closed.ok) return { ok: false, error: `잠갔지만 주소는 닫지 못했어요. ${closed.error}` }
+  return done()
+}
+
+/** 잠금만 푼다 — 비공개는 그대로, 공개로 바꾸는 건 주인이 직접 */
+export async function adminUnlockProject(projectId: string): Promise<AdminActionResult> {
+  const actor = await requireAdmin()
+  if (!actor) return NOT_ADMIN
+  if (!UUID.test(projectId)) return FAILED
+  const admin = createAdminClient()
+  const { error } = await admin.from('project_locks').delete().eq('project_id', projectId)
+  if (error) return FAILED
+  await record(admin, { action: 'unlock', target_kind: 'project', target_id: projectId })
+  revalidatePath(`/projects/${projectId}`)
   return done()
 }
 

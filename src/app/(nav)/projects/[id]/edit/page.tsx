@@ -10,6 +10,7 @@ import { isDeveloper } from "@/lib/constants";
 import { getLiveDomain, getOldAddressSource } from "@/lib/domains/read";
 import { oldAddressPrefixes } from "@/lib/domains/old-address";
 import { PROJECT_COLUMNS } from "@/lib/projects/columns";
+import { getProjectLock } from "@/lib/projects/lock";
 
 export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -49,12 +50,14 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
   // 연결된 주소가 있으면 설명 속 옛 사이트 주소를 폼이 찾아 바꿀지 묻는다(상세 페이지 OldAddressNudge 와 같은 조건)
   const source = subdomainName ? await getOldAddressSource(project.id) : null;
   const oldAddress = source ? { name: source.name, prefixes: oldAddressPrefixes(source) } : null;
+  // 관리자가 잠갔으면 공개로 못 바꾼다(DB 가드가 최종) — 주인·팀원·관리자 확인을 지난 뒤라 이유를 보여 줘도 된다
+  const lock = project.visibility === "private" ? await getProjectLock(project.id) : null;
 
   return (
     <div className="flex min-h-screen flex-col bg-white dark:bg-zinc-950">
       <PageHero section="new" icon={Rocket} title="프로젝트 수정" description="프로젝트의 최신 정보를 반영해요." />
       <main className="w-full flex-1 px-6 py-9">
-        <ProjectForm initialData={project} isEdit={true} canDelete={isAuthor} subdomainName={subdomainName} oldAddress={oldAddress} />
+        <ProjectForm initialData={project} isEdit={true} canDelete={isAuthor} subdomainName={subdomainName} oldAddress={oldAddress} lock={lock} />
       </main>
       {/* 홍보 포스터 옆 칸 — `?poster=` 가 있으면 열린다(공개 프로젝트만 포스터를 건다) */}
       {project.visibility === "public" && (

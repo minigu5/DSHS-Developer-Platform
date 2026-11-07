@@ -27,6 +27,8 @@ import { HeartStatSub, HeartStatValue } from "@/components/projects/heart-stat";
 import { ReadingSurface } from "@/components/shared/reading-surface";
 import { Markdown } from "@/components/shared/markdown";
 import { LikersCard } from "@/components/admin/likers-card";
+import { LockButton, UnlockButton } from "@/components/admin/lock-dialog";
+import { LockNotice } from "@/components/projects/lock-notice";
 import type { ProjectDetail } from "@/lib/projects/detail";
 
 const LICENSE_LABELS: Record<string, string> = {
@@ -55,13 +57,15 @@ export type ProjectDetailViewProps = {
   liveDomain: { name: string; redirect: boolean } | null;
   /** 관리자(개발자 계정)에게만: 익명 프로젝트의 실제 주인 */
   anonymousOwner: { id: string; name: string } | null;
+  /** 관리자 잠금 — 서버 페이지만 넘긴다(주인·팀원·관리자일 때, 서비스 키로 읽음). 빠른 상세는 안 넘겨서 안내가 없다 */
+  lock?: { reason: string | null } | null;
   /** "← 모든 프로젝트" 자리 — 빠른 상세 화면은 뒤로 가기(닫기) 버튼을 넣는다 */
   back?: ReactNode;
   /** 댓글을 쓰고·고치고·지운 뒤 — 빠른 상세 화면은 router.refresh() 대신 브라우저가 다시 받는다 */
   onCommentsChanged?: () => void;
 };
 
-export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anonymousOwner, back, onCommentsChanged }: ProjectDetailViewProps) {
+export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anonymousOwner, lock = null, back, onCommentsChanged }: ProjectDetailViewProps) {
   const { project, comments, heartCount, hearted, teamMemberProfiles, isOwner, canEdit, ownerPreview, ownerOffer, ownerOldAddress, ownerPoster } = detail;
   const isAnonymous = project.author_role === 'anonymous';
   const authorName =
@@ -229,6 +233,7 @@ export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anony
           </div>
         </div>
 
+        {lock && canEdit && <LockNotice reason={lock.reason} className="mt-8" />}
         {ownerPreview && (
           <div role="alert" className="mt-8 rounded-3xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700 sm:p-6 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
             <p className="text-rose-600 dark:text-rose-400">나에게만 보이는 안내예요</p>
@@ -256,6 +261,15 @@ export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anony
 
         <StatStrip items={stats} className="mt-8" />
         {isAdmin && <LikersCard kind="project" id={project.id} className="mt-4" />}
+        {isAdmin && (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-3xl border border-rose-200 bg-white px-5 py-4 text-sm dark:border-rose-900/60 dark:bg-zinc-900">
+            <p className="text-zinc-700 dark:text-zinc-300">
+              {lock ? "관리자가 잠근 프로젝트예요 — 만든 사람은 다시 공개할 수 없어요" : "문제가 있으면 비공개로 잠글 수 있어요"}
+              <span className="text-zinc-500 dark:text-zinc-400"> · 관리자에게만 보여요</span>
+            </p>
+            {lock ? <UnlockButton projectId={project.id} /> : <LockButton projectId={project.id} />}
+          </div>
+        )}
 
         <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3">
           {/* 본문 */}

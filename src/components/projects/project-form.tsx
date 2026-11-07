@@ -22,6 +22,7 @@ import {
 } from "@/lib/constants";
 import { ImageUploadInput } from "@/components/shared/image-upload-input";
 import { EditorTabs, type EditorTab } from "@/components/shared/editor-tabs";
+import { LockNotice } from "@/components/projects/lock-notice";
 import { ProjectIcon } from "@/components/projects/project-icon";
 import { SelectCard } from "@/components/forms/select-card";
 import { ToggleChip } from "@/components/forms/toggle-chip";
@@ -79,13 +80,15 @@ interface ProjectFormProps {
   subdomainName?: string | null;
   /** 연결된(active) 주소 이름과 옛 사이트 주소 후보 — 상세 설명에 옛 주소가 있으면 새 주소로 바꿀지 묻는다 */
   oldAddress?: { name: string; prefixes: string[] } | null;
+  /** 관리자 잠금(수정 화면) — 있으면 "공개"를 고를 수 없고 이유를 보여 준다 */
+  lock?: { reason: string | null } | null;
   /** 새 등록에서 종류를 미리 고른다(도메인 마련하기 → 대곽나루 흐름의 "웹사이트") */
   initialType?: string | null;
   /** 등록이 끝나면 돌아갈 /domains 경로(검증된 값). 있으면 권유 창 없이 그리로 가고, 방문 주소는 비워도 된다 */
   nextHref?: string | null;
 }
 
-export function ProjectForm({ initialData, isEdit = false, canDelete = true, subdomainName = null, oldAddress = null, initialType = null, nextHref = null }: ProjectFormProps) {
+export function ProjectForm({ initialData, isEdit = false, canDelete = true, subdomainName = null, oldAddress = null, lock = null, initialType = null, nextHref = null }: ProjectFormProps) {
   const router = useRouter();
   const supabase = createClient();
   const [isLoading, setIsLoading] = useState(false);
@@ -815,7 +818,9 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         msg = [e.message, e.details, e.hint, e.code && `(code: ${e.code})`].filter(Boolean).join(' / ') || msg;
       }
       msg = friendlyWriteError(msg, ban.until) ?? msg;
-      if (msg.includes('projects_duplicate_recent')) {
+      if (msg.includes('project_locked')) {
+        msg = '관리자가 잠근 프로젝트라 공개로 바꿀 수 없어요.';
+      } else if (msg.includes('projects_duplicate_recent')) {
         msg = '방금 같은 이름으로 등록한 프로젝트가 있어요. 내 프로젝트에서 확인해 주세요.';
       }
       setErrorMsg(msg);
@@ -1247,10 +1252,14 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
                   description={v.value === "public" ? "누구나 볼 수 있어요" : "내가 고른 사람만 볼 수 있어요"}
                   selected={visibility === v.value}
                   onSelect={() => setVisibility(v.value as Visibility)}
+                  disabled={Boolean(lock) && v.value === "public"}
+                  disabledReason={lock && v.value === "public" ? "관리자가 잠가서 공개할 수 없어요" : null}
                 />
               ))}
             </div>
           </div>
+
+          {lock && <LockNotice reason={lock.reason} />}
 
           {closesDomain && (
             <div role="status" className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
