@@ -13,6 +13,7 @@ import { withRepoContext } from '@/lib/posters/repo-context'
 import { fetchRepoContext } from '@/lib/posters/repo-fetch'
 import { guardPosterRequest, keepAliveAfterDisconnect } from '@/lib/posters/route-guard'
 import { sanitizePosterHtml } from '@/lib/posters/sanitize'
+import { fillScreenshot, parsePosterScreenshot, parsePosterStyle, styleMayUseArt } from '@/lib/posters/style'
 import { nextPosterState } from '@/lib/posters/store'
 import { releaseUsage, reserveUsage, type UsageKind } from '@/lib/posters/usage'
 
@@ -27,11 +28,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (guarded instanceof NextResponse) return guarded
   const { poster, access } = guarded
 
-  const body = (await request.json().catch(() => ({}))) as { message?: unknown }
+  const body = (await request.json().catch(() => ({}))) as { message?: unknown; style?: unknown; screenshot?: unknown }
   const message = typeof body.message === 'string' ? body.message.trim() : ''
   const firstMake = !poster.html
   if (message.length > MAX_REQUEST) return NextResponse.json({ ok: false, error: POSTER_COPY.tooLong }, { status: 400 })
   if (!firstMake && !message) return NextResponse.json({ ok: false, error: POSTER_COPY.empty }, { status: 400 })
+  // 스타일·캡처는 처음 만들 때만(고칠 땐 지금 HTML 이 스타일을 지닌다)
+  const style = parsePosterStyle(body.style)
+  const screenshot = firstMake && style === 'screenshot' ? parsePosterScreenshot(body.screenshot, process.env.CLOUDINARY_CLOUD_NAME) : null
+  if (firstMake && style === 'screenshot' && !screenshot) {
+    return NextResponse.json({ ok: false, error: POSTER_COPY.needScreenshot }, { status: 400 })
+  }
 
   const reserved = await reserveUsage('text', access.userId)
   if (reserved !== 'ok') {
@@ -46,7 +53,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // 처음 만들 땐 그림 횟수를 먼저 잡는다(학교 Mac → Workers AI 순) — 없으면 Gemini 가 큰 그림도 SVG 로 직접 그린다(회색 자리 대신)
     let hold: Extract<UsageKind, 'art' | 'art_local'> | null = null
     let artNotice: string | undefined
-    if (firstMake) {
+    if (firstMake && styleMayUseArt(style)) {
       if ((await isMacsOnline()) && (await reserveUsage('art_local', access.userId)) === 'ok') hold = 'art_local'
       else if ((await reserveUsage('art', access.userId)) === 'ok') hold = 'art'
       if (!hold) artNotice = POSTER_COPY.artSvg
@@ -57,7 +64,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         ? withRepoContext(access.project, access.shortDescription, await fetchRepoContext(access.repoUrl))
         : access.project
     const reply = await generatePosterReply(
-      buildPosterContents({ info, currentHtml: poster.html, recent: poster.messages ?? [], request: message, artAvailable: !firstMake || !!hold }),
+      buildPosterContents({
+        info,
+        currentHtml: poster.html,
+        recent: poster.messages ?? [],
+        request: message,
+        artAvailable: !firstMake || !styleMayUseArt(style) || !!hold,
+        style,
+        screenshot,
+      }),
     )
     if (!reply.ok) {
       await releaseUsage('text', access.userId)
@@ -71,7 +86,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       if (hold) await releaseUsage(hold, access.userId)
       return { ok: false, error: POSTER_COPY.failed }
     }
-    let html = sanitizePosterHtml(parsed.html)
+    let html = sanitizePosterHtml(screenshot ? fillScreenshot(parsed.html, screenshot) : parsed.html)
 
     let artUrl = poster.art_url
     let artOrder = poster.art_order

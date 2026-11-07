@@ -1,15 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Download, ImageIcon, Undo2 } from "lucide-react";
+import { Download, ImageIcon, LayoutTemplate, Monitor, Sparkles, Type, Undo2, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import { SelectCard } from "@/components/forms/select-card";
+import { ImageUploadInput } from "@/components/shared/image-upload-input";
 import { Button } from "@/components/ui/button";
 import { setPosterBand, undoPoster } from "@/lib/posters/actions";
 import { POSTER_MAC, type PosterBandPosition, type PosterTone } from "@/lib/posters/config";
 import { parseHeartbeatBody } from "@/lib/posters/heartbeat";
 import { MAX_REQUEST, POSTER_COPY } from "@/lib/posters/messages";
 import type { PosterView } from "@/lib/posters/store";
+import { POSTER_STYLES, POSTER_STYLE_TEXT, type PosterStyle } from "@/lib/posters/style";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 import { cn } from "@/lib/utils";
@@ -22,6 +25,7 @@ type AskResult = { ok: true; poster: PosterView; notice?: string } | { ok: false
 type ArtStatus = { ok: true; status: "none" | "pending" | "done" | "expired" | "failed"; poster: PosterView } | { ok: false; error: string };
 
 const SMALL_BUTTON = "h-9 rounded-full px-3 text-sm";
+const STYLE_ICONS: Record<PosterStyle, LucideIcon> = { auto: Sparkles, example: LayoutTemplate, art: ImageIcon, screenshot: Monitor, type: Type };
 
 /** 만들기·고치기 화면: 왼쪽(모바일 위) 미리보기, 오른쪽(모바일 아래) 대화. */
 export function PosterStudio({
@@ -38,6 +42,11 @@ export function PosterStudio({
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState<Busy>(null);
   const [elapsed, setElapsed] = useState(0);
+  // 처음 만들 때만: 스타일과 화면 캡처(가로÷세로 비율은 브라우저가 그림을 열어 잰다)
+  const [style, setStyle] = useState<PosterStyle>("auto");
+  const [shotUrl, setShotUrl] = useState("");
+  const [shotRatio, setShotRatio] = useState<number | null>(null);
+  const latestShot = useRef("");
   // Workers 는 탭을 닫으면 남은 일을 30초까지만 이어 간다(Gemini 는 최대 90초) — 기다리는 동안 나가려 하면 묻는다
   useUnsavedWarning(busy === "ask" || busy === "redraw", POSTER_COPY.leaveWhileBusy);
   const retried = useRef(false);
@@ -128,9 +137,23 @@ export function PosterStudio({
     }
   }
 
+  function changeShot(url: string) {
+    setShotUrl(url);
+    setShotRatio(null);
+    latestShot.current = url;
+    if (!url) return;
+    const img = new Image();
+    // 늦게 온 옛 그림이 새 비율을 덮지 않게 같은 주소일 때만
+    img.onload = () => {
+      if (latestShot.current === url && img.naturalHeight) setShotRatio(img.naturalWidth / img.naturalHeight);
+    };
+    img.src = url;
+  }
+
   async function send() {
     if (busy) return;
-    if (await callAi("ask", { message })) setMessage("");
+    const body = !poster.html ? { message, style, screenshot: style === "screenshot" ? { url: shotUrl, ratio: shotRatio } : undefined } : { message };
+    if (await callAi("ask", body)) setMessage("");
   }
 
   async function undo() {
@@ -244,6 +267,31 @@ export function PosterStudio({
           </Button>
         </div>
 
+        {firstMake && (
+          <fieldset className="mt-4" disabled={aiBusy}>
+            <legend className="text-sm font-semibold text-zinc-900 dark:text-white">스타일</legend>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {POSTER_STYLES.map((key) => (
+                <SelectCard
+                  key={key}
+                  selected={style === key}
+                  onSelect={() => setStyle(key)}
+                  icon={STYLE_ICONS[key]}
+                  label={POSTER_STYLE_TEXT[key].label}
+                  description={POSTER_STYLE_TEXT[key].hint}
+                  className={key === "auto" ? "col-span-2" : undefined}
+                />
+              ))}
+            </div>
+            {style === "screenshot" && (
+              <div className="mt-3">
+                <p className="mb-2 text-xs text-zinc-500">프로그램 화면을 캡처해서 올려 주세요. 가로 화면은 노트북, 세로 화면은 폰 틀에 넣어요.</p>
+                <ImageUploadInput value={shotUrl} onChange={changeShot} placeholder="화면 캡처를 끌어다 놓거나 눌러서 올리기" />
+              </div>
+            )}
+          </fieldset>
+        )}
+
         <label htmlFor="poster-request" className="sr-only">
           AI에게 부탁할 내용
         </label>
@@ -265,7 +313,7 @@ export function PosterStudio({
           </span>
           <Button
             className={cn("h-11 rounded-full px-5", SECTION_COLORS.new.button)}
-            disabled={!!busy || (!firstMake && !message.trim())}
+            disabled={!!busy || (!firstMake && !message.trim()) || (firstMake && style === "screenshot" && !shotRatio)}
             onClick={send}
           >
             {aiBusy ? "만드는 중…" : firstMake ? "포스터 만들기" : "부탁 보내기"}

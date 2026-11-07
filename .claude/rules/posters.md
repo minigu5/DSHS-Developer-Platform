@@ -34,6 +34,13 @@ paths:
   - **인쇄용 확대**: PNG·PDF 내보내기만 Cloudinary AI 확대 `e_upscale`(4배) — 0.24MP로 줄였다가 키워서 **장당 10회**(0.25MP 넘으면 100회, 무료 한 달 25,000회 = 25 credits). 처음엔 423(~10초 만드는 중) → export가 HEAD로 3초마다 최대 20초 기다리고 안 되면 원래 그림. 확대본은 캐시라 같은 그림은 다시 안 셈. 처음 만들기가 ~15초라 PNG가 오래 걸렸다(사용자 "좀 오래 걸리는") → `PosterView.artPrintUrl`을 스튜디오가 열리거나 그림이 바뀔 때 `fetch(HEAD, no-cors)`로 미리 불러 둔다(그림마다 10회가 받기 전에도 쓰임), 버튼에 "만드는 중… N초". 2026-11-07 계정 사용량 0.42/25 credits. 학교 Mac이 더 크게 그리는 건 Localfit `poster_contract.MAX_AREA`(786,432)도 바꿔야 해서 안 함.
   - 시험: `.superpowers/try-poster.mts <폴더> <이름> [프로젝트id] [포스터id]`(커밋 안 함, 정보 → Gemini → 학교 Mac 일감 하나 → 미리보기 HTML, 포스터 줄은 안 바꿈), `rerender.mts`(저장한 raw HTML로 다시 그리기). 화면 확인은 `python3 -m http.server`로 열어 `playwright-cli`로 찍고 `/tmp`에 저장(file://는 막힘, scratchpad PNG는 Read 막힘).
 
+- **스타일 고르기**(2026-11-07 사용자 결정 — "기능 위주로 할지 디자인 위주로 할지 정하도록"): 처음 만들 때 대화 칸 위 `SelectCard` 5개 = 알아서(기본)·사용 예시·그림·화면 캡처·글자(`style.ts`, 포인트 색은 계속 AI가). **저장하지 않는다**(DB 변경 없음) — 고칠 땐 지금 HTML이 스타일을 지닌다. `POSTER_SYSTEM`은 공통 규칙만, ③은 처음 만들 때 사용자 메시지의 "스타일:" 줄(`styleGuide`)로.
+  - 사용 예시 = HTML 앱 화면 카드("넣는 것 → 나오는 것", 코드는 IBM Plex Mono) + 카드 뒤 작은 3D 장식 그림(익숙한 물건, "soft 3D render … clay"). 뜻 없는 추상 기계 그림이 별로라서(사용자 "이미지 내용이 별로") 나온 방향.
+  - 그림 = 큰 ART 하나(flat vector, 누구나 알아보는 사물). OYE MIXX는 이쪽이 낫다는 사용자 평.
+  - 화면 캡처 = 학생이 올린 캡처(`ImageUploadInput`, 브라우저가 `naturalWidth/Height`로 비율을 재서 보냄)를 CSS 노트북(가로)·폰(세로) 틀에. Gemini는 `<img src="SHOT">`만 쓰고 **저장 전에 서버가 캡처 주소로 바꾼다**(`fillScreenshot`, ART와 달리 저장 HTML에 주소). 우리 Cloudinary(`https://res.cloudinary.com/<CLOUDINARY_CLOUD_NAME>/image/upload/`)만 받음(`parsePosterScreenshot` — 포스터 CSP도 cloudinary만), 없으면 400 `needScreenshot`.
+  - 글자 = 그림 없이 큰 낱말·색 면·SVG 도형.
+  - 캡처·글자는 그림 횟수를 미리 잡지 않는다(`styleMayUseArt`). 알아서는 Gemini가 종류를 보고 셋 중 하나(캡처 제외).
+
 ## 보안
 - AI HTML은 `<iframe sandbox="" srcDoc>`에만(`PosterPreview`). `allow-same-origin`·`allow-scripts` 금지. 저장 전 `sanitizePosterHtml`(script·on*·javascript:·iframe/object/embed/form/base·meta refresh·Google Fonts 외 link).
 - `project_posters`·`ai_usage`는 RLS 켜고 정책 없음 — 서버가 `getPosterAccess` 뒤 서비스 키로만. API는 `guardPosterRequest`(isSameOrigin → 포스터 → 권한).
