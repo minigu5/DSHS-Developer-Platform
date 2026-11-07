@@ -16,6 +16,8 @@ const COLUMNS = [
     title: "만들기",
     links: [
       { href: "/projects/new", label: "내 프로젝트 등록" },
+      // 내 프로젝트가 없으면 등록, 하나면 그 포스터 화면, 여럿이면 고르기(/posters/start)
+      { href: "/posters/start", label: "홍보 포스터 만들기" },
       { href: "/guide", label: "나도 개발해볼래!" },
       { href: "/domains", label: "도메인 마련하기" },
       { href: "/tips/new", label: "팁 쓰기" },
