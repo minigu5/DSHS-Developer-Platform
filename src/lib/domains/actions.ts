@@ -18,6 +18,7 @@ import { getDnsClient } from './cloudflare'
 import { removeCloudflare } from './cleanup'
 import { buildRecords, runConnect, runConnectNaru } from './connect'
 import { createSiteFetcher } from './fetch-site'
+import { refreshAutoIcon } from './icon-refresh-server'
 import { HOST_PRESETS, isRedirectHost, siteAddressFor, siteHostFor, targetBoundToSite, validateTarget, validateTxt, type HostKey, type TxtInput } from './hosts'
 import { normalizeName, validateName } from './name'
 import { getNaruClient, isSiteStep, NaruError, restoreNaruDns, shouldSkipVerify, toPickableServers, unbindNaruBestEffort, type NaruServer } from './naru'
@@ -492,6 +493,7 @@ export async function releaseSubdomain(id: string): Promise<ActionResult> {
   if (error) return rpcError('subdomain_release', error)
   await removeRecords(data ?? [], 'release')
   await unbindNaruAfter(before, user)
+  if (before) await refreshAutoIcon(createAdminClient(), before.project_id, before.name)
   done()
   return { ok: true, data: null }
 }
@@ -505,6 +507,7 @@ export async function revokeSubdomain(id: string, reason: string): Promise<Actio
   if (error) return rpcError('subdomain_revoke', error)
   await removeRecords(data ?? [], 'revoke')
   await unbindNaruAfter(before, user)
+  if (before) await refreshAutoIcon(createAdminClient(), before.project_id, before.name)
   done()
   return { ok: true, data: null }
 }

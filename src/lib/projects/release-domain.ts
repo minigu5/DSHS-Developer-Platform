@@ -4,25 +4,32 @@ import 'server-only'
 // 'use server' 파일에 두면 누구나 부를 수 있는 서버 액션이 되므로 따로 뺐다.
 
 import { removeCloudflare } from '@/lib/domains/cleanup'
+import { refreshAutoIcon } from '@/lib/domains/icon-refresh-server'
 import { getNaruClient, unbindNaruBestEffort } from '@/lib/domains/naru'
 import { releaseLiveDomainWith } from '@/lib/domains/release'
 import type { createAdminClient } from '@/lib/supabase/server'
 
-/** 프로젝트에 살아 있는 주소가 있으면 반납하고 Cloudflare 레코드(바로가기 항목 포함)를 지운다. 없으면 true, 조회·DB 반납이 실패하면 false. */
-export function releaseLiveDomain(
+/**
+ * 프로젝트에 살아 있는 주소가 있으면 반납하고 Cloudflare 레코드(바로가기 항목 포함)를 지운다. 없으면 true, 조회·DB 반납이 실패하면 false.
+ * `refreshIcon`이면 반납 뒤 자동 아이콘도 되돌아간 방문 주소의 파비콘으로 다시 맞춘다(비공개 전환 — 삭제는 곧 지우니 안 함).
+ */
+export async function releaseLiveDomain(
   admin: ReturnType<typeof createAdminClient>,
   actorId: string,
   projectId: string,
   reason: string,
+  { refreshIcon = false }: { refreshIcon?: boolean } = {},
 ): Promise<boolean> {
-  return releaseLiveDomainWith({
+  let name: string | null = null
+  const ok = await releaseLiveDomainWith({
     findLive: async () => {
       const { data, error } = await admin
         .from('subdomains')
-        .select('id, host, naru_server_id, owner_id')
+        .select('id, name, host, naru_server_id, owner_id')
         .eq('project_id', projectId)
         .in('status', ['reserved', 'pending', 'active', 'broken'])
         .maybeSingle()
+      name = data?.name ?? null
       return { data: data && { id: data.id, host: data.host, naruServerId: data.naru_server_id, ownerId: data.owner_id }, error }
     },
     release: async (id) => admin.rpc('subdomain_release', { p_actor: actorId, p_id: id, p_reason: reason }),
@@ -34,4 +41,6 @@ export function releaseLiveDomain(
     },
     log: (message, detail) => console.error(message, detail),
   })
+  if (ok && refreshIcon && name) await refreshAutoIcon(admin, projectId, name)
+  return ok
 }

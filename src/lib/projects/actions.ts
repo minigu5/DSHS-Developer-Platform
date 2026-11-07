@@ -73,7 +73,7 @@ export async function closeDomainOfPrivateProject(projectId: string): Promise<Pr
   }
   if (project.visibility !== 'private') return { ok: false, error: '비공개로 저장된 프로젝트만 주소를 닫을 수 있어요.' }
 
-  if (!(await releaseLiveDomain(admin, user.id, projectId, 'project_private'))) {
+  if (!(await releaseLiveDomain(admin, user.id, projectId, 'project_private', { refreshIcon: true }))) {
     return { ok: false, error: '주소를 반납하지 못했어요. 잠시 뒤 다시 저장해 주세요.' }
   }
 

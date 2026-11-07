@@ -27,10 +27,12 @@ import { blockedByChallenge, checkTargets, decide, placeholderWorks, redirectWor
 import { REDIRECT_ID_PREFIX, removeCloudflareWith } from '../src/lib/domains/cleanup.ts';
 import { createDnsClient } from '../src/lib/domains/cloudflare.ts';
 import { createSiteFetcher } from '../src/lib/domains/fetch-site.ts';
+import { refreshAutoIconWith } from '../src/lib/domains/icon-refresh.ts';
 import { isRedirectHost, siteHostFor, type DomainHost } from '../src/lib/domains/hosts.ts';
 import { createNaruClient, runNaruDnsRepair, runNaruSync, type NaruRow } from '../src/lib/domains/naru.ts';
 import { createRedirectClient, RedirectError, type RedirectClient } from '../src/lib/domains/redirects.ts';
 import { checkSite, type CheckResult } from '../src/lib/domains/verify.ts';
+import { resolveFavicon } from '../src/lib/favicon.ts';
 
 function loadEnv() {
   try {
@@ -81,15 +83,37 @@ const naruClient = NARU_URL && NARU_KEY ? createNaruClient({ url: NARU_URL, key:
 const fetcher = createSiteFetcher();
 const LIVE = ['reserved', 'pending', 'active', 'broken'];
 
-type Row = CheckRow & { id: string; name: string; host: DomainHost | null; target: string | null; verify_token: string; cf_record_ids: string[] };
+type Row = CheckRow & { id: string; name: string; project_id: string | null; host: DomainHost | null; target: string | null; verify_token: string; cf_record_ids: string[] };
 
 let failures = 0;
+
+// 반납으로 방문 주소가 되돌아간 프로젝트의 자동 아이콘이 사라진 주소를 가리키면 다시 맞춘다(icon-refresh.ts) — 실패해도 점검 실패로 안 침, 내일 밤 동기화가 다시 시도
+async function refreshIconAfterRelease(projectId: string | null, name: string) {
+  if (!projectId) return;
+  try {
+    const changed = await refreshAutoIconWith(name, {
+      load: async () => {
+        const { data, error: e } = await supabase.from('projects').select('icon_type, url, icon_url').eq('id', projectId).maybeSingle();
+        if (e) throw new Error(e.message);
+        return data;
+      },
+      resolve: resolveFavicon,
+      update: async (iconUrl) => {
+        const { error: e } = await supabase.from('projects').update({ icon_url: iconUrl }).eq('id', projectId);
+        if (e) throw new Error(e.message);
+      },
+    });
+    if (changed) console.log(`  ${name}.dshs.dev: 프로젝트 아이콘을 원래 주소 것으로 되돌림`);
+  } catch (e) {
+    console.error(`  ⚠️  ${name}.dshs.dev: 아이콘 되돌리기 실패 (${e instanceof Error ? e.message : String(e)})`);
+  }
+}
 const now = new Date();
 if (DRY_RUN) console.log('🔎  dry-run: DB·DNS 를 바꾸지 않아요');
 
 const { data: rows, error } = await supabase
   .from('subdomains')
-  .select('id, name, status, host, target, verify_token, cf_record_ids, created_at, broken_since, connected_at, ever_active')
+  .select('id, name, project_id, status, host, target, verify_token, cf_record_ids, created_at, broken_since, connected_at, ever_active')
   .in('status', LIVE)
   .order('name');
 if (error) {
@@ -129,6 +153,7 @@ for (const row of targets) {
         const { data: ids, error: e } = await supabase.rpc('subdomain_release', { p_actor: null, p_id: row.id, p_reason: decision.release });
         if (e) throw new Error(`release ${e.message}`);
         await removeCloudflareWith((ids as string[] | null) ?? [], cleanupDeps);
+        await refreshIconAfterRelease(row.project_id, row.name);
       }
     }
     const detail = result?.kind === 'unreachable' ? ` (${result.detail})` : '';
