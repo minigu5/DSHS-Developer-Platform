@@ -10,7 +10,10 @@ import { getPosterAccess, type PosterAccess } from './access'
 import { POSTER_COPY } from './messages'
 import { loadPoster } from './poster-db'
 
-/** 포스터 API 공통 검사: 출처(학생 주소는 same-site 라 쿠키가 실려 옴) → 포스터 → 프로젝트 권한 */
+/**
+ * AI 포스터 API 공통 검사: 출처(학생 주소는 same-site 라 쿠키가 실려 옴) → 포스터 → 프로젝트 권한.
+ * 직접 올린 그림(kind='upload') 행은 없는 것으로 — 주소를 고쳐 거기에 AI 포스터를 만들면 '하루 1개'(poster_daily)를 피한다.
+ */
 export async function guardPosterRequest(
   request: NextRequest,
   posterId: string,
@@ -19,7 +22,7 @@ export async function guardPosterRequest(
     return NextResponse.json({ ok: false, error: POSTER_COPY.noPermission }, { status: 403 })
   }
   const poster = await loadPoster(posterId)
-  if (!poster) return NextResponse.json({ ok: false, error: POSTER_COPY.notFound }, { status: 404 })
+  if (!poster || poster.kind !== 'ai') return NextResponse.json({ ok: false, error: POSTER_COPY.notFound }, { status: 404 })
   const access = await getPosterAccess(poster.project_id)
   if (access === 'login') return NextResponse.json({ ok: false, error: '로그인이 필요해요.' }, { status: 401 })
   if (typeof access === 'string') return NextResponse.json({ ok: false, error: POSTER_COPY.noPermission }, { status: 403 })

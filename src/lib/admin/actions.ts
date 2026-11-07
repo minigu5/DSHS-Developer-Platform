@@ -5,9 +5,11 @@
 
 import { revalidatePath } from 'next/cache'
 
+import { deleteCloudinaryImages } from '@/lib/cloudinary-delete'
 import { isDeveloper } from '@/lib/constants'
 import { getLatestDoc } from '@/lib/guide-wiki/read'
 import { revertGuide } from '@/lib/guide-wiki/actions'
+import { posterImageUrlsOf } from '@/lib/posters/cleanup'
 import { setHungPoster } from '@/lib/posters/hang-db'
 import { closeDomainOfPrivateProject } from '@/lib/projects/actions'
 import { releaseLiveDomain } from '@/lib/projects/release-domain'
@@ -61,15 +63,19 @@ async function deleteOne(admin: Admin, actorId: string, kind: ContentKind, id: s
     const { error } = await admin.from('users').update({ nickname: null, bio: null }).eq('id', id)
     return error ? FAILED : { ok: true }
   }
+  // 포스터 그림 주소는 행이 CASCADE 로 사라지기 전에 챙겨 지운 뒤 Cloudinary 에서도 지운다
+  let posterUrls: string[] = []
   if (kind === 'project') {
     // 주소가 남은 프로젝트는 삭제 트리거가 막는다 — 먼저 반납
     if (!(await releaseLiveDomain(admin, actorId, id, 'admin_deleted'))) return FAILED
+    posterUrls = await posterImageUrlsOf([id])
   }
   const { error } = await admin.from(TABLE[kind]).delete().eq('id', id)
   if (error) {
     console.error('[admin] 삭제 실패', kind, error.message)
     return FAILED
   }
+  await deleteCloudinaryImages(posterUrls)
   return { ok: true }
 }
 

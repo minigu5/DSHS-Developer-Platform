@@ -25,6 +25,8 @@ export async function POST(request: NextRequest) {
   if (!isSameOrigin(request.headers, [request.nextUrl.origin, process.env.NEXT_PUBLIC_SITE_URL ?? ''])) {
     return fail(403, POSTER_COPY.noPermission)
   }
+  // 본문을 다 읽기 전에 크기부터 — multipart 머리 몫으로 조금 더 허용(정확한 파일 크기는 아래에서 다시 본다)
+  if (Number(request.headers.get('content-length') ?? 0) > MAX_BYTES + 64 * 1024) return fail(413, POSTER_COPY.uploadSize)
   const form = await request.formData().catch(() => null)
   const projectId = form?.get('projectId')
   const file = form?.get('file')
@@ -53,7 +55,8 @@ export async function POST(request: NextRequest) {
     return fail(502, POSTER_COPY.uploadFailed)
   }
 
-  if (form?.get('hang') === '1') await setHungPoster(projectId, { posterId: data.id, imageUrl: url, isAi: false })
-  else revalidatePath(`/projects/${projectId}/poster`)
-  return NextResponse.json({ ok: true, posterId: data.id, url })
+  // 걸기에 실패해도 올린 그림은 남아 있으니 ok — hung:false 로 "올렸지만 못 걸었어요"를 보이게 한다
+  const hung = form?.get('hang') === '1' ? await setHungPoster(projectId, { posterId: data.id, imageUrl: url, isAi: false }) : false
+  if (!hung) revalidatePath(`/projects/${projectId}/poster`)
+  return NextResponse.json({ ok: true, posterId: data.id, url, hung })
 }

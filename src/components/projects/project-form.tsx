@@ -44,7 +44,7 @@ import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 import type { ProjectRow, UserContact } from "@/lib/types";
 import { BannedNotice } from "@/components/shared/banned-notice";
 import { PosterFileField } from "@/components/posters/poster-file-field";
-import { uploadPosterFile } from "@/components/posters/poster-upload-button";
+import { POSTER_UPLOADED_NOT_HUNG, uploadPosterFile } from "@/components/posters/poster-upload-button";
 import { posterAllowed } from "@/lib/posters/config";
 import { posterImageAt } from "@/lib/posters/hang-logic";
 import { toast } from "sonner";
@@ -704,6 +704,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
     if (!posterFile || visibility !== 'public') return;
     const result = await uploadPosterFile(projectId, posterFile, true);
     if (!result.ok) toast.error(`프로젝트는 저장했어요. 포스터는 포스터 화면에서 다시 올려 주세요. (${result.error})`);
+    else if (!result.hung) toast.warning(POSTER_UPLOADED_NOT_HUNG);
   };
 
   const saveProject = async () => {

@@ -12,7 +12,8 @@ import { loadPoster, toPosterView } from "@/lib/posters/poster-db";
 export default async function PosterStudioPage({ params }: { params: Promise<{ id: string; posterId: string }> }) {
   const { id, posterId } = await params;
   const poster = await loadPoster(posterId);
-  if (!poster || poster.project_id !== id) notFound();
+  // 직접 올린 그림은 스튜디오가 없다 — 열어 두면 AI 로 만들어 '하루 1개'를 피할 수 있다
+  if (!poster || poster.project_id !== id || poster.kind !== "ai") notFound();
   const access = await getPosterAccess(id);
   if (access === "login") redirect(`/login?next=/projects/${id}/poster/${posterId}`);
   if (typeof access === "string") notFound();

@@ -9,17 +9,18 @@ import { Button } from "@/components/ui/button";
 
 export const POSTER_FILE_ACCEPT = "image/png,image/jpeg,image/webp";
 export const POSTER_FILE_MAX_BYTES = 10 * 1024 * 1024;
+export const POSTER_UPLOADED_NOT_HUNG = "포스터는 올렸지만 상세 페이지에 걸지 못했어요. 포스터 화면에서 \"상세 페이지에 걸기\"를 눌러 주세요.";
 
-/** 직접 만든 포스터 그림을 /api/posters/upload 로 올린다. 실패하면 서버 문구를 그대로 돌려준다. */
-export async function uploadPosterFile(projectId: string, file: File, hang: boolean): Promise<{ ok: true } | { ok: false; error: string }> {
+/** 직접 만든 포스터 그림을 /api/posters/upload 로 올린다. 실패하면 서버 문구를 그대로 돌려준다. hung 은 걸기까지 됐는지(올리기만 됐을 수 있음). */
+export async function uploadPosterFile(projectId: string, file: File, hang: boolean): Promise<{ ok: true; hung: boolean } | { ok: false; error: string }> {
   const form = new FormData();
   form.append("projectId", projectId);
   form.append("file", file);
   form.append("hang", hang ? "1" : "0");
   try {
     const res = await fetch("/api/posters/upload", { method: "POST", body: form });
-    const body = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
-    if (res.ok && body?.ok) return { ok: true };
+    const body = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; hung?: boolean } | null;
+    if (res.ok && body?.ok) return { ok: true, hung: body.hung === true };
     return { ok: false, error: body?.error ?? "그림을 올리지 못했어요. 잠시 뒤 다시 해 주세요." };
   } catch {
     return { ok: false, error: "그림을 올리지 못했어요. 잠시 뒤 다시 해 주세요." };
@@ -46,7 +47,8 @@ export function PosterUploadButton({ projectId, full, hangIfNone }: { projectId:
       toast.error(result.error);
       return;
     }
-    toast.success(hangIfNone ? "올리고 상세 페이지에 걸었어요." : "포스터를 올렸어요.");
+    if (hangIfNone && !result.hung) toast.warning(POSTER_UPLOADED_NOT_HUNG);
+    else toast.success(hangIfNone ? "올리고 상세 페이지에 걸었어요." : "포스터를 올렸어요.");
     router.refresh();
   };
 

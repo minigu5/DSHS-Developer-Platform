@@ -1,12 +1,24 @@
 // 포스터 걸기·상세 표시·권유 카드·"내 포스터 만들기" 길의 판단만 모은 순수 함수 — node:test 로 검증한다.
 // 설계: docs/superpowers/specs/2026-11-07-poster-placement-promo-design.md
 
+import { hasArtSlot } from './sanitize.ts'
+
 export type PosterKind = 'ai' | 'upload'
 
-/** 직접 올린 건 그림이 있어야, AI 는 HTML 이 있고 그림을 기다리지 않을 때만(그림 없는 PNG 가 걸리지 않게) */
-export function canHangPoster(p: { kind: PosterKind; html: string | null; art_job_id: string | null; image_url: string | null }): boolean {
+/**
+ * 직접 올린 건 그림이 있어야, AI 는 HTML 이 있고 그림을 기다리지 않을 때만(그림 없는 PNG 가 걸리지 않게).
+ * ART 자리가 있는데 그림도 일감도 없으면(그림 생성 실패) 빈 그림 자리로 걸리니 막는다.
+ */
+export function canHangPoster(p: {
+  kind: PosterKind
+  html: string | null
+  art_url: string | null
+  art_job_id: string | null
+  image_url: string | null
+}): boolean {
   if (p.kind === 'upload') return !!p.image_url
-  return !!p.html && !p.art_job_id
+  if (!p.html || p.art_job_id) return false
+  return !!p.art_url || !hasArtSlot(p.html)
 }
 
 /** 걸린 뒤 포스터를 고쳤으면 "다시 걸기"를 보인다(자동으로 다시 찍지 않음) */

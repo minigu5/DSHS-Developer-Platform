@@ -4,12 +4,17 @@ import { test } from 'node:test'
 import { canHangPoster, hangState, hungIsStale, posterImageAt, posterNudgeVisible, posterStartTarget, showcaseVisible } from './hang-logic.ts'
 
 test('canHangPoster', () => {
-  assert.equal(canHangPoster({ kind: 'upload', html: null, art_job_id: null, image_url: 'u' }), true)
-  assert.equal(canHangPoster({ kind: 'upload', html: null, art_job_id: null, image_url: null }), false)
-  assert.equal(canHangPoster({ kind: 'ai', html: '<div>', art_job_id: null, image_url: null }), true)
-  assert.equal(canHangPoster({ kind: 'ai', html: null, art_job_id: null, image_url: null }), false)
+  const none = { art_url: null, art_job_id: null, image_url: null }
+  assert.equal(canHangPoster({ ...none, kind: 'upload', html: null, image_url: 'u' }), true)
+  assert.equal(canHangPoster({ ...none, kind: 'upload', html: null }), false)
+  assert.equal(canHangPoster({ ...none, kind: 'ai', html: '<div>' }), true)
+  assert.equal(canHangPoster({ ...none, kind: 'ai', html: null }), false)
   // 그림 그리는 중이면 그림 없는 PNG 가 걸린다
-  assert.equal(canHangPoster({ kind: 'ai', html: '<div>', art_job_id: 'job', image_url: null }), false)
+  assert.equal(canHangPoster({ ...none, kind: 'ai', html: '<div>', art_job_id: 'job' }), false)
+  // ART 자리가 있는데 그림도 일감도 없으면(그림 생성 실패) 빈 그림 자리로 걸린다
+  const withSlot = '<div><img src="ART" alt=""></div>'
+  assert.equal(canHangPoster({ ...none, kind: 'ai', html: withSlot }), false)
+  assert.equal(canHangPoster({ ...none, kind: 'ai', html: withSlot, art_url: 'https://res.cloudinary.com/c/a.png' }), true)
 })
 
 test('hungIsStale', () => {

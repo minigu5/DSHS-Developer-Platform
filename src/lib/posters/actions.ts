@@ -18,7 +18,8 @@ import { undoPosterState, type PosterView } from './store'
 
 async function posterWithAccess(posterId: string) {
   const poster = await loadPoster(posterId)
-  if (!poster) return { error: POSTER_COPY.notFound } as const
+  // 되돌리기·띠는 AI 포스터에만 — 직접 올린 그림 행은 없는 것으로
+  if (!poster || poster.kind !== 'ai') return { error: POSTER_COPY.notFound } as const
   const access = await getPosterAccess(poster.project_id)
   if (typeof access === 'string') return { error: POSTER_COPY.noPermission } as const
   return { poster, access } as const
@@ -47,12 +48,12 @@ export async function deletePoster(posterId: string): Promise<{ error?: string }
   if (!poster) return { error: POSTER_COPY.notFound }
   if (typeof (await getBandAccess(poster.project_id)) === 'string') return { error: POSTER_COPY.noPermission }
   const admin = createAdminClient()
-  // 걸려 있던 포스터면 FK 가 걸린 칸을 비운다 — 그 전에 AI 를 찍은 PNG 주소를 챙겨 같이 지운다
+  // 걸려 있던 포스터면 FK 가 걸린 칸을 비운다 — 그 전에 AI 를 찍은 PNG 주소를 챙겨 같이 지운다(AI 그림 art_url 도)
   const { data: project } = await admin.from('projects').select('poster_id, poster_image_url, poster_is_ai').eq('id', poster.project_id).maybeSingle()
   const { error } = await admin.from('project_posters').delete().eq('id', posterId)
   if (error) return { error: '지우지 못했어요. 잠시 뒤 다시 해 주세요.' }
   const hungPng = project?.poster_id === posterId && project.poster_is_ai ? project.poster_image_url : null
-  await deleteCloudinaryImages([poster.image_url, hungPng].filter((u): u is string => !!u))
+  await deleteCloudinaryImages([poster.image_url, poster.art_url, hungPng].filter((u): u is string => !!u))
   revalidatePath(`/projects/${poster.project_id}/poster`)
   if (project?.poster_id === posterId) revalidatePath(`/projects/${poster.project_id}`)
   return {}
