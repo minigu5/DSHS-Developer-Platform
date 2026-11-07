@@ -1,8 +1,8 @@
 // AI 포스터 만들기 설정·타입 — 설계: docs/superpowers/specs/2026-11-05-ai-poster-design.md
 // 그림 크기·하루 상한 값은 계획 Task 1 실측으로 정한다(docs/superpowers/plans/2026-11-06-ai-poster.md 「실측 결과」).
 
-// 1단계는 관리자(개발자 계정)만. 학생에게 열 때 true + 처리방침(설계 §9)을 같은 배포에 넣는다.
-export const POSTER_OPEN_TO_ALL = false
+// 2단계(2026-11-07): 학생에게 열림 — 처리방침(Gemini 위탁)을 같은 배포에 넣었다. 끄면 다시 관리자만.
+export const POSTER_OPEN_TO_ALL = true
 
 export function posterAllowed(isAdmin: boolean): boolean {
   return POSTER_OPEN_TO_ALL || isAdmin

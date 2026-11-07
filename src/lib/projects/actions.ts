@@ -6,10 +6,12 @@
 
 import { revalidatePath } from 'next/cache'
 
+import { deleteCloudinaryImages } from '@/lib/cloudinary-delete'
 import { nameMatches } from '@/lib/confirm-name'
 import { isAllowedEmail, isDeveloper } from '@/lib/constants'
 import { fixOldAddresses, oldAddressPrefixes } from '@/lib/domains/old-address'
 import { getOldAddressSource } from '@/lib/domains/read'
+import { posterImageUrlsOf } from '@/lib/posters/cleanup'
 import { releaseLiveDomain } from '@/lib/projects/release-domain'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 
@@ -32,6 +34,9 @@ export async function deleteProject(projectId: string, confirmTitle: string): Pr
 
   if (!(await releaseLiveDomain(admin, user.id, projectId, 'project_deleted'))) return { ok: false, error: FAILED }
 
+  // 포스터 그림은 프로젝트와 함께 CASCADE 로 사라지니 그 전에 주소를 챙겨 두었다가 지운 뒤 Cloudinary 에서도 지운다
+  const posterUrls = await posterImageUrlsOf([projectId])
+
   // 실제 삭제는 사용자 권한(RLS: 소유자만)으로. author_id 는 사용자 키로 못 읽어서 거르기에 못 쓴다 — 위에서 서비스 키로 확인했고 RLS 가 한 번 더 막는다
   const { error } = await supabase.from('projects').delete().eq('id', projectId)
   if (error) {
@@ -39,6 +44,7 @@ export async function deleteProject(projectId: string, confirmTitle: string): Pr
     return { ok: false, error: FAILED }
   }
 
+  await deleteCloudinaryImages(posterUrls)
   revalidatePath('/explore')
   revalidatePath('/domains', 'layout')
   return { ok: true }

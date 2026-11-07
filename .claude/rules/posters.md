@@ -9,10 +9,20 @@ paths:
 
 # AI 포스터 만들기 (2026-11-06)
 
-설계 `docs/superpowers/specs/2026-11-05-ai-poster-design.md`(11-06 개정 §5-1·§10-2·§11-0), 계획 `docs/superpowers/plans/2026-11-06-ai-poster.md`.
+설계 `docs/superpowers/specs/2026-11-05-ai-poster-design.md`(11-06 개정 §5-1·§10-2·§11-0), 계획 `docs/superpowers/plans/2026-11-06-ai-poster.md`. 자리·걸기·홍보는 `docs/superpowers/specs/2026-11-07-poster-placement-promo-design.md`·계획 `docs/superpowers/plans/2026-11-07-poster-placement-promo.md`.
+
+## 걸기·올리기·홍보 길 (2026-11-07 사용자 결정)
+- **상세 페이지 오른쪽 옆칸 맨 위에 걸린 포스터 1장**(`PosterShowcase`, 공개 프로젝트만 — `showcaseVisible`, 비공개 허용 사용자에게도 안 보임). **마우스를 올려도 안 커진다**(hover 확대 금지 유지 — 사용자 결정), 누르면 `Dialog`로 크게. 누르고 싶게: 테두리 색만 진해짐·`cursor-zoom-in`·"크게 보기" 알약. AI 포스터면 "AI로 만든 포스터" 알약.
+- **홍보 길** = 남의 상세에서 크게 보기 창 아래 "이 포스터, 내 프로젝트로도 만들 수 있어요 →" → `/posters/start`(보호 라우트): 내가 고칠 수 있는 공개 프로젝트(`my_project_ids` + 팀원) 0개면 `/projects/new`, 1개면 그 포스터 화면, 여럿이면 고르기(`posterStartTarget`). 공지·홈 알림은 안 함. 첫 포스터는 사용자가 주인들에게 직접 부탁(관리자 대신 걸기 없음).
+- **종류** `project_posters.kind`: `ai`(html) / `upload`(직접 만든 그림 `image_url`, CHECK). 개수 **AI+올림 합쳐 프로젝트당 5개**(`poster_limit`, 옛 3개는 임의 숫자), "새 포스터 하루 1개"(`poster_daily`)는 AI만.
+- **걸린 포스터** = `projects.poster_id`(FK SET NULL)·`poster_image_url`·`poster_is_ai`·`poster_hung_at`(migration `20261107120000`). anon/authenticated는 `poster_image_url`·`poster_is_ai`만 읽힘(`PROJECT_COLUMNS`), 사용자 키로는 네 칸 다 못 바꿈(`projects_guard_owner`). `poster_id`가 비면 트리거 `projects_poster_clear`가 나머지를 비운다(포스터 삭제·내리기 둘 다). 쓰기는 `setHungPoster`(`hang-db.ts`, 서비스 키, 이전이 AI PNG면 Cloudinary에서 지움).
+- **걸기** `hangPoster`/`unhangPoster`(`hang.ts`, 권한 `getBandAccess` = 포스터 화면과 같음): 올린 그림은 그 주소 그대로, AI는 `renderPosterFile`(`render.ts`, 내보내기와 공용)로 1240×1754 PNG를 찍어 `dshs/posters`에. 그림 그리는 중이면 못 건다(`canHangPoster`). 걸린 뒤 고치면 "걸린 뒤 고쳤어요 · 다시 걸기"(`hungIsStale`, 자동으로 다시 안 찍음).
+- **올리기** `POST /api/posters/upload`(multipart `projectId`·`file`·`hang`): `isSameOrigin` → `getBandAccess` → 10MB → 앞 12바이트 `sniffImageType`(PNG·JPEG·WebP) → Blob 그대로 Cloudinary → 행 → `hang=1`이면 걸기. 409 `poster_limit`(방금 올린 그림은 지움). 올린 그림은 **바로 걸리고 관리자가 나중에 검토**(`/admin` 「걸린 포스터」, 사용자 결정).
+- **들어가는 길**: 등록·수정 폼 「홍보 포스터(선택)」 카드(`PosterFileField` — 고른 파일은 **프로젝트 저장 뒤** 올려 버려진 파일이 안 남음, 실패해도 프로젝트는 그대로 + 토스트, 비공개면 칸 꺼짐, 새 등록은 "등록한 뒤 AI로 포스터 만들기" — 고르면 도메인 권유 창 대신 포스터 화면으로), 상세 주인 권유 카드 `PosterNudge`(`projects.md`), 상세 "홍보 포스터" 버튼. 포스터 화면·`/posters/*`에선 메뉴 "프로젝트 등록"이 켜짐(`src/lib/nav-active.ts`). 탭 분할은 쓰지 않는다(사용자 "최악").
+- 지우기(`deletePoster`)도 `getBandAccess` — 올린 그림·걸린 AI PNG를 Cloudinary에서 같이 지운다. 프로젝트 삭제·탈퇴 때는 `posterImageUrlsOf`(`cleanup.ts`)로 CASCADE 전에 주소를 챙겨 지운다(`cloudinaryPublicId`가 `dshs/posters/`도 인식).
 
 ## 페이지 구성 (2026-11-06 사용자 결정 — 띠 받기가 기본, AI 포스터는 부가)
-- 상세 버튼 "홍보 포스터"(canEdit·공개) → `/projects/[id]/poster`: 맨 위 **포스터 띠 받기**(`PosterBandDownload`, 수정할 수 있는 사람 누구나 — `getBandAccess`/`decideBandAccess`, 관리자 제한 없음), 그 아래 **AI로 포스터 만들기 [실험]**은 `access.canUseAi`(1단계 관리자)일 때만.
+- 상세 버튼 "홍보 포스터"(canEdit·공개) → `/projects/[id]/poster`: 맨 위 **포스터 띠 받기**(`PosterBandDownload`, 수정할 수 있는 사람 누구나 — `getBandAccess`/`decideBandAccess`, 관리자 제한 없음), 그 아래 **상세 페이지에 걸 포스터**(올리기·AI 새로 만들기·카드마다 걸기/내리기/지우기 — AI 만들기는 `access.canUseAi`).
 - 띠 PNG는 **브라우저 캔버스**로 그린다(`band-canvas.ts`, 2480×472, 서버·Browser Rendering 안 씀). 모양은 `dshs-band.css` 좌표를 그대로 옮김, 글꼴은 사이트의 `IBM Plex Sans KR Subset`·`Geist Mono`, 긴 이름은 `bandHint` 16자에서 자름. 띠 CSS를 바꾸면 캔버스 좌표도 같이.
 - 직접 API 키 붙여넣기는 안 함(부족한 건 그림 할당량이라 Gemini 키로는 안 늘고, 학생 장벽·키 보관 부담).
 
@@ -48,9 +58,8 @@ paths:
 - 띠·QR은 우리 코드(`posterBandHtml`, 원본 CSS `docs/superpowers/specs/2026-11-05-ai-poster/dshs-band.css`). Gemini에 사이트 주소를 보내지 않는다(가짜 주소를 지어냈음).
 
 ## 권한·제한
-- **1단계 관리자만**: `POSTER_OPEN_TO_ALL = false`(`config.ts`), 공개 프로젝트만(비공개로 바뀌면 숨김, 지우지 않음), 차단된 사람 불가. 판정 `decidePosterAccess`.
-- 2단계(학생에게 열기): 플래그 true + 처리방침(설계 §9 — Google Gemini 위탁·학습 가능)을 **같은 배포**에 넣는다 → 전원 재동의. `.claude/rules/privacy.md` 참고.
-- 횟수(`POSTER_LIMITS`, DB `reserve_ai_usage`로 예약·실패 시 `release_ai_usage`): 글 사람당 20/일·사이트 200/일(**KST 자정**), 그림 사람당 5/일·사이트 6/일(**UTC 자정 = KST 09:00**, Cloudflare 할당량과 같은 시계). 프로젝트당 포스터 3개(트리거 `poster_limit`), **새 포스터는 프로젝트마다 하루(KST) 1개**(사용자 결정 2026-11-06 — `project_poster_days`에 만든 날을 남겨 지웠다 다시 만들어도 `poster_daily`로 막음, 고치기는 위 글 한도대로). 버전 5개·대화 10개.
+- **2단계 = 학생에게 열림**(2026-11-07): `POSTER_OPEN_TO_ALL = true`(`config.ts`) — 수정할 수 있는 사람(소유자·팀원·관리자) 누구나, 공개 프로젝트만(비공개로 바뀌면 숨김, 지우지 않음), 차단된 사람 불가. 판정 `decidePosterAccess`. 처리방침(Google Gemini 위탁·학습 가능, 포스터 그림)을 **같은 배포**에 넣어 전원 재동의(`.claude/rules/privacy.md`). 탭 닫힘 문제는 같은 날 다른 작업에서 Cloudflare Queues로 옮겨 해결됐다(아래 「긴 응답·내보내기」).
+- 횟수(`POSTER_LIMITS`, DB `reserve_ai_usage`로 예약·실패 시 `release_ai_usage`): 글 사람당 20/일·사이트 200/일(**KST 자정**), 그림 사람당 5/일·사이트 6/일(**UTC 자정 = KST 09:00**, Cloudflare 할당량과 같은 시계). 프로젝트당 포스터 5개(AI+올림 합쳐, 트리거 `poster_limit`), **새 포스터는 프로젝트마다 하루(KST) 1개**(사용자 결정 2026-11-06 — `project_poster_days`에 만든 날을 남겨 지웠다 다시 만들어도 `poster_daily`로 막음, 고치기는 위 글 한도대로). 버전 5개·대화 10개.
 - **학교 Mac 그림 `art_local`**: 사람당 20/일·사이트 100/일(**KST 자정**). Mac 처리량을 실측해서 조정. 기존 `art`(Workers AI)는 넘어가기용으로 그대로.
 - Workers AI 무료 10,000 neurons/일은 **계정 전체 공유**. 장당 비용(1024×768): klein ~1,360, flux-2-dev ~5,600, lucid/phoenix ~2,400, schnell ~330.
 

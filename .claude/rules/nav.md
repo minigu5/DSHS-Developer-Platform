@@ -20,7 +20,7 @@ paths:
 - **미리 받기는 메뉴만**(2026-11-04, 11-05 수정): 예전엔 모든 Link가 `prefetch={true}`(화면에 보이면 미리 받기)였는데 페이지마다 요청이 25~30개라 학교 IP가 속도 제한(100회/10초)에 걸렸다. 11-04엔 hover·터치·포커스 때만 `router.prefetch`했지만, 그게 끝나기 전에 누르면 뼈대 없이 빈 화면이 떠서 11-05부터 사이트 공용 `Link`(`src/components/shared/link.tsx`)는 미리 받지 않는다 — 「성능」 문서 참고. **단, 메뉴 5칸(`PageNav`·`MobileNav`)은 `prefetchOnView`로 화면에 보일 때 미리 받는다**(2026-11-05) — 무료 Cloudflare는 한국 접속이 LA를 거쳐 왕복 1~2초라 폰에서 메뉴를 누를 때마다 멈췄다. 처음엔 뼈대까지만(기본값 auto) 받았는데 뼈대 뒤에 또 1~2초 기다려서 같은 날 `prefetch={true}`(내용까지)로 바꿨다 — 메뉴를 누르면 서버 요청 없이 바로 넘어간다. 비로그인은 `/projects/new`·`/domains`가 `/login` 리다이렉트까지 받아 첫 화면 RSC 8개(각 3KB 이하), 이동 뒤엔 라우터 캐시라 거의 다시 안 받음(로컬 `next start` 실측).
 - **활성 버튼 판정**:
   - `/explore`, `/projects/*`(등록·수정 제외), `/developers/*` → "모든 프로젝트"
-  - `/projects/new`, `*/edit` → "프로젝트 등록"
+  - `/projects/new`, `*/edit`, `/projects/<id>/poster…`(포스터 화면), `/posters/*` → "프로젝트 등록"(2026-11-07 — 포스터는 등록과 묶음, 탭 분할은 안 함). 판정은 순수 함수 `resolveActive`(`src/lib/nav-active.ts`, 테스트 있음)
   - `/guide/*` → "나도 개발해볼래!"
   - `/tips/*`, `/haejwo/*` → "커뮤니티" (활성 키는 `href`인 `"/tips"` — `useOptimisticActive`가 href로 비교)
   - `/announcements/*` → 내비 알약은 모두 꺼지고 헤더 벨이 활성(`SECTION_COLORS.announcements.chip` 연한 sky + `aria-current`)

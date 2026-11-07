@@ -7,6 +7,7 @@ import { deleteCloudinaryImages } from '@/lib/cloudinary-delete'
 import { isAllowedEmail } from '@/lib/constants'
 import { removeCloudflare } from '@/lib/domains/cleanup'
 import { getNaruClient, unbindNaruBestEffort } from '@/lib/domains/naru'
+import { posterImageUrlsOf } from '@/lib/posters/cleanup'
 import { PRIVACY_COOKIE, PRIVACY_COOKIE_OPTIONS, WITHDRAW_CONFIRM_TEXT } from '@/lib/privacy/config'
 import { PRIVACY_POLICY_VERSION } from '@/lib/privacy/version'
 import { ONBOARDING_COOKIE_NAME, ONBOARDING_COOKIE_SECURE } from '@/lib/supabase/cookie-options'
@@ -47,6 +48,9 @@ async function eraseAccount(userId: string): Promise<boolean> {
   // 대곽나루 서버 주소가 있으면 허브 묶음을 풀 때 주인 이메일이 필요한데, 계정이 지워지기 전에만 읽을 수 있다
   const hasNaru = (domains ?? []).some((d) => d.host === 'naru')
   const { data: owner } = hasNaru ? await admin.from('users').select('email').eq('id', userId).maybeSingle() : { data: null }
+  // 내 프로젝트의 포스터 그림은 프로젝트와 함께 CASCADE 로 사라지니 그 전에 주소를 챙긴다
+  const { data: myProjects } = await admin.from('projects').select('id').eq('author_id', userId)
+  const posterUrls = await posterImageUrlsOf((myProjects ?? []).map((p) => p.id))
   const { data: urls, error } = await admin.rpc('withdraw_account', { p_user_id: userId })
   if (error) return false
   const recordIds = (domains ?? []).flatMap((d) => d.cf_record_ids)
@@ -59,7 +63,7 @@ async function eraseAccount(userId: string): Promise<boolean> {
   for (const d of domains ?? []) {
     await unbindNaruBestEffort(getNaruClient(), { host: d.host, naruServerId: d.naru_server_id, ownerEmail: owner?.email ?? null })
   }
-  await deleteCloudinaryImages(urls ?? [])
+  await deleteCloudinaryImages([...(urls ?? []), ...posterUrls])
   return true
 }
 

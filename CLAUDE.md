@@ -65,7 +65,7 @@
 | **User** (로그인) | 위 + 프로젝트 게시/수정/삭제, 댓글 작성·하트(즐겨찾기). Private 프로젝트는 작성자 또는 `allowed_users`에 포함된 사용자만 접근 |
 
 ### 보호 라우트 (`src/middleware.ts`)
-- `/projects/new`, `/projects/[id]/edit`, `/projects/[id]/poster`(AI 포스터), `/tips/new`, `/haejwo/new`, `/me`, `/guide-wiki/[key]/edit`, `/domains`, `/admin`(관리자 대시보드 — `/domains/admin`은 `/admin#domains`로)
+- `/projects/new`, `/projects/[id]/edit`, `/projects/[id]/poster`(AI 포스터), `/posters/start`(남의 포스터에서 "내 프로젝트로도 만들기"), `/tips/new`, `/haejwo/new`, `/me`, `/guide-wiki/[key]/edit`, `/domains`, `/admin`(관리자 대시보드 — `/domains/admin`은 `/admin#domains`로)
 - 비로그인 시 `/login?next=<원래경로+쿼리>` 로 리다이렉트 (쿼리 보존 — 가이드 편집기의 `?from=` 복귀용)
 - 이미 로그인된 사용자가 `/login` 진입 시 홈으로
 

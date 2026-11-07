@@ -5,7 +5,13 @@ import { classifyArtError, classifyGeminiResponse, decideBandAccess, decidePoste
 const base = { loggedIn: true, isAdmin: true, isOwner: false, isTeamMember: false, isPublic: true, banned: false }
 
 test('비로그인 → login', () => assert.equal(decidePosterAccess({ ...base, loggedIn: false }), 'login'))
-test('1단계: 관리자 아닌 소유자 → forbidden', () => assert.equal(decidePosterAccess({ ...base, isAdmin: false, isOwner: true }), 'forbidden'))
+test('학생에게 열림 — 소유자·팀원도 AI 사용, 남·차단은 막힘', () => {
+  const s = { ...base, isAdmin: false, isOwner: true }
+  assert.equal(decidePosterAccess(s), 'ok')
+  assert.equal(decidePosterAccess({ ...s, isOwner: false, isTeamMember: true }), 'ok')
+  assert.equal(decidePosterAccess({ ...s, isOwner: false }), 'forbidden')
+  assert.equal(decidePosterAccess({ ...s, banned: true }), 'forbidden')
+})
 test('비공개 프로젝트 → not_found(관리자여도)', () => assert.equal(decidePosterAccess({ ...base, isPublic: false }), 'not_found'))
 test('차단 → forbidden', () => assert.equal(decidePosterAccess({ ...base, banned: true }), 'forbidden'))
 test('관리자·공개 → ok', () => assert.equal(decidePosterAccess(base), 'ok'))
