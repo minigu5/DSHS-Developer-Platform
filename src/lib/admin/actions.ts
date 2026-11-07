@@ -8,6 +8,7 @@ import { revalidatePath } from 'next/cache'
 import { isDeveloper } from '@/lib/constants'
 import { getLatestDoc } from '@/lib/guide-wiki/read'
 import { revertGuide } from '@/lib/guide-wiki/actions'
+import { setHungPoster } from '@/lib/posters/hang-db'
 import { closeDomainOfPrivateProject } from '@/lib/projects/actions'
 import { releaseLiveDomain } from '@/lib/projects/release-domain'
 import { createAdminClient } from '@/lib/supabase/server'
@@ -231,6 +232,16 @@ export async function adminMakeProjectPrivate(projectId: string): Promise<AdminA
   await record(admin, { action: 'private', target_kind: 'project', target_id: projectId })
   revalidatePath('/explore')
   if (!closed.ok) return { ok: false, error: `비공개로 바꿨지만 주소는 닫지 못했어요. ${closed.error}` }
+  return done()
+}
+
+/** 학생이 건 포스터를 상세 페이지에서 내린다(포스터 자체는 남김 — 주인이 포스터 화면에서 지울 수 있음). 올린 그림은 바로 걸리고 관리자는 나중에 검토(사용자 결정 2026-11-07) */
+export async function adminUnhangPoster(projectId: string): Promise<AdminActionResult> {
+  const actor = await requireAdmin()
+  if (!actor) return NOT_ADMIN
+  if (!UUID.test(projectId)) return FAILED
+  if (!(await setHungPoster(projectId, null))) return FAILED
+  await record(createAdminClient(), { action: 'unhang', target_kind: 'project', target_id: projectId })
   return done()
 }
 

@@ -679,7 +679,7 @@ export type Database = {
       admin_actions: {
         Row: {
           id: number;
-          action: 'delete' | 'ban' | 'unban' | 'private' | 'dismiss' | 'revert';
+          action: 'delete' | 'ban' | 'unban' | 'private' | 'dismiss' | 'revert' | 'unhang';
           target_kind: string | null;
           target_id: string | null;
           target_user_id: string | null;
@@ -687,7 +687,7 @@ export type Database = {
           created_at: string;
         };
         Insert: {
-          action: 'delete' | 'ban' | 'unban' | 'private' | 'dismiss' | 'revert';
+          action: 'delete' | 'ban' | 'unban' | 'private' | 'dismiss' | 'revert' | 'unhang';
           target_kind?: string | null;
           target_id?: string | null;
           target_user_id?: string | null;

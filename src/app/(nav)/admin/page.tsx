@@ -3,6 +3,7 @@ import { ShieldCheck } from "lucide-react";
 
 import { BanList } from "@/components/admin/ban-list";
 import { ContentFeed } from "@/components/admin/content-feed";
+import { HungPosters } from "@/components/admin/hung-posters";
 import { StatGrid } from "@/components/admin/stat-grid";
 import { TodayList } from "@/components/admin/today-list";
 import { AdminDomainTable } from "@/components/domains/admin-domain-table";
@@ -53,6 +54,10 @@ export default async function AdminPage() {
         <section>
           <SectionTitle id="feed" title="최신 글" note="비속어는 빨갛게 표시돼요" />
           <ContentFeed initial={data.feed} />
+        </section>
+        <section>
+          <SectionTitle id="posters" title="걸린 포스터" note="올리면 바로 걸려요 · 최근 20개" />
+          <HungPosters posters={data.hungPosters} />
         </section>
         <section>
           <SectionTitle id="bans" title="차단" />

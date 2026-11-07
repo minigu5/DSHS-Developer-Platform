@@ -34,7 +34,11 @@ export type AdminDashboard = {
   feed: FeedItem[]
   bans: BanView[]
   domains: AdminDomainRow[]
+  /** 상세 페이지에 걸린 포스터 최근 20개 — 올리면 바로 걸리고 관리자가 나중에 본다(2026-11-07 사용자 결정) */
+  hungPosters: HungPosterView[]
 }
+
+export type HungPosterView = { projectId: string; title: string; imageUrl: string; isAi: boolean; hungAt: string }
 
 type RpcFeedItem = FeedItem & { authorId?: string | null }
 type RpcGuideShrink = GuideShrink & { revNo: number; authorId: string | null }
@@ -84,7 +88,7 @@ export async function loadAdminDashboard(): Promise<AdminDashboard> {
   // 탈퇴한 사람의 차단 기록은 차단이 끝나면 파기한다(처리방침)
   await admin.from('user_bans').delete().is('user_id', null).lt('until', new Date().toISOString())
 
-  const [stats, feed, bursts, shrinks, bans, dismissals, domains] = await Promise.all([
+  const [stats, feed, bursts, shrinks, bans, dismissals, domains, hung] = await Promise.all([
     admin.rpc('admin_site_stats'),
     admin.rpc('admin_recent_content', { p_limit: 50 }),
     admin.rpc('admin_bursts'),
@@ -92,8 +96,14 @@ export async function loadAdminDashboard(): Promise<AdminDashboard> {
     admin.rpc('admin_bans'),
     admin.from('admin_dismissals').select('kind, item_id'),
     listAllSubdomains(),
+    admin
+      .from('projects')
+      .select('id, title, poster_image_url, poster_is_ai, poster_hung_at')
+      .not('poster_image_url', 'is', null)
+      .order('poster_hung_at', { ascending: false })
+      .limit(20),
   ])
-  for (const r of [stats, feed, bursts, shrinks, bans, dismissals]) if (r.error) throw r.error
+  for (const r of [stats, feed, bursts, shrinks, bans, dismissals, hung]) if (r.error) throw r.error
 
   const rpcFeed = asArray<RpcFeedItem>(feed.data)
   const rpcBursts = asArray<Burst & { items: RpcFeedItem[] }>(bursts.data)
@@ -128,5 +138,12 @@ export async function loadAdminDashboard(): Promise<AdminDashboard> {
     feed: feedItems,
     bans: (banData.active ?? []).map((b) => toBanView({ ...b, name: (b.userId && names.get(b.userId)) || b.name })),
     domains,
+    hungPosters: (hung.data ?? []).map((p) => ({
+      projectId: p.id,
+      title: p.title,
+      imageUrl: p.poster_image_url ?? '',
+      isAi: p.poster_is_ai,
+      hungAt: p.poster_hung_at ?? '',
+    })),
   }
 }
