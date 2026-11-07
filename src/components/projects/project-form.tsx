@@ -786,7 +786,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
           router.refresh();
           return;
         }
-        if (makeAiPoster && visibility === 'public') {
+        if (makeAiPoster && !posterFile && visibility === 'public') {
           // AI 포스터를 만들기로 했으면 도메인 권유 창 대신 포스터 화면으로(도메인 권유는 상세 페이지 안내로 다시 뜬다)
           router.push(`/projects/${data.id}/poster`);
           router.refresh();
@@ -1403,50 +1403,57 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
           )}
         </FormSection>
 
-        {/* 6. 홍보 포스터(선택) — 고른 그림은 저장한 뒤 올라가 상세 페이지에 걸린다 */}
+        {/* 6. 홍보 포스터(선택) — 새 등록: 그림을 골라 두면 저장 뒤 올라가 걸린다 / 수정: 지금 상태 + 포스터 화면으로 가는 버튼 하나 */}
         <FormSection id="section-poster" title="홍보 포스터" hint="선택">
-          <div className="flex flex-col gap-4">
-            {isEdit && initialData?.poster_image_url && (
-              <div className="flex items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary 원본 */}
-                <img src={posterImageAt(initialData.poster_image_url, 240)} alt="지금 걸린 포스터" className="h-20 w-auto rounded-lg ring-1 ring-zinc-200 dark:ring-zinc-800" />
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">지금 상세 페이지에 걸린 포스터예요.</p>
+          {isEdit && initialData?.id ? (
+            initialData.visibility === "public" ? (
+              <div className="flex items-center gap-4">
+                {initialData.poster_image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- Cloudinary 원본
+                  <img src={posterImageAt(initialData.poster_image_url, 240)} alt="지금 걸린 포스터" className="h-24 w-auto shrink-0 rounded-lg ring-1 ring-zinc-200 dark:ring-zinc-800" />
+                ) : (
+                  <div className="flex aspect-[210/297] h-24 shrink-0 items-center justify-center rounded-lg border border-dashed border-zinc-300 text-zinc-400 dark:border-zinc-700" aria-hidden>
+                    <Megaphone className="h-5 w-5" />
+                  </div>
+                )}
+                <div className="flex min-w-0 flex-col items-start gap-2">
+                  <p className="text-sm font-medium text-zinc-900 dark:text-white">
+                    {initialData.poster_image_url ? "상세 페이지에 걸린 포스터예요" : "아직 걸린 포스터가 없어요"}
+                  </p>
+                  <p className={hintClass}>AI로 만들거나 직접 만든 그림을 올려서 걸 수 있어요.</p>
+                  <a
+                    href={`/projects/${initialData.id}/poster`}
+                    className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-9 rounded-full px-4")}
+                  >
+                    <Megaphone className="mr-1.5 h-4 w-4" aria-hidden /> {initialData.poster_image_url ? "포스터 바꾸기" : "홍보 포스터 만들기"}
+                  </a>
+                </div>
               </div>
-            )}
-            <div className="flex flex-col gap-2">
-              <span className={labelClass}>포스터 그림 올리기</span>
+            ) : (
+              <p className={hintClass}>공개 프로젝트만 포스터를 걸 수 있어요.</p>
+            )
+          ) : (
+            <div className="flex flex-col gap-4">
+              <p className={hintClass}>
+                학교 게시판에 붙일 포스터를 상세 페이지에도 걸 수 있어요. 나중에 해도 돼요.
+                {authorRole === "anonymous" && " 포스터에 이름을 넣으면 익명이 풀려요."}
+              </p>
               <PosterFileField
                 file={posterFile}
                 onChange={setPosterFile}
                 disabledReason={visibility === "public" ? null : "공개 프로젝트만 포스터를 걸 수 있어요."}
               />
-              <p className={hintClass}>
-                학교 게시판에 붙일 포스터 그림을 올리면 {isEdit ? "저장할 때" : "등록할 때"} 상세 페이지에 걸려요.
-                {authorRole === "anonymous" && " 포스터에 이름을 넣으면 익명이 풀려요."}
-              </p>
+              {posterAllowed(false) && visibility === "public" && !posterFile && (
+                <ChoiceRow
+                  icon={Sparkles}
+                  selected={makeAiPoster}
+                  onSelect={() => setMakeAiPoster((v) => !v)}
+                  label="포스터가 없으면 AI로 만들기"
+                  description="등록이 끝나면 포스터 화면으로 가서 AI가 포스터를 만들어 줘요."
+                />
+              )}
             </div>
-            {/* 수정 화면 — AI 포스터·띠 받기·걸 포스터 고르기는 포스터 화면에서(상세 머리의 "홍보 포스터" 버튼 대신 여기와 주인 안내 카드로 간다) */}
-            {isEdit && initialData?.id && initialData.visibility === "public" && (
-              <div className="flex flex-col gap-2 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-                <a
-                  href={`/projects/${initialData.id}/poster`}
-                  className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-9 w-fit rounded-full px-4")}
-                >
-                  <Megaphone className="mr-1.5 h-4 w-4" aria-hidden /> 홍보 포스터 만들기
-                </a>
-                <p className={hintClass}>AI로 포스터를 만들거나, 올린 포스터 중 걸 것을 고르거나, 포스터 띠를 받을 수 있어요.</p>
-              </div>
-            )}
-            {!isEdit && posterAllowed(false) && visibility === "public" && (
-              <ChoiceRow
-                icon={Sparkles}
-                selected={makeAiPoster}
-                onSelect={() => setMakeAiPoster((v) => !v)}
-                label="등록한 뒤 AI로 포스터 만들기"
-                description="등록이 끝나면 포스터 화면으로 가서 AI가 포스터를 만들어 줘요."
-              />
-            )}
-          </div>
+          )}
         </FormSection>
 
         {/* 7. 위험 구역 — 수정 페이지, 소유자만 */}
