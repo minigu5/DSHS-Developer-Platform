@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, Globe, Code2, Users, User as UserIcon, VenetianMask, Plus, X, Link as LinkIcon, Loader2, Image as ImageIcon, Trash2, Rocket, Download, RefreshCw } from "lucide-react";
+import { Lock, Globe, Code2, Users, User as UserIcon, VenetianMask, Plus, X, Link as LinkIcon, Loader2, Image as ImageIcon, Trash2, Rocket, Download, RefreshCw, Sparkles } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -43,6 +43,10 @@ import { createClient } from "@/lib/supabase/client";
 import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 import type { ProjectRow, UserContact } from "@/lib/types";
 import { BannedNotice } from "@/components/shared/banned-notice";
+import { PosterFileField } from "@/components/posters/poster-file-field";
+import { uploadPosterFile } from "@/components/posters/poster-upload-button";
+import { posterAllowed } from "@/lib/posters/config";
+import { toast } from "sonner";
 import { friendlyWriteError } from "@/lib/admin/ban";
 import { useMyBan } from "@/lib/admin/use-my-ban";
 
@@ -96,6 +100,9 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   const savedTitle = initialData?.title ?? "";
   const confirmed = nameMatches(confirmName, savedTitle);
   // 등록 직후 방문 주소가 호스트 무료 주소(.vercel.app 등)면 도메인 마련하기를 권한다
+  // 홍보 포스터(선택) — 고른 그림은 저장이 끝난 뒤 올린다. AI 는 학생에게 열린 뒤 새 등록에서만 묻는다
+  const [posterFile, setPosterFile] = useState<File | null>(null);
+  const [makeAiPoster, setMakeAiPoster] = useState(false);
   const [domainOffer, setDomainOffer] = useState<{ projectId: string; hostLabel: string; hostname: string; suggestion: string | null; quick: boolean } | null>(null);
 
   const [title, setTitle] = useState<string>(initialData?.title ?? "");
@@ -528,6 +535,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
     sourceType, repoUrl, readmeSync, sorted(licenseFeatures), hasCustomLicense, licenseCustom,
     sorted(selectedFeatures), featureCustom, visibility, sorted(allowedUsers),
     authorRole, teamName, sorted(teamMembers), url, iconType, iconUrl,
+    posterFile?.name ?? "", makeAiPoster,
   ]);
   const [initialSnapshot] = useState(formSnapshot);
   const { allowLeave } = useUnsavedWarning(formSnapshot !== initialSnapshot);
@@ -690,6 +698,12 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   // 저장에 성공하면 페이지가 바뀔 때까지 다시 저장하지 않는다 — 이동이 1~2초 걸리는 동안 버튼을 또 눌러 같은 프로젝트가 여러 번 등록됐다(2026-11-04).
   // state 는 다음 렌더까지 안 바뀌므로 빠른 연속 클릭은 ref 로 막는다.
   const savingRef = useRef(false);
+  // 프로젝트 저장이 끝난 뒤 고른 포스터 그림을 올리고 건다. 실패해도 프로젝트는 그대로(되돌리지 않음) — 안내만
+  const uploadPosterAfterSave = async (projectId: string) => {
+    if (!posterFile || visibility !== 'public') return;
+    const result = await uploadPosterFile(projectId, posterFile, true);
+    if (!result.ok) toast.error(`프로젝트는 저장했어요. 포스터는 포스터 화면에서 다시 올려 주세요. (${result.error})`);
+  };
 
   const saveProject = async () => {
     if (savingRef.current) return;
@@ -757,6 +771,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
           if (!closed.ok) throw new Error(`비공개로는 저장했지만 주소는 아직 닫히지 않았어요. ${closed.error}`);
         }
         allowLeave();
+        await uploadPosterAfterSave(initialData.id);
         router.push(`/projects/${initialData.id}`);
       } else {
         // select('id') — 사용자 키는 author_id 를 못 읽어서 전체 칸으로 돌려받으면 권한 오류
@@ -765,6 +780,13 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         allowLeave();
         if (nextHref && shouldFollowNext(nextHref, { isWebsite, isPublic: visibility === 'public' })) {
           router.push(withProject(nextHref, data.id));
+          router.refresh();
+          return;
+        }
+        await uploadPosterAfterSave(data.id);
+        if (makeAiPoster && visibility === 'public') {
+          // AI 포스터를 만들기로 했으면 도메인 권유 창 대신 포스터 화면으로(도메인 권유는 상세 페이지 안내로 다시 뜬다)
+          router.push(`/projects/${data.id}/poster`);
           router.refresh();
           return;
         }
@@ -816,6 +838,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
     { id: "section-category", title: "분류", done: types.length > 0 && platformsReady },
     { id: "section-source", title: "소스코드·라이선스", done: sourceType === "closed" || Boolean(repoUrl.trim()) },
     { id: "section-visibility", title: "공개 범위·만든 사람", done: authorRole !== "team" || Boolean(teamName.trim()) },
+    { id: "section-poster", title: "홍보 포스터", done: Boolean(posterFile) || makeAiPoster || Boolean(initialData?.poster_image_url) },
   ];
   const typeDesc = (value: string) => GUIDE_PROGRAM_TYPES.find((t) => t.value === value)?.desc;
 
@@ -1378,7 +1401,46 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
           )}
         </FormSection>
 
-        {/* 6. 위험 구역 — 수정 페이지, 소유자만 */}
+        {/* 6. 홍보 포스터(선택) — 고른 그림은 저장한 뒤 올라가 상세 페이지에 걸린다 */}
+        <FormSection id="section-poster" title="홍보 포스터" hint="선택">
+          <div className="flex flex-col gap-4">
+            {isEdit && initialData?.poster_image_url && (
+              <div className="flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary 원본 */}
+                <img src={initialData.poster_image_url} alt="지금 걸린 포스터" className="h-20 w-auto rounded-lg ring-1 ring-zinc-200 dark:ring-zinc-800" />
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  지금 상세 페이지에 걸린 포스터예요.{" "}
+                  <a href={`/projects/${initialData.id}/poster`} className="font-medium text-zinc-900 underline-offset-4 hover:underline dark:text-white">
+                    포스터 화면에서 고르기
+                  </a>
+                </p>
+              </div>
+            )}
+            <div className="flex flex-col gap-2">
+              <span className={labelClass}>포스터 그림 올리기</span>
+              <PosterFileField
+                file={posterFile}
+                onChange={setPosterFile}
+                disabledReason={visibility === "public" ? null : "공개 프로젝트만 포스터를 걸 수 있어요."}
+              />
+              <p className={hintClass}>
+                학교 게시판에 붙일 포스터 그림을 올리면 {isEdit ? "저장할 때" : "등록할 때"} 상세 페이지에 걸려요.
+                {authorRole === "anonymous" && " 포스터에 이름을 넣으면 익명이 풀려요."}
+              </p>
+            </div>
+            {!isEdit && posterAllowed(false) && visibility === "public" && (
+              <ChoiceRow
+                icon={Sparkles}
+                selected={makeAiPoster}
+                onSelect={() => setMakeAiPoster((v) => !v)}
+                label="등록한 뒤 AI로 포스터 만들기"
+                description="등록이 끝나면 포스터 화면으로 가서 AI가 포스터를 만들어 줘요."
+              />
+            )}
+          </div>
+        </FormSection>
+
+        {/* 7. 위험 구역 — 수정 페이지, 소유자만 */}
         {showDanger && (
           <FormSection id="section-danger" title="위험 구역" hint="수정 페이지에서만" danger>
             <div className="flex flex-wrap items-center justify-between gap-4">
