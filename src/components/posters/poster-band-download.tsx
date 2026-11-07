@@ -15,7 +15,8 @@ import { Segment } from "./segment";
 /** 포스터 띠만 받기 — 자기가 만든 포스터 위·아래에 붙이는 "대곽 개발자 플랫폼에서 만나요" 띠 + 이 프로젝트 QR. */
 export function PosterBandDownload({ title, projectId }: { title: string; projectId: string }) {
   const [tone, setTone] = useState<PosterTone>("light");
-  const [position, setPosition] = useState<PosterBandPosition>("bottom");
+  // 위·아래는 띠 테두리 선 위치만 바뀌어서(2px) 고르지 않는다(2026-11-07 사용자 "의미가 없다") — 아래에 붙이는 모양 하나
+  const position: PosterBandPosition = "bottom";
   const [busy, setBusy] = useState(false);
 
   async function download() {
@@ -52,10 +53,7 @@ export function PosterBandDownload({ title, projectId }: { title: string; projec
         </div>
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-        <div className="flex flex-wrap gap-2">
-          <Segment label="띠 색" value={tone} options={[["light", "밝은 띠"], ["dark", "어두운 띠"]]} onChange={setTone} />
-          <Segment label="붙일 곳" value={position} options={[["bottom", "포스터 아래"], ["top", "포스터 위"]]} onChange={setPosition} />
-        </div>
+        <Segment label="띠 색" value={tone} options={[["light", "밝은 띠"], ["dark", "어두운 띠"]]} onChange={setTone} />
         <Button className={cn("h-11 rounded-full px-5", SECTION_COLORS.new.button)} disabled={busy} onClick={download}>
           <Download className="mr-1 h-4 w-4" aria-hidden /> {busy ? "만드는 중…" : "PNG로 받기"}
         </Button>

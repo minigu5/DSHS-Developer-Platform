@@ -54,7 +54,7 @@ paths:
 ## 보안
 - AI HTML은 `<iframe sandbox="" srcDoc>`에만(`PosterPreview`). `allow-same-origin`·`allow-scripts` 금지. 저장 전 `sanitizePosterHtml`(script·on*·javascript:·iframe/object/embed/form/base·meta refresh·Google Fonts 외 link).
 - `project_posters`·`ai_usage`는 RLS 켜고 정책 없음 — 서버가 `getPosterAccess` 뒤 서비스 키로만. API는 `guardPosterRequest`(isSameOrigin → 포스터 → 권한).
-- 띠는 밝게/어둡게(`band_tone`)·위/아래(`band_position`, 사용자 요청 2026-11-06) — 스튜디오 세그먼트, 미리보기는 `flex-col-reverse`, 내보내기는 `posterExportPage(…, position)`.
+- 띠는 밝게/어둡게(`band_tone`)·위/아래(`band_position`, 사용자 요청 2026-11-06) — 위/아래는 AI 포스터 스튜디오에서만(띠 받기 카드는 테두리 선 위치만 바뀌어 2026-11-07 뺐다, 아래 고정) — 스튜디오 세그먼트, 미리보기는 `flex-col-reverse`, 내보내기는 `posterExportPage(…, position)`.
 - 띠·QR은 우리 코드(`posterBandHtml`, 원본 CSS `docs/superpowers/specs/2026-11-05-ai-poster/dshs-band.css`). Gemini에 사이트 주소를 보내지 않는다(가짜 주소를 지어냈음).
 
 ## 권한·제한
