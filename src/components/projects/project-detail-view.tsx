@@ -12,7 +12,6 @@ import { ProjectComments } from "@/components/projects/project-comments";
 import { HeartButton } from "@/components/projects/heart-button";
 import { ProjectIcon } from "@/components/projects/project-icon";
 import { EditButton } from "@/components/projects/edit-button";
-import { PosterButton } from "@/components/posters/poster-button";
 import { PosterShowcase } from "@/components/posters/poster-showcase";
 import { showcaseVisible } from "@/lib/posters/hang-logic";
 import { BackToExplore } from "@/components/projects/back-to-explore";
@@ -218,7 +217,6 @@ export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anony
                 className="h-11 px-4 sm:px-5"
               />
               {canEdit && <EditButton projectId={project.id} />}
-              {canEdit && project.visibility === 'public' && <PosterButton projectId={project.id} />}
             </div>
           </div>
         </div>

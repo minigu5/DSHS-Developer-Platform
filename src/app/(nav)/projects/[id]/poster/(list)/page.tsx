@@ -76,10 +76,10 @@ export default async function PosterListPage({
                   : "직접 만든 포스터 그림을 올리면 프로젝트 페이지에 걸 수 있어요."}
               </p>
             </div>
-            <div className="flex flex-wrap items-start gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <PosterUploadButton projectId={id} full={full} hangIfNone={!hungId} />
               {access.canUseAi && (
-                <NewPosterButton projectId={id} full={full} madeToday={!!madeToday} />
+                <NewPosterButton projectId={id} disabled={full || !!madeToday} />
               )}
             </div>
           </div>
@@ -87,7 +87,9 @@ export default async function PosterListPage({
             {hungId
               ? "지금 걸린 포스터에 '걸려 있어요' 표시가 있어요."
               : "아직 걸린 포스터가 없어요. 아래에서 하나를 골라 걸어 보세요."}
-            {full && !access.canUseAi && ` 포스터는 ${POSTER_LIMITS.perProject}개까지예요. 하나를 지우면 올릴 수 있어요.`}
+            {full
+              ? ` 포스터는 ${POSTER_LIMITS.perProject}개까지예요. 하나를 지우면 올리거나 만들 수 있어요.`
+              : access.canUseAi && madeToday && " AI 포스터는 하루에 하나 새로 만들 수 있어요. 만든 포스터는 계속 고칠 수 있어요."}
           </p>
           {posters.length === 0 ? (
             <p className="text-center text-zinc-600 dark:text-zinc-400">

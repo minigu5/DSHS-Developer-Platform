@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, Globe, Code2, Users, User as UserIcon, VenetianMask, Plus, X, Link as LinkIcon, Loader2, Image as ImageIcon, Trash2, Rocket, Download, RefreshCw, Sparkles } from "lucide-react";
+import { Lock, Globe, Code2, Users, User as UserIcon, VenetianMask, Plus, X, Link as LinkIcon, Loader2, Image as ImageIcon, Trash2, Rocket, Download, RefreshCw, Sparkles, Megaphone } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -1410,12 +1410,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
               <div className="flex items-center gap-3">
                 {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary 원본 */}
                 <img src={posterImageAt(initialData.poster_image_url, 240)} alt="지금 걸린 포스터" className="h-20 w-auto rounded-lg ring-1 ring-zinc-200 dark:ring-zinc-800" />
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  지금 상세 페이지에 걸린 포스터예요.{" "}
-                  <a href={`/projects/${initialData.id}/poster`} className="font-medium text-zinc-900 underline-offset-4 hover:underline dark:text-white">
-                    포스터 화면에서 고르기
-                  </a>
-                </p>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">지금 상세 페이지에 걸린 포스터예요.</p>
               </div>
             )}
             <div className="flex flex-col gap-2">
@@ -1430,6 +1425,18 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
                 {authorRole === "anonymous" && " 포스터에 이름을 넣으면 익명이 풀려요."}
               </p>
             </div>
+            {/* 수정 화면 — AI 포스터·띠 받기·걸 포스터 고르기는 포스터 화면에서(상세 머리의 "홍보 포스터" 버튼 대신 여기와 주인 안내 카드로 간다) */}
+            {isEdit && initialData?.id && initialData.visibility === "public" && (
+              <div className="flex flex-col gap-2 border-t border-zinc-100 pt-4 dark:border-zinc-800">
+                <a
+                  href={`/projects/${initialData.id}/poster`}
+                  className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-9 w-fit rounded-full px-4")}
+                >
+                  <Megaphone className="mr-1.5 h-4 w-4" aria-hidden /> 홍보 포스터 만들기
+                </a>
+                <p className={hintClass}>AI로 포스터를 만들거나, 올린 포스터 중 걸 것을 고르거나, 포스터 띠를 받을 수 있어요.</p>
+              </div>
+            )}
             {!isEdit && posterAllowed(false) && visibility === "public" && (
               <ChoiceRow
                 icon={Sparkles}
