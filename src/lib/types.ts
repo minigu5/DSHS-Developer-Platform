@@ -123,6 +123,11 @@ export type Database = {
           readme_synced_at: string | null;
           // 익명이면 null, 아니면 author_id (자동 계산). 사용자 키는 author_id 를 못 읽으므로 화면은 이 칸을 쓴다
           public_author_id: string | null;
+          // 걸린 포스터(migration 20261107120000) — 사용자 키는 poster_image_url·poster_is_ai 만 읽힘, 바꾸기는 서비스 키만
+          poster_id: string | null;
+          poster_image_url: string | null;
+          poster_is_ai: boolean;
+          poster_hung_at: string | null;
         };
         Insert: {
           id?: string;
@@ -182,6 +187,10 @@ export type Database = {
           readme_sync?: boolean;
           readme_etag?: string | null;
           readme_synced_at?: string | null;
+          poster_id?: string | null;
+          poster_image_url?: string | null;
+          poster_is_ai?: boolean;
+          poster_hung_at?: string | null;
         };
         Relationships: [
           {
@@ -535,6 +544,8 @@ export type Database = {
           band_position: 'top' | 'bottom';
           art_job_id: string | null; // 기다리는 학교 Mac 그림 일감(migration 20261106190000)
           ai_job_id: string | null; // 큐에서 돌고 있는 만들기·고치기·다시 그리기 일감(migration 20261107130000)
+          kind: 'ai' | 'upload'; // 직접 올린 그림은 image_url(migration 20261107120000)
+          image_url: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -548,6 +559,8 @@ export type Database = {
           messages?: Json;
           band_tone?: 'light' | 'dark';
           band_position?: 'top' | 'bottom';
+          kind?: 'ai' | 'upload';
+          image_url?: string | null;
         };
         Update: {
           html?: string | null;

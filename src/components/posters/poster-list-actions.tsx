@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { createPoster, deletePoster } from "@/lib/posters/actions";
+import { POSTER_LIMITS } from "@/lib/posters/config";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +27,7 @@ export function NewPosterButton({ projectId, full, madeToday }: { projectId: str
         <Plus className="mr-1 h-4 w-4" aria-hidden /> {pending ? "만드는 중…" : "새로 만들기"}
       </Button>
       {full ? (
-        <p className="text-sm text-zinc-500">포스터는 3개까지예요. 하나를 지우면 새로 만들 수 있어요.</p>
+        <p className="text-sm text-zinc-500">포스터는 {POSTER_LIMITS.perProject}개까지예요. 하나를 지우면 새로 만들 수 있어요.</p>
       ) : (
         madeToday && <p className="text-sm text-zinc-500">새 포스터는 하루에 하나예요. 만든 포스터는 계속 고칠 수 있어요.</p>
       )}

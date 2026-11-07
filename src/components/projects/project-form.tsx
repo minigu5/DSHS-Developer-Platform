@@ -65,8 +65,8 @@ function repoKey(input: string): string {
 }
 
 interface ProjectFormProps {
-  /** 사용자 키로 읽은 행이라 author_id 는 없다(PROJECT_COLUMNS) */
-  initialData?: Omit<ProjectRow, 'author_id'>;
+  /** 사용자 키로 읽은 행이라 author_id·poster_id·poster_hung_at 은 없다(PROJECT_COLUMNS) */
+  initialData?: Omit<ProjectRow, 'author_id' | 'poster_id' | 'poster_hung_at'>;
   isEdit?: boolean;
   canDelete?: boolean;
   /** 이 프로젝트에 살아 있는 주소(서브도메인) 이름 — 삭제하면 함께 반납돼요 */
