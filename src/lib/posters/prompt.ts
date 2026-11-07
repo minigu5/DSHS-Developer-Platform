@@ -14,11 +14,11 @@ export const POSTER_SYSTEM = [
   `2) ${FENCE}html 블록: 포스터 전체 HTML.`,
   '규칙:',
   '- 캔버스는 정확히 가로 1240px × 세로 1518px. html, body { margin:0 } 이고 포스터 요소는 width:1240px; height:1518px; overflow:hidden. 이 아래에 플랫폼 띠(QR 포함)가 자동으로 붙으니 QR·띠·사이트 주소·URL은 절대 넣지 말 것.',
-  '- 구성(위→아래, 캔버스를 꽉 채운다 — 아무것도 없는 가로 띠가 150px을 넘지 않게). 포스터 요소는 display:flex; flex-direction:column, 좌우 여백은 똑같이(예: padding 0 96px), 장점 줄 밑 여백은 72px 정도만. ③ 영역 높이는 1518에서 위 여백·이름·헤드라인·장점 줄·아래 여백·사이 간격을 뺀 값으로 계산한다(보통 640~780px):',
+  '- 구성(위→아래, 캔버스를 꽉 채운다 — 아무것도 없는 가로 띠가 150px을 넘지 않게). 포스터 요소는 display:flex; flex-direction:column, 좌우 여백은 똑같이(예: padding 0 96px), 장점 줄 밑 여백은 72px 정도만. ③ 영역 높이는 1518에서 위 여백·이름·헤드라인·장점 줄·아래 여백·사이 간격을 뺀 값으로 계산한다(보통 640~780px). ③ 영역은 flex:1; display:flex; align-items:center; justify-content:center; position:relative 로 두어 남는 높이가 한쪽(특히 헤드라인 아래)에 몰리지 않게 하고, 헤드라인과 ③ 내용 사이는 64px 이하로:',
   '  ① 서비스 이름: 포인트 색으로 굵게. 이름이 "휩 - LaTeX 변환기"처럼 길면 짧은 이름(휩)만 크게(한두 글자면 120px 이상, 길면 72px 이상) 쓰고 나머지는 그 옆이나 아래에 작게(배지·알약 모양 말고 그냥 글자로).',
   '  ② 헤드라인: 이 프로그램이 학생에게 주는 이득 한 문장(두 줄까지), 72~96px.',
   '  ③ 주인공: 학생이 고른 스타일대로(처음 만들 때 알려 준다). 고칠 땐 지금 포스터의 ③을 유지한다.',
-  '  ④ 장점 2~3개: display:grid; grid-template-columns:repeat(<개수>,1fr); gap 24px 로 콘텐츠 폭을 꽉 채운다(한쪽으로 쏠리지 않게). 칸마다 작은 인라인 SVG 아이콘(선 굵기 3 이상, 포인트 색) + 굵은 라벨(2~8글자) + 설명 한 줄(12자 이내 — 넘치면 칸에서 두 줄로 꺾여 보기 싫다).',
+  '  ④ 장점 2~3개: margin-top:auto 로 맨 아래(밑 여백 72px)에 붙이고, display:grid; grid-template-columns:repeat(<개수>,1fr); gap 24px 로 콘텐츠 폭을 꽉 채운다(한쪽으로 쏠리지 않게). 칸마다 작은 인라인 SVG 아이콘(선 굵기 3 이상, 포인트 색) + 굵은 라벨(2~8글자) + 설명 한 줄(12자 이내 — 넘치면 칸에서 두 줄로 꺾여 보기 싫다).',
   '  같은 문구를 두 번 쓰지 않는다(이름·부제·장점끼리 겹치지 않게). 설명 문단·알약 배지 금지.',
   '- 그림 AI 그림은 직접 그리지 말고 <img src="ART" style="width:…px;height:…px;object-fit:contain"> 자리 하나만 둔다. 이 자리의 크기가 json의 width·height와 같아야 한다.',
   '- 그림이 따로 붙인 사진처럼 보이지 않게: 포스터 바탕은 흰색(#ffffff) 단색, 그림 <img>에 mix-blend-mode:multiply 를 준다. 그림 자리에 테두리·그림자·색 상자를 두지 않는다.',
@@ -33,7 +33,7 @@ export const POSTER_SYSTEM = [
 
 // 처음 만들 때 학생이 고른 스타일(style.ts)에 따라 ③을 이렇게 만든다
 const STYLE_EXAMPLE =
-  '③ 사용 예시 카드 + 장식 그림. 카드는 HTML/CSS로 그린 앱 화면(흰 바탕, 둥근 모서리 28px 이상, 연한 테두리와 부드러운 그림자, 맨 위에 창 점 3개 정도). 안에 이 프로그램을 쓰는 장면 하나를 "넣는 것 → 나오는 것"으로 보여 준다(두 칸 사이에 굵은 화살표). 예: 변환기면 왼쪽에 실제 입력 예시, 오른쪽에 변환 결과. 예시 값은 주어진 정보에 나온 것이나 누가 봐도 예시인 값(곡 A·곡 B, x^2 같은)만 쓰고 지어낸 기능을 보여 주지 않는다. 코드·수식은 IBM Plex Mono 30px 이상, 칸마다 작은 라벨(입력·결과 등). 카드가 ③ 영역 폭의 70~85%·높이의 60% 이상을 차지하고(카드 위아래가 휑하지 않게), 장식 그림(ART, 360~520px 정사각형에 가깝게)은 카드 한쪽 모서리 뒤나 옆에 살짝 겹쳐(position:absolute, 카드보다 아래 z-index) 카드보다 작게 둔다. 그림 프롬프트(30~60단어): 이 프로그램을 쓰는 학생 곁에 있을 법한 익숙한 물건 1~3개(수식·문서 도구면 연필과 공책·안경, 음악이면 헤드폰과 레코드판, 일정이면 탁상 달력과 알람시계)를 귀엽게 모은 장면, "soft 3D render, cute rounded objects, glossy clay material, gentle studio lighting", 포인트 색과 어울리는 2~3가지 색. 추상적인 기계·도형·빛나는 선은 쓰지 않는다.'
+  '③ 사용 예시 카드 + 장식 그림. 카드는 HTML/CSS로 그린 앱 화면(흰 바탕, 둥근 모서리 28px 이상, 연한 테두리와 부드러운 그림자, 맨 위에 창 점 3개 정도). 안에 이 프로그램을 쓰는 장면 하나를 "넣는 것 → 나오는 것"으로 보여 준다(두 칸 사이에 굵은 화살표). 예: 변환기면 왼쪽에 실제 입력 예시, 오른쪽에 변환 결과. 예시 값은 주어진 정보에 나온 것이나 누가 봐도 예시인 값(곡 A·곡 B, x^2 같은)만 쓰고 지어낸 기능을 보여 주지 않는다. 코드·수식은 IBM Plex Mono 30px 이상, 칸마다 작은 라벨(입력·결과 등). 카드는 왼쪽 정렬, width 780~820px, min-height 520px, position:relative; z-index:2. 카드 속은 display:grid; grid-template-columns:1fr auto 1fr; align-items:stretch(두 칸 + 가운데 화살표), 칸 안 여백 28px, 예시 글자 28~32px, 칸 밖으로 넘치지 않게 overflow-wrap:anywhere — 높이가 남으면 예시를 한두 줄 늘린다. 장식 그림(ART, 340~380px 정사각형)은 position:absolute; right:0; bottom:0; z-index:1 로 카드 오른쪽 아래 모서리 바깥에 두고 카드 글자를 가리지 않는다(겹치는 건 카드 모서리 100px 정도까지). 그림 프롬프트(30~60단어): 이 프로그램을 쓰는 학생 곁에 있을 법한 익숙한 물건 1~3개(수식·문서 도구면 연필과 공책·안경, 음악이면 헤드폰과 레코드판, 일정이면 탁상 달력과 알람시계)를 귀엽게 모은 장면, "soft 3D render, cute rounded objects, glossy clay material, gentle studio lighting", 포인트 색과 어울리는 2~3가지 색. 추상적인 기계·도형·빛나는 선은 쓰지 않는다.'
 const STYLE_ART =
   '③ 큰 그림(ART) 하나가 주인공. ③ 영역 높이·콘텐츠 폭에 맞춰 그림 자리 크기를 정한다(json에도 같은 값). 그림 프롬프트(40~80단어): 서비스의 뜻이나 가장 큰 장점을 은유하는 구체적인 사물 장면 하나(음악이면 레코드판, 정리면 서랍, 빠름이면 로켓처럼 누구나 알아보는 사물), "compact composition as tall as it is wide", "clean flat vector illustration, bold simple shapes, soft subtle shadows", 포인트 색 포함 3~4가지 색. 추상적인 기계·도형만 있는 장면은 쓰지 않는다.'
 const STYLE_TYPE =
