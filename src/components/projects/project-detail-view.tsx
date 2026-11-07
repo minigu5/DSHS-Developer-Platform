@@ -30,6 +30,7 @@ import { LikersCard } from "@/components/admin/likers-card";
 import { LockButton, UnlockButton } from "@/components/admin/lock-dialog";
 import { LockNotice } from "@/components/projects/lock-notice";
 import type { ProjectDetail } from "@/lib/projects/detail";
+import { isSameLink } from "@/lib/projects/same-link";
 
 const LICENSE_LABELS: Record<string, string> = {
   commercial: "상업적 이용",
@@ -85,6 +86,7 @@ export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anony
   const isWebsiteAll = (project.types ?? []).includes("website") && platformLabels.length >= PLATFORMS.length;
   const allowedCount = (project.license_features ?? []).length;
   const createdLabel = new Date(project.created_at).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
+  const repoIsSite = project.source_type === "open" && isSameLink(project.url, project.repo_url);
 
   const stats: StatStripItem[] = [
     {
@@ -202,11 +204,16 @@ export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anony
                   rel="noreferrer"
                   className={cn(buttonVariants({ size: "lg" }), "h-11 flex-1 rounded-full px-4 text-sm sm:flex-none sm:px-5", SECTION_COLORS.explore.button)}
                 >
-                  <ExternalLink className="mr-1.5 h-4 w-4" aria-hidden /> 웹사이트 방문
+                  {/* 방문 주소가 저장소 링크와 같으면 버튼은 이것 하나 — 방문 수는 그대로 센다 */}
+                  {repoIsSite ? (
+                    <><Code2 className="mr-1.5 h-4 w-4" aria-hidden /> GitHub 저장소</>
+                  ) : (
+                    <><ExternalLink className="mr-1.5 h-4 w-4" aria-hidden /> 웹사이트 방문</>
+                  )}
                   <span className="sr-only"> (새 탭에서 열림)</span>
                 </a>
               )}
-              {project.source_type === "open" && project.repo_url && (
+              {project.source_type === "open" && project.repo_url && !repoIsSite && (
                 <a
                   href={project.repo_url}
                   target="_blank"
