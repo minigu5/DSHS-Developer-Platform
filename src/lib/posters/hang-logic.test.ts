@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { canHangPoster, hungIsStale, posterNudgeVisible, posterStartTarget, showcaseVisible } from './hang-logic.ts'
+import { canHangPoster, hungIsStale, posterImageAt, posterNudgeVisible, posterStartTarget, showcaseVisible } from './hang-logic.ts'
 
 test('canHangPoster', () => {
   assert.equal(canHangPoster({ kind: 'upload', html: null, art_job_id: null, image_url: 'u' }), true)
@@ -31,6 +31,14 @@ test('posterNudgeVisible', () => {
   assert.equal(posterNudgeVisible({ ...base, isPublic: false }), false)
   assert.equal(posterNudgeVisible({ ...base, hasHungPoster: true }), false)
   assert.equal(posterNudgeVisible({ ...base, otherNudgeShown: true }), false)
+})
+
+test('posterImageAt: Cloudinary 원본은 폭을 줄인 주소로, 바깥 주소는 그대로', () => {
+  assert.equal(
+    posterImageAt('https://res.cloudinary.com/c/image/upload/v1/dshs/posters/abc.png', 640),
+    'https://res.cloudinary.com/c/image/upload/c_limit,w_640,f_auto,q_auto/v1/dshs/posters/abc.png',
+  )
+  assert.equal(posterImageAt('https://example.com/a.png', 640), 'https://example.com/a.png')
 })
 
 test('posterStartTarget', () => {

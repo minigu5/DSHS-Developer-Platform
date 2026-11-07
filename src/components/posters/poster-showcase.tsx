@@ -9,6 +9,7 @@ import { ArrowRight, Maximize2, Sparkles } from "lucide-react";
 
 import Link from "@/components/shared/link";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { posterImageAt } from "@/lib/posters/hang-logic";
 
 export function PosterShowcase({
   projectId,
@@ -33,7 +34,7 @@ export function PosterShowcase({
         className="group relative block w-full cursor-zoom-in overflow-hidden rounded-3xl border border-zinc-200 bg-white p-2 shadow-sm transition-colors hover:border-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600 dark:focus-visible:ring-offset-zinc-950"
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary 원본(학생이 올린 그림·찍은 PNG) */}
-        <img src={imageUrl} alt="" loading="lazy" className="block w-full rounded-2xl" />
+        <img src={posterImageAt(imageUrl, 640)} alt="" loading="lazy" className="block w-full rounded-2xl" />
         <span className="absolute right-4 bottom-4 inline-flex items-center gap-1 rounded-full bg-zinc-900/85 px-2.5 py-1 text-xs font-medium text-white transition-colors group-hover:bg-zinc-900 dark:bg-white/90 dark:text-zinc-900 dark:group-hover:bg-white">
           <Maximize2 className="h-3 w-3" aria-hidden /> 크게 보기
         </span>
@@ -43,7 +44,7 @@ export function PosterShowcase({
         <DialogContent className="w-auto gap-3 p-3 sm:max-w-3xl">
           <DialogTitle className="sr-only">{title} 홍보 포스터</DialogTitle>
           {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary 원본 */}
-          <img src={imageUrl} alt={`${title} 홍보 포스터`} className="mx-auto block max-h-[calc(100dvh-9rem)] w-auto max-w-full rounded-lg object-contain" />
+          <img src={posterImageAt(imageUrl, 1600)} alt={`${title} 홍보 포스터`} className="mx-auto block max-h-[calc(100dvh-9rem)] w-auto max-w-full rounded-lg object-contain" />
           <div className="flex flex-wrap items-center justify-between gap-2 px-1">
             {isAi ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">

@@ -46,6 +46,7 @@ import { BannedNotice } from "@/components/shared/banned-notice";
 import { PosterFileField } from "@/components/posters/poster-file-field";
 import { uploadPosterFile } from "@/components/posters/poster-upload-button";
 import { posterAllowed } from "@/lib/posters/config";
+import { posterImageAt } from "@/lib/posters/hang-logic";
 import { toast } from "sonner";
 import { friendlyWriteError } from "@/lib/admin/ban";
 import { useMyBan } from "@/lib/admin/use-my-ban";
@@ -778,12 +779,13 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         const { data, error } = await supabase.from('projects').insert([{ ...commonFields, author_id: session.user.id }]).select('id').single();
         if (error) throw error;
         allowLeave();
+        // 포스터는 어느 길로 가든 먼저 올린다(도메인 마련하기 → 등록 흐름도 — 예전엔 그 길에서 말없이 빠졌음)
+        await uploadPosterAfterSave(data.id);
         if (nextHref && shouldFollowNext(nextHref, { isWebsite, isPublic: visibility === 'public' })) {
           router.push(withProject(nextHref, data.id));
           router.refresh();
           return;
         }
-        await uploadPosterAfterSave(data.id);
         if (makeAiPoster && visibility === 'public') {
           // AI 포스터를 만들기로 했으면 도메인 권유 창 대신 포스터 화면으로(도메인 권유는 상세 페이지 안내로 다시 뜬다)
           router.push(`/projects/${data.id}/poster`);
@@ -1407,7 +1409,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
             {isEdit && initialData?.poster_image_url && (
               <div className="flex items-center gap-3">
                 {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary 원본 */}
-                <img src={initialData.poster_image_url} alt="지금 걸린 포스터" className="h-20 w-auto rounded-lg ring-1 ring-zinc-200 dark:ring-zinc-800" />
+                <img src={posterImageAt(initialData.poster_image_url, 240)} alt="지금 걸린 포스터" className="h-20 w-auto rounded-lg ring-1 ring-zinc-200 dark:ring-zinc-800" />
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
                   지금 상세 페이지에 걸린 포스터예요.{" "}
                   <a href={`/projects/${initialData.id}/poster`} className="font-medium text-zinc-900 underline-offset-4 hover:underline dark:text-white">

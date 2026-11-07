@@ -11,6 +11,7 @@ import { ConfirmAction } from "@/components/admin/confirm-action";
 import { BanButton } from "@/components/admin/ban-dialog";
 import { adminBanByContent, adminUnhangPoster } from "@/lib/admin/actions";
 import type { HungPosterView } from "@/lib/admin/read";
+import { posterImageAt } from "@/lib/posters/hang-logic";
 
 export function HungPosters({ posters }: { posters: HungPosterView[] }) {
   if (posters.length === 0) return <p className="text-sm text-zinc-600 dark:text-zinc-400">아직 걸린 포스터가 없어요.</p>;
@@ -20,7 +21,7 @@ export function HungPosters({ posters }: { posters: HungPosterView[] }) {
         <li key={p.projectId} className="flex flex-col gap-2">
           <a href={p.imageUrl} target="_blank" rel="noreferrer" aria-label={`${p.title} 포스터 원본 보기`} className="block overflow-hidden rounded-xl ring-1 ring-zinc-200 dark:ring-zinc-800">
             {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary 원본 */}
-            <img src={p.imageUrl} alt="" loading="lazy" className="aspect-[210/297] w-full bg-zinc-50 object-contain dark:bg-zinc-900" />
+            <img src={posterImageAt(p.imageUrl, 480)} alt="" loading="lazy" className="aspect-[210/297] w-full bg-zinc-50 object-contain dark:bg-zinc-900" />
           </a>
           <Link href={`/projects/${p.projectId}`} className="truncate text-sm font-semibold text-zinc-900 underline-offset-4 hover:underline dark:text-white">
             {p.title}

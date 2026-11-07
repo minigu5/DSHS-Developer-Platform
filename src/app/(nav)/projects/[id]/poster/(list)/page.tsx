@@ -15,7 +15,7 @@ import { PosterHangButton } from "@/components/posters/poster-hang-button";
 import { PosterUploadButton } from "@/components/posters/poster-upload-button";
 import { getBandAccess } from "@/lib/posters/access";
 import { POSTER_LIMITS } from "@/lib/posters/config";
-import { canHangPoster, hungIsStale } from "@/lib/posters/hang-logic";
+import { canHangPoster, hungIsStale, posterImageAt } from "@/lib/posters/hang-logic";
 import { kstDate } from "@/lib/posters/kst";
 import { createAdminClient } from "@/lib/supabase/server";
 
@@ -110,7 +110,7 @@ export default async function PosterListPage({
                       className="flex aspect-[210/297] items-center justify-center overflow-hidden rounded-2xl bg-zinc-50 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-800"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary 원본, 상세 아이콘과 같은 방식 */}
-                      <img src={p.image_url ?? ""} alt="" loading="lazy" className="max-h-full max-w-full object-contain" />
+                      <img src={p.image_url ? posterImageAt(p.image_url, 640) : ""} alt="" loading="lazy" className="max-h-full max-w-full object-contain" />
                     </a>
                   ) : (
                     <Link
