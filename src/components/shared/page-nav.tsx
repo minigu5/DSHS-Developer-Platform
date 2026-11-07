@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { Search, Rocket, BookOpen, Globe, MessagesSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { resolveActive } from "@/lib/nav-active";
 import { SECTION_COLORS } from "@/lib/section-colors";
 
 // 알약 색은 섹션 색 맵(src/lib/section-colors.ts)과 공유 — 페이지 머리 타일·주 버튼과 같은 색
@@ -25,20 +26,6 @@ const STORAGE_KEY = "pagenav-pill";
 // 커뮤니티 칸은 해줘! 화면에서 주황, 개발 팁 화면에서 분홍 — 페이지 머리 타일·주 버튼 색과 맞춘다
 function pillFor(href: string, pillClass: string, pathname: string): string {
   return href === "/tips" && pathname.startsWith("/haejwo") ? SECTION_COLORS.haejwo.pill : pillClass;
-}
-
-function resolveActive(pathname: string): string {
-  if (pathname.startsWith("/guide")) return "/guide";
-  if (pathname === "/domains" || pathname.startsWith("/domains/")) return "/domains";
-  if (pathname.startsWith("/tips") || pathname.startsWith("/haejwo")) return "/tips";
-  if (pathname === "/projects/new" || pathname.endsWith("/edit")) return "/projects/new";
-  if (
-    pathname.startsWith("/explore") ||
-    pathname.startsWith("/developers/") ||
-    pathname.startsWith("/projects/")
-  )
-    return "/explore";
-  return "";
 }
 
 // 누른 메뉴를 주소가 바뀌기 전에 먼저 활성으로 보여 준다(서버 왕복이 길어 1초쯤 반응이 없던 문제, 2026-10-24).
