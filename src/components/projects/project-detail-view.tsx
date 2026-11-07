@@ -70,6 +70,8 @@ export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anony
       : project.author_role === 'team'
         ? project.team_name
         : project.users?.nickname || project.users?.full_name) ?? '알 수 없음';
+  // 팀이 올린 팀 아이콘 — 없으면 팀 이름 첫 글자
+  const teamIcon = project.author_role === 'team' ? project.team_icon_url || null : null;
 
   const tags = project.features || [];
 
@@ -144,9 +146,15 @@ export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anony
             <div className="mt-3.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-zinc-600 dark:text-zinc-400">
               {project.author_role === "team" || isAnonymous ? (
                 <span className="inline-flex items-center gap-2">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200" aria-hidden>
-                    {authorName.charAt(0)}
-                  </span>
+                  {teamIcon ? (
+                    <span className="relative h-7 w-7 overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800">
+                      <Image src={teamIcon} alt="" fill sizes="28px" className="object-cover" unoptimized={isExternalImage(teamIcon)} />
+                    </span>
+                  ) : (
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200" aria-hidden>
+                      {authorName.charAt(0)}
+                    </span>
+                  )}
                   <b className="font-semibold text-zinc-900 dark:text-white">{authorName}</b>
                   {anonymousOwner && (
                     <Link
@@ -280,9 +288,15 @@ export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anony
               ) : project.author_role === "team" ? (
                 <div>
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[13px] font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200" aria-hidden>
-                      {authorName.charAt(0)}
-                    </div>
+                    {teamIcon ? (
+                      <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800">
+                        <Image src={teamIcon} alt="" fill sizes="36px" className="object-cover" unoptimized={isExternalImage(teamIcon)} />
+                      </div>
+                    ) : (
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[13px] font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200" aria-hidden>
+                        {authorName.charAt(0)}
+                      </div>
+                    )}
                     <div className="min-w-0">
                       <div className="truncate text-sm font-semibold text-zinc-900 dark:text-white">{authorName}</div>
                       <div className="text-xs text-zinc-500 dark:text-zinc-400">팀 프로젝트</div>

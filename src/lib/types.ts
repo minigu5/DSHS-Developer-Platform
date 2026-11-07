@@ -108,6 +108,7 @@ export type Database = {
           url: string | null;
           author_role: 'individual' | 'team' | 'anonymous' | null;
           team_name: string | null;
+          team_icon_url: string | null;
           team_members: string[] | null;
           icon_url: string | null;
           icon_type: 'link' | 'auto' | null;
@@ -147,6 +148,7 @@ export type Database = {
           url?: string | null;
           author_role?: 'individual' | 'team' | 'anonymous' | null;
           team_name?: string | null;
+          team_icon_url?: string | null;
           team_members?: string[] | null;
           icon_url?: string | null;
           icon_type?: 'link' | 'auto' | null;
@@ -176,6 +178,7 @@ export type Database = {
           url?: string | null;
           author_role?: 'individual' | 'team' | 'anonymous' | null;
           team_name?: string | null;
+          team_icon_url?: string | null;
           team_members?: string[] | null;
           icon_url?: string | null;
           icon_type?: 'link' | 'auto' | null;

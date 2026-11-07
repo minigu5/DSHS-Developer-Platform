@@ -14,6 +14,7 @@ const PROJECT_SELECT = `
   platforms,
   author_role,
   team_name,
+  team_icon_url,
   icon_url,
   features,
   public_author_id,

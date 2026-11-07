@@ -20,6 +20,8 @@ export type ProjectCardData = {
   platforms: string[] | null;
   author_role: 'individual' | 'team' | 'anonymous' | null;
   team_name: string | null;
+  /** 팀 프로젝트가 직접 올린 팀 아이콘 — 없으면 팀 이름 첫 글자 */
+  team_icon_url: string | null;
   icon_url: string | null;
   features: string[] | null;
   /** 익명이면 null — 작성자 링크·이름은 이 칸으로만 정한다(author_id 는 사용자 키로 못 읽음) */
@@ -44,7 +46,8 @@ function resolveAuthorName(p: ProjectCardData, fallback = '알 수 없음'): str
 }
 
 function resolveAuthorAvatar(p: ProjectCardData): string | null {
-  if (p.author_role === 'team' || p.author_role === 'anonymous') return null;
+  if (p.author_role === 'anonymous') return null;
+  if (p.author_role === 'team') return p.team_icon_url || null;
   const u = Array.isArray(p.users) ? p.users[0] : p.users;
   return u?.avatar_url || null;
 }

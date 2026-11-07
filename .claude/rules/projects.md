@@ -52,6 +52,7 @@ paths:
   - `authorRole === 'team'` 전환 시 `useEffect`로 현재 로그인 사용자를 자동 추가. 자신은 X 버튼이 없어 삭제 불가.
   - 편집 모드 진입 시 기존 `team_members` 이메일로 프로필을 일괄 로드.
   - 팀원 목록 표시: 이메일 pill → **아바타 + 닉네임/실명 + 이메일 세로 카드** 형태.
+  - **팀 아이콘**(2026-11-07 사용자 요청): 팀 이름 아래 "팀 아이콘(선택)" — `ImageUploadInput`(동그라미, Cloudinary). `projects.team_icon_url`(migration `20261107140000`, CHECK: 팀 프로젝트만·2048자, anon/authenticated SELECT GRANT). 저장 때 팀이 아니면 비운다. 팀 이름이 보이는 곳 — 탐색·프로필 카드(`resolveAuthorAvatar`), 홈 카드(`authorOf`), 상세 작성자 줄·옆칸 "팀" 카드 — 의 동그라미에 쓰고, 없으면 예전처럼 첫 글자. 카드 쿼리(탐색 `page.tsx`·프로필 `CARD_COLUMNS`·`home-data.ts`)와 `PROJECT_COLUMNS`에 칸이 들어 있다.
 
 ### 프로젝트 상세 (`src/app/(nav)/projects/[id]/(detail)/page.tsx`)
 - **빠른 상세(누를 때)**(2026-11-06 사용자 요청 — LA 지연): 목록(탐색·홈·프로필·해줘 등 `(nav)` 레이아웃과 홈)에서 `/projects/<uuid>` 링크를 그냥 누르면 dshs.dev 서버를 거치지 않고 브라우저가 Supabase(서울)에서 바로 받아 그린다(로컬 0.25~0.36초, 서버 RSC 요청 0). `QuickViewHost`(`src/components/projects/quick-view.tsx`)가 `window` 캡처 단계에서 클릭을 가로채 `history.pushState`로 주소만 바꾸고(Next가 `usePathname`과 맞춤), 원래 페이지는 `hidden`으로 숨긴 채 둔다 → 뒤로 가기 = 닫기, 스크롤(누른 순간 위치)·필터 그대로. `pointerdown` 때 미리 받기 시작(10초 안에 한 번만 씀). ⌘·Ctrl·Shift·가운데 클릭·`target`·쿼리 붙은 링크·지금 주소와 같은 링크는 안 가로챈다. 새로 고침·주소 직접 입력·새 탭은 서버 페이지.

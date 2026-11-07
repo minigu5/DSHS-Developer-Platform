@@ -10,7 +10,7 @@ import type { ProjectCardData } from "@/components/projects/project-card";
 function authorOf(p: ProjectCardData): { name: string; avatar: string | null } {
   if (p.author_role === "anonymous") return { name: ANONYMOUS_AUTHOR, avatar: null };
   const u = Array.isArray(p.users) ? p.users[0] : p.users;
-  if (p.author_role === "team" && p.team_name) return { name: p.team_name, avatar: null };
+  if (p.author_role === "team" && p.team_name) return { name: p.team_name, avatar: p.team_icon_url || null };
   return { name: u?.nickname || u?.full_name || "알 수 없음", avatar: u?.avatar_url ?? null };
 }
 

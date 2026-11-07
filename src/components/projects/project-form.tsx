@@ -147,6 +147,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
     initialData?.author_role ?? "individual",
   );
   const [teamName, setTeamName] = useState<string>(initialData?.team_name ?? "");
+  const [teamIconUrl, setTeamIconUrl] = useState<string>(initialData?.team_icon_url ?? "");
   const [teamMembers, setTeamMembers] = useState<string[]>(initialData?.team_members ?? []);
   const [teamMemberProfiles, setTeamMemberProfiles] = useState<Record<string, TeamMemberProfile>>({});
   const [currentMember, setCurrentMember] = useState("");
@@ -535,7 +536,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
     title, shortDesc, description, sorted(types), sorted(selectedPlatforms),
     sourceType, repoUrl, readmeSync, sorted(licenseFeatures), hasCustomLicense, licenseCustom,
     sorted(selectedFeatures), featureCustom, visibility, sorted(allowedUsers),
-    authorRole, teamName, sorted(teamMembers), url, iconType, iconUrl,
+    authorRole, teamName, teamIconUrl, sorted(teamMembers), url, iconType, iconUrl,
     posterFile?.name ?? "", makeAiPoster,
   ]);
   const [initialSnapshot] = useState(formSnapshot);
@@ -756,6 +757,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
           : [],
         author_role: authorRole,
         team_name: authorRole === 'team' ? teamName : null,
+        team_icon_url: authorRole === 'team' && teamIconUrl.trim() ? teamIconUrl.trim() : null,
         team_members: authorRole === 'team' ? teamMembers : [],
         url: url.trim() === '' && urlOptional ? null : url,
         icon_type: iconType,
@@ -1348,6 +1350,11 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
               <div className="space-y-2" id="team_name_section">
                 <Label htmlFor="team_name" className="text-[13px] font-semibold text-zinc-900 dark:text-white">팀 이름<span className="ml-0.5 text-rose-600" aria-hidden>*</span></Label>
                 <Input id="team_name" value={teamName} onChange={e => setTeamName(e.target.value)} placeholder="팀 이름을 입력하세요" className="h-11 rounded-xl" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[13px] font-semibold text-zinc-900 dark:text-white">팀 아이콘 <span className="font-medium text-zinc-500 dark:text-zinc-400">(선택)</span></Label>
+                <p className="text-[13px] text-zinc-600 dark:text-zinc-400">팀 이름 옆 동그라미에 보여요. 안 올리면 팀 이름 첫 글자가 나와요.</p>
+                <ImageUploadInput value={teamIconUrl} onChange={setTeamIconUrl} shape="circle" previewSize="sm" />
               </div>
               <div className="space-y-2">
                 <Label className="text-[13px] font-semibold text-zinc-900 dark:text-white">팀원 추가 <span className="font-medium text-zinc-500 dark:text-zinc-400">(@ts.hs.kr)</span></Label>

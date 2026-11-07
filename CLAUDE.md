@@ -103,7 +103,7 @@
 
 ### 주요 테이블 구조
 - **`users`**: `id`, `email`, `full_name`, `nickname`, `bio`, `interests`, `avatar_url`, `contacts`(JSONB, `docs/14-supabase-users-contacts.sql` 적용 필요)
-- **`projects`**: `id`, `author_id`, `title`, `description`, `types`(text[], `docs/17` 1·2단계 모두 운영 적용 — 옛 `type` 칸은 2026-10-27 migration `20261027120000`으로 삭제), `platforms`, `source_type`, `repo_url`, `url`, `license_features`, `visibility`, `allowed_users`, `icon_url`, `readme_sync`·`readme_etag`·`readme_synced_at`(`docs/20-supabase-projects-readme-sync.sql`, 적용 완료)
+- **`projects`**: `id`, `author_id`, `title`, `description`, `types`(text[], `docs/17` 1·2단계 모두 운영 적용 — 옛 `type` 칸은 2026-10-27 migration `20261027120000`으로 삭제), `platforms`, `source_type`, `repo_url`, `url`, `license_features`, `visibility`, `allowed_users`, `icon_url`, `team_icon_url`(팀 아이콘, 팀만), `readme_sync`·`readme_etag`·`readme_synced_at`(`docs/20-supabase-projects-readme-sync.sql`, 적용 완료)
 - **`project_comments`**(옛 `reviews`, 2026-11-05 별점 삭제·1인 여러 개): `id`, `project_id`, `user_id`(사용자 키로 못 읽음), `content`, `is_author`, `public_user_id`(익명 프로젝트 소유자 댓글이면 NULL — 화면은 `users!project_comments_public_user_id_fkey`로만 사람을 붙임 — `(count)` 집계·`select=*` 금지, 수는 `project_comments(id)` 길이), `created_at`. 자세히는 `.claude/rules/projects.md` 「댓글·하트」
 - **`project_hearts`**: PK(`project_id`,`user_id`), `created_at`, `by_anonymous_owner` — 하트 = 즐겨찾기, 누가 눌렀는지 공개(만든 사람이 자기 익명 프로젝트에 누른 것만 남에게 숨김). 나중 팔로잉 피드용 인덱스 `(user_id, created_at DESC)`
 
