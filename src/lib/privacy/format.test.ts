@@ -50,3 +50,8 @@ test('policyVersion: 시행일 + 본문 해시. 본문이 바뀌면 시행일을
   assert.notEqual(policyVersion('2026-10-25', '본문 수정'), v)
   assert.notEqual(policyVersion('2026-11-01', '본문'), v)
 })
+
+test('cloudinaryPublicId: 포스터 폴더(dshs/posters)도 뽑고, 다른 하위 폴더는 안 뽑는다', () => {
+  assert.equal(cloudinaryPublicId('https://res.cloudinary.com/c/image/upload/v1/dshs/posters/abc.png', 'c'), 'dshs/posters/abc')
+  assert.equal(cloudinaryPublicId('https://res.cloudinary.com/c/image/upload/v1/dshs/other/abc.png', 'c'), null)
+})

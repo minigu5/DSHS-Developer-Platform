@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 import type { Json, ProjectPosterRow } from '@/lib/types'
 
 import { posterArtPrintUrl } from './art-url'
+import { canHangPoster } from './hang-logic'
 import { hasArtSlot } from './sanitize'
 import type { PosterState, PosterView } from './store'
 
@@ -49,5 +50,8 @@ export function toPosterView(row: ProjectPosterRow): PosterView {
     aiJobId: row.ai_job_id,
     artPrintUrl: row.art_url && !row.art_job_id ? posterArtPrintUrl(row.art_url, row.art_order) : null,
     updatedAt: row.updated_at,
+    kind: row.kind,
+    imageUrl: row.image_url,
+    canHang: canHangPoster(row),
   }
 }

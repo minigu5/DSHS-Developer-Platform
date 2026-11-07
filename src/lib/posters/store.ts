@@ -9,6 +9,7 @@ import {
   type PosterTone,
   type PosterVersion,
 } from './config.ts'
+import type { PosterKind } from './hang-logic.ts'
 
 export interface PosterView {
   id: string
@@ -27,6 +28,10 @@ export interface PosterView {
   // PNG·PDF 에 쓰는 AI 확대 그림 주소 — 스튜디오가 열릴 때 미리 한 번 불러 만들어 둔다(처음 만들 때 ~10초)
   artPrintUrl: string | null
   updatedAt: string
+  // AI 포스터 / 직접 올린 그림(imageUrl) — 상세 페이지에 걸 수 있는지는 canHangPoster
+  kind: PosterKind
+  imageUrl: string | null
+  canHang: boolean
 }
 
 export interface PosterState {

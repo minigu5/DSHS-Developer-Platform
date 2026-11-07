@@ -6,9 +6,10 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
+import { deleteCloudinaryImages } from '@/lib/cloudinary-delete'
 import { createAdminClient } from '@/lib/supabase/server'
 
-import { getPosterAccess } from './access'
+import { getBandAccess, getPosterAccess } from './access'
 import { cancelArtJob } from './art-jobs'
 import type { PosterBandPosition, PosterTone } from './config'
 import { POSTER_COPY } from './messages'
@@ -40,12 +41,20 @@ export async function createPoster(projectId: string): Promise<{ error: string }
   redirect(`/projects/${projectId}/poster/${data.id}`)
 }
 
+// 지우기는 직접 올린 그림도 다루니 AI 권한이 아니라 포스터 화면 권한(getBandAccess)으로 본다
 export async function deletePoster(posterId: string): Promise<{ error?: string }> {
-  const found = await posterWithAccess(posterId)
-  if ('error' in found) return { error: found.error }
-  const { error } = await createAdminClient().from('project_posters').delete().eq('id', posterId)
+  const poster = await loadPoster(posterId)
+  if (!poster) return { error: POSTER_COPY.notFound }
+  if (typeof (await getBandAccess(poster.project_id)) === 'string') return { error: POSTER_COPY.noPermission }
+  const admin = createAdminClient()
+  // 걸려 있던 포스터면 FK 가 걸린 칸을 비운다 — 그 전에 AI 를 찍은 PNG 주소를 챙겨 같이 지운다
+  const { data: project } = await admin.from('projects').select('poster_id, poster_image_url, poster_is_ai').eq('id', poster.project_id).maybeSingle()
+  const { error } = await admin.from('project_posters').delete().eq('id', posterId)
   if (error) return { error: '지우지 못했어요. 잠시 뒤 다시 해 주세요.' }
-  revalidatePath(`/projects/${found.poster.project_id}/poster`)
+  const hungPng = project?.poster_id === posterId && project.poster_is_ai ? project.poster_image_url : null
+  await deleteCloudinaryImages([poster.image_url, hungPng].filter((u): u is string => !!u))
+  revalidatePath(`/projects/${poster.project_id}/poster`)
+  if (project?.poster_id === posterId) revalidatePath(`/projects/${poster.project_id}`)
   return {}
 }
 

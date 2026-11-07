@@ -3,12 +3,11 @@
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 
-import { cloudinary } from '@/lib/cloudinary'
+import { deleteCloudinaryImages } from '@/lib/cloudinary-delete'
 import { isAllowedEmail } from '@/lib/constants'
 import { removeCloudflare } from '@/lib/domains/cleanup'
 import { getNaruClient, unbindNaruBestEffort } from '@/lib/domains/naru'
 import { PRIVACY_COOKIE, PRIVACY_COOKIE_OPTIONS, WITHDRAW_CONFIRM_TEXT } from '@/lib/privacy/config'
-import { cloudinaryPublicId } from '@/lib/privacy/format'
 import { PRIVACY_POLICY_VERSION } from '@/lib/privacy/version'
 import { ONBOARDING_COOKIE_NAME, ONBOARDING_COOKIE_SECURE } from '@/lib/supabase/cookie-options'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
@@ -18,7 +17,6 @@ export type PrivacyResult = { ok: true } | { error: string }
 const LOGIN_REQUIRED = '로그인이 필요해요.'
 const POLICY_CHANGED = '그사이 처리방침이 바뀌었어요. 페이지를 새로고침해서 다시 읽어 주세요.'
 const UNKNOWN_ERROR = '처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.'
-const CLOUDINARY_DELETE_BATCH = 100
 
 async function currentUser() {
   const supabase = await createClient()
@@ -35,19 +33,6 @@ async function clearSessionCookies() {
   const cookieStore = await cookies()
   cookieStore.delete(PRIVACY_COOKIE)
   cookieStore.set(ONBOARDING_COOKIE_NAME, '', { maxAge: 0, path: '/', secure: ONBOARDING_COOKIE_SECURE })
-}
-
-// 지워진 계정의 이미지를 Cloudinary 에서도 지운다. 실패해도 탈퇴는 이미 끝났으므로 조용히 넘어간다.
-async function deleteCloudinaryImages(urls: string[]) {
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME
-  const ids = urls.map((u) => cloudinaryPublicId(u, cloudName)).filter((id): id is string => id !== null)
-  for (let i = 0; i < ids.length; i += CLOUDINARY_DELETE_BATCH) {
-    try {
-      await cloudinary.api.delete_resources(ids.slice(i, i + CLOUDINARY_DELETE_BATCH), { resource_type: 'image' })
-    } catch {
-      // 이미지 정리는 최선 노력
-    }
-  }
 }
 
 // withdraw_account() 가 한 트랜잭션으로 계정·글·팀원 표시를 정리한다. 이 함수는 service_role 전용.

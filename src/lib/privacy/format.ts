@@ -21,7 +21,7 @@ export function formatKst(iso: string): string {
  */
 export function cloudinaryPublicId(url: string, cloudName: string | undefined): string | null {
   if (!cloudName) return null
-  const m = /^https:\/\/res\.cloudinary\.com\/([^/]+)\/image\/upload\/(?:v\d+\/)?(dshs\/[A-Za-z0-9_-]+)\.[A-Za-z0-9]+$/.exec(url)
+  const m = /^https:\/\/res\.cloudinary\.com\/([^/]+)\/image\/upload\/(?:v\d+\/)?(dshs\/(?:posters\/)?[A-Za-z0-9_-]+)\.[A-Za-z0-9]+$/.exec(url)
   return m && m[1] === cloudName ? m[2] : null
 }
 
