@@ -9,6 +9,7 @@ import { isDeveloper } from '@/lib/constants'
 import { PROJECT_AUTHOR, PROJECT_COLUMNS } from '@/lib/projects/columns'
 import { domainOfferOf, previewAddressOf } from '@/lib/domains/offer'
 import { fixOldAddresses, oldAddressPrefixes } from '@/lib/domains/old-address'
+import { posterNudgeVisible } from '@/lib/posters/hang-logic'
 
 type Client = SupabaseClient<Database>
 
@@ -39,6 +40,8 @@ export type ProjectDetail = {
   ownerPreview: { host: string; live: string } | null
   ownerOffer: ReturnType<typeof domainOfferOf>
   ownerOldAddress: { fqdn: string; lines: { before: string; after: string }[] } | null
+  /** 주인에게 포스터 만들기 안내 — 다른 안내가 없을 때만(한 번에 하나) */
+  ownerPoster: boolean
 }
 
 /**
@@ -140,6 +143,13 @@ export async function loadProjectDetail(
     }
   }
 
+  const ownerPoster = posterNudgeVisible({
+    isOwner,
+    isPublic: project.visibility === 'public',
+    hasHungPoster: !!project.poster_image_url,
+    otherNudgeShown: !!ownerPreview || !!ownerOffer || !!ownerOldAddress,
+  })
+
   return {
     project,
     comments,
@@ -151,5 +161,6 @@ export async function loadProjectDetail(
     ownerPreview,
     ownerOffer,
     ownerOldAddress,
+    ownerPoster,
   }
 }

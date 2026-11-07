@@ -21,6 +21,7 @@ import { SECTION_COLORS } from "@/lib/section-colors";
 import { quickToConnect } from "@/lib/domains/offer";
 import { DomainNudge } from "@/components/projects/domain-nudge";
 import { OldAddressNudge } from "@/components/projects/old-address-nudge";
+import { PosterNudge } from "@/components/projects/poster-nudge";
 import { RedirectPill } from "@/components/domains/redirect-pill";
 import { StatStrip, type StatStripItem } from "@/components/projects/stat-strip";
 import { HeartStatSub, HeartStatValue } from "@/components/projects/heart-stat";
@@ -62,7 +63,7 @@ export type ProjectDetailViewProps = {
 };
 
 export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anonymousOwner, back, onCommentsChanged }: ProjectDetailViewProps) {
-  const { project, comments, heartCount, hearted, teamMemberProfiles, isOwner, canEdit, ownerPreview, ownerOffer, ownerOldAddress } = detail;
+  const { project, comments, heartCount, hearted, teamMemberProfiles, isOwner, canEdit, ownerPreview, ownerOffer, ownerOldAddress, ownerPoster } = detail;
   const isAnonymous = project.author_role === 'anonymous';
   const authorName =
     (isAnonymous
@@ -245,6 +246,7 @@ export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anony
         {ownerOldAddress && (
           <OldAddressNudge projectId={project.id} fqdn={ownerOldAddress.fqdn} lines={ownerOldAddress.lines} readmeSync={!!project.readme_sync} />
         )}
+        {ownerPoster && <PosterNudge projectId={project.id} />}
 
         <StatStrip items={stats} className="mt-8" />
         {isAdmin && <LikersCard kind="project" id={project.id} className="mt-4" />}
