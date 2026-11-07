@@ -51,3 +51,12 @@ test('그리는 중이면 글자 있는 자리', () => {
 
 test('그림이 있으면 pending 이어도 그 그림', () =>
   assert.match(posterSrcdoc('<img src="ART">', 'https://res.cloudinary.com/x.png', true), /res\.cloudinary\.com\/x\.png/))
+
+test('진짜 그림은 바탕과 섞고 가장자리를 흐린다, 회색 자리는 그대로', () => {
+  const art = posterSrcdoc('<html><head></head><body><img src="ART"></body></html>', 'https://res.cloudinary.com/x/a.jpg')
+  assert.match(art, /<img data-poster-art src="https:\/\/res\.cloudinary\.com\/x\/a\.jpg">/)
+  assert.match(art, /img\[data-poster-art\]\{mix-blend-mode:multiply!important;/)
+  assert.ok(art.indexOf('Content-Security-Policy') < art.indexOf('data-poster-art]'))
+  const empty = posterSrcdoc('<img src="ART">', null)
+  assert.doesNotMatch(empty, /data-poster-art/)
+})

@@ -1,5 +1,6 @@
 // AI HTML 을 sandbox iframe 의 srcdoc 으로 만들기 + 띠까지 합친 내보내기용 한 장 문서.
 
+import { posterArtDisplayUrl } from './art-url.ts'
 import { POSTER_BAND_CSS } from './band.ts'
 import { POSTER_CANVAS, type PosterBandPosition } from './config.ts'
 
@@ -17,9 +18,23 @@ const DRAWING_ART = `data:image/svg+xml,${encodeURIComponent(
 
 const escapeAttr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-export function posterSrcdoc(html: string, artUrl: string | null, pending = false): string {
-  const withArt = html.replace(/\bsrc\s*=\s*(["'])ART\1/gi, `src="${escapeAttr(artUrl ?? (pending ? DRAWING_ART : EMPTY_ART))}"`)
-  return /<head\b[^>]*>/i.test(withArt) ? withArt.replace(/<head\b[^>]*>/i, (m) => m + CSP_META) : CSP_META + withArt
+// 그림은 흰 바탕이 JPG 압축으로 살짝 회색이라 그림 칸 경계가 보였다 — Gemini 가 빠뜨려도 늘 바탕과 섞고(multiply)
+// 가장자리 4% 를 투명하게 흐린다. 흰 테두리를 잘라 낸 그림(art-url.ts)이라 칸 비율과 달라서 잘리지 않게 contain.
+// 회색 자리(아직 없음·그리는 중)는 그대로 둔다.
+const ART_STYLE =
+  '<style>img[data-poster-art]{mix-blend-mode:multiply!important;object-fit:contain!important;' +
+  '-webkit-mask-image:linear-gradient(to right,transparent,#000 4%,#000 96%,transparent),linear-gradient(to bottom,transparent,#000 4%,#000 96%,transparent);' +
+  '-webkit-mask-composite:source-in;' +
+  'mask-image:linear-gradient(to right,transparent,#000 4%,#000 96%,transparent),linear-gradient(to bottom,transparent,#000 4%,#000 96%,transparent);' +
+  'mask-composite:intersect}</style>'
+
+// artUrl 이 Cloudinary 원본이면 보여 주기용 변환을 끼운다. 내보내기는 이미 변환한 인쇄용 주소를 넘긴다(transformed).
+export function posterSrcdoc(html: string, artUrl: string | null, pending = false, transformed = false): string {
+  const shown = artUrl && !transformed ? posterArtDisplayUrl(artUrl) : artUrl
+  const src = escapeAttr(shown ?? (pending ? DRAWING_ART : EMPTY_ART))
+  const withArt = html.replace(/\bsrc\s*=\s*(["'])ART\1/gi, artUrl ? `data-poster-art src="${src}"` : `src="${src}"`)
+  const head = artUrl ? CSP_META + ART_STYLE : CSP_META
+  return /<head\b[^>]*>/i.test(withArt) ? withArt.replace(/<head\b[^>]*>/i, (m) => m + head) : head + withArt
 }
 
 export function posterExportPage(srcdoc: string, bandHtml: string, position: PosterBandPosition = 'bottom'): string {
