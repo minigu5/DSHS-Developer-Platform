@@ -24,7 +24,7 @@ paths:
   - Mac 살아 있음 = 최근 30초 안 연락(`macsOnline`). 아니면 처음부터 Workers AI. 처음 만들 땐 `art_local`부터 잡고 없으면 `art`.
   - 옛 그림이 있으면 새 그림이 올 때까지 그대로 두고 미리보기에 "새 그림 그리는 중…" 알약, 처음이면 그림 자리에 "그림 그리는 중…"(`posterSrcdoc(…, pending)`). 기다리는 동안 PNG·PDF·다시 그리기 꺼짐. 늦게 온 결과는 포스터가 아직 그 일감을 기다릴 때만 붙는다(되돌리기·새 주문은 옛 일감 `cancelArtJob`). 글만 고치면 기다리던 일감을 유지.
   - 브라우저가 3초마다 `GET /api/posters/<id>/art`(`settleArtJob`) — 막힘 판정(`judgeStuck`, `art-jobs-logic.ts`): queued 60초 + Mac 없음, queued 5분(줄이 김), working인데 lease+30초 지남, expired·failed. 막히면 정리하고(횟수는 일감마다 한 번만 — `releaseJobUsage`가 `usage_released_at`을 조건부로 채운 요청만 돌려줌) 브라우저가 한 번만 `redraw { via: 'cloud' }`. 서버 페이지도 열 때 한 번 정리한다. 폴링은 9분(`pollStopMs`, 막힘 판정 최대 8.5분보다 길게) 뒤 멈추고 "새로 고침" 안내.
-  - Mac 쪽(omm, `~/Project/Localfit`)은 설계 §7 — 사용자/Localfit 세션 몫, 이 저장소에선 안 고친다.
+  - Mac 쪽(omm, `~/Project/Localfit`)은 설계 §7 — 사용자/Localfit 세션 몫, 이 저장소에선 안 고친다. 2026-11-07 Mac 4대(M4 Pro 64GB, 토큰 mini-1~4) 모두 설치(시험용 브랜치 명령 `omm_poster`, 정식 omm 릴리스 뒤 다시 켬). FLUX.2 klein 4B 8비트, 그림마다 모델을 띄웠다 끔, 한 장 ~35~58초, 남은 메모리 16GB 미만이면 그 Mac은 쉰다(연락 안 함). 운영 첫 시험 성공(mini-1, 58초). 연락 상태는 `poster-art-worker.mts list`.
 - 이미지 AI에 포스터 통째(한글)를 맡기지 않는다 — 글자가 깨진다. Gemini 이미지 모델은 무료 키 `limit: 0`, Pollinations 탈락, 계정 여러 개로 할당량 늘리기는 약관 위반이라 안 함(사이트 Cloudflare 계정이 정지될 수 있음).
 - **그림 할당량이 없을 때**: 처음 만들 때 그림 횟수를 먼저 잡고(`reserveUsage('art')`), 못 잡으면 `artAvailable: false`로 Gemini가 큰 그림도 SVG로 직접 그린다. 우리 숫자는 남았는데 Cloudflare가 할당량 바닥(4006)이면 그 자리에서 Gemini에 "ART를 SVG로 바꿔 줘"를 한 번 더(글 횟수 안 셈). 고칠 때는 기존 그림 유지.
 - **그림은 아껴 쓴다**: 처음 만들 때·Gemini가 새 주문을 줄 때(HTML에 `ART` 자리가 있을 때만, `planArtAction`)·"그림 다시 그리기" 버튼에서만. 글·색·배치 수정은 HTML만 고친다.
