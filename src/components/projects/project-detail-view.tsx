@@ -13,6 +13,8 @@ import { HeartButton } from "@/components/projects/heart-button";
 import { ProjectIcon } from "@/components/projects/project-icon";
 import { EditButton } from "@/components/projects/edit-button";
 import { PosterButton } from "@/components/posters/poster-button";
+import { PosterShowcase } from "@/components/posters/poster-showcase";
+import { showcaseVisible } from "@/lib/posters/hang-logic";
 import { BackToExplore } from "@/components/projects/back-to-explore";
 import { ANONYMOUS_AUTHOR, LICENSE_FEATURES, PLATFORMS, projectTypeLabels } from "@/lib/constants";
 import { SECTION_COLORS } from "@/lib/section-colors";
@@ -258,6 +260,10 @@ export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anony
 
           {/* 사이드 */}
           <aside className="grid content-start gap-4">
+            {/* 걸린 포스터 — 공개 프로젝트만 */}
+            {showcaseVisible(project) && project.poster_image_url && (
+              <PosterShowcase projectId={project.id} title={project.title} imageUrl={project.poster_image_url} isAi={project.poster_is_ai} canEdit={canEdit} />
+            )}
             {/* 개발자 */}
             <div className={sideCard}>
               <h2 className={sideTitle}>{project.author_role === "team" ? "팀" : "개발자"}</h2>
