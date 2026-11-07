@@ -41,10 +41,12 @@ export function PosterShowcase({
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="w-auto gap-3 p-3 sm:max-w-3xl">
+        {/* 공용 창은 left:50% + 너비 auto 라 폭이 "화면 오른쪽 절반"까지로 묶여 포스터가 작게 나왔다(2026-11-07 사용자 "더 확대돼야").
+            좌우 0 + mx-auto 로 가운데 두면 그림이 화면 높이를 다 쓴다 */}
+        <DialogContent className="right-0 left-0 mx-auto w-fit max-w-[calc(100%-2rem)] translate-x-0 gap-3 p-3 sm:max-w-[calc(100%-2rem)]">
           <DialogTitle className="sr-only">{title} 홍보 포스터</DialogTitle>
           {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary 원본 */}
-          <img src={posterImageAt(imageUrl, 1600)} alt={`${title} 홍보 포스터`} className="mx-auto block max-h-[calc(100dvh-9rem)] w-auto max-w-full rounded-lg object-contain" />
+          <img src={posterImageAt(imageUrl, 1600)} alt={`${title} 홍보 포스터`} className="mx-auto block max-h-[calc(100dvh-7rem)] w-auto max-w-full rounded-lg object-contain" />
           <div className="flex flex-wrap items-center justify-between gap-2 px-1">
             {isAi ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">

@@ -40,21 +40,21 @@ export function PosterBandDownload({ title, projectId }: { title: string; projec
   }
 
   return (
-    <section aria-labelledby="band-title" className="rounded-3xl border border-zinc-200 bg-white p-6 sm:p-8 dark:border-zinc-800 dark:bg-zinc-900">
-      <h2 id="band-title" className="font-heading text-xl font-semibold text-zinc-900 dark:text-white">
+    <section aria-labelledby="band-title" className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+      <h2 id="band-title" className="font-heading text-lg font-semibold text-zinc-900 dark:text-white">
         포스터 띠 받기
       </h2>
       <p className="mt-1.5 text-sm text-zinc-600 dark:text-zinc-400">
         직접 만든 포스터 위나 아래에 붙이세요. QR을 찍으면 이 프로젝트 페이지로 와요.
       </p>
-      <div className="mt-5 overflow-hidden rounded-2xl ring-1 ring-zinc-200 dark:ring-zinc-800">
+      <div className="mt-4 overflow-hidden rounded-xl ring-1 ring-zinc-200 dark:ring-zinc-800">
         <div className="poster-preview relative w-full" style={{ aspectRatio: "1240 / 236" }}>
           <BandScaled title={title} projectId={projectId} tone={tone} position={position} />
         </div>
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <Segment label="띠 색" value={tone} options={[["light", "밝은 띠"], ["dark", "어두운 띠"]]} onChange={setTone} />
-        <Button className={cn("h-11 rounded-full px-5", SECTION_COLORS.new.button)} disabled={busy} onClick={download}>
+        <Button className={cn("h-9 rounded-full px-4 text-sm", SECTION_COLORS.new.button)} disabled={busy} onClick={download}>
           <Download className="mr-1 h-4 w-4" aria-hidden /> {busy ? "만드는 중…" : "PNG로 받기"}
         </Button>
       </div>

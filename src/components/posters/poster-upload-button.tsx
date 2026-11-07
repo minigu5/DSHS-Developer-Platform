@@ -5,6 +5,7 @@ import { ImageUp } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { POSTER_LIMITS } from "@/lib/posters/config";
 
 export const POSTER_FILE_ACCEPT = "image/png,image/jpeg,image/webp";
 export const POSTER_FILE_MAX_BYTES = 10 * 1024 * 1024;
@@ -26,13 +27,23 @@ export async function uploadPosterFile(projectId: string, file: File, hang: bool
   }
 }
 
-/** 포스터 화면 머리 버튼 — 고르면 바로 올린다. 걸린 포스터가 없으면 올린 그림을 바로 건다. */
-export function PosterUploadButton({ projectId, full, hangIfNone, onUploaded }: { projectId: string; full: boolean; hangIfNone: boolean; onUploaded: () => void }) {
-  const input = useRef<HTMLInputElement>(null);
+/**
+ * 포스터 그림 올리기 — 버튼으로 고르거나 목록에 끌어다 놓으면(useFileDrop) 바로 올린다. 걸린 포스터가 없으면 올린 그림을 바로 건다.
+ * 버튼과 놓을 상자가 같은 올리기 상태(pending)를 쓰게 목록이 한 번 부르고 둘에 나눠 준다.
+ */
+export function usePosterUpload({ projectId, full, hangIfNone, onUploaded }: { projectId: string; full: boolean; hangIfNone: boolean; onUploaded: () => void }) {
   const [pending, setPending] = useState(false);
 
-  const pick = async (file: File | undefined) => {
-    if (!file) return;
+  const upload = async (file: File) => {
+    if (pending) return;
+    if (full) {
+      toast.error(`포스터는 ${POSTER_LIMITS.perProject}개까지예요. 하나를 지우면 올릴 수 있어요.`);
+      return;
+    }
+    if (!POSTER_FILE_ACCEPT.split(",").includes(file.type)) {
+      toast.error("PNG, JPG, WebP 그림만 올릴 수 있어요.");
+      return;
+    }
     if (file.size > POSTER_FILE_MAX_BYTES) {
       toast.error("포스터 그림은 10MB까지 올릴 수 있어요.");
       return;
@@ -40,7 +51,6 @@ export function PosterUploadButton({ projectId, full, hangIfNone, onUploaded }: 
     setPending(true);
     const result = await uploadPosterFile(projectId, file, hangIfNone);
     setPending(false);
-    if (input.current) input.current.value = "";
     if (!result.ok) {
       toast.error(result.error);
       return;
@@ -49,10 +59,28 @@ export function PosterUploadButton({ projectId, full, hangIfNone, onUploaded }: 
     else toast.success(hangIfNone ? "올리고 상세 페이지에 걸었어요." : "포스터를 올렸어요.");
     onUploaded();
   };
+  return { pending, full, upload };
+}
+
+export function PosterUploadButton({ uploader }: { uploader: ReturnType<typeof usePosterUpload> }) {
+  const input = useRef<HTMLInputElement>(null);
+  const { pending, full, upload } = uploader;
 
   return (
     <>
-      <input ref={input} type="file" accept={POSTER_FILE_ACCEPT} className="sr-only" tabIndex={-1} aria-hidden onChange={(e) => pick(e.target.files?.[0])} />
+      <input
+        ref={input}
+        type="file"
+        accept={POSTER_FILE_ACCEPT}
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) void upload(file);
+        }}
+      />
       <Button variant="outline" className="h-11 rounded-full px-5" disabled={full || pending} onClick={() => input.current?.click()}>
         <ImageUp className="mr-1 h-4 w-4" aria-hidden /> {pending ? "올리는 중…" : "포스터 그림 올리기"}
       </Button>

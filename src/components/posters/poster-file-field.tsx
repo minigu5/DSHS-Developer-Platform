@@ -7,8 +7,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ImageUp, X } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
-import { POSTER_FILE_ACCEPT, POSTER_FILE_MAX_BYTES } from "@/components/posters/poster-upload-button";
+import { POSTER_FILE_ACCEPT, POSTER_FILE_MAX_BYTES } from "./poster-upload-button";
 import { cn } from "@/lib/utils";
+
+import { useFileDrop } from "./use-file-drop";
 
 const TYPES = POSTER_FILE_ACCEPT.split(",");
 
@@ -43,13 +45,17 @@ export function PosterFileField({
     setError("");
     onChange(next);
   };
+  const drop = useFileDrop(pick);
 
   if (disabledReason) {
     return <p className="rounded-2xl bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:bg-zinc-900/40 dark:text-zinc-400">{disabledReason}</p>;
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div
+      {...drop.handlers}
+      className={cn("-m-2 flex flex-col gap-2 rounded-2xl border-2 border-dashed p-2 transition-colors", drop.dragging ? "border-zinc-400 bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-900/60" : "border-transparent")}
+    >
       <input ref={input} type="file" accept={POSTER_FILE_ACCEPT} className="sr-only" tabIndex={-1} aria-hidden onChange={(e) => pick(e.target.files?.[0])} />
       {file && preview ? (
         <div className="flex items-start gap-4">
@@ -76,6 +82,7 @@ export function PosterFileField({
           <ImageUp className="mr-1.5 h-4 w-4" aria-hidden /> 포스터 그림 고르기
         </button>
       )}
+      <p className="text-xs text-zinc-500">{drop.dragging ? "놓으면 이 그림으로 골라요" : "그림 파일을 여기로 끌어다 놓아도 돼요."}</p>
       {error && <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>}
     </div>
   );

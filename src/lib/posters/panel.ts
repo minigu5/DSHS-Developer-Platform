@@ -31,6 +31,8 @@ export interface PosterListItem {
   hung: 'hung' | 'rendering' | 'failed' | null
   // 걸린 뒤 고친 AI 포스터 — "다시 걸기"
   stale: boolean
+  // 걸린 포스터만 — 만들기 화면이 고친 뒤 "다시 걸기"를 스스로 판단한다(hungIsStale)
+  hungAt: string | null
 }
 
 export type PosterListResult =
@@ -96,6 +98,7 @@ export async function getPosterList(projectId: string): Promise<PosterListResult
       canHang: canHangPoster(p),
       hung: p.id === hungId ? hung : null,
       stale: p.id === hungId && hung === 'hung' && p.kind === 'ai' && hungIsStale(project?.poster_hung_at ?? null, p.updated_at),
+      hungAt: p.id === hungId ? (project?.poster_hung_at ?? null) : null,
     })),
   }
 }

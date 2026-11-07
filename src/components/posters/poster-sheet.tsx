@@ -5,9 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft, ImageUp, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { posterImageAt } from "@/lib/posters/hang-logic";
 import { POSTER_LIMITS } from "@/lib/posters/config";
 import { getPosterList, getPosterStudio, type PosterListResult, type PosterStudioResult } from "@/lib/posters/panel";
@@ -17,8 +18,9 @@ import { PosterHangButton } from "./poster-hang-button";
 import { DeletePosterButton, NewPosterButton } from "./poster-list-actions";
 import { PosterPreview } from "./poster-preview";
 import { POSTER_LIST, POSTER_PARAM, backToPosterList, closePosterSheet, notePosterSheetPop, openPosterSheet } from "./poster-sheet-nav";
-import { PosterStudio } from "./poster-studio";
-import { PosterUploadButton } from "./poster-upload-button";
+import { PREVIEW_COLUMN, PosterStudio, type PosterStudioHang } from "./poster-studio";
+import { PosterUploadButton, usePosterUpload } from "./poster-upload-button";
+import { useFileDrop } from "./use-file-drop";
 
 const UUID = /^[0-9a-f-]{36}$/i;
 const LOAD_FAILED = "포스터를 불러오지 못했어요. 잠시 뒤 다시 열어 주세요.";
@@ -63,12 +65,23 @@ export function PosterSheet({ projectId, projectTitle }: { projectId: string; pr
   useEffect(() => {
     if (listOpen) loadList();
   }, [listOpen, loadList]);
+  // 만들기 화면의 "이 포스터 걸기"도 목록이 아는 걸린 상태를 쓴다 — 방금 만든 포스터처럼 목록에 없을 때만 새로 읽는다
+  const studioMissing = !!studioId && !!list?.ok && !list.posters.some((p) => p.id === studioId);
+  useEffect(() => {
+    if (studioMissing) loadList();
+  }, [studioMissing, loadList]);
   // 칸에서 뭔가 바꿨을 때만 닫으며 폼 카드(걸린 포스터)를 새로 읽는다
   const changed = useRef(false);
   const reloadList = useCallback(() => {
     changed.current = true;
     loadList();
   }, [loadList]);
+
+  const studioItem = studioId && list?.ok ? list.posters.find((p) => p.id === studioId) : undefined;
+  // 목록을 아직 못 받았으면 걸린 상태를 몰라서 버튼을 숨긴다. 목록에 아직 없는 새 포스터는 안 걸린 것
+  const studioHang: PosterStudioHang | undefined = list?.ok
+    ? { hung: studioItem?.hung ?? null, hungAt: studioItem?.hungAt ?? null, onChanged: reloadList }
+    : undefined;
 
   useEffect(() => {
     window.addEventListener("popstate", notePosterSheetPop);
@@ -89,7 +102,7 @@ export function PosterSheet({ projectId, projectTitle }: { projectId: string; pr
         {/* 배경·칸은 같은 길이로, 닫힐 땐 끝난 모양을 유지(fill-mode-forwards) — 먼저 끝난 배경이 칸이 사라질 때까지
             원래 진하기로 튀어 올라 화면 전체가 한 번 깜빡였다(2026-11-07 프레임 기록으로 확인) */}
         <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-zinc-950/40 duration-200 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 data-closed:fill-mode-forwards" />
-        <DialogPrimitive.Popup className="fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-white shadow-2xl outline-none duration-200 data-open:animate-in data-open:slide-in-from-right-10 data-open:fade-in-0 data-closed:animate-out data-closed:slide-out-to-right-10 data-closed:fade-out-0 data-closed:fill-mode-forwards sm:w-[min(1040px,calc(100vw-4rem))] sm:border-l sm:border-zinc-200 dark:bg-zinc-950 sm:dark:border-zinc-800">
+        <DialogPrimitive.Popup className="fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-white shadow-xl outline-none duration-200 data-open:animate-in data-open:slide-in-from-right-10 data-open:fade-in-0 data-closed:animate-out data-closed:slide-out-to-right-10 data-closed:fade-out-0 data-closed:fill-mode-forwards sm:w-[min(960px,calc(100vw-4rem))] sm:border-l sm:border-zinc-200 dark:bg-zinc-950 sm:dark:border-zinc-800">
           <header className="flex items-center gap-2 border-b border-zinc-200 px-4 py-3 sm:px-6 dark:border-zinc-800">
             {studioId && (
               <Button variant="ghost" className="h-9 shrink-0 rounded-full px-3 text-sm" onClick={backToPosterList}>
@@ -109,9 +122,9 @@ export function PosterSheet({ projectId, projectTitle }: { projectId: string; pr
           <DialogPrimitive.Description className="border-b border-zinc-200 bg-zinc-50 px-4 py-2 text-[13px] text-zinc-600 sm:px-6 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-400">
             포스터는 누르는 즉시 저장돼요. 프로젝트의 &ldquo;저장하기&rdquo;와 따로예요.
           </DialogPrimitive.Description>
-          <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-6 sm:px-6">
+          <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6">
             {studioId ? (
-              <StudioView key={studioId} projectId={projectId} posterId={studioId} />
+              <StudioView key={studioId} projectId={projectId} posterId={studioId} hang={studioHang} />
             ) : (
               <ListView projectId={projectId} data={list} reload={reloadList} />
             )}
@@ -122,29 +135,47 @@ export function PosterSheet({ projectId, projectTitle }: { projectId: string; pr
   );
 }
 
-// reload = 올리기·걸기·지우기 뒤, 거는 중일 때 3초마다 다시 읽기
+// reload = 올리기·걸기·지우기 뒤, 걸 그림을 찍는 동안 2초마다 다시 읽기
 function ListView({ projectId, data, reload: load }: { projectId: string; data: PosterListResult | null; reload: () => void }) {
   if (!data) return <ListSkeleton />;
   if (!data.ok) return <p className="py-10 text-center text-zinc-600 dark:text-zinc-400">{data.error}</p>;
+  return <ListBody projectId={projectId} data={data} load={load} />;
+}
+
+function ListBody({ projectId, data, load }: { projectId: string; data: Extract<PosterListResult, { ok: true }>; load: () => void }) {
   const { posters, full, madeToday, canUseAi, hasHung, title } = data;
+  const uploader = usePosterUpload({ projectId, full, hangIfNone: !hasHung, onUploaded: load });
+  // 목록 어디에 놓아도 올린다(버튼만 받으면 놓을 자리가 너무 작다)
+  const drop = useFileDrop((file) => void uploader.upload(file));
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="@container relative flex flex-col gap-8" {...drop.handlers}>
+      {drop.dragging && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -inset-2 z-20 flex items-center justify-center rounded-3xl border-2 border-dashed border-zinc-400 bg-white/90 dark:border-zinc-600 dark:bg-zinc-950/90"
+        >
+          <p className="flex items-center gap-2 text-base font-semibold text-zinc-900 dark:text-white">
+            <ImageUp className="h-5 w-5" aria-hidden />
+            {full ? `포스터는 ${POSTER_LIMITS.perProject}개까지예요` : "놓으면 포스터 그림으로 올려요"}
+          </p>
+        </div>
+      )}
       <PosterBandDownload title={title} projectId={projectId} />
-      <section aria-labelledby="posters-title" className="flex flex-col gap-5">
-        <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-end">
+      <section aria-labelledby="posters-title" className="flex flex-col gap-4">
+        <div className="flex flex-col items-start justify-between gap-3 @2xl:flex-row @2xl:items-end">
           <div>
-            <h2 id="posters-title" className="font-heading text-xl font-semibold text-zinc-900 dark:text-white">
+            <h2 id="posters-title" className="font-heading text-lg font-semibold text-zinc-900 dark:text-white">
               상세 페이지에 걸 포스터
             </h2>
             <p className="mt-1.5 text-sm text-zinc-600 dark:text-zinc-400">
               {canUseAi
-                ? "직접 만든 포스터 그림을 올리거나 AI로 만들 수 있어요. 하나를 골라 걸면 프로젝트 페이지에 보여요."
-                : "직접 만든 포스터 그림을 올리면 프로젝트 페이지에 걸 수 있어요."}
+                ? "직접 만든 포스터 그림을 올리거나(끌어다 놓아도 돼요) AI로 만들 수 있어요. 하나를 골라 걸면 프로젝트 페이지에 보여요."
+                : "직접 만든 포스터 그림을 올리면(끌어다 놓아도 돼요) 프로젝트 페이지에 걸 수 있어요."}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <PosterUploadButton projectId={projectId} full={full} hangIfNone={!hasHung} onUploaded={load} />
+            <PosterUploadButton uploader={uploader} />
             {canUseAi && <NewPosterButton projectId={projectId} disabled={full || madeToday} onCreated={(id) => openPosterSheet(id)} />}
           </div>
         </div>
@@ -162,7 +193,7 @@ function ListView({ projectId, data, reload: load }: { projectId: string; data: 
               : "학교 게시판에 붙일 포스터 그림을 올려 보세요."}
           </p>
         ) : (
-          <ul className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+          <ul className="grid grid-cols-2 gap-x-4 gap-y-6 @2xl:grid-cols-4">
             {posters.map((p) => (
               <li key={p.id} className="flex flex-col gap-2">
                 {p.kind === "upload" ? (
@@ -172,21 +203,21 @@ function ListView({ projectId, data, reload: load }: { projectId: string; data: 
                     target="_blank"
                     rel="noreferrer"
                     aria-label="올린 포스터 원본 보기"
-                    className="flex aspect-[210/297] items-center justify-center overflow-hidden rounded-2xl bg-zinc-50 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-800"
+                    className="flex aspect-[210/297] items-center justify-center overflow-hidden rounded-xl bg-zinc-50 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-800"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary 원본, 상세 아이콘과 같은 방식 */}
-                    <img src={p.imageUrl ? posterImageAt(p.imageUrl, 640) : ""} alt="" loading="lazy" className="max-h-full max-w-full object-contain" />
+                    <img src={p.imageUrl ? posterImageAt(p.imageUrl, 480) : ""} alt="" loading="lazy" className="max-h-full max-w-full object-contain" />
                   </a>
                 ) : (
                   <button
                     type="button"
                     aria-label="포스터 열기"
-                    className="block rounded-2xl text-left"
+                    className="block rounded-xl text-left"
                     onPointerEnter={() => prefetchStudio(projectId, p.id)}
                     onFocus={() => prefetchStudio(projectId, p.id)}
                     onClick={() => openPosterSheet(p.id)}
                   >
-                    <PosterPreview html={p.html} artUrl={p.artUrl} title={title} projectId={projectId} tone={p.tone} position={p.position} />
+                    <PosterPreview html={p.html} artUrl={p.artUrl} title={title} projectId={projectId} tone={p.tone} position={p.position} className="rounded-xl" />
                   </button>
                 )}
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -206,7 +237,7 @@ function ListView({ projectId, data, reload: load }: { projectId: string; data: 
   );
 }
 
-function StudioView({ projectId, posterId }: { projectId: string; posterId: string }) {
+function StudioView({ projectId, posterId, hang }: { projectId: string; posterId: string; hang?: PosterStudioHang }) {
   // 미리 받은 것은 한 번만 쓴다 — 다시 열 땐 그새 고친 내용을 새로 받는다
   const [prefetched] = useState(() => {
     const entry = studioPrefetch.get(posterId);
@@ -227,17 +258,17 @@ function StudioView({ projectId, posterId }: { projectId: string; posterId: stri
 
   if (!data) return <StudioSkeleton />;
   if (!data.ok) return <p className="py-10 text-center text-zinc-600 dark:text-zinc-400">{data.error}</p>;
-  return <PosterStudio initial={data.poster} projectTitle={data.title} artGaveUp={data.artGaveUp} />;
+  return <PosterStudio initial={data.poster} projectTitle={data.title} artGaveUp={data.artGaveUp} hang={hang} />;
 }
 
 // 받기 전 같은 크기 회색 자리(반짝임 없음 — 공용 뼈대와 같은 규칙)
 function ListSkeleton() {
   return (
-    <div className="flex flex-col gap-10" aria-hidden>
-      <div className="h-40 rounded-3xl bg-zinc-100 dark:bg-zinc-900" />
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="aspect-[210/297] rounded-2xl bg-zinc-100 dark:bg-zinc-900" />
+    <div className="@container flex flex-col gap-8" aria-hidden>
+      <div className="h-56 rounded-2xl bg-zinc-100 dark:bg-zinc-900" />
+      <div className="grid grid-cols-2 gap-x-4 gap-y-6 @2xl:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="aspect-[210/297] rounded-xl bg-zinc-100 dark:bg-zinc-900" />
         ))}
       </div>
     </div>
@@ -247,9 +278,9 @@ function ListSkeleton() {
 function StudioSkeleton() {
   return (
     <div className="@container" aria-hidden>
-      <div className="grid gap-8 @4xl:grid-cols-[minmax(0,1fr)_400px]">
-        <div className="aspect-[210/297] rounded-2xl bg-zinc-100 dark:bg-zinc-900" />
-        <div className="h-96 rounded-3xl bg-zinc-100 dark:bg-zinc-900" />
+      <div className="grid gap-6 @3xl:grid-cols-[auto_minmax(0,1fr)] @3xl:items-start">
+        <div className={cn(PREVIEW_COLUMN, "aspect-[210/297] rounded-2xl bg-zinc-100 dark:bg-zinc-900")} />
+        <div className="h-80 rounded-2xl bg-zinc-100 dark:bg-zinc-900" />
       </div>
     </div>
   );

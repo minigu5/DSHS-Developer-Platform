@@ -36,6 +36,17 @@ export function PosterPreview({
 }) {
   const box = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
+  // iframe(1240px 문서 + 글꼴)은 한가할 때 붙인다 — 포스터 칸이 밀려 들어오는 0.2초 동안 썸네일 여러 장을 한꺼번에 그려
+  // 칸이 버벅였다(2026-11-07 사용자 "팝업이 너무 헤비"). 그 전엔 흰 바탕만 보인다
+  const [live, setLive] = useState(false);
+  useEffect(() => {
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(() => setLive(true), { timeout: 400 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const timer = window.setTimeout(() => setLive(true), 250);
+    return () => window.clearTimeout(timer);
+  }, []);
   useEffect(() => {
     const el = box.current;
     if (!el) return;
@@ -57,9 +68,12 @@ export function PosterPreview({
           className={cn("absolute top-0 left-0 flex", position === "top" ? "flex-col-reverse" : "flex-col")}
           style={{ width: POSTER_CANVAS.width, height: TOTAL, transform: `scale(${scale})`, transformOrigin: "top left" }}
         >
-          {html ? (
+          {html && !live ? (
+            <div className="flex-none bg-white" style={{ height: POSTER_CANVAS.height }} />
+          ) : html ? (
             <iframe
               sandbox=""
+              loading="lazy"
               srcDoc={posterSrcdoc(html, artUrl, pending)}
               title="포스터 미리보기"
               width={POSTER_CANVAS.width}

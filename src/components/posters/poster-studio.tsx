@@ -4,11 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { Download, ImageIcon, LayoutTemplate, Monitor, Sparkles, Type, Undo2, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
-import { SelectCard } from "@/components/forms/select-card";
+import { ToggleChip } from "@/components/forms/toggle-chip";
 import { ImageUploadInput } from "@/components/shared/image-upload-input";
 import { Button } from "@/components/ui/button";
 import { setPosterBand, undoPoster } from "@/lib/posters/actions";
 import { POSTER_AI_JOB, POSTER_MAC, type PosterBandPosition, type PosterTone } from "@/lib/posters/config";
+import { hungIsStale } from "@/lib/posters/hang-logic";
 import { parseHeartbeatBody } from "@/lib/posters/heartbeat";
 import { MAX_REQUEST, POSTER_COPY } from "@/lib/posters/messages";
 import type { PosterView } from "@/lib/posters/store";
@@ -17,6 +18,7 @@ import { SECTION_COLORS } from "@/lib/section-colors";
 import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 import { cn } from "@/lib/utils";
 
+import { PosterHangButton } from "./poster-hang-button";
 import { PosterPreview } from "./poster-preview";
 import { Segment } from "./segment";
 
@@ -32,15 +34,33 @@ type ArtStatus = { ok: true; status: "none" | "pending" | "done" | "expired" | "
 
 const SMALL_BUTTON = "h-9 rounded-full px-3 text-sm";
 const STYLE_ICONS: Record<PosterStyle, LucideIcon> = { auto: Sparkles, example: LayoutTemplate, art: ImageIcon, screenshot: Monitor, type: Type };
+// 미리보기 폭 = 칸에 보이는 높이에 A4+띠가 다 들어가는 폭(1240÷1754 ≈ 0.707, 포스터+띠). 16rem = 칸 머리·안내 줄·여백·아래 버튼 두 줄 —
+// 옆 칸으로 옮긴 뒤 칸 폭을 다 쓰던 미리보기가 화면보다 길어 "너무 크다"는 의견(2026-11-07).
+// Tailwind 가 찾을 수 있게 클래스는 문자 그대로 적는다(StudioSkeleton 도 같은 값)
+export const PREVIEW_COLUMN =
+  "mx-auto w-full max-w-[clamp(280px,calc((100dvh_-_16rem)*0.707),520px)] @3xl:w-[clamp(280px,calc((100dvh_-_16rem)*0.707),520px)]";
 
-/** 만들기·고치기 화면: 왼쪽(좁으면 위) 미리보기, 오른쪽(좁으면 아래) 대화. 수정 화면 옆 칸 안에 있어서 화면 폭이 아니라 칸 폭(@container)으로 나눈다. */
+export interface PosterStudioHang {
+  // 이 포스터가 걸린 상태 — 안 걸렸으면 null(목록과 같은 값)
+  hung: "hung" | "rendering" | "failed" | null;
+  hungAt: string | null;
+  onChanged: () => void;
+}
+
+/**
+ * 만들기·고치기 화면: 왼쪽(좁으면 위) 미리보기, 오른쪽(좁으면 아래) 대화. 수정 화면 옆 칸 안에 있어서 화면 폭이 아니라 칸 폭(@container)으로 나눈다.
+ * 미리보기는 화면 높이에 맞춘 폭(PREVIEW_COLUMN)이고 대화가 나머지 폭을 쓴다.
+ */
 export function PosterStudio({
   initial,
   projectTitle,
   artGaveUp = false,
+  hang,
 }: {
   initial: PosterView;
   projectTitle: string;
+  // 이 포스터 걸기 — 목록을 아직 못 받았으면 없음(걸린 상태를 모르면 버튼을 안 보인다)
+  hang?: PosterStudioHang;
   // 탭을 닫은 사이 학교 Mac 그림이 막혀 서버 페이지가 정리했으면 true — 열자마자 한 번 클라우드로
   artGaveUp?: boolean;
 }) {
@@ -245,8 +265,8 @@ export function PosterStudio({
 
   return (
     <div className="@container">
-    <div className="grid gap-8 @4xl:grid-cols-[minmax(0,1fr)_400px] @4xl:items-start">
-      <div className="@4xl:sticky @4xl:top-0">
+    <div className="grid gap-6 @3xl:grid-cols-[auto_minmax(0,1fr)] @3xl:items-start">
+      <div className={cn(PREVIEW_COLUMN, "@3xl:sticky @3xl:top-0")}>
         <PosterPreview
           html={poster.html}
           artUrl={poster.artUrl}
@@ -256,34 +276,44 @@ export function PosterStudio({
           position={poster.position}
           pending={poster.artPending}
         />
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-          <div className="flex flex-wrap gap-2">
-            <Segment
-              label="띠 색"
-              value={poster.tone}
-              options={[["light", "밝은 띠"], ["dark", "어두운 띠"]]}
-              onChange={(tone) => changeBand({ tone, position: poster.position })}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {hang && poster.html && (
+            <PosterHangButton
+              posterId={poster.id}
+              projectId={poster.projectId}
+              hung={hang.hung}
+              stale={hang.hung === "hung" && hungIsStale(hang.hungAt, poster.updatedAt)}
+              disabled={!poster.canHang || working}
+              onChanged={hang.onChanged}
+              label="이 포스터 걸기"
+              large
             />
-            <Segment
-              label="띠 위치"
-              value={poster.position}
-              options={[["bottom", "아래"], ["top", "위"]]}
-              onChange={(position) => changeBand({ tone: poster.tone, position })}
-            />
-          </div>
-          <div className="flex gap-2">
-            {(["png", "pdf"] as const).map((format) => (
-              <Button key={format} variant="outline" className={SMALL_BUTTON} disabled={!poster.html || poster.artPending || working} onClick={() => download(format)}>
-                <Download className="mr-1 h-4 w-4" aria-hidden />
-                {busy === format ? `만드는 중… ${elapsed}초` : `${format.toUpperCase()}로 받기`}
-              </Button>
-            ))}
-          </div>
+          )}
+          {(["png", "pdf"] as const).map((format) => (
+            <Button key={format} variant="outline" className={SMALL_BUTTON} disabled={!poster.html || poster.artPending || working} onClick={() => download(format)}>
+              <Download className="mr-1 h-4 w-4" aria-hidden />
+              {busy === format ? `만드는 중… ${elapsed}초` : `${format.toUpperCase()}로 받기`}
+            </Button>
+          ))}
+        </div>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Segment
+            label="띠 색"
+            value={poster.tone}
+            options={[["light", "밝은 띠"], ["dark", "어두운 띠"]]}
+            onChange={(tone) => changeBand({ tone, position: poster.position })}
+          />
+          <Segment
+            label="띠 위치"
+            value={poster.position}
+            options={[["bottom", "아래"], ["top", "위"]]}
+            onChange={(position) => changeBand({ tone: poster.tone, position })}
+          />
         </div>
       </div>
 
-      <section aria-label="AI에게 부탁하기" className="flex flex-col rounded-3xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-        <ol ref={log} className="flex max-h-[420px] min-h-[120px] flex-col gap-2 overflow-y-auto" aria-live="polite">
+      <section aria-label="AI에게 부탁하기" className="flex flex-col rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+        <ol ref={log} className="flex max-h-[320px] min-h-[72px] flex-col gap-2 overflow-y-auto" aria-live="polite">
           {poster.messages.length === 0 && (
             <li className="text-sm text-zinc-500">
               강조하고 싶은 점을 적어 보내거나, 비워 두고 바로 보내도 돼요. AI가 그림과 제목을 정해 포스터를 만들어요.
@@ -304,7 +334,7 @@ export function PosterStudio({
           ))}
         </ol>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-2">
           <Button variant="ghost" className={SMALL_BUTTON} disabled={!poster.canUndo || working} onClick={undo}>
             <Undo2 className="mr-1 h-4 w-4" aria-hidden /> 되돌리기
           </Button>
@@ -316,19 +346,13 @@ export function PosterStudio({
         {firstMake && (
           <fieldset className="mt-4" disabled={aiBusy}>
             <legend className="text-sm font-semibold text-zinc-900 dark:text-white">스타일</legend>
-            <div className="mt-2 grid grid-cols-2 gap-2">
+            {/* 카드 5장은 칸 안에서 너무 길어서 알약 한 줄 + 고른 것의 설명 한 줄 */}
+            <div className="mt-2 flex flex-wrap gap-1.5">
               {POSTER_STYLES.map((key) => (
-                <SelectCard
-                  key={key}
-                  selected={style === key}
-                  onSelect={() => setStyle(key)}
-                  icon={STYLE_ICONS[key]}
-                  label={POSTER_STYLE_TEXT[key].label}
-                  description={POSTER_STYLE_TEXT[key].hint}
-                  className={key === "auto" ? "col-span-2" : undefined}
-                />
+                <ToggleChip key={key} pressed={style === key} onToggle={() => setStyle(key)} icon={STYLE_ICONS[key]} label={POSTER_STYLE_TEXT[key].label} />
               ))}
             </div>
+            <p className="mt-2 text-xs text-zinc-500">{POSTER_STYLE_TEXT[style].hint}</p>
             {style === "screenshot" && (
               <div className="mt-3">
                 <p className="mb-2 text-xs text-zinc-500">프로그램 화면을 캡처해서 올려 주세요. 가로 화면은 노트북, 세로 화면은 폰 틀에 넣어요.</p>

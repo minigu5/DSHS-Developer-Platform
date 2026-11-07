@@ -6,10 +6,12 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { hangPoster, unhangPoster } from "@/lib/posters/hang";
+import { cn } from "@/lib/utils";
 
 /**
  * 포스터 카드 아래 — 상세 페이지에 걸기 / 걸려 있으면 알약 + 내리기(고쳤으면 다시 걸기).
- * AI 포스터는 PNG 를 뒤에서 찍어서(hangState) "거는 중"이면 3초마다 목록을 다시 읽고(onChanged), 실패면 다시 걸기를 보인다.
+ * AI 포스터는 PNG 를 뒤에서 찍어서(hangState, 8~9초) 찍는 동안에도 "걸려 있어요"로 보이고(기다릴 일이 아니라서 — 2026-11-07 사용자 "왜 이렇게 오래")
+ * 옆에 작게 "상세 페이지 그림 만드는 중"만 둔다. 그동안 2초마다 목록을 다시 읽고(onChanged), 실패면 다시 걸기를 보인다.
  */
 export function PosterHangButton({
   posterId,
@@ -18,6 +20,8 @@ export function PosterHangButton({
   stale,
   disabled,
   onChanged,
+  label = "상세 페이지에 걸기",
+  large = false,
 }: {
   posterId: string;
   projectId: string;
@@ -25,23 +29,27 @@ export function PosterHangButton({
   hung: "hung" | "rendering" | "failed" | null;
   stale: boolean;
   disabled: boolean;
-  /** 걸기·내리기 뒤, 거는 중일 때 3초마다 — 목록을 다시 읽는다 */
+  /** 걸기·내리기 뒤, 그림을 찍는 동안 2초마다 — 목록을 다시 읽는다 */
   onChanged: () => void;
+  label?: string;
+  /** 만들기 화면 — 옆 버튼들(h-9)과 같은 크기 */
+  large?: boolean;
 }) {
   const [pending, start] = useTransition();
+  const size = large ? "h-9 px-3 text-sm" : "h-7 px-2.5 text-xs";
   const run = (job: () => Promise<{ error?: string; rendering?: boolean }>, done: string) =>
     start(async () => {
       const result = await job();
       if (result.error) toast.error(result.error);
       else {
-        toast.success(result.rendering ? "걸고 있어요. 포스터를 찍는 데 10초쯤 걸려요." : done);
+        toast.success(result.rendering ? "걸었어요. 상세 페이지에는 10초쯤 뒤에 보여요." : done);
         onChanged();
       }
     });
 
   useEffect(() => {
     if (hung !== "rendering") return;
-    const timer = window.setInterval(onChanged, 3000);
+    const timer = window.setInterval(onChanged, 2000);
     return () => window.clearInterval(timer);
   }, [hung, onChanged]);
 
@@ -49,36 +57,36 @@ export function PosterHangButton({
     return (
       <Button
         variant="outline"
-        className="h-7 rounded-full px-2.5 text-xs"
+        className={cn("rounded-full", size)}
         disabled={disabled || pending}
         title={disabled ? "그림이 다 그려진 뒤에 걸 수 있어요" : undefined}
         onClick={() => run(() => hangPoster(posterId), "상세 페이지에 걸었어요.")}
       >
-        <Pin className="mr-1 h-3.5 w-3.5" aria-hidden /> {pending ? "거는 중…" : "상세 페이지에 걸기"}
+        <Pin className="mr-1 h-3.5 w-3.5" aria-hidden /> {pending ? "거는 중…" : label}
       </Button>
     );
   }
   return (
     <div className="flex flex-wrap items-center gap-1">
-      {hung === "hung" && (
-        <span className="inline-flex h-7 items-center gap-1 rounded-full bg-zinc-900 px-2.5 text-xs font-medium text-white dark:bg-white dark:text-zinc-900">
+      {(hung === "hung" || hung === "rendering") && (
+        <span className={cn("inline-flex items-center gap-1 rounded-full bg-zinc-900 font-medium text-white dark:bg-white dark:text-zinc-900", size)}>
           <Check className="h-3.5 w-3.5" aria-hidden /> 걸려 있어요
         </span>
       )}
       {hung === "rendering" && (
-        <span role="status" className="inline-flex h-7 items-center gap-1 rounded-full bg-zinc-100 px-2.5 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-          <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" aria-hidden /> 거는 중…
+        <span role="status" className={cn("inline-flex items-center gap-1 text-zinc-500", large ? "text-sm" : "text-xs")}>
+          <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" aria-hidden /> 상세 페이지 그림 만드는 중…
         </span>
       )}
       {hung === "failed" && (
-        <span className="inline-flex h-7 items-center rounded-full bg-rose-50 px-2.5 text-xs font-medium text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">
+        <span className={cn("inline-flex items-center rounded-full bg-rose-50 font-medium text-rose-700 dark:bg-rose-950/40 dark:text-rose-300", size)}>
           포스터를 못 찍었어요
         </span>
       )}
       {(stale || hung === "failed") && (
         <Button
           variant="outline"
-          className="h-7 rounded-full px-2.5 text-xs"
+          className={cn("rounded-full", size)}
           disabled={disabled || pending}
           onClick={() => run(() => hangPoster(posterId), "다시 걸었어요.")}
         >
@@ -87,7 +95,7 @@ export function PosterHangButton({
       )}
       <Button
         variant="ghost"
-        className="h-7 rounded-full px-2.5 text-xs text-zinc-600 dark:text-zinc-400"
+        className={cn("rounded-full text-zinc-600 dark:text-zinc-400", size)}
         disabled={pending}
         onClick={() => run(() => unhangPoster(projectId), "상세 페이지에서 내렸어요.")}
       >
