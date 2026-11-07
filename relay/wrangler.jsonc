@@ -1,0 +1,9 @@
+// 서울 입구 Pages 프로젝트 — functions/_middleware.js 참고.
+// 올리기: cd relay && npx wrangler pages deploy --branch main
+// (toml이 아니라 jsonc여야 한다 — 위 폴더의 wrangler.jsonc를 먼저 집어 버린다)
+{
+  "name": "dshs-relay",
+  "pages_build_output_dir": "./public",
+  "compatibility_date": "2026-11-01",
+  "services": [{ "binding": "APP", "service": "dshs-developer-platform" }]
+}
