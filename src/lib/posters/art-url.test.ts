@@ -4,14 +4,14 @@ import { posterArtDisplayUrl, posterArtPrintUrl } from './art-url.ts'
 
 const URL_ = 'https://res.cloudinary.com/demo/image/upload/v1/dshs/posters/a.jpg'
 
-test('보여 줄 땐 흰 테두리를 잘라 내고 여백을 조금 다시 둔다', () => {
-  assert.equal(posterArtDisplayUrl(URL_), 'https://res.cloudinary.com/demo/image/upload/e_trim:10/c_pad,w_1.1,h_1.1,b_white/v1/dshs/posters/a.jpg')
+test('보여 줄 땐 흰 테두리를 잘라 내고 여백을 조금 다시 둔 뒤 흰 바탕을 투명하게', () => {
+  assert.equal(posterArtDisplayUrl(URL_), 'https://res.cloudinary.com/demo/image/upload/e_trim:10/c_pad,w_1.1,h_1.1,b_white/co_white,e_make_transparent:8/f_png/v1/dshs/posters/a.jpg')
 })
 
-test('내보낼 땐 잘라 낸 뒤 줄였다가 4배 확대', () => {
+test('내보낼 땐 잘라 낸 뒤 줄였다가 4배 확대하고 그다음 투명하게', () => {
   assert.equal(
     posterArtPrintUrl(URL_, { width: 1080, height: 600 }),
-    'https://res.cloudinary.com/demo/image/upload/e_trim:10/c_pad,w_1.1,h_1.1,b_white/c_limit,w_657,h_365/e_upscale/q_auto:good/v1/dshs/posters/a.jpg',
+    'https://res.cloudinary.com/demo/image/upload/e_trim:10/c_pad,w_1.1,h_1.1,b_white/c_limit,w_657,h_365/e_upscale/co_white,e_make_transparent:8/f_png/v1/dshs/posters/a.jpg',
   )
 })
 

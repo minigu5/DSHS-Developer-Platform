@@ -25,7 +25,7 @@ async function printArtUrl(artUrl: string | null, order: Parameters<typeof poste
     if (res?.ok) return big
     status = res?.status ?? 0
     if (status !== 423) break
-    await new Promise((r) => setTimeout(r, 3_000))
+    await new Promise((r) => setTimeout(r, 1_500))
   }
   console.error('[poster] 인쇄용 그림 없음', status)
   return posterArtDisplayUrl(artUrl)

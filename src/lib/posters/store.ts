@@ -22,6 +22,8 @@ export interface PosterView {
   canRedraw: boolean
   // 학교 Mac 이 그림을 그리는 중(project_posters.art_job_id 가 있음)
   artPending: boolean
+  // PNG·PDF 에 쓰는 AI 확대 그림 주소 — 스튜디오가 열릴 때 미리 한 번 불러 만들어 둔다(처음 만들 때 ~10초)
+  artPrintUrl: string | null
   updatedAt: string
 }
 

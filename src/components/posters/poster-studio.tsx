@@ -54,8 +54,14 @@ export function PosterStudio({
   busyRef.current = busy;
   const firstMake = !poster.html;
 
+  // PNG·PDF 용 AI 확대 그림은 처음 부를 때 Cloudinary 가 ~10초 걸려 만든다 — 그림이 바뀌면 미리 한 번 불러 둔다(응답은 안 읽음)
   useEffect(() => {
-    if (busy !== "ask" && busy !== "redraw") return;
+    if (!poster.artPrintUrl) return;
+    void fetch(poster.artPrintUrl, { method: "HEAD", mode: "no-cors" }).catch(() => {});
+  }, [poster.artPrintUrl]);
+
+  useEffect(() => {
+    if (!busy || busy === "undo") return;
     const timer = setInterval(() => setElapsed((s) => s + 1), 1000);
     return () => clearInterval(timer);
   }, [busy]);
@@ -146,6 +152,7 @@ export function PosterStudio({
   }
 
   async function download(format: "png" | "pdf") {
+    setElapsed(0);
     setBusy(format);
     try {
       const res = await fetch(`/api/posters/${poster.id}/export?format=${format}`);
@@ -199,7 +206,7 @@ export function PosterStudio({
             {(["png", "pdf"] as const).map((format) => (
               <Button key={format} variant="outline" className={SMALL_BUTTON} disabled={!poster.html || poster.artPending || !!busy} onClick={() => download(format)}>
                 <Download className="mr-1 h-4 w-4" aria-hidden />
-                {busy === format ? "만드는 중…" : `${format.toUpperCase()}로 받기`}
+                {busy === format ? `만드는 중… ${elapsed}초` : `${format.toUpperCase()}로 받기`}
               </Button>
             ))}
           </div>

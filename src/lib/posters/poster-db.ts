@@ -3,6 +3,7 @@ import 'server-only'
 import { createAdminClient } from '@/lib/supabase/server'
 import type { Json, ProjectPosterRow } from '@/lib/types'
 
+import { posterArtPrintUrl } from './art-url'
 import { hasArtSlot } from './sanitize'
 import type { PosterState, PosterView } from './store'
 
@@ -45,6 +46,7 @@ export function toPosterView(row: ProjectPosterRow): PosterView {
     canUndo: (row.versions ?? []).length > 0,
     canRedraw: !row.art_job_id && !!row.art_order && !!row.html && hasArtSlot(row.html),
     artPending: !!row.art_job_id,
+    artPrintUrl: row.art_url && !row.art_job_id ? posterArtPrintUrl(row.art_url, row.art_order) : null,
     updatedAt: row.updated_at,
   }
 }
