@@ -25,6 +25,7 @@ export const POSTER_COPY = {
   artBusy: '그림을 그리는 중이에요. 다 그린 뒤에 다시 눌러 주세요.',
   artLocalUserLimit: '오늘 그림을 20장 다 그렸어요. 내일 다시 그릴 수 있어요.',
   artGaveUp: '그림을 못 그렸어요. 잠시 뒤 "그림 다시 그리기"를 눌러 주세요.',
+  leaveWhileBusy: 'AI가 아직 만들고 있어요. 지금 나가면 결과가 사라질 수 있어요. 나갈까요?',
   artSlow: '그림이 오래 걸려요. 잠시 뒤 새로 고침해서 확인해 주세요.',
 } as const
 

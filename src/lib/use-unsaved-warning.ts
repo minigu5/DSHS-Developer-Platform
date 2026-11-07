@@ -11,7 +11,7 @@ const LEAVE_MESSAGE = "저장하지 않은 내용이 있어요. 이 페이지를
  * 뒤로 가기(popstate)는 막지 않는다.
  * 저장·삭제처럼 코드로 직접 떠날 때는 이동 직전에 반환된 `allowLeave()`를 부른다.
  */
-export function useUnsavedWarning(dirty: boolean) {
+export function useUnsavedWarning(dirty: boolean, message = LEAVE_MESSAGE) {
   const bypassRef = useRef(false);
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export function useUnsavedWarning(dirty: boolean) {
       // 같은 페이지 안 이동(해시)은 떠나는 게 아니다.
       if (next.pathname === window.location.pathname && next.search === window.location.search) return;
 
-      if (window.confirm(LEAVE_MESSAGE)) {
+      if (window.confirm(message)) {
         // 일반 링크라 진짜 새로 불러오는 경우에 beforeunload가 또 묻지 않게.
         bypassRef.current = true;
       } else {
@@ -52,7 +52,7 @@ export function useUnsavedWarning(dirty: boolean) {
       window.removeEventListener("beforeunload", onBeforeUnload);
       document.removeEventListener("click", onClick, true);
     };
-  }, [dirty]);
+  }, [dirty, message]);
 
   const allowLeave = useCallback(() => {
     bypassRef.current = true;

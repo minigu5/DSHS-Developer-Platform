@@ -11,6 +11,7 @@ import { parseHeartbeatBody } from "@/lib/posters/heartbeat";
 import { MAX_REQUEST, POSTER_COPY } from "@/lib/posters/messages";
 import type { PosterView } from "@/lib/posters/store";
 import { SECTION_COLORS } from "@/lib/section-colors";
+import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 import { cn } from "@/lib/utils";
 
 import { PosterPreview } from "./poster-preview";
@@ -23,11 +24,31 @@ type ArtStatus = { ok: true; status: "none" | "pending" | "done" | "expired" | "
 const SMALL_BUTTON = "h-9 rounded-full px-3 text-sm";
 
 /** 만들기·고치기 화면: 왼쪽(모바일 위) 미리보기, 오른쪽(모바일 아래) 대화. */
-export function PosterStudio({ initial, projectTitle }: { initial: PosterView; projectTitle: string }) {
+export function PosterStudio({
+  initial,
+  projectTitle,
+  artGaveUp = false,
+}: {
+  initial: PosterView;
+  projectTitle: string;
+  // 탭을 닫은 사이 학교 Mac 그림이 막혀 서버 페이지가 정리했으면 true — 열자마자 한 번 클라우드로
+  artGaveUp?: boolean;
+}) {
   const [poster, setPoster] = useState(initial);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState<Busy>(null);
   const [elapsed, setElapsed] = useState(0);
+  // Workers 는 탭을 닫으면 남은 일을 30초까지만 이어 간다(Gemini 는 최대 90초) — 기다리는 동안 나가려 하면 묻는다
+  useUnsavedWarning(busy === "ask" || busy === "redraw", POSTER_COPY.leaveWhileBusy);
+  const retried = useRef(false);
+
+  useEffect(() => {
+    if (!artGaveUp || retried.current) return;
+    retried.current = true;
+    void callAi("redraw", { via: "cloud" });
+    // 처음 열 때 한 번만
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const log = useRef<HTMLOListElement>(null);
   const busyRef = useRef<Busy>(null);
   busyRef.current = busy;

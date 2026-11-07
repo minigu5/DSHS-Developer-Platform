@@ -29,6 +29,7 @@ paths:
 - **그림 할당량이 없을 때**: 처음 만들 때 그림 횟수를 먼저 잡고(`reserveUsage('art')`), 못 잡으면 `artAvailable: false`로 Gemini가 큰 그림도 SVG로 직접 그린다. 우리 숫자는 남았는데 Cloudflare가 할당량 바닥(4006)이면 그 자리에서 Gemini에 "ART를 SVG로 바꿔 줘"를 한 번 더(글 횟수 안 셈). 고칠 때는 기존 그림 유지.
 - **그림은 아껴 쓴다**: 처음 만들 때·Gemini가 새 주문을 줄 때(HTML에 `ART` 자리가 있을 때만, `planArtAction`)·"그림 다시 그리기" 버튼에서만. 글·색·배치 수정은 HTML만 고친다.
 - 저장 HTML엔 늘 `ART` 표시, 보여 줄 때 `posterSrcdoc`이 URL로 바꾸고 CSP meta(`POSTER_CSP`)를 넣는다.
+- **지시문 품질 규칙**(2026-11-07 사용자 "퀄리티 좀 올릴 수 없을까" — 휩 포스터: 두꺼운 Do Hyeon 제목이 뭉개지고, 아래 절반이 비고, 같은 부제가 두 번, 그림이 다른 색 상자처럼 떠 보였음): 구성 = 서비스 이름(짧은 이름 크게) → 이득 헤드라인 → 그림(40~50%) → **장점 3칸**(SVG 아이콘·라벨 2~8자·설명 12자). 예전 "헤드라인과 이름만, 기능 나열 금지"(대곽나루 포스터 방향)는 빈 포스터가 돼서 바꿈. 글꼴은 Noto Sans KR·IBM Plex Sans KR만(Black Han Sans·Do Hyeon·Jua 금지). 바탕 흰색 + 그림 "isolated on a pure white background" + `mix-blend-mode:multiply` — 그림 모델이 hex 바탕색은 못 맞춰서. 그림 소재는 글씨가 생기기 쉬운 것(수식·코드·문서·화면)을 피한다. 시험: `.superpowers/try-poster.mts <폴더> <이름>`(커밋 안 함, 휩 정보 → Gemini → 학교 Mac 일감 하나 → 미리보기 HTML, 포스터 줄은 안 바꿈).
 
 ## 보안
 - AI HTML은 `<iframe sandbox="" srcDoc>`에만(`PosterPreview`). `allow-same-origin`·`allow-scripts` 금지. 저장 전 `sanitizePosterHtml`(script·on*·javascript:·iframe/object/embed/form/base·meta refresh·Google Fonts 외 link).
@@ -45,6 +46,7 @@ paths:
 
 ## 긴 응답·내보내기
 - `/api/posters/[id]/ask`·`redraw`는 `heartbeatJson` — 15초마다 공백, 끝에 JSON. 브라우저는 `parseHeartbeatBody`. Gemini 1회 12~90초(붐비면 503 → 다음 모델).
+- **탭을 닫으면**: 작업은 `ctx.waitUntil`로 이어지지만 Cloudflare는 연결이 끊긴 뒤 **30초까지만** 기다린다(공식 문서) — Gemini가 그보다 오래 남았으면 잘려서 결과도 없고 미리 잡은 횟수도 안 돌아온다. 그래서 AI가 일하는 동안 나가려 하면 묻는다(`useUnsavedWarning`, `POSTER_COPY.leaveWhileBusy`). 확실히 고치려면 Cloudflare Queues(무료, 소비자 15분)로 옮겨야 한다 — 학생에게 열기 전에 검토. 학교 Mac 그림은 탭과 상관없이 끝나고, 탭을 닫은 사이 막혔으면 다시 열 때 서버 페이지가 정리하고 `artGaveUp`으로 브라우저가 한 번 클라우드로 다시 그린다.
 - PNG·PDF = Cloudflare Browser Rendering REST(`/browser-rendering/screenshot`·`/pdf`, 무료 요금제 됨, 연속 요청 429). `waitForTimeout: 2000` — Google Fonts `display=swap`이라 없으면 대체 글꼴로 찍힌다. 토큰 `CLOUDFLARE_BROWSER_API_TOKEN`(Browser Rendering · Edit만).
 
 ## 확인 도구
