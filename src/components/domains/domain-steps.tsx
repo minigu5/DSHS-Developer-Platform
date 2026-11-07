@@ -15,6 +15,7 @@ import {
 import { buildVerifyPrompt } from "@/lib/domains/ai-prompt";
 import { HOST_PRESETS, hostLabelOf, isNaruHost, isRedirectHost, siteAddressFor, targetBoundToSite } from "@/lib/domains/hosts";
 import { normalizeName } from "@/lib/domains/name";
+import { siteLockOf } from "@/lib/domains/site-lock";
 import { withHostParam } from "@/lib/domains/next-path";
 import type { DomainProjectRow, DomainView } from "@/lib/domains/read";
 import { VERIFY_FILE_PATH, VERIFY_META_NAME } from "@/lib/domains/verify";
@@ -22,6 +23,7 @@ import { SECTION_COLORS } from "@/lib/section-colors";
 import { cn } from "@/lib/utils";
 
 import { ConfirmNameInput } from "@/components/shared/confirm-name-input";
+import Link from "@/components/shared/link";
 import { nameMatches } from "@/lib/confirm-name";
 
 import { HostPicker, NaruPanel } from "./host-picker";
@@ -68,9 +70,10 @@ function ErrorText({ children }: { children: ReactNode }) {
 }
 
 // ① 이름 정하기
-function NameStep({ projectId, naru = false }: { projectId: string; naru?: boolean }) {
+// initialName: 권유("짧은 주소도 받을까요?")에서 넘어왔으면 방문 주소에서 뽑은 예시 이름(hwip.vercel.app → hwip)을 미리 넣는다
+function NameStep({ projectId, naru = false, initialName = "" }: { projectId: string; naru?: boolean; initialName?: string }) {
   const router = useRouter();
-  const [raw, setRaw] = useState("");
+  const [raw, setRaw] = useState(initialName);
   const [check, setCheck] = useState<{ name: string; available: boolean; reason?: string } | null>(null);
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
@@ -220,6 +223,7 @@ const INPUT =
 // 결과는 DomainList 의 useDomainChecks 가 쥐고 있다 — 접혀 있어도 자동으로 확인하므로.
 function SiteStep({
   domain,
+  projectId,
   projectUrl,
   check,
   auto,
@@ -227,6 +231,7 @@ function SiteStep({
   onSaved,
 }: {
   domain: DomainView;
+  projectId: string;
   projectUrl: string;
   check: CheckState;
   auto: AutoState;
@@ -234,10 +239,14 @@ function SiteStep({
   onSaved: () => void;
 }) {
   const router = useRouter();
-  const [raw, setRaw] = useState(domain.siteUrl ?? siteAddressFor(projectUrl)?.url ?? "");
+  // 확인할 사이트 = 프로젝트 방문 주소(site-lock.ts). 방문 주소가 이미 이 주소일 때만 직접 적는다
+  const lock = siteLockOf(projectUrl, domain.name);
+  const [typed, setRaw] = useState(domain.siteUrl ?? "");
+  const raw = lock.kind === "project" ? lock.url : typed;
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
   const parsed = siteAddressFor(raw);
+  const editHref = `/projects/${projectId}/edit`;
   // 저장된 주소와 같고 아직 확인 전이면 확인 코드 안내를 보여 준다
   const saved = domain.siteUrl !== null && parsed?.url === domain.siteUrl && !domain.siteVerified;
 
@@ -255,6 +264,26 @@ function SiteStep({
   const meta = `<meta name="${VERIFY_META_NAME}" content="${domain.verifyToken}">`;
   const prompt = buildVerifyPrompt({ name: domain.name, token: domain.verifyToken, host: domain.siteHost, siteUrl });
 
+  if (lock.kind === "fix_project") {
+    return (
+      <div className="flex flex-col items-start gap-2">
+        <p className="text-sm text-zinc-600 break-keep dark:text-zinc-400">
+          {projectUrl.trim() ? (
+            <>
+              프로젝트 방문 주소(<span className="font-mono">{projectUrl.trim()}</span>)가 호스트가 준 주소가 아니에요.
+            </>
+          ) : (
+            "프로젝트에 방문 주소가 없어요."
+          )}{" "}
+          이 주소는 프로젝트 방문 주소의 사이트에 붙어요. 먼저 방문 주소를 호스트가 준 주소(예: 이름.vercel.app)로 바꿔 주세요.
+        </p>
+        <Link href={editHref} className={SECONDARY}>
+          프로젝트 방문 주소 고치기
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <form
@@ -265,18 +294,21 @@ function SiteStep({
         className="flex flex-col gap-1.5"
       >
         <label htmlFor={`site-${domain.id}`} className="text-sm text-zinc-600 dark:text-zinc-400">
-          호스트가 처음 준 내 사이트 주소를 넣어요. 이 주소에서 내 사이트가 맞는지 확인해요.
+          {lock.kind === "project"
+            ? "프로젝트 방문 주소예요. 이 주소에서 내 사이트가 맞는지 확인해요."
+            : "호스트가 처음 준 내 사이트 주소를 넣어요. 이 주소에서 내 사이트가 맞는지 확인해요."}
         </label>
         <div className="flex max-w-xl flex-col gap-2 sm:flex-row">
           <input
             id={`site-${domain.id}`}
             value={raw}
             onChange={(e) => setRaw(e.target.value)}
+            readOnly={lock.kind === "project"}
             placeholder="이름.vercel.app"
             autoComplete="off"
             spellCheck={false}
             aria-describedby={`site-hint-${domain.id}`}
-            className={INPUT}
+            className={cn(INPUT, lock.kind === "project" && "bg-zinc-50 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300")}
           />
           {!saved && (
             <button type="submit" disabled={!parsed || pending} className={PRIMARY}>
@@ -285,7 +317,15 @@ function SiteStep({
           )}
         </div>
         <p id={`site-hint-${domain.id}`} aria-live="polite" className="text-xs">
-          {!raw.trim() || parsed ? (
+          {lock.kind === "project" ? (
+            <span className="text-zinc-500 dark:text-zinc-400">
+              다른 사이트에 붙이려면{" "}
+              <Link href={editHref} className="font-medium text-teal-700 underline underline-offset-2 hover:text-teal-800 dark:text-teal-400 dark:hover:text-teal-300">
+                프로젝트 수정
+              </Link>
+              에서 방문 주소를 먼저 바꿔요.
+            </span>
+          ) : !raw.trim() || parsed ? (
             <span className="text-zinc-500 dark:text-zinc-400">
               {parsed ? `${HOST_PRESETS[parsed.host].label} 주소예요.` : "예: 이름.vercel.app · 이름.netlify.app · 아이디.github.io/저장소"}
             </span>
@@ -466,6 +506,7 @@ export function DomainSteps({
   onCheck,
   naruServerId = null,
   initialNaru = false,
+  initialName = "",
 }: {
   project: DomainProjectRow["project"];
   domain: DomainView | null;
@@ -476,6 +517,8 @@ export function DomainSteps({
   naruServerId?: string | null;
   /** 주소의 ?host=naru — 새로고침해도 고른 연결 방법이 남도록 주소에 적어 둔 값 */
   initialNaru?: boolean;
+  /** ① 이름 칸에 미리 넣을 예시 이름 */
+  initialName?: string;
 }) {
   // 확인 코드도 호스트 연결도 시작하지 않은 주소(또는 아직 주소 없음)만 연결 방법을 고를 수 있다
   const canChooseMode = domain === null || (domain.status === "reserved" && !domain.siteVerified && domain.siteUrl === null);
@@ -527,7 +570,7 @@ export function DomainSteps({
 
         <ol className="flex flex-col gap-4">
           <Step n={1} state={domain ? "done" : "current"} title={domain ? <>이름 <span className="font-mono">{fqdn}</span></> : "이름 정하기"}>
-            {!domain && <NameStep projectId={project.id} naru />}
+            {!domain && <NameStep projectId={project.id} naru initialName={initialName} />}
           </Step>
           <Step
             n={2}
@@ -592,7 +635,7 @@ export function DomainSteps({
 
       <ol className="flex flex-col gap-4">
         <Step n={1} state={domain ? "done" : "current"} title={domain ? <>이름 <span className="font-mono">{fqdn}</span></> : "이름 정하기"}>
-          {!domain && <NameStep projectId={project.id} />}
+          {!domain && <NameStep projectId={project.id} initialName={initialName} />}
         </Step>
 
         <Step
@@ -609,7 +652,7 @@ export function DomainSteps({
           }
         >
           {domain && showSite && (
-            <SiteStep domain={domain} projectUrl={project.url ?? ""} check={check} auto={auto} onCheck={onCheck} onSaved={() => setChangeSite(false)} />
+            <SiteStep domain={domain} projectId={project.id} projectUrl={project.url ?? ""} check={check} auto={auto} onCheck={onCheck} onSaved={() => setChangeSite(false)} />
           )}
           {domain && verified && changeSite && !moving && (
             <button type="button" onClick={() => setChangeSite(false)} className="mt-2 text-xs text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">

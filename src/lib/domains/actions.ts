@@ -23,6 +23,7 @@ import { HOST_PRESETS, isRedirectHost, siteAddressFor, siteHostFor, targetBoundT
 import { normalizeName, validateName } from './name'
 import { getNaruClient, isSiteStep, NaruError, restoreNaruDns, shouldSkipVerify, toPickableServers, unbindNaruBestEffort, type NaruServer } from './naru'
 import { getRedirectClient, redirectConfigured } from './redirects'
+import { SITE_LOCK_ERRORS, siteLockOf } from './site-lock'
 import { checkSite, type CheckResult } from './verify'
 import { banNoticeFor } from '@/lib/admin/guard'
 
@@ -196,6 +197,15 @@ export async function setSiteAddress(id: string, raw: string): Promise<ActionRes
   const site = siteAddressFor(raw)
   if (!site) return { ok: false, error: RPC_ERRORS.site_invalid }
   if (isRedirectHost(site.host) && !redirectConfigured()) return { ok: false, error: REDIRECT_NOT_READY }
+  // 확인할 사이트는 프로젝트 방문 주소로 정한다(site-lock.ts) — 화면을 거치지 않은 요청도 여기서 막는다
+  const row = await loadRow(id)
+  if (!row || row.owner_id !== user.id) return { ok: false, error: RPC_ERRORS.not_owner }
+  const { data: project } = row.project_id
+    ? await createAdminClient().from('projects').select('url').eq('id', row.project_id).maybeSingle()
+    : { data: null }
+  const lock = siteLockOf(project?.url ?? null, row.name)
+  if (lock.kind === 'fix_project') return { ok: false, error: SITE_LOCK_ERRORS.fix_project }
+  if (lock.kind === 'project' && lock.url !== site.url) return { ok: false, error: SITE_LOCK_ERRORS.mismatch }
   const { error } = await createAdminClient().rpc('subdomain_set_site', {
     p_user: user.id,
     p_id: id,

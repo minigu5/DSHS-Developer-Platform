@@ -11,6 +11,8 @@ import { rowDisabled } from "@/lib/domains/list-state";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { cn } from "@/lib/utils";
 
+import { suggestNameFrom } from "@/lib/domains/offer";
+
 import { DomainSteps } from "./domain-steps";
 import { RedirectPill } from "./redirect-pill";
 import { IDLE_CHECK, useDomainChecks } from "./use-domain-checks";
@@ -183,6 +185,7 @@ export function DomainList({
                   onCheck={() => live && void checks.check(domain.id)}
                   naruServerId={naruServerId}
                   initialNaru={initialNaru}
+                  initialName={project.id === initialOpen && project.url ? (suggestNameFrom(project.url) ?? "") : ""}
                 />
               </div>
             )}
