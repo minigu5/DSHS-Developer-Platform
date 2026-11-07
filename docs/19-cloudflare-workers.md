@@ -7,7 +7,7 @@
 | 파일 | 역할 |
 |---|---|
 | `wrangler.jsonc` | Worker 이름 `dshs-developer-platform`, `nodejs_compat`, 정적 자산, Images 바인딩, 배치 `aws:ap-northeast-2`, `keep_names: false`, 런타임 변수, 큐 `poster-jobs` |
-| `custom-worker.ts` | Worker 진입점(`main`) — `.open-next/worker.js`의 fetch를 그대로 쓰고 AI 포스터 큐 소비자 `queue()`를 더함(아래 「AI 포스터 큐」) |
+| `custom-worker.ts` | Worker 진입점(`main`) — `.open-next/worker.js`의 fetch를 그대로 쓰고 AI 포스터 큐 소비자 `queue()`와 매일 밤 파비콘 동기화 `scheduled()`(`triggers.crons`, `.claude/rules/projects.md`)를 더함(아래 「AI 포스터 큐」) |
 | `open-next.config.ts` | OpenNext 캐시 설정 — 정적 자산 캐시만 (아래 "캐시") |
 | `next.config.ts` 끝 | `initOpenNextCloudflareForDev()` — `next dev`에서 바인딩 사용 |
 | `public/_headers` | `/_next/static/*` 1년 캐시 |

@@ -36,6 +36,9 @@
     "consumers": [{ "queue": "poster-jobs", "max_batch_size": 1, "max_batch_timeout": 0, "max_retries": 2 }]
   },
 
+  // 매일 03:15 KST(UTC 18:15) 파비콘 동기화 — custom-worker.ts scheduled(). 무료 요금제는 계정 전체 예약 5개까지
+  "triggers": { "crons": ["15 18 * * *"] },
+
   // 비밀이 아닌 런타임 값. 비밀은 `npx wrangler secret put <이름>`으로.
   "vars": {
     "ALLOWED_EMAIL_DOMAIN": "ts.hs.kr",

@@ -1,6 +1,7 @@
 // 만들기·고치기·다시 그리기 큐 일감(poster_ai_jobs)의 판단만 모은 순수 함수 — 네트워크·DB 없이 node:test 로 검증한다.
 // 서명은 큐 소비자(custom-worker.ts, Next 밖)도 쓰므로 '@/' 경로·server-only 를 import 하지 않는다.
 
+import { signInternal, verifyInternal } from '../internal-sig.ts'
 import { POSTER_AI_JOB } from './config.ts'
 
 export type AiJobStatus = 'queued' | 'working' | 'done' | 'failed' | 'expired'
@@ -10,21 +11,13 @@ export type AiJobKind = 'ask' | 'redraw'
 export const POSTER_JOB_PATH = '/api/poster-jobs/run'
 export const POSTER_JOB_SIG_HEADER = 'x-poster-job-sig'
 
-const hex = (buf: ArrayBuffer) => Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, '0')).join('')
-
 /** 일감 id 의 HMAC-SHA256(키 = 서비스 키). 새 비밀값 없이 소비자와 내부 경로가 같은 값을 만든다(Node·Workers 공통) */
-export async function signPosterJob(jobId: string, secret: string): Promise<string> {
-  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
-  return hex(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`poster-job:${jobId}`)))
+export function signPosterJob(jobId: string, secret: string): Promise<string> {
+  return signInternal(`poster-job:${jobId}`, secret)
 }
 
-export async function verifyPosterJob(jobId: string, sig: string | null, secret: string | undefined): Promise<boolean> {
-  if (!secret || !sig || sig.length !== 64) return false
-  const expected = await signPosterJob(jobId, secret)
-  // 길이가 같으니 글자마다 비교(시간 차로 맞춰 보기 방지)
-  let diff = 0
-  for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ sig.charCodeAt(i)
-  return diff === 0
+export function verifyPosterJob(jobId: string, sig: string | null, secret: string | undefined): Promise<boolean> {
+  return verifyInternal(`poster-job:${jobId}`, sig, secret)
 }
 
 export function isJobId(value: unknown): value is string {

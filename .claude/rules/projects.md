@@ -15,7 +15,8 @@ paths:
   - ".github/workflows/sync-readmes.yml"
   - "src/lib/favicon*.ts"
   - "scripts/sync-favicons.mts"
-  - ".github/workflows/sync-favicons.yml"
+  - "src/app/api/favicon-sync/**"
+  - "custom-worker.ts"
 ---
 
 # 프로젝트 등록·수정·상세·카드·댓글·하트
@@ -27,7 +28,7 @@ paths:
 - **플랫폼 자동 선택**: `types`에 `website`가 포함되면 `useEffect`로 모든 플랫폼을 자동 선택하고 카드를 비활성화(`pointer-events-none`). "웹사이트는 모든 플랫폼의 브라우저에서 열 수 있어서 전체 플랫폼이 자동으로 선택돼요." 안내 표시. 웹사이트를 빼면 잠금 해제하고 플랫폼을 웹사이트 고르기 전 값으로 되돌린다(2026-11-06 사용자 요청, `platformsBeforeWebsiteRef` — 처음부터 웹사이트인 수정 화면은 일부만 저장된 옛 값, 전체였으면 빈 값). `app`이 포함되면 플랫폼 1개 이상 필수.
 - 플랫폼 힌트 문구(웹사이트 제외)는 제거됨 — 사용자가 직접 선택.
 - **아이콘 link 모드**: `ImageUploadInput` 컴포넌트 사용 — 파일 드래그·선택 업로드 + URL 직접 입력 폴백. 업로드된 이미지는 Cloudinary에 자동 저장.
-- **아이콘 auto 모드 = 파비콘 자동 동기화**(2026-11-05 사용자 요청 — 사이트 파비콘이 바뀌어도 등록 때 주소가 그대로 남았음): `.github/workflows/sync-favicons.yml`이 **매일 03:15 KST**(UTC 18:15, 수동 `workflow_dispatch` + `dry_run`)에 `scripts/sync-favicons.mts`를 돌린다. 서비스 키로 `icon_type='auto'`·`url` 있는 프로젝트를 읽어 `resolveFavicon`(`src/lib/favicon.ts`, `/api/favicon`과 같은 로직)을 다시 돌리고 달라졌으면 `icon_url` 갱신(저장 조건에 `icon_type='auto'`도 걸어 그사이 직접 올리기로 바꾼 건 안 덮음). 판단 로직 `src/lib/favicon-sync.ts`(테스트 `favicon-sync.test.ts`): 못 찾으면 지우지 않고, **결과가 공개 favicon 서비스(Google s2·DuckDuckGo)인데 기존 직접 아이콘이 아직 열리면 유지**(Actions 러너 IP를 사이트가 막으면 공개 서비스로 떨어지므로). 실패 exit 1은 DB 저장 실패만. 비공개 프로젝트는 로그에 제목·주소 대신 id 앞부분. `favicon.ts`는 스크립트가 node로 바로 읽으려고 `./ssrf-guard.ts` 상대 import. 직접 올리기(`link`)는 건드리지 않는다. DB 변경 없음. 로컬 점검 `node scripts/sync-favicons.mts --dry-run`.
+- **아이콘 auto 모드 = 파비콘 자동 동기화**(2026-11-05 사용자 요청 — 사이트 파비콘이 바뀌어도 등록 때 주소가 그대로 남았음): **매일 03:15 KST**(UTC 18:15) Worker 예약 작업(`wrangler.jsonc` `triggers.crons`, `custom-worker.ts` `scheduled()`)이 같은 Worker를 `WORKER_SELF_REFERENCE`로 `POST /api/favicon-sync/run`(헤더 `x-favicon-sync-sig` = HMAC, 키 = 서비스 키, `src/lib/favicon-sync-job.ts`·공용 `src/lib/internal-sig.ts`) — 본문 `{}`면 대상 id 목록, `{ projectId }`면 그 하나만(요청마다 CPU 10ms 따로, 4개씩 동시). 무료 요금제 바깥 요청 50개 한도라 하룻밤 45개까지, 넘으면 날마다 시작점을 옮긴다(`pickTonight`). 결과는 Workers 로그 `[favicon] 끝 …`. 경로는 서비스 키로 `icon_type='auto'`·`url` 있는 프로젝트를 읽어 `resolveFavicon`(`src/lib/favicon.ts`, `/api/favicon`과 같은 로직)을 다시 돌리고 달라졌으면 `icon_url` 갱신(저장 조건에 `icon_type='auto'`도 걸어 그사이 직접 올리기로 바꾼 건 안 덮음). 판단 로직 `src/lib/favicon-sync.ts`(테스트 `favicon-sync.test.ts`): 못 찾으면 지우지 않고, **결과가 공개 favicon 서비스(Google s2·DuckDuckGo)인데 기존 직접 아이콘이 아직 열리면 유지**(사이트가 서버 요청을 막으면 공개 서비스로 떨어지므로). **예전엔 GitHub Actions가 돌렸는데 러너 IP를 Cloudflare가 막아 `*.dshs.dev` 사이트를 못 읽고 위 규칙 때문에 등록 때 받은 48px 아이콘이 계속 남았다**(2026-11-07 영화대교 — 180px `apple-touch-icon`이 있는데 흐림) → Worker로 옮기고 워크플로 삭제. `favicon.ts`는 스크립트가 node로 바로 읽으려고 `./ssrf-guard.ts` 상대 import. 직접 올리기(`link`)는 건드리지 않는다. DB 변경 없음. 로컬에서 한꺼번에: `node scripts/sync-favicons.mts [--dry-run]`(비공개는 출력에 id 앞부분만).
 - **키보드 접근성**: 카드 그리드 UI(`div` 기반)에 `tabIndex={0}` · `role="button"` · `onKeyDown`(Enter/Space) · `focus-visible:ring-2` 적용. Tab 키로 모든 카드 포커스 이동, Enter/Space로 선택 가능. 웹사이트 타입 선택 시 비활성화된 플랫폼 카드는 `tabIndex={-1}`로 Tab 순서에서 제외.
 - **상세 설명 마크다운 에디터**: `<Textarea>` 대신 작성 / 분할 / 미리보기 3탭 UI. Tab 키 두 칸 들여쓰기(Shift+Tab으로 해제) 지원. `Markdown` 컴포넌트로 실시간 미리보기.
 - **저장 안 한 변경 이탈 경고**(2026-10-25 사용자 요청): 등록·수정 중 값이 처음과 달라지면(`formSnapshot`을 첫 렌더 값과 비교 — 배열은 정렬해 순서 차이 무시) `useUnsavedWarning`(`src/lib/use-unsaved-warning.ts`)이 켜진다. 새로고침·탭 닫기·바깥 사이트는 `beforeunload`(브라우저 기본 경고), 사이트 안 링크(헤더·로고 등 클라이언트 이동)는 `beforeunload`가 안 떠서 document 캡처 단계에서 `<a>` 클릭을 가로채 `window.confirm`. 뒤로 가기(popstate)는 막지 않는다. 저장·삭제 성공 뒤 `router.push` 직전에 `allowLeave()`로 경고를 끈다. 같은 틀을 다른 폼에 쓰려면 이 훅에 `dirty`만 넘기면 됨(가이드 위키 편집기는 자체 구현 유지). 한계: 팀원에 본인이 없는 팀 프로젝트는 열자마자 본인 자동 추가 이펙트가 값을 바꿔 경고가 켜질 수 있다(웹사이트 전체 플랫폼·비공개 소스 라이선스 비우기는 첫 값에서 처리하고, 비공개 팀의 팀원은 접근 허용 목록에 화면·저장 때만 합쳐서 경고를 켜지 않는다 — 2026-10-26).

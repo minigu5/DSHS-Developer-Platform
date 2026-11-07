@@ -1,11 +1,12 @@
 // 파비콘 자동 동기화: icon_type='auto'(URL에서 자동 추출) 프로젝트의 icon_url 을 사이트의 지금 파비콘으로 맞춘다.
 //
-// 매일 밤 GitHub Actions(.github/workflows/sync-favicons.yml)가 실행한다.
+// 매일 밤은 Worker 예약 작업(custom-worker.ts scheduled → /api/favicon-sync/run)이 같은 판단 로직으로 돈다.
+// GitHub Actions는 러너 IP를 Cloudflare가 막아 사이트를 못 읽어서 2026-11-07 그만뒀다. 이 스크립트는 로컬에서 한꺼번에 맞출 때 쓴다.
 // 로컬 실행:
 //   node scripts/sync-favicons.mts --dry-run   # 바뀔 내용만 출력
 //   node scripts/sync-favicons.mts             # 실제 DB 업데이트
 //
-// 필요 환경변수(.env.local 또는 Actions secrets): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+// 필요 환경변수(.env.local): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 
 import { createClient } from '@supabase/supabase-js';
 import { readFileSync } from 'node:fs';
@@ -60,7 +61,7 @@ if (error) {
 type Row = FaviconSyncRow & { visibility: string };
 const rows = (data ?? []) as Row[];
 
-// 저장소가 공개라 Actions 로그도 공개다 — 비공개 프로젝트는 제목·주소 대신 id 앞부분만 찍는다
+// 출력을 어디 붙여도 되게 비공개 프로젝트는 제목·주소 대신 id 앞부분만 찍는다
 const labelOf = (row: Row) => (row.visibility === 'public' ? row.title : `비공개 프로젝트 ${row.id.slice(0, 8)}`);
 const iconOf = (row: Row, icon: string | null) => (row.visibility === 'public' ? (icon ?? '없음') : '(비공개)');
 console.log(`파비콘 동기화 대상 ${rows.length}개${DRY_RUN ? ' (dry-run)' : ''}`);
@@ -115,5 +116,5 @@ await Promise.all(
 );
 
 console.log(`끝 — 갱신 ${count.updated}, 그대로 ${count.same}, 건너뜀 ${count.skipped}, 실패 ${count.failed}`);
-// 사이트를 못 찾는 건 흔해서 건너뜀으로 두고, DB 저장 실패만 Actions 를 빨갛게 만든다(메일 알림)
+// 사이트를 못 찾는 건 흔해서 건너뜀으로 두고, DB 저장 실패만 실패로 끝낸다
 if (count.failed > 0) process.exit(1);
