@@ -22,6 +22,8 @@ export interface PosterView {
   canRedraw: boolean
   // 학교 Mac 이 그림을 그리는 중(project_posters.art_job_id 가 있음)
   artPending: boolean
+  // 큐에서 돌고 있는 만들기·고치기·다시 그리기 일감(project_posters.ai_job_id) — 다시 열어도 "만드는 중"을 이어서 보여 준다
+  aiJobId: string | null
   // PNG·PDF 에 쓰는 AI 확대 그림 주소 — 스튜디오가 열릴 때 미리 한 번 불러 만들어 둔다(처음 만들 때 ~10초)
   artPrintUrl: string | null
   updatedAt: string

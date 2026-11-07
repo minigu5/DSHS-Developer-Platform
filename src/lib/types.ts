@@ -534,6 +534,7 @@ export type Database = {
           band_tone: 'light' | 'dark';
           band_position: 'top' | 'bottom';
           art_job_id: string | null; // 기다리는 학교 Mac 그림 일감(migration 20261106190000)
+          ai_job_id: string | null; // 큐에서 돌고 있는 만들기·고치기·다시 그리기 일감(migration 20261107130000)
           created_at: string;
           updated_at: string;
         };
@@ -557,7 +558,35 @@ export type Database = {
           band_tone?: 'light' | 'dark';
           band_position?: 'top' | 'bottom';
           art_job_id?: string | null;
+          ai_job_id?: string | null;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      // 만들기·고치기·다시 그리기 큐 일감 — 서비스 키 전용(RLS 켜고 정책 없음). migration 20261107130000
+      poster_ai_jobs: {
+        Row: {
+          id: string;
+          kind: 'ask' | 'redraw';
+          poster_id: string;
+          user_id: string;
+          input: Json;
+          holds: ('text' | 'art' | 'art_local')[]; // 아직 돌려줄 수 있는 횟수 — 막힘 정리가 한 번만 돌려준다
+          status: 'queued' | 'working' | 'done' | 'failed' | 'expired';
+          result: Json | null;
+          usage_released_at: string | null;
+          created_at: string;
+          started_at: string | null;
+          finished_at: string | null;
+        };
+        Insert: { kind: 'ask' | 'redraw'; poster_id: string; user_id: string; input?: Json; holds?: ('text' | 'art' | 'art_local')[] };
+        Update: {
+          status?: 'queued' | 'working' | 'done' | 'failed' | 'expired';
+          holds?: ('text' | 'art' | 'art_local')[];
+          result?: Json | null;
+          usage_released_at?: string | null;
+          started_at?: string | null;
+          finished_at?: string | null;
         };
         Relationships: [];
       };

@@ -8,7 +8,7 @@ import { SelectCard } from "@/components/forms/select-card";
 import { ImageUploadInput } from "@/components/shared/image-upload-input";
 import { Button } from "@/components/ui/button";
 import { setPosterBand, undoPoster } from "@/lib/posters/actions";
-import { POSTER_MAC, type PosterBandPosition, type PosterTone } from "@/lib/posters/config";
+import { POSTER_AI_JOB, POSTER_MAC, type PosterBandPosition, type PosterTone } from "@/lib/posters/config";
 import { parseHeartbeatBody } from "@/lib/posters/heartbeat";
 import { MAX_REQUEST, POSTER_COPY } from "@/lib/posters/messages";
 import type { PosterView } from "@/lib/posters/store";
@@ -21,7 +21,13 @@ import { PosterPreview } from "./poster-preview";
 import { Segment } from "./segment";
 
 type Busy = null | "ask" | "redraw" | "undo" | "png" | "pdf";
-type AskResult = { ok: true; poster: PosterView; notice?: string } | { ok: false; error: string };
+// 큐에 넣었으면 { queued, jobId } — 결과는 /job 으로 확인. 큐를 못 쓰면 예전처럼 끝까지 기다려 { poster }
+type AskResult = { ok: true; queued: true; jobId: string } | { ok: true; queued?: undefined; poster: PosterView; notice?: string } | { ok: false; error: string };
+type JobStatus =
+  | { ok: true; status: "pending"; poster: PosterView }
+  | { ok: true; status: "done"; notice?: string; poster: PosterView }
+  | { ok: true; status: "failed"; error: string; poster: PosterView }
+  | { ok: false; error: string };
 type ArtStatus = { ok: true; status: "none" | "pending" | "done" | "expired" | "failed"; poster: PosterView } | { ok: false; error: string };
 
 const SMALL_BUTTON = "h-9 rounded-full px-3 text-sm";
@@ -47,21 +53,25 @@ export function PosterStudio({
   const [shotUrl, setShotUrl] = useState("");
   const [shotRatio, setShotRatio] = useState<number | null>(null);
   const latestShot = useRef("");
-  // Workers 는 탭을 닫으면 남은 일을 30초까지만 이어 간다(Gemini 는 최대 90초) — 기다리는 동안 나가려 하면 묻는다
+  // 큐를 못 써서 직접 기다리는 동안만(Workers 는 탭을 닫으면 남은 일을 30초까지만 이어 간다) 나가려 하면 묻는다.
+  // 큐에 넣은 뒤(poster.aiJobId)엔 창을 닫아도 서버가 끝까지 만든다
   useUnsavedWarning(busy === "ask" || busy === "redraw", POSTER_COPY.leaveWhileBusy);
   const retried = useRef(false);
 
   useEffect(() => {
-    if (!artGaveUp || retried.current) return;
+    if (!artGaveUp || retried.current || initial.aiJobId) return;
     retried.current = true;
     void callAi("redraw", { via: "cloud" });
     // 처음 열 때 한 번만
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const log = useRef<HTMLOListElement>(null);
-  const busyRef = useRef<Busy>(null);
-  busyRef.current = busy;
+  // 버튼을 막을 때: 이 화면의 요청 중이거나 큐 일감이 돌고 있음
+  const working = !!busy || !!poster.aiJobId;
+  const workingRef = useRef(false);
+  workingRef.current = working;
   const firstMake = !poster.html;
+  const timerOn = (!!busy && busy !== "undo") || !!poster.aiJobId;
 
   // PNG·PDF 용 AI 확대 그림은 처음 부를 때 Cloudinary 가 ~10초 걸려 만든다 — 그림이 바뀌면 미리 한 번 불러 둔다(응답은 안 읽음)
   useEffect(() => {
@@ -70,10 +80,10 @@ export function PosterStudio({
   }, [poster.artPrintUrl]);
 
   useEffect(() => {
-    if (!busy || busy === "undo") return;
+    if (!timerOn) return;
     const timer = setInterval(() => setElapsed((s) => s + 1), 1000);
     return () => clearInterval(timer);
-  }, [busy]);
+  }, [timerOn]);
 
   useEffect(() => {
     log.current?.lastElementChild?.scrollIntoView({ block: "nearest" });
@@ -97,7 +107,7 @@ export function PosterStudio({
         clearInterval(timer);
         setPoster(result.poster);
         if (result.status === "expired" || result.status === "failed") {
-          if (busyRef.current) toast(POSTER_COPY.artGaveUp);
+          if (workingRef.current) toast(POSTER_COPY.artGaveUp);
           else void callAi("redraw", { via: "cloud" });
         }
       } catch {
@@ -112,6 +122,37 @@ export function PosterStudio({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [poster.artPending, poster.id]);
 
+  // 큐 일감(만들기·고치기·다시 그리기)이 끝날 때까지 3초마다 확인 — 창을 닫았다 다시 열어도 서버 페이지가 준 aiJobId 로 이어서
+  useEffect(() => {
+    const jobId = poster.aiJobId;
+    if (!jobId) return;
+    let stopped = false;
+    const started = Date.now();
+    const timer = setInterval(async () => {
+      if (Date.now() - started > POSTER_AI_JOB.pollStopMs) {
+        clearInterval(timer);
+        toast(POSTER_COPY.aiSlow);
+        return;
+      }
+      try {
+        const res = await fetch(`/api/posters/${poster.id}/job?id=${jobId}`, { cache: "no-store" });
+        const result = (await res.json()) as JobStatus;
+        if (stopped || !result.ok || result.status === "pending") return;
+        clearInterval(timer);
+        stopped = true;
+        setPoster(result.poster);
+        if (result.status === "failed") toast.error(result.error);
+        else if (result.notice) toast(result.notice);
+      } catch {
+        // 잠깐 끊겨도 다음 확인에서 다시 묻는다
+      }
+    }, POSTER_AI_JOB.pollMs);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }, [poster.aiJobId, poster.id]);
+
   async function callAi(path: "ask" | "redraw", body?: object) {
     setElapsed(0);
     setBusy(path);
@@ -125,6 +166,10 @@ export function PosterStudio({
       if (!result.ok) {
         toast.error(result.error);
         return false;
+      }
+      if (result.queued) {
+        setPoster((p) => ({ ...p, aiJobId: result.jobId, canRedraw: false }));
+        return true;
       }
       setPoster(result.poster);
       if (result.notice) toast(result.notice);
@@ -151,7 +196,7 @@ export function PosterStudio({
   }
 
   async function send() {
-    if (busy) return;
+    if (working) return;
     const body = !poster.html ? { message, style, screenshot: style === "screenshot" ? { url: shotUrl, ratio: shotRatio } : undefined } : { message };
     if (await callAi("ask", body)) setMessage("");
   }
@@ -196,7 +241,7 @@ export function PosterStudio({
     }
   }
 
-  const aiBusy = busy === "ask" || busy === "redraw";
+  const aiBusy = busy === "ask" || busy === "redraw" || !!poster.aiJobId;
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
@@ -227,7 +272,7 @@ export function PosterStudio({
           </div>
           <div className="flex gap-2">
             {(["png", "pdf"] as const).map((format) => (
-              <Button key={format} variant="outline" className={SMALL_BUTTON} disabled={!poster.html || poster.artPending || !!busy} onClick={() => download(format)}>
+              <Button key={format} variant="outline" className={SMALL_BUTTON} disabled={!poster.html || poster.artPending || working} onClick={() => download(format)}>
                 <Download className="mr-1 h-4 w-4" aria-hidden />
                 {busy === format ? `만드는 중… ${elapsed}초` : `${format.toUpperCase()}로 받기`}
               </Button>
@@ -259,10 +304,10 @@ export function PosterStudio({
         </ol>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button variant="ghost" className={SMALL_BUTTON} disabled={!poster.canUndo || !!busy} onClick={undo}>
+          <Button variant="ghost" className={SMALL_BUTTON} disabled={!poster.canUndo || working} onClick={undo}>
             <Undo2 className="mr-1 h-4 w-4" aria-hidden /> 되돌리기
           </Button>
-          <Button variant="ghost" className={SMALL_BUTTON} disabled={!poster.canRedraw || !!busy} onClick={() => callAi("redraw")}>
+          <Button variant="ghost" className={SMALL_BUTTON} disabled={!poster.canRedraw || working} onClick={() => callAi("redraw")}>
             <ImageIcon className="mr-1 h-4 w-4" aria-hidden /> 그림 다시 그리기
           </Button>
         </div>
@@ -309,11 +354,11 @@ export function PosterStudio({
         />
         <div className="mt-3 flex items-center justify-between gap-3">
           <span className="text-xs text-zinc-500 tabular-nums">
-            {aiBusy ? `${elapsed}초 지남 · 1~2분 걸려요` : `${message.length} / ${MAX_REQUEST}`}
+            {aiBusy ? `${elapsed}초 지남 · ${poster.aiJobId ? POSTER_COPY.aiWorking : "1~2분 걸려요"}` : `${message.length} / ${MAX_REQUEST}`}
           </span>
           <Button
             className={cn("h-11 rounded-full px-5", SECTION_COLORS.new.button)}
-            disabled={!!busy || (!firstMake && !message.trim()) || (firstMake && style === "screenshot" && !shotRatio)}
+            disabled={working || (!firstMake && !message.trim()) || (firstMake && style === "screenshot" && !shotRatio)}
             onClick={send}
           >
             {aiBusy ? "만드는 중…" : firstMake ? "포스터 만들기" : "부탁 보내기"}

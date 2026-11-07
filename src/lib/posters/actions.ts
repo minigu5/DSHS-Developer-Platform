@@ -52,6 +52,8 @@ export async function deletePoster(posterId: string): Promise<{ error?: string }
 export async function undoPoster(posterId: string): Promise<{ error?: string; poster?: PosterView }> {
   const found = await posterWithAccess(posterId)
   if ('error' in found) return { error: found.error }
+  // 큐 일감이 끝나며 저장하면 되돌린 것을 덮어쓴다
+  if (found.poster.ai_job_id) return { error: POSTER_COPY.aiBusy }
   const state = undoPosterState(found.poster)
   if (!state) return { error: '되돌릴 버전이 없어요.' }
   // 기다리던 학교 Mac 그림은 취소 — 늦게 와도 되돌린 포스터에 붙지 않는다

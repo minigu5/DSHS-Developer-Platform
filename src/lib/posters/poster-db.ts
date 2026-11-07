@@ -44,8 +44,9 @@ export function toPosterView(row: ProjectPosterRow): PosterView {
     position: row.band_position ?? 'bottom',
     messages: row.messages ?? [],
     canUndo: (row.versions ?? []).length > 0,
-    canRedraw: !row.art_job_id && !!row.art_order && !!row.html && hasArtSlot(row.html),
+    canRedraw: !row.art_job_id && !row.ai_job_id && !!row.art_order && !!row.html && hasArtSlot(row.html),
     artPending: !!row.art_job_id,
+    aiJobId: row.ai_job_id,
     artPrintUrl: row.art_url && !row.art_job_id ? posterArtPrintUrl(row.art_url, row.art_order) : null,
     updatedAt: row.updated_at,
   }

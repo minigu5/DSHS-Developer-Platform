@@ -30,3 +30,59 @@ export async function reserveUsage(kind: UsageKind, userId: string): Promise<'ok
 export async function releaseUsage(kind: UsageKind, userId: string): Promise<void> {
   await createAdminClient().rpc('release_ai_usage', { p_kind: kind, p_user: userId })
 }
+
+/**
+ * 한 요청이 지금 잡고 있는 횟수. 큐 일감은 onChange 로 poster_ai_jobs.holds 에 적어 두어, 일감이 중간에 죽어도
+ * 막힘 정리가 남은 것만 한 번 돌려준다. 잡지 않은 종류는 돌려주지 않는다(두 번 돌려주기 방지).
+ * 적기 → 돌려주기 순서라 그 사이에 죽으면 덜 돌려줄 뿐 두 번 돌려주지 않는다.
+ */
+export class UsageLedger {
+  private held: UsageKind[]
+
+  constructor(
+    readonly userId: string,
+    initial: readonly UsageKind[] = [],
+    private readonly onChange?: (held: UsageKind[]) => Promise<void>,
+  ) {
+    this.held = [...initial]
+  }
+
+  get holds(): UsageKind[] {
+    return [...this.held]
+  }
+
+  has(kind: UsageKind): boolean {
+    return this.held.includes(kind)
+  }
+
+  async reserve(kind: UsageKind): Promise<'ok' | 'user_limit' | 'site_limit'> {
+    const result = await reserveUsage(kind, this.userId)
+    if (result === 'ok') {
+      this.held.push(kind)
+      await this.onChange?.(this.holds)
+    }
+    return result
+  }
+
+  async release(kind: UsageKind): Promise<void> {
+    if (!this.drop(kind)) return
+    await this.onChange?.(this.holds)
+    await releaseUsage(kind, this.userId)
+  }
+
+  /** 쓴 횟수(그림을 그렸거나 학교 Mac 일감이 맡음) — 돌려줄 목록에서만 뺀다 */
+  async spend(kind: UsageKind): Promise<void> {
+    if (this.drop(kind)) await this.onChange?.(this.holds)
+  }
+
+  async releaseAll(): Promise<void> {
+    for (const kind of this.holds) await this.release(kind)
+  }
+
+  private drop(kind: UsageKind): boolean {
+    const i = this.held.indexOf(kind)
+    if (i < 0) return false
+    this.held.splice(i, 1)
+    return true
+  }
+}

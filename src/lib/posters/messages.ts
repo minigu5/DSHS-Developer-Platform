@@ -28,6 +28,11 @@ export const POSTER_COPY = {
   needScreenshot: '화면 캡처를 먼저 올려 주세요.',
   leaveWhileBusy: 'AI가 아직 만들고 있어요. 지금 나가면 결과가 사라질 수 있어요. 나갈까요?',
   artSlow: '그림이 오래 걸려요. 잠시 뒤 새로 고침해서 확인해 주세요.',
+  // 만들기·고치기 큐 일감(2026-11-07) — 창을 닫아도 서버가 끝까지 만들어 저장한다
+  aiWorking: '창을 닫아도 이어서 만들어요',
+  aiBusy: 'AI가 아직 만들고 있어요. 다 만든 뒤에 다시 해 주세요.',
+  aiStuck: 'AI 작업이 멈춰서 취소했어요. 쓴 횟수는 돌려드렸으니 다시 부탁해 주세요.',
+  aiSlow: 'AI가 오래 걸려요. 잠시 뒤 새로 고침해서 확인해 주세요.',
 } as const
 
 export const MAX_REQUEST = 500

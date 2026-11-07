@@ -55,8 +55,15 @@ paths:
 - Workers AI 무료 10,000 neurons/일은 **계정 전체 공유**. 장당 비용(1024×768): klein ~1,360, flux-2-dev ~5,600, lucid/phoenix ~2,400, schnell ~330.
 
 ## 긴 응답·내보내기
-- `/api/posters/[id]/ask`·`redraw`는 `heartbeatJson` — 15초마다 공백, 끝에 JSON. 브라우저는 `parseHeartbeatBody`. Gemini 1회 12~90초(붐비면 503 → 다음 모델).
-- **탭을 닫으면**: 작업은 `ctx.waitUntil`로 이어지지만 Cloudflare는 연결이 끊긴 뒤 **30초까지만** 기다린다(공식 문서) — Gemini가 그보다 오래 남았으면 잘려서 결과도 없고 미리 잡은 횟수도 안 돌아온다. 그래서 AI가 일하는 동안 나가려 하면 묻는다(`useUnsavedWarning`, `POSTER_COPY.leaveWhileBusy`). 확실히 고치려면 Cloudflare Queues(무료, 소비자 15분)로 옮겨야 한다 — 학생에게 열기 전에 검토. 학교 Mac 그림은 탭과 상관없이 끝나고, 탭을 닫은 사이 막혔으면 다시 열 때 서버 페이지가 정리하고 `artGaveUp`으로 브라우저가 한 번 클라우드로 다시 그린다.
+- **만들기·고치기·다시 그리기 = Cloudflare Queues 일감**(2026-11-07, 탭을 닫아도 끝까지 저장). 예전엔 `heartbeatJson`으로 응답을 붙잡고 `ctx.waitUntil`에 맡겼는데, Cloudflare는 연결이 끊긴 뒤 waitUntil을 **30초까지만** 이어 가서 Gemini(1회 12~90초, 붐비면 503 → 다음 모델)가 남아 있으면 결과도 횟수도 사라졌다.
+  - 흐름: `ask`·`redraw`(Workers AI 길만 — 학교 Mac 길은 원래 바로 돌려줌)가 권한·횟수를 확인하고 `enqueuePosterJob`(`ai-jobs.ts`) → `poster_ai_jobs`에 일감(부탁·스타일·캡처 + 요청 때 확인한 프로젝트 정보 `PosterActor` — 소비자에겐 로그인 쿠키가 없다) + 포스터 `ai_job_id`(조건부, 이미 있으면 409 `aiBusy`) + 큐 `poster-jobs`에 `{ jobId }` → 바로 `{ ok, queued, jobId }`.
+  - 큐 소비자 = `custom-worker.ts`의 `queue()`(wrangler `main`이 이 파일 — OpenNext `.open-next/worker.js`의 fetch를 그대로 감쌈). 같은 Worker를 `WORKER_SELF_REFERENCE` service binding으로 `POST /api/poster-jobs/run`(헤더 `x-poster-job-sig` = 일감 id의 HMAC-SHA256, 키 = `SUPABASE_SERVICE_ROLE_KEY` — 새 비밀값 없음, `ai-jobs-logic.ts`)을 부르고 **응답을 끝까지 기다린다**(소비자 한 번 최대 15분). 실제 일은 Next 경로가 그대로 해서(`run-ai.ts` `runPosterAsk`·`runPosterRedraw`) CPU 10ms도 요청마다 따로. 404(서명 틀림)는 버리고, 5xx·연결 오류는 10초 뒤 두 번까지 다시 — `runPosterJob`이 queued → working을 조건부로 바꾼 요청만 돌리므로 중복 배달에도 한 번.
+  - 횟수는 `UsageLedger`(`usage.ts`)로만 잡고 돌려준다: 잡은 것은 `poster_ai_jobs.holds`에 적고, 쓴 것(그림을 그렸거나 학교 Mac 일감이 맡음)은 `spend`로 뺀다. 끝나면 holds를 비운다. 일감이 중간에 죽으면 `settlePosterJob`이 막힘 판정(`judgeAiJobStuck` — queued 10분, working 시작 16분)으로 expired + `usage_released_at`을 조건부로 채운 요청만 남은 holds를 한 번 돌려준다. 적기 → 돌려주기 순서라 그 사이에 죽으면 덜 돌려줄 뿐 두 번은 아니다.
+  - 브라우저: `{ queued }`면 `poster.aiJobId`를 두고 3초마다 `GET /api/posters/<id>/job?id=<jobId>`(정리도 여기서) → done(notice 알림)·failed(error 알림) 때 포스터를 바꾼다. 서버 페이지도 열 때 `settlePosterJob`, 아직 돌고 있으면 `aiJobId`로 이어서 기다린다(창을 닫았다 다시 열어도 "만드는 중"·결과가 보임). 돌고 있는 동안 되돌리기·다시 그리기·내보내기·보내기 꺼짐(되돌리기는 서버 액션도 거절 — 끝나며 저장하면 덮어씀). 실패 결과는 그 탭이 기다리고 있을 때만 알림으로 보이고(대화 기록엔 안 남김), 횟수는 돌려준다.
+  - **큐를 못 쓰면 예전 방식**: `next dev`(소비자 없음)·바인딩 없음·일감/큐 넣기 실패면 `heartbeatJson`(15초마다 공백, 끝에 JSON, 브라우저 `parseHeartbeatBody`) + `keepAliveAfterDisconnect`로 직접 한다. 이때만 나가려 하면 묻는다(`useUnsavedWarning`, `POSTER_COPY.leaveWhileBusy`). 그래서 로컬 `npm run dev`로는 큐 길을 시험할 수 없다 — 운영(또는 `npm run preview`)에서 확인.
+  - 큐 `poster-jobs`는 2026-11-07 `npx wrangler queues create poster-jobs`로 만들었다(계정 370e521d…, 무료 — 하루 10,000 operations, 메시지 하나 ≈ 3, 보존 24시간). wrangler.jsonc `queues`의 큐가 없으면 배포가 실패하니 지우지 말 것. 확인: `npx wrangler queues list`, 실패는 `wrangler tail`의 `[poster] 큐 …`.
+  - 배포 순서: migration `20261107130000_poster_ai_jobs.sql`을 **먼저 따로 main 푸시**(Supabase 자동 적용) → 그다음 코드 푸시(Workers Builds). 코드가 먼저 가면 `ai_job_id` 칸이 없어 포스터 API가 깨진다.
+- 학교 Mac 그림은 탭과 상관없이 끝나고, 탭을 닫은 사이 막혔으면 다시 열 때 서버 페이지가 정리하고 `artGaveUp`으로 브라우저가 한 번 클라우드로 다시 그린다(그 다시 그리기도 큐 일감).
 - PNG·PDF = Cloudflare Browser Rendering REST(`/browser-rendering/screenshot`·`/pdf`, 무료 요금제 됨, 연속 요청 429). `waitForTimeout: 2000` — Google Fonts `display=swap`이라 없으면 대체 글꼴로 찍힌다. 토큰 `CLOUDFLARE_BROWSER_API_TOKEN`(Browser Rendering · Edit만).
 
 ## 확인 도구

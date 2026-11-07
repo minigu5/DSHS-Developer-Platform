@@ -6,7 +6,8 @@
 
 | 파일 | 역할 |
 |---|---|
-| `wrangler.jsonc` | Worker 이름 `dshs-developer-platform`, `nodejs_compat`, 정적 자산, Images 바인딩, 배치 `aws:ap-northeast-2`, `keep_names: false`, 런타임 변수 |
+| `wrangler.jsonc` | Worker 이름 `dshs-developer-platform`, `nodejs_compat`, 정적 자산, Images 바인딩, 배치 `aws:ap-northeast-2`, `keep_names: false`, 런타임 변수, 큐 `poster-jobs` |
+| `custom-worker.ts` | Worker 진입점(`main`) — `.open-next/worker.js`의 fetch를 그대로 쓰고 AI 포스터 큐 소비자 `queue()`를 더함(아래 「AI 포스터 큐」) |
 | `open-next.config.ts` | OpenNext 캐시 설정 — 정적 자산 캐시만 (아래 "캐시") |
 | `next.config.ts` 끝 | `initOpenNextCloudflareForDev()` — `next dev`에서 바인딩 사용 |
 | `public/_headers` | `/_next/static/*` 1년 캐시 |
@@ -88,3 +89,12 @@ Cloudflare Workers·Firebase Hosting 학생 사이트로 `<이름>.dshs.dev`를 
 1. `wrangler.jsonc`에 `"ai": { "binding": "AI" }`(그림, Workers AI 무료 10,000 neurons/일·계정 공유).
 2. 비밀 두 개: `npx wrangler secret put GEMINI_API_KEY`, `npx wrangler secret put CLOUDFLARE_BROWSER_API_TOKEN`(계정 토큰, 권한 Browser Rendering · Edit만). 로컬은 `.env.local`.
 3. 자세한 구조·제한은 `.claude/rules/posters.md`.
+
+## AI 포스터 큐 — 2026-11-07
+탭을 닫으면 Workers가 `waitUntil`을 30초까지만 이어 가서 Gemini 결과가 사라지던 문제를 Cloudflare Queues로 고쳤다(무료 요금제 됨 — 하루 10,000 operations, 보존 24시간, 소비자 한 번 최대 15분).
+1. **큐 만들기**(한 번, 2026-11-07 완료): `CLOUDFLARE_ACCOUNT_ID=370e521d89a70d895de8448a36449b93 npx wrangler queues create poster-jobs`. wrangler.jsonc `queues`가 가리키는 큐가 없으면 배포가 실패한다.
+2. **진입점**: `wrangler.jsonc` `"main": "custom-worker.ts"`([OpenNext 커스텀 Worker](https://opennext.js.org/cloudflare/howtos/custom-worker)). `opennextjs-cloudflare build`가 `.open-next/worker.js`를 만들고, 배포 때 wrangler가 `custom-worker.ts`를 묶는다. `.open-next/worker.js`는 빌드 전엔 없어서 `@ts-ignore`.
+3. **설정**: `queues.producers` = `POSTER_JOBS` 바인딩, `queues.consumers` = 같은 큐·`max_batch_size: 1`·`max_retries: 2`. 소비자는 `WORKER_SELF_REFERENCE`(이미 있던 service binding)로 `/api/poster-jobs/run`을 불러 응답을 끝까지 기다린다. 서명 키는 이미 있는 `SUPABASE_SERVICE_ROLE_KEY`라 새 secret 없음.
+4. **배포 순서**: migration `20261107130000_poster_ai_jobs.sql`만 먼저 main 푸시(Supabase 자동 적용) → 코드 푸시(Workers Builds `npm run deploy`).
+5. `next dev`에는 소비자가 없어 큐를 안 쓰고 예전 방식(heartbeat)으로 한다. 확인: `npx wrangler queues list`, `npx wrangler tail --format pretty`의 `[poster] 큐 …`.
+

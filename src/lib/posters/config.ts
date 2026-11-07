@@ -41,6 +41,17 @@ export const POSTER_MAC = {
   promptMax: 1000,
 } as const
 
+// 만들기·고치기·다시 그리기 큐 일감(poster_ai_jobs, 2026-11-07). 큐 소비자는 한 번에 최대 15분(Cloudflare Queues).
+export const POSTER_AI_JOB = {
+  pollMs: 3_000,
+  // 큐가 보통 몇 초 안에 넘긴다 — 이만큼 아무도 안 잡았으면 소비자가 고장 난 것
+  queueMaxMs: 600_000,
+  // 소비자 15분 + 여유 1분. Gemini 3모델 × 150초 + SVG 한 번(최대 10분)보다 길다
+  workMaxMs: 960_000,
+  // 가장 늦은 막힘 판정보다 길게
+  pollStopMs: 1_200_000,
+} as const
+
 // 503·404면 다음 모델로(설계 §5)
 export const POSTER_TEXT_MODELS = ['gemini-3.5-flash', 'gemini-3.8-flash', 'gemini-3.7-flash'] as const
 export const POSTER_ART_MODEL = '@cf/black-forest-labs/flux-2-klein-9b'

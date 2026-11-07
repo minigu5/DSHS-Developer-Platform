@@ -5,6 +5,7 @@ import Link from "@/components/shared/link";
 import { PageHero } from "@/components/shared/page-hero";
 import { PosterStudio } from "@/components/posters/poster-studio";
 import { getPosterAccess } from "@/lib/posters/access";
+import { settlePosterJob } from "@/lib/posters/ai-jobs";
 import { settleArtJob } from "@/lib/posters/art-jobs";
 import { loadPoster, toPosterView } from "@/lib/posters/poster-db";
 
@@ -18,7 +19,8 @@ export default async function PosterStudioPage({ params }: { params: Promise<{ i
   // 브라우저를 다 닫은 뒤 막힌 학교 Mac 그림이 "그림 다시 그리기"를 계속 막지 않게 열 때 한 번 정리한다
   // 막혀서 정리됐으면 브라우저가 열자마자 한 번 클라우드로 다시 그린다(탭이 열려 있을 때 폴링이 하던 일)
   const settled = poster.art_job_id ? await settleArtJob(poster) : null;
-  const current = settled?.poster ?? poster;
+  // 큐 일감(만들기·고치기)도 막혔으면 정리하고 횟수를 돌려준다 — 아직 돌고 있으면 스튜디오가 이어서 기다린다
+  const current = await settlePosterJob(settled?.poster ?? poster);
   const artGaveUp = settled?.status === "expired" || settled?.status === "failed";
 
   return (
