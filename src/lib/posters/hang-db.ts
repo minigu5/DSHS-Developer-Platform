@@ -29,7 +29,6 @@ export async function setHungPoster(projectId: string, hung: { posterId: string;
     await deleteCloudinaryImages([before.poster_image_url])
   }
   revalidatePath(`/projects/${projectId}`)
-  revalidatePath(`/projects/${projectId}/poster`)
   return true
 }
 
@@ -51,7 +50,6 @@ export async function startHangingAi(projectId: string, posterId: string): Promi
   }
   if (before?.poster_is_ai && before.poster_image_url) await deleteCloudinaryImages([before.poster_image_url])
   revalidatePath(`/projects/${projectId}`)
-  revalidatePath(`/projects/${projectId}/poster`)
   return hungAt
 }
 

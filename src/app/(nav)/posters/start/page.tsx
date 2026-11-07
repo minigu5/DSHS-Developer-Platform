@@ -8,7 +8,7 @@ import { posterStartTarget } from "@/lib/posters/hang-logic";
 import { createClient } from "@/lib/supabase/server";
 
 // 남의 상세 페이지에서 포스터를 크게 보다가 "내 프로젝트로도 만들 수 있어요"를 누르면 오는 곳.
-// 내가 고칠 수 있는 공개 프로젝트(내 것 + 팀원으로 들어간 것)가 없으면 등록으로, 하나면 그 포스터 화면으로, 여럿이면 고르게 한다.
+// 내가 고칠 수 있는 공개 프로젝트(내 것 + 팀원으로 들어간 것)가 없으면 등록으로, 하나면 그 수정 화면의 포스터 칸으로, 여럿이면 고르게 한다.
 export default async function PosterStartPage() {
   const supabase = await createClient();
   const {
@@ -36,7 +36,7 @@ export default async function PosterStartPage() {
 
   const target = posterStartTarget(projects.map((p) => p.id));
   if (target.kind === "new") redirect("/projects/new");
-  if (target.kind === "one") redirect(`/projects/${target.id}/poster`);
+  if (target.kind === "one") redirect(`/projects/${target.id}/edit?poster=list`);
 
   return (
     <div className="flex flex-col bg-white dark:bg-zinc-950">
@@ -46,7 +46,7 @@ export default async function PosterStartPage() {
           {projects.map((p) => (
             <li key={p.id}>
               <Link
-                href={`/projects/${p.id}/poster`}
+                href={`/projects/${p.id}/edit?poster=list`}
                 className="flex items-center gap-3 rounded-3xl border border-zinc-200 bg-white p-4 transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600"
               >
                 <ProjectIcon src={p.icon_url} title={p.title} decorative className="h-11 w-11 shrink-0 rounded-[22%]" />

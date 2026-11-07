@@ -1,9 +1,11 @@
+import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { Rocket } from "lucide-react";
 import { PageHero } from "@/components/shared/page-hero";
 import { ProjectForm } from "@/components/projects/project-form";
+import { PosterSheet } from "@/components/posters/poster-sheet";
 import { isDeveloper } from "@/lib/constants";
 import { getLiveDomain, getOldAddressSource } from "@/lib/domains/read";
 import { oldAddressPrefixes } from "@/lib/domains/old-address";
@@ -54,6 +56,12 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
       <main className="w-full flex-1 px-6 py-9">
         <ProjectForm initialData={project} isEdit={true} canDelete={isAuthor} subdomainName={subdomainName} oldAddress={oldAddress} />
       </main>
+      {/* 홍보 포스터 옆 칸 — `?poster=` 가 있으면 열린다(공개 프로젝트만 포스터를 건다) */}
+      {project.visibility === "public" && (
+        <Suspense fallback={null}>
+          <PosterSheet projectId={project.id} projectTitle={project.title} />
+        </Suspense>
+      )}
     </div>
   );
 }

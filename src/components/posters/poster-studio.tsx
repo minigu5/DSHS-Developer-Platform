@@ -33,7 +33,7 @@ type ArtStatus = { ok: true; status: "none" | "pending" | "done" | "expired" | "
 const SMALL_BUTTON = "h-9 rounded-full px-3 text-sm";
 const STYLE_ICONS: Record<PosterStyle, LucideIcon> = { auto: Sparkles, example: LayoutTemplate, art: ImageIcon, screenshot: Monitor, type: Type };
 
-/** 만들기·고치기 화면: 왼쪽(모바일 위) 미리보기, 오른쪽(모바일 아래) 대화. */
+/** 만들기·고치기 화면: 왼쪽(좁으면 위) 미리보기, 오른쪽(좁으면 아래) 대화. 수정 화면 옆 칸 안에 있어서 화면 폭이 아니라 칸 폭(@container)으로 나눈다. */
 export function PosterStudio({
   initial,
   projectTitle,
@@ -244,8 +244,9 @@ export function PosterStudio({
   const aiBusy = busy === "ask" || busy === "redraw" || !!poster.aiJobId;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
-      <div className="lg:sticky lg:top-20">
+    <div className="@container">
+    <div className="grid gap-8 @4xl:grid-cols-[minmax(0,1fr)_400px] @4xl:items-start">
+      <div className="@4xl:sticky @4xl:top-0">
         <PosterPreview
           html={poster.html}
           artUrl={poster.artUrl}
@@ -365,6 +366,7 @@ export function PosterStudio({
           </Button>
         </div>
       </section>
+    </div>
     </div>
   );
 }

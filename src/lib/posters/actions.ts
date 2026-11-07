@@ -1,10 +1,9 @@
 'use server'
 
-// 포스터 만들기(빈 포스터 → 스튜디오로)·지우기·되돌리기·띠 색. AI 를 부르는 만들기·고치기는 /api/posters/[id]/ask.
+// 포스터 만들기(빈 포스터 — 수정 화면 옆 칸이 스튜디오를 연다)·지우기·되돌리기·띠 색. AI 를 부르는 만들기·고치기는 /api/posters/[id]/ask.
 // (nav) 밖에 둔다 — Turbopack client→server action 바인딩 문제(src/lib/projects/actions.ts 와 같은 이유).
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 
 import { deleteCloudinaryImages } from '@/lib/cloudinary-delete'
 import { createAdminClient } from '@/lib/supabase/server'
@@ -25,7 +24,7 @@ async function posterWithAccess(posterId: string) {
   return { poster, access } as const
 }
 
-export async function createPoster(projectId: string): Promise<{ error: string }> {
+export async function createPoster(projectId: string): Promise<{ id: string } | { error: string }> {
   const access = await getPosterAccess(projectId)
   if (typeof access === 'string') return { error: POSTER_COPY.noPermission }
   const { data, error } = await createAdminClient()
@@ -38,8 +37,7 @@ export async function createPoster(projectId: string): Promise<{ error: string }
     if (error?.message.includes('poster_limit')) return { error: POSTER_COPY.limit }
     return { error: '포스터를 만들지 못했어요. 잠시 뒤 다시 해 주세요.' }
   }
-  revalidatePath(`/projects/${projectId}/poster`)
-  redirect(`/projects/${projectId}/poster/${data.id}`)
+  return { id: data.id }
 }
 
 // 지우기는 직접 올린 그림도 다루니 AI 권한이 아니라 포스터 화면 권한(getBandAccess)으로 본다
@@ -54,7 +52,6 @@ export async function deletePoster(posterId: string): Promise<{ error?: string }
   if (error) return { error: '지우지 못했어요. 잠시 뒤 다시 해 주세요.' }
   const hungPng = project?.poster_id === posterId && project.poster_is_ai ? project.poster_image_url : null
   await deleteCloudinaryImages([poster.image_url, poster.art_url, hungPng].filter((u): u is string => !!u))
-  revalidatePath(`/projects/${poster.project_id}/poster`)
   if (project?.poster_id === posterId) revalidatePath(`/projects/${poster.project_id}`)
   return {}
 }

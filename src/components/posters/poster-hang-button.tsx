@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Check, Loader2, Pin } from "lucide-react";
 import { toast } from "sonner";
 
@@ -10,7 +9,7 @@ import { hangPoster, unhangPoster } from "@/lib/posters/hang";
 
 /**
  * 포스터 카드 아래 — 상세 페이지에 걸기 / 걸려 있으면 알약 + 내리기(고쳤으면 다시 걸기).
- * AI 포스터는 PNG 를 뒤에서 찍어서(hangState) "거는 중"이면 3초마다 화면을 다시 읽고, 실패면 다시 걸기를 보인다.
+ * AI 포스터는 PNG 를 뒤에서 찍어서(hangState) "거는 중"이면 3초마다 목록을 다시 읽고(onChanged), 실패면 다시 걸기를 보인다.
  */
 export function PosterHangButton({
   posterId,
@@ -18,6 +17,7 @@ export function PosterHangButton({
   hung,
   stale,
   disabled,
+  onChanged,
 }: {
   posterId: string;
   projectId: string;
@@ -25,8 +25,9 @@ export function PosterHangButton({
   hung: "hung" | "rendering" | "failed" | null;
   stale: boolean;
   disabled: boolean;
+  /** 걸기·내리기 뒤, 거는 중일 때 3초마다 — 목록을 다시 읽는다 */
+  onChanged: () => void;
 }) {
-  const router = useRouter();
   const [pending, start] = useTransition();
   const run = (job: () => Promise<{ error?: string; rendering?: boolean }>, done: string) =>
     start(async () => {
@@ -34,15 +35,15 @@ export function PosterHangButton({
       if (result.error) toast.error(result.error);
       else {
         toast.success(result.rendering ? "걸고 있어요. 포스터를 찍는 데 10초쯤 걸려요." : done);
-        router.refresh();
+        onChanged();
       }
     });
 
   useEffect(() => {
     if (hung !== "rendering") return;
-    const timer = window.setInterval(() => router.refresh(), 3000);
+    const timer = window.setInterval(onChanged, 3000);
     return () => window.clearInterval(timer);
-  }, [hung, router]);
+  }, [hung, onChanged]);
 
   if (!hung) {
     return (

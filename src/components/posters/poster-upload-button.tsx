@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { ImageUp } from "lucide-react";
 import { toast } from "sonner";
 
@@ -28,8 +27,7 @@ export async function uploadPosterFile(projectId: string, file: File, hang: bool
 }
 
 /** 포스터 화면 머리 버튼 — 고르면 바로 올린다. 걸린 포스터가 없으면 올린 그림을 바로 건다. */
-export function PosterUploadButton({ projectId, full, hangIfNone }: { projectId: string; full: boolean; hangIfNone: boolean }) {
-  const router = useRouter();
+export function PosterUploadButton({ projectId, full, hangIfNone, onUploaded }: { projectId: string; full: boolean; hangIfNone: boolean; onUploaded: () => void }) {
   const input = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState(false);
 
@@ -49,7 +47,7 @@ export function PosterUploadButton({ projectId, full, hangIfNone }: { projectId:
     }
     if (hangIfNone && !result.hung) toast.warning(POSTER_UPLOADED_NOT_HUNG);
     else toast.success(hangIfNone ? "올리고 상세 페이지에 걸었어요." : "포스터를 올렸어요.");
-    router.refresh();
+    onUploaded();
   };
 
   return (

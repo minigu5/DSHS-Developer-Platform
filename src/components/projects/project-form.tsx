@@ -44,6 +44,7 @@ import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 import type { ProjectRow, UserContact } from "@/lib/types";
 import { BannedNotice } from "@/components/shared/banned-notice";
 import { PosterFileField } from "@/components/posters/poster-file-field";
+import { openPosterSheet } from "@/components/posters/poster-sheet-nav";
 import { POSTER_UPLOADED_NOT_HUNG, uploadPosterFile } from "@/components/posters/poster-upload-button";
 import { posterAllowed } from "@/lib/posters/config";
 import { posterImageAt } from "@/lib/posters/hang-logic";
@@ -790,8 +791,8 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
           return;
         }
         if (makeAiPoster && !posterFile && visibility === 'public') {
-          // AI 포스터를 만들기로 했으면 도메인 권유 창 대신 포스터 화면으로(도메인 권유는 상세 페이지 안내로 다시 뜬다)
-          router.push(`/projects/${data.id}/poster`);
+          // AI 포스터를 만들기로 했으면 도메인 권유 창 대신 수정 화면의 포스터 칸으로(도메인 권유는 상세 페이지 안내로 다시 뜬다)
+          router.push(`/projects/${data.id}/edit?poster=list`);
           router.refresh();
           return;
         }
@@ -1411,7 +1412,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
           )}
         </FormSection>
 
-        {/* 6. 홍보 포스터(선택) — 새 등록: 그림을 골라 두면 저장 뒤 올라가 걸린다 / 수정: 지금 상태 + 포스터 화면으로 가는 버튼 하나 */}
+        {/* 6. 홍보 포스터(선택) — 새 등록: 그림을 골라 두면 저장 뒤 올라가 걸린다 / 수정: 지금 상태 + 옆 칸(PosterSheet)을 여는 버튼 하나 */}
         <FormSection id="section-poster" title="홍보 포스터" hint="선택">
           {isEdit && initialData?.id ? (
             initialData.visibility === "public" ? (
@@ -1429,12 +1430,13 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
                     {initialData.poster_image_url ? "상세 페이지에 걸린 포스터예요" : "아직 걸린 포스터가 없어요"}
                   </p>
                   <p className={hintClass}>AI로 만들거나 직접 만든 그림을 올려서 걸 수 있어요.</p>
-                  <a
-                    href={`/projects/${initialData.id}/poster`}
+                  <button
+                    type="button"
+                    onClick={() => openPosterSheet()}
                     className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-9 rounded-full px-4")}
                   >
                     <Megaphone className="mr-1.5 h-4 w-4" aria-hidden /> {initialData.poster_image_url ? "포스터 바꾸기" : "홍보 포스터 만들기"}
-                  </a>
+                  </button>
                 </div>
               </div>
             ) : (

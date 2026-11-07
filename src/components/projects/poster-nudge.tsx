@@ -65,7 +65,7 @@ export function PosterNudge({ projectId }: { projectId: string }) {
       </p>
 
       <Link
-        href={`/projects/${projectId}/poster`}
+        href={`/projects/${projectId}/edit?poster=list`}
         className={cn("mt-5 inline-flex h-11 items-center gap-1.5 rounded-full px-5 text-[15px] font-semibold transition-colors", SECTION_COLORS.new.button)}
       >
         포스터 만들기

@@ -1,4 +1,3 @@
-import { revalidatePath } from 'next/cache'
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { deleteCloudinaryImages } from '@/lib/cloudinary-delete'
@@ -57,6 +56,5 @@ export async function POST(request: NextRequest) {
 
   // 걸기에 실패해도 올린 그림은 남아 있으니 ok — hung:false 로 "올렸지만 못 걸었어요"를 보이게 한다
   const hung = form?.get('hang') === '1' ? await setHungPoster(projectId, { posterId: data.id, imageUrl: url, isAi: false }) : false
-  if (!hung) revalidatePath(`/projects/${projectId}/poster`)
   return NextResponse.json({ ok: true, posterId: data.id, url, hung })
 }

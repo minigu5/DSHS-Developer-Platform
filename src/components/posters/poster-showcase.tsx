@@ -54,7 +54,7 @@ export function PosterShowcase({
               <span />
             )}
             {canEdit ? (
-              <Link href={`/projects/${projectId}/poster`} className="inline-flex items-center gap-1 text-sm font-medium text-zinc-700 underline-offset-4 hover:underline dark:text-zinc-300">
+              <Link href={`/projects/${projectId}/edit?poster=list`} className="inline-flex items-center gap-1 text-sm font-medium text-zinc-700 underline-offset-4 hover:underline dark:text-zinc-300">
                 포스터 바꾸기 <ArrowRight className="h-3.5 w-3.5" aria-hidden />
               </Link>
             ) : (

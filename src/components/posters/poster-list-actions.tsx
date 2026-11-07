@@ -9,8 +9,8 @@ import { createPoster, deletePoster } from "@/lib/posters/actions";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { cn } from "@/lib/utils";
 
-/** 머리 버튼 줄에 올림 버튼과 나란히 — 꺼진 이유(개수·하루 1개)는 목록 페이지의 상태 줄이 보여 준다 */
-export function NewPosterButton({ projectId, disabled }: { projectId: string; disabled: boolean }) {
+/** 머리 버튼 줄에 올림 버튼과 나란히 — 꺼진 이유(개수·하루 1개)는 목록의 상태 줄이 보여 준다. 만들면 onCreated 로 스튜디오를 연다 */
+export function NewPosterButton({ projectId, disabled, onCreated }: { projectId: string; disabled: boolean; onCreated: (posterId: string) => void }) {
   const [pending, start] = useTransition();
   return (
     <Button
@@ -19,7 +19,8 @@ export function NewPosterButton({ projectId, disabled }: { projectId: string; di
       onClick={() =>
         start(async () => {
           const result = await createPoster(projectId);
-          if (result?.error) toast.error(result.error);
+          if ('error' in result) toast.error(result.error);
+          else onCreated(result.id);
         })
       }
     >
@@ -29,7 +30,7 @@ export function NewPosterButton({ projectId, disabled }: { projectId: string; di
 }
 
 /** 글 삭제처럼 이름 입력 없이, 한 번 더 눌러 확인한다 */
-export function DeletePosterButton({ posterId }: { posterId: string }) {
+export function DeletePosterButton({ posterId, onDeleted }: { posterId: string; onDeleted: () => void }) {
   const [asking, setAsking] = useState(false);
   const [pending, start] = useTransition();
   if (!asking) {
@@ -49,6 +50,7 @@ export function DeletePosterButton({ posterId }: { posterId: string }) {
           start(async () => {
             const result = await deletePoster(posterId);
             if (result.error) toast.error(result.error);
+            else onDeleted();
           })
         }
       >
