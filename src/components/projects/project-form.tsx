@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, Globe, Code2, Users, User as UserIcon, VenetianMask, Plus, X, Link as LinkIcon, Loader2, Image as ImageIcon, Trash2, Rocket, Download, RefreshCw, Sparkles, Megaphone } from "lucide-react";
+import { Lock, Globe, Code2, Users, User as UserIcon, VenetianMask, Plus, X, Link as LinkIcon, Loader2, Image as ImageIcon, Trash2, Rocket, Download, RefreshCw, Megaphone } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -44,12 +44,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 import type { ProjectRow, UserContact } from "@/lib/types";
 import { BannedNotice } from "@/components/shared/banned-notice";
-import { PosterFileField } from "@/components/posters/poster-file-field";
 import { openPosterSheet } from "@/components/posters/poster-sheet-nav";
-import { POSTER_UPLOADED_NOT_HUNG, uploadPosterFile } from "@/components/posters/poster-upload-button";
-import { posterAllowed } from "@/lib/posters/config";
 import { posterImageAt } from "@/lib/posters/hang-logic";
-import { toast } from "sonner";
 import { friendlyWriteError } from "@/lib/admin/ban";
 import { useMyBan } from "@/lib/admin/use-my-ban";
 
@@ -105,9 +101,6 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   const savedTitle = initialData?.title ?? "";
   const confirmed = nameMatches(confirmName, savedTitle);
   // 등록 직후 방문 주소가 호스트 무료 주소(.vercel.app 등)면 도메인 마련하기를 권한다
-  // 홍보 포스터(선택) — 고른 그림은 저장이 끝난 뒤 올린다. AI 는 학생에게 열린 뒤 새 등록에서만 묻는다
-  const [posterFile, setPosterFile] = useState<File | null>(null);
-  const [makeAiPoster, setMakeAiPoster] = useState(false);
   const [domainOffer, setDomainOffer] = useState<{ projectId: string; hostLabel: string; hostname: string; suggestion: string | null; quick: boolean } | null>(null);
 
   const [title, setTitle] = useState<string>(initialData?.title ?? "");
@@ -195,6 +188,9 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   // 수정 화면: 주소를 아직 안 받은 소유자에게 주소 칸 아래 한 줄로 다시 권한다
   const editDomainOffer = isEdit && canDelete && !subdomainName && isWebsite && visibility === 'public' && initialData?.id ? domainOfferOf(url) : null;
   const [repoUrl, setRepoUrl] = useState<string>(initialData?.repo_url ?? "");
+  // 저장소 링크는 GitHub 저장소만 받는다(2026-11-07 — vercel 주소를 적은 프로젝트가 있었음). 입력칸을 벗어난 뒤부터 경고, 수정 화면은 처음부터
+  const [repoChecked, setRepoChecked] = useState(Boolean(initialData?.repo_url));
+  const repoNotGithub = sourceType === "open" && Boolean(repoUrl.trim()) && !parseGithubRepo(repoUrl);
 
   // 라이선스
   // 비공개 소스는 라이선스를 저장하지 않으므로 처음부터 비워 둔다
@@ -298,8 +294,19 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
     githubOfferOwner !== null &&
     parseGithubRepo(repoUrl)?.owner === githubOfferOwner;
 
+  // 동기화 중(읽기 전용)인 설명 칸에 글을 쓰려고 하면 "끄기" 버튼 옆에 동기화를 끄라고 알려 준다
+  const [lockedEditTried, setLockedEditTried] = useState(false);
+  // 휴대폰은 읽기 전용 칸에 키보드가 안 떠서 누르기·붙여넣기·끌어다 놓기도 고치려는 것으로 본다
+  const lockedEditProps = readmeSync && sourceType === "open"
+    ? { onClick: () => setLockedEditTried(true), onPaste: () => setLockedEditTried(true), onDrop: () => setLockedEditTried(true) }
+    : {};
   const handleDescKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (readmeSync && sourceType === "open") return;
+    if (readmeSync && sourceType === "open") {
+      // 글자·지우기·줄바꿈만 — 화살표·복사(⌘C) 같은 읽기 동작은 그냥 둔다
+      const editing = (e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) || ["Backspace", "Delete", "Enter", "Tab"].includes(e.key);
+      if (editing) setLockedEditTried(true);
+      return;
+    }
     if (e.key === "Tab") {
       e.preventDefault();
       const el = e.currentTarget;
@@ -541,7 +548,6 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
     sourceType, repoUrl, readmeSync, sorted(licenseFeatures), hasCustomLicense, licenseCustom,
     sorted(selectedFeatures), featureCustom, visibility, sorted(allowedUsers),
     authorRole, teamName, teamIconUrl, sorted(teamMembers), url, iconType, iconUrl,
-    posterFile?.name ?? "", makeAiPoster,
   ]);
   const [initialSnapshot] = useState(formSnapshot);
   const { allowLeave } = useUnsavedWarning(formSnapshot !== initialSnapshot);
@@ -675,8 +681,9 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
       return;
     }
 
-    if (readmeSync && sourceType === 'open' && !parseGithubRepo(repoUrl)) {
-      setErrorMsg("README 자동 동기화는 GitHub 저장소 링크(https://github.com/username/repo)가 필요해요.");
+    if (repoNotGithub) {
+      setRepoChecked(true);
+      setErrorMsg("저장소 링크는 GitHub 저장소 주소(https://github.com/username/repo)만 받아요. 코드가 GitHub에 없으면 소스코드를 '비공개'로 골라 주세요.");
       scrollToField("repo_url_section");
       return;
     }
@@ -704,13 +711,6 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   // 저장에 성공하면 페이지가 바뀔 때까지 다시 저장하지 않는다 — 이동이 1~2초 걸리는 동안 버튼을 또 눌러 같은 프로젝트가 여러 번 등록됐다(2026-11-04).
   // state 는 다음 렌더까지 안 바뀌므로 빠른 연속 클릭은 ref 로 막는다.
   const savingRef = useRef(false);
-  // 프로젝트 저장이 끝난 뒤 고른 포스터 그림을 올리고 건다. 실패해도 프로젝트는 그대로(되돌리지 않음) — 안내만
-  const uploadPosterAfterSave = async (projectId: string) => {
-    if (!posterFile || visibility !== 'public') return;
-    const result = await uploadPosterFile(projectId, posterFile, true);
-    if (!result.ok) toast.error(`프로젝트는 저장했어요. 포스터는 포스터 화면에서 다시 올려 주세요. (${result.error})`);
-    else if (!result.hung) toast.warning(POSTER_UPLOADED_NOT_HUNG);
-  };
 
   const saveProject = async () => {
     if (savingRef.current) return;
@@ -779,23 +779,14 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
           if (!closed.ok) throw new Error(`비공개로는 저장했지만 주소는 아직 닫히지 않았어요. ${closed.error}`);
         }
         allowLeave();
-        await uploadPosterAfterSave(initialData.id);
         router.push(`/projects/${initialData.id}`);
       } else {
         // select('id') — 사용자 키는 author_id 를 못 읽어서 전체 칸으로 돌려받으면 권한 오류
         const { data, error } = await supabase.from('projects').insert([{ ...commonFields, author_id: session.user.id }]).select('id').single();
         if (error) throw error;
         allowLeave();
-        // 포스터는 어느 길로 가든 먼저 올린다(도메인 마련하기 → 등록 흐름도 — 예전엔 그 길에서 말없이 빠졌음)
-        await uploadPosterAfterSave(data.id);
         if (nextHref && shouldFollowNext(nextHref, { isWebsite, isPublic: visibility === 'public' })) {
           router.push(withProject(nextHref, data.id));
-          router.refresh();
-          return;
-        }
-        if (makeAiPoster && !posterFile && visibility === 'public') {
-          // AI 포스터를 만들기로 했으면 도메인 권유 창 대신 수정 화면의 포스터 칸으로(도메인 권유는 상세 페이지 안내로 다시 뜬다)
-          router.push(`/projects/${data.id}/edit?poster=list`);
           router.refresh();
           return;
         }
@@ -847,9 +838,10 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
     { id: "section-basic", title: "기본 정보", done: iconReady && Boolean(title.trim()) && (Boolean(url.trim()) || urlOptional) && Boolean(shortDesc.trim()) },
     { id: "section-description", title: "상세 설명", done: Boolean(description.trim()) },
     { id: "section-category", title: "분류", done: types.length > 0 && platformsReady },
-    { id: "section-source", title: "소스코드·라이선스", done: sourceType === "closed" || Boolean(repoUrl.trim()) },
+    { id: "section-source", title: "소스코드·라이선스", done: sourceType === "closed" || (Boolean(repoUrl.trim()) && !repoNotGithub) },
     { id: "section-visibility", title: "공개 범위·만든 사람", done: authorRole !== "team" || Boolean(teamName.trim()) },
-    { id: "section-poster", title: "홍보 포스터", done: Boolean(posterFile) || makeAiPoster || Boolean(initialData?.poster_image_url) },
+    // 포스터는 프로젝트가 있어야 만들 수 있어서 수정 화면에만 있다
+    ...(isEdit && initialData?.id ? [{ id: "section-poster", title: "홍보 포스터", done: Boolean(initialData.poster_image_url) }] : []),
   ];
   const typeDesc = (value: string) => GUIDE_PROGRAM_TYPES.find((t) => t.value === value)?.desc;
 
@@ -963,15 +955,24 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
             <div className="flex flex-wrap items-center justify-between gap-2">
               <EditorTabs value={descTab} onChange={setDescTab} />
               {descLocked ? (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  {lockedEditTried && (
+                    <span role="status" className="text-xs font-semibold text-rose-600 break-keep dark:text-rose-400">
+                      고치려면 먼저 동기화를 끄세요
+                    </span>
+                  )}
                   <span className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-300">
                     <RefreshCw className="h-3.5 w-3.5" aria-hidden />
                     README와 동기화 중
                   </span>
                   <button
                     type="button"
-                    onClick={() => setReadmeSync(false)}
-                    className={cn(buttonVariants({ variant: "ghost" }), "h-7 rounded-full px-3 text-xs")}
+                    onClick={() => { setReadmeSync(false); setLockedEditTried(false); }}
+                    className={cn(
+                      buttonVariants({ variant: lockedEditTried ? "outline" : "ghost" }),
+                      "h-7 rounded-full px-3 text-xs",
+                      lockedEditTried && "border-rose-300 text-rose-700 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-rose-950/40",
+                    )}
                   >
                     끄기
                   </button>
@@ -994,6 +995,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
                 onChange={e => setDescription(e.target.value)}
                 onKeyDown={handleDescKeyDown}
                 readOnly={descLocked}
+                {...lockedEditProps}
                 spellCheck={false}
                 placeholder={"# 프로젝트 이름\n\n프로젝트의 자세한 기능, 개발 배경, 사용 기술 등을 자유롭게 적어 주세요.\n\n## 주요 기능\n- 기능 1\n- 기능 2"}
                 className={cn(descTextareaClass, descLocked && descLockedClass)}
@@ -1012,6 +1014,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
                   onChange={e => setDescription(e.target.value)}
                   onKeyDown={handleDescKeyDown}
                   readOnly={descLocked}
+                  {...lockedEditProps}
                   spellCheck={false}
                   placeholder={"# 프로젝트 이름\n\n마크다운으로 자유롭게 작성하세요."}
                   className={cn(descTextareaClass, descLocked && descLockedClass)}
@@ -1167,8 +1170,13 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
               <Label htmlFor="repo_url" className={labelClass}>저장소 링크{req}</Label>
               <div className="relative">
                 <Code2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" aria-hidden />
-                <Input id="repo_url" value={repoUrl} onChange={e => setRepoUrl(e.target.value)} onBlur={() => { void fillLicenseFromRepo(repoUrl); offerGithubFor(repoUrl); }} placeholder="https://github.com/username/repo" className="h-11 rounded-xl pl-9" />
+                <Input id="repo_url" value={repoUrl} onChange={e => setRepoUrl(e.target.value)} onBlur={() => { setRepoChecked(true); void fillLicenseFromRepo(repoUrl); offerGithubFor(repoUrl); }} placeholder="https://github.com/username/repo" aria-invalid={repoChecked && repoNotGithub} aria-describedby={repoChecked && repoNotGithub ? "repo_url_error" : undefined} className="h-11 rounded-xl pl-9" />
               </div>
+              {repoChecked && repoNotGithub && (
+                <p id="repo_url_error" className="text-xs font-medium text-rose-600 break-keep dark:text-rose-400">
+                  GitHub 저장소 주소만 적을 수 있어요(예: https://github.com/username/repo). 사이트 주소는 위 &quot;방문 주소&quot;에, 코드가 GitHub에 없으면 소스코드를 &quot;비공개&quot;로 골라 주세요.
+                </p>
+              )}
               {showGithubOffer && (
                 <div className="mt-1 flex flex-col gap-3 rounded-xl border border-zinc-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800">
                   <div className="grid gap-0.5">
@@ -1421,10 +1429,11 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
           )}
         </FormSection>
 
-        {/* 6. 홍보 포스터(선택) — 새 등록: 그림을 골라 두면 저장 뒤 올라가 걸린다 / 수정: 지금 상태 + 옆 칸(PosterSheet)을 여는 버튼 하나 */}
-        <FormSection id="section-poster" title="홍보 포스터" hint="선택">
-          {isEdit && initialData?.id ? (
-            initialData.visibility === "public" ? (
+        {/* 6. 홍보 포스터(선택) — 수정 화면만: 지금 상태 + 옆 칸(PosterSheet)을 여는 버튼 하나.
+            새 등록에선 안 보인다 — 포스터는 저장된 프로젝트가 있어야 올리고 AI로 만들 수 있어서(2026-11-07 사용자 요청) */}
+        {isEdit && initialData?.id && (
+          <FormSection id="section-poster" title="홍보 포스터" hint="선택">
+            {initialData.visibility === "public" ? (
               <div className="flex items-center gap-4">
                 {initialData.poster_image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element -- Cloudinary 원본
@@ -1450,30 +1459,9 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
               </div>
             ) : (
               <p className={hintClass}>공개 프로젝트만 포스터를 걸 수 있어요.</p>
-            )
-          ) : (
-            <div className="flex flex-col gap-4">
-              <p className={hintClass}>
-                학교 게시판에 붙일 포스터를 상세 페이지에도 걸 수 있어요. 나중에 해도 돼요.
-                {authorRole === "anonymous" && " 포스터에 이름을 넣으면 익명이 풀려요."}
-              </p>
-              <PosterFileField
-                file={posterFile}
-                onChange={setPosterFile}
-                disabledReason={visibility === "public" ? null : "공개 프로젝트만 포스터를 걸 수 있어요."}
-              />
-              {posterAllowed(false) && visibility === "public" && !posterFile && (
-                <ChoiceRow
-                  icon={Sparkles}
-                  selected={makeAiPoster}
-                  onSelect={() => setMakeAiPoster((v) => !v)}
-                  label="포스터가 없으면 AI로 만들기"
-                  description="등록이 끝나면 포스터 화면으로 가서 AI가 포스터를 만들어 줘요."
-                />
-              )}
-            </div>
-          )}
-        </FormSection>
+            )}
+          </FormSection>
+        )}
 
         {/* 7. 위험 구역 — 수정 페이지, 소유자만 */}
         {showDanger && (
