@@ -15,7 +15,7 @@ import { PosterHangButton } from "@/components/posters/poster-hang-button";
 import { PosterUploadButton } from "@/components/posters/poster-upload-button";
 import { getBandAccess } from "@/lib/posters/access";
 import { POSTER_LIMITS } from "@/lib/posters/config";
-import { canHangPoster, hungIsStale, posterImageAt } from "@/lib/posters/hang-logic";
+import { canHangPoster, hangState, hungIsStale, posterImageAt } from "@/lib/posters/hang-logic";
 import { kstDate } from "@/lib/posters/kst";
 import { createAdminClient } from "@/lib/supabase/server";
 
@@ -45,11 +45,14 @@ export default async function PosterListPage({
       .eq("project_id", id)
       .eq("day", today)
       .maybeSingle(),
-    admin.from("projects").select("poster_id, poster_hung_at").eq("id", id).maybeSingle(),
+    admin.from("projects").select("poster_id, poster_hung_at, poster_image_url").eq("id", id).maybeSingle(),
   ]);
   const posters = data ?? [];
   const full = posters.length >= POSTER_LIMITS.perProject;
   const hungId = project?.poster_id ?? null;
+  // AI 포스터는 걸고 나서 PNG 를 뒤에서 찍는다 — 그동안 "거는 중", 2분 넘게 없으면 "다시 걸기"
+  // eslint-disable-next-line react-hooks/purity -- 요청마다 새로 그리는 서버 페이지
+  const hung = hungId ? hangState({ imageUrl: project?.poster_image_url ?? null, hungAt: project?.poster_hung_at ?? null }, Date.now()) : null;
 
   return (
     <div className="flex flex-col bg-white dark:bg-zinc-950">
@@ -134,8 +137,8 @@ export default async function PosterListPage({
                     <PosterHangButton
                       posterId={p.id}
                       projectId={id}
-                      hung={p.id === hungId}
-                      stale={p.id === hungId && p.kind === "ai" && hungIsStale(project?.poster_hung_at ?? null, p.updated_at)}
+                      hung={p.id === hungId ? hung : null}
+                      stale={p.id === hungId && hung === "hung" && p.kind === "ai" && hungIsStale(project?.poster_hung_at ?? null, p.updated_at)}
                       disabled={!canHangPoster(p)}
                     />
                     <DeletePosterButton posterId={p.id} />

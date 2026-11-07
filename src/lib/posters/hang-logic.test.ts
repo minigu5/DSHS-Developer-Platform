@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { canHangPoster, hungIsStale, posterImageAt, posterNudgeVisible, posterStartTarget, showcaseVisible } from './hang-logic.ts'
+import { canHangPoster, hangState, hungIsStale, posterImageAt, posterNudgeVisible, posterStartTarget, showcaseVisible } from './hang-logic.ts'
 
 test('canHangPoster', () => {
   assert.equal(canHangPoster({ kind: 'upload', html: null, art_job_id: null, image_url: 'u' }), true)
@@ -39,6 +39,15 @@ test('posterImageAt: Cloudinary 원본은 폭을 줄인 주소로, 바깥 주소
     'https://res.cloudinary.com/c/image/upload/c_limit,w_640,f_auto,q_auto/v1/dshs/posters/abc.png',
   )
   assert.equal(posterImageAt('https://example.com/a.png', 640), 'https://example.com/a.png')
+})
+
+test('hangState: AI 포스터 PNG 를 뒤에서 찍는 동안·실패·완료', () => {
+  const now = Date.parse('2026-11-07T10:02:00Z')
+  assert.equal(hangState({ imageUrl: 'u', hungAt: '2026-11-07T10:00:00Z' }, now), 'hung')
+  assert.equal(hangState({ imageUrl: null, hungAt: '2026-11-07T10:01:30Z' }, now), 'rendering')
+  // 2분이 지나도 그림이 없으면 찍기에 실패한 것(Workers 는 응답 뒤 30초까지만 기다린다)
+  assert.equal(hangState({ imageUrl: null, hungAt: '2026-11-07T09:59:59Z' }, now), 'failed')
+  assert.equal(hangState({ imageUrl: null, hungAt: null }, now), 'failed')
 })
 
 test('posterStartTarget', () => {

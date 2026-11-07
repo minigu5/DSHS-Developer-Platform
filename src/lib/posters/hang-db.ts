@@ -32,3 +32,41 @@ export async function setHungPoster(projectId: string, hung: { posterId: string;
   revalidatePath(`/projects/${projectId}/poster`)
   return true
 }
+
+/**
+ * AI 포스터 걸기 1단계 — 그림 주소 없이 먼저 건다(PNG 는 뒤에서 찍음, hangState 가 'rendering'). 이전 AI PNG 는 바로 지운다.
+ * 돌려준 걸린 시각으로 2단계(finishHungPng)가 "아직 이 걸기가 유효한지" 확인한다. 실패하면 null.
+ */
+export async function startHangingAi(projectId: string, posterId: string): Promise<string | null> {
+  const admin = createAdminClient()
+  const { data: before } = await admin.from('projects').select('poster_image_url, poster_is_ai').eq('id', projectId).maybeSingle()
+  const hungAt = new Date().toISOString()
+  const { error } = await admin
+    .from('projects')
+    .update({ poster_id: posterId, poster_image_url: null, poster_is_ai: true, poster_hung_at: hungAt })
+    .eq('id', projectId)
+  if (error) {
+    console.error('[poster] 걸기 실패', error.message)
+    return null
+  }
+  if (before?.poster_is_ai && before.poster_image_url) await deleteCloudinaryImages([before.poster_image_url])
+  revalidatePath(`/projects/${projectId}`)
+  revalidatePath(`/projects/${projectId}/poster`)
+  return hungAt
+}
+
+/** 2단계 — 뒤에서 찍은 PNG 주소를 붙인다. 그사이 다른 포스터를 걸었거나 내렸으면 붙이지 않고 방금 찍은 PNG 를 지운다 */
+export async function finishHungPng(projectId: string, posterId: string, hungAt: string, url: string): Promise<boolean> {
+  const { data } = await createAdminClient()
+    .from('projects')
+    .update({ poster_image_url: url })
+    .eq('id', projectId)
+    .eq('poster_id', posterId)
+    .eq('poster_hung_at', hungAt)
+    .select('id')
+  if (!data?.length) {
+    await deleteCloudinaryImages([url])
+    return false
+  }
+  return true
+}

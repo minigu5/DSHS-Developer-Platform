@@ -15,7 +15,17 @@ export function hungIsStale(hungAt: string | null, posterUpdatedAt: string): boo
   return new Date(posterUpdatedAt).getTime() > new Date(hungAt).getTime()
 }
 
-/** 공개 프로젝트에만 — 비공개 허용 사용자에게도 안 보인다. 비공개로 바뀌어도 지우지 않고 숨김 */
+// AI 포스터 PNG 는 걸기를 누른 뒤 뒤에서 찍는다(8~9초). Workers 는 응답 뒤 30초까지만 기다려 주니 넉넉히 2분 지나도 없으면 실패
+export const HANG_RENDER_GIVE_UP_MS = 120_000
+
+/** 걸린 포스터의 상태 — 그림 주소가 있으면 걸림, 없으면 찍는 중(2분 안) 또는 실패 */
+export function hangState(p: { imageUrl: string | null; hungAt: string | null }, now: number): 'hung' | 'rendering' | 'failed' {
+  if (p.imageUrl) return 'hung'
+  if (!p.hungAt) return 'failed'
+  return now - new Date(p.hungAt).getTime() < HANG_RENDER_GIVE_UP_MS ? 'rendering' : 'failed'
+}
+
+/** 공개 프로젝트에만 —비공개 허용 사용자에게도 안 보인다. 비공개로 바뀌어도 지우지 않고 숨김 */
 export function showcaseVisible(p: { visibility: string; poster_image_url: string | null }): boolean {
   return p.visibility === 'public' && !!p.poster_image_url
 }
