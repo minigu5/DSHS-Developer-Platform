@@ -74,6 +74,8 @@ interface ProjectFormProps {
   canDelete?: boolean;
   /** 이 프로젝트에 살아 있는 주소(서브도메인) 이름 — 삭제하면 함께 반납돼요 */
   subdomainName?: string | null;
+  /** 관리자 계정 — 비공개 프로젝트에도 주소를 둘 수 있어서 비공개로 바꿔도 주소를 닫지 않고 "주소 닫기" 띠도 안 띄운다 */
+  keepDomainWhenPrivate?: boolean;
   /** 연결된(active) 주소 이름과 옛 사이트 주소 후보 — 상세 설명에 옛 주소가 있으면 새 주소로 바꿀지 묻는다 */
   oldAddress?: { name: string; prefixes: string[] } | null;
   /** 관리자 잠금(수정 화면) — 있으면 "공개"를 고를 수 없고 이유를 보여 준다 */
@@ -84,7 +86,7 @@ interface ProjectFormProps {
   nextHref?: string | null;
 }
 
-export function ProjectForm({ initialData, isEdit = false, canDelete = true, subdomainName = null, oldAddress = null, lock = null, initialType = null, nextHref = null }: ProjectFormProps) {
+export function ProjectForm({ initialData, isEdit = false, canDelete = true, subdomainName = null, keepDomainWhenPrivate = false, oldAddress = null, lock = null, initialType = null, nextHref = null }: ProjectFormProps) {
   const router = useRouter();
   const supabase = createClient();
   const [isLoading, setIsLoading] = useState(false);
@@ -115,10 +117,10 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
     initialData?.visibility ?? "public",
   );
   // 살아 있는 주소가 있는 프로젝트를 비공개로 바꾸는 저장 — 저장하면 주소도 반납돼요
-  const closesDomain = isEdit && Boolean(subdomainName) && visibility === "private" && initialData?.visibility !== "private";
+  const closesDomain = isEdit && Boolean(subdomainName) && !keepDomainWhenPrivate && visibility === "private" && initialData?.visibility !== "private";
   // 이미 비공개로 저장됐는데 주소가 살아 있음 — 비공개 전환 때 반납이 실패한 뒤 새로 고쳤거나, 폼을 거치지 않고 비공개로 바뀐 경우.
-  // (비공개 프로젝트는 새로 주소를 받을 수 없으니 이 상태는 의도치 않은 것) 저장 없이 주소만 닫는 길을 보여 준다.
-  const strandedDomain = isEdit && Boolean(subdomainName) && initialData?.visibility === "private" && visibility === "private";
+  // (비공개 프로젝트는 새로 주소를 받을 수 없으니 이 상태는 의도치 않은 것 — 관리자 계정은 일부러 둘 수 있어 빼 둔다) 저장 없이 주소만 닫는 길을 보여 준다.
+  const strandedDomain = isEdit && Boolean(subdomainName) && !keepDomainWhenPrivate && initialData?.visibility === "private" && visibility === "private";
 
   // 설명
   const [shortDesc, setShortDesc] = useState<string>(initialData?.short_description ?? "");

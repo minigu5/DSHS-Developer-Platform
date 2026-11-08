@@ -57,7 +57,7 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
     <div className="flex min-h-screen flex-col bg-white dark:bg-zinc-950">
       <PageHero section="new" icon={Rocket} title="프로젝트 수정" description="프로젝트의 최신 정보를 반영해요." />
       <main className="w-full flex-1 px-6 py-9">
-        <ProjectForm initialData={project} isEdit={true} canDelete={isAuthor} subdomainName={subdomainName} oldAddress={oldAddress} lock={lock} />
+        <ProjectForm initialData={project} isEdit={true} canDelete={isAuthor} subdomainName={subdomainName} keepDomainWhenPrivate={userIsDeveloper && isOwnProject} oldAddress={oldAddress} lock={lock} />
       </main>
       {/* 홍보 포스터 옆 칸 — `?poster=` 가 있으면 열린다(공개 프로젝트만 포스터를 건다) */}
       {project.visibility === "public" && (
