@@ -4,6 +4,7 @@
 // 운영 Worker 비밀 NARU_HUB_URL(https://hub.dshs-app.net)·NARU_HUB_KEY(허브 DEVPLATFORM_API_KEY와 같은 값). 로그에 이메일·키를 찍지 않는다.
 
 import { RECORD_COMMENT_PREFIX, type DnsClient } from './cloudflare.ts'
+import { parseEdge, type NaruEdge } from './naru-edge.ts'
 import { isNaruHost } from './hosts.ts'
 import { ROOT_DOMAIN } from './name.ts'
 
@@ -14,6 +15,8 @@ export type NaruServer = {
   nodeId: string | null
   domain: string | null
   target: string | null
+  /** 허브가 이 서버 주소를 서울 입구에 붙인 상태(naru-edge.ts). 기능이 꺼져 있거나 주소가 없으면 null */
+  edge: NaruEdge | null
   /** 화면용: 주소를 붙일 수 있는가(허브가 터널 대상을 줬는가). 클라이언트는 이 값을 채우지 않는다 — listMyNaruServers 가 채운다 */
   ready?: boolean
 }
@@ -51,6 +54,7 @@ type RawServer = {
   node_id?: unknown
   domain?: unknown
   target?: unknown
+  edge?: unknown
 }
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v ? v : null)
@@ -87,7 +91,7 @@ export function createNaruClient(opts: { url: string; key: string; fetch?: typeo
       return data.servers.flatMap((s) => {
         const id = str(s.id)
         if (!id) return []
-        return [{ id, name: str(s.name) ?? '', status: str(s.status) ?? '', nodeId: str(s.node_id), domain: str(s.domain), target: str(s.target) }]
+        return [{ id, name: str(s.name) ?? '', status: str(s.status) ?? '', nodeId: str(s.node_id), domain: str(s.domain), target: str(s.target), edge: parseEdge(s.edge) }]
       })
     },
 
@@ -115,7 +119,7 @@ export function createNaruClient(opts: { url: string; key: string; fetch?: typeo
 // 개발(next dev)에서 쓰는 메모리 가짜 — 진짜 허브를 부르지 않는다. 서버 하나가 있다
 function createFakeNaruClient(): NaruClient {
   const TARGET = '00000000-0000-0000-0000-000000000000.cfargotunnel.com'
-  const servers: NaruServer[] = [{ id: 'fa4e0001', name: '시험 서버', status: 'running', nodeId: null, domain: null, target: TARGET }]
+  const servers: NaruServer[] = [{ id: 'fa4e0001', name: '시험 서버', status: 'running', nodeId: null, domain: null, target: TARGET, edge: null }]
   return {
     async listServers(email) {
       console.log('[naru:fake] listServers')

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ExternalLink, Loader2 } from "lucide-react";
 
 import { connectHost, connectNaru, listMyNaruServers } from "@/lib/domains/actions";
+import { CONNECT_NOTE } from "@/lib/domains/naru-edge";
 import { isNaruHost, presetOf, targetBoundToSite, type TxtInput } from "@/lib/domains/hosts";
 import { naruLinkFor, type NaruServer } from "@/lib/domains/naru";
 import type { DomainView } from "@/lib/domains/read";
@@ -313,6 +314,7 @@ export function NaruPanel({
           );
         })}
       </fieldset>
+      <p className="text-xs text-zinc-500 dark:text-zinc-400">{CONNECT_NOTE}</p>
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="submit"

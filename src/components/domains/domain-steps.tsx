@@ -29,6 +29,7 @@ import { nameMatches } from "@/lib/confirm-name";
 import { HostPicker, NaruPanel } from "./host-picker";
 import { UrlChangedDialog } from "./url-changed-dialog";
 import { AUTO_INTERVAL_MS, AUTO_MAX_ROUNDS, type AutoState, type CheckState } from "./use-domain-checks";
+import { NaruEdgeStatus } from "./naru-edge-status";
 
 const PRIMARY = cn("inline-flex h-9 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-semibold transition-colors disabled:opacity-50", SECTION_COLORS.domains.button);
 const SECONDARY =
@@ -582,6 +583,7 @@ export function DomainSteps({
             )}
             {domain && naruConnected && !changeServer && (
               <div className="flex flex-col gap-2">
+                {fqdn && <NaruEdgeStatus fqdn={fqdn} />}
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
                   서버 안에서 8080 포트로 서비스를 열어요. 꺼져 있으면 &lsquo;서버가 응답하지 않아요&rsquo; 화면이 보여요.
                 </p>

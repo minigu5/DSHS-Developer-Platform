@@ -31,7 +31,7 @@ test('listServers: 헤더 x-devplatform-key 와 email 쿼리, camelCase 로 바�
   const naru = createNaruClient({ url: HUB + '/', key: 'k1', fetch: f })
   const servers = await naru.listServers('a+b@ts.hs.kr')
   assert.deepEqual(servers, [
-    { id: 'fa4e0001', name: 'web', status: 'running', nodeId: 'server-09', domain: 'meal', target: 'a.cfargotunnel.com' },
+    { id: 'fa4e0001', name: 'web', status: 'running', nodeId: 'server-09', domain: 'meal', target: 'a.cfargotunnel.com', edge: null },
   ])
   assert.equal(calls[0].method, 'GET')
   assert.equal(calls[0].url, `${HUB}/devplatform/servers?email=a%2Bb%40ts.hs.kr`)
@@ -42,6 +42,16 @@ test('listServers: 비어 있는 값은 null 로', async () => {
   const { f } = fakeFetch(() => ({ status: 200, json: { servers: [{ id: 'fa4e0001', name: 'w', status: 'stopped' }] } }))
   const [s] = await createNaruClient({ url: HUB, key: 'k', fetch: f }).listServers('x@ts.hs.kr')
   assert.deepEqual([s.nodeId, s.domain, s.target], [null, null, null])
+})
+
+test('listServers: 허브의 edge(서울 입구 상태)는 아는 값만 살린다', async () => {
+  const { f } = fakeFetch(() => ({ status: 200, json: { servers: [
+    { id: 'fa4e0001', name: 'a', status: 'running', domain: 'meal', edge: 'seoul' },
+    { id: 'fa4e0002', name: 'b', status: 'running', domain: 'lunch', edge: 'weird' },
+  ] } }))
+  const [a, b] = await createNaruClient({ url: HUB, key: 'k', fetch: f }).listServers('x@ts.hs.kr')
+  assert.equal(a.edge, 'seoul')
+  assert.equal(b.edge, null)
 })
 
 test('bind: 본문은 email·name, 응답의 target 을 돌려준다', async () => {
@@ -260,7 +270,7 @@ test('대량 반납 방어 경계: 절반 이하이거나 2개 이하면 그대�
 })
 
 test('toPickableServers: running·stopped 만, target 이 없으면 ready=false, 내부 값은 지움', () => {
-  const mk = (id: string, status: string, target: string | null) => ({ id, name: id, status, nodeId: 'server-09', domain: null, target })
+  const mk = (id: string, status: string, target: string | null) => ({ id, name: id, status, nodeId: 'server-09', domain: null, target, edge: null })
   const out = toPickableServers([mk('a', 'running', 'x.cfargotunnel.com'), mk('b', 'stopped', null), mk('c', 'creating', 'x.cfargotunnel.com')])
   assert.deepEqual(out.map((s) => [s.id, s.ready, s.nodeId, s.target]), [['a', true, null, null], ['b', false, null, null]])
 })
