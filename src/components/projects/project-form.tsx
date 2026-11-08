@@ -35,7 +35,8 @@ import { Markdown } from "@/components/shared/markdown";
 import { ConfirmNameInput } from "@/components/shared/confirm-name-input";
 import { nameMatches } from "@/lib/confirm-name";
 import { parseGithubRepo } from "@/lib/github-readme";
-import { closeDomainOfPrivateProject, deleteProject } from "@/lib/projects/actions";
+import { closeDomainOfPrivateProject, deleteProject, refreshIconFit } from "@/lib/projects/actions";
+import { parseIconFit } from "@/lib/icon-fit";
 import { addGithubToProfile } from "@/lib/profile/actions";
 import { domainOfferOf, previewAddressOf, quickToConnect } from "@/lib/domains/offer";
 import { shouldFollowNext, withProject } from "@/lib/domains/next-path";
@@ -771,6 +772,12 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         updated_at: new Date().toISOString()
       };
 
+      // 새 아이콘이면 서버가 그림을 살펴 맞춤값(바탕색·꽉 채우기)을 적게 한다 — 상세에 처음부터 맞게 보이도록 잠깐(최대 2.5초) 기다린다
+      const fitIcon = (projectId: string) =>
+        finalIconUrl && !parseIconFit(initialData?.icon_fit, finalIconUrl)
+          ? Promise.race([refreshIconFit(projectId).catch(() => {}), new Promise((r) => setTimeout(r, 2500))])
+          : Promise.resolve();
+
       if (isEdit && initialData?.id) {
         // 수정 시 author_id 는 포함하지 않음 — 원작자 변경 방지 (개발자 계정 포함)
         const { error } = await supabase.from('projects').update(commonFields).eq('id', initialData.id);
@@ -780,12 +787,14 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
           const closed = await closeDomainOfPrivateProject(initialData.id);
           if (!closed.ok) throw new Error(`비공개로는 저장했지만 주소는 아직 닫히지 않았어요. ${closed.error}`);
         }
+        await fitIcon(initialData.id);
         allowLeave();
         router.push(`/projects/${initialData.id}`);
       } else {
         // select('id') — 사용자 키는 author_id 를 못 읽어서 전체 칸으로 돌려받으면 권한 오류
         const { data, error } = await supabase.from('projects').insert([{ ...commonFields, author_id: session.user.id }]).select('id').single();
         if (error) throw error;
+        await fitIcon(data.id);
         allowLeave();
         if (nextHref && shouldFollowNext(nextHref, { isWebsite, isPublic: visibility === 'public' })) {
           router.push(withProject(nextHref, data.id));
@@ -875,6 +884,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
             <div className="flex items-start gap-4">
               <ProjectIcon
                 src={iconType === "auto" ? autoIconPreview : iconUrl || null}
+                fit={initialData?.icon_fit}
                 title={title || "?"}
                 className="h-[72px] w-[72px] shrink-0 rounded-[22%] ring-[3px] ring-white shadow-[0_8px_20px_-8px_rgba(0,0,0,0.25)] dark:ring-zinc-950"
                 decorative

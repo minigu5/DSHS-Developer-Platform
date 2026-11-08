@@ -127,7 +127,7 @@ export function DomainList({
             )}
           >
             <div className="flex flex-wrap items-center gap-3 px-4 py-3 sm:flex-nowrap">
-              <ProjectIcon src={project.iconUrl} title={project.title} decorative className="h-9 w-9 shrink-0 text-sm" />
+              <ProjectIcon src={project.iconUrl} fit={project.iconFit} title={project.title} decorative className="h-9 w-9 shrink-0 text-sm" />
               <div className="min-w-0 flex-1">
                 <p className="truncate font-semibold text-zinc-900 dark:text-zinc-100">{project.title}</p>
                 <p className="truncate font-mono text-xs text-zinc-500 dark:text-zinc-400">

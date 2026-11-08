@@ -122,6 +122,7 @@ export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anony
         <div className="mt-5 flex flex-col items-start gap-4 sm:flex-row sm:gap-7">
           <ProjectIcon
             src={project.icon_url}
+            fit={project.icon_fit}
             title={project.title}
             className="h-[72px] w-[72px] shrink-0 rounded-[22%] ring-[3px] ring-white shadow-[0_8px_20px_-8px_rgba(0,0,0,0.25)] dark:ring-zinc-950 sm:h-28 sm:w-28"
             decorative

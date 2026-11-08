@@ -23,6 +23,7 @@ type LinkedProject = {
   short_description: string | null;
   url: string | null;
   icon_url: string | null;
+  icon_fit: unknown;
   author_role: string | null;
 };
 
@@ -54,7 +55,7 @@ export default async function HaejwoDetailPage({
       .select(
         `id, author_id, title, type, category, content, status, linked_project_id, created_at,
          author:users!ideas_author_id_fkey(nickname, full_name, avatar_url),
-         linked_project:projects!ideas_linked_project_id_fkey(id, title, short_description, url, icon_url, author_role)`,
+         linked_project:projects!ideas_linked_project_id_fkey(id, title, short_description, url, icon_url, icon_fit, author_role)`,
       )
       .eq("id", id)
       .single()
@@ -122,7 +123,7 @@ export default async function HaejwoDetailPage({
             href={`/projects/${linkedProject.id}`}
             className="mt-5 flex items-center gap-3.5 rounded-[20px] border border-emerald-300 bg-emerald-50/60 p-4 transition-colors hover:border-emerald-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:border-emerald-800 dark:bg-emerald-950/30 dark:hover:border-emerald-700"
           >
-            <ProjectIcon src={linkedProject.icon_url} title={linkedProject.title} className="h-11 w-11 shrink-0 rounded-[22%]" decorative />
+            <ProjectIcon src={linkedProject.icon_url} fit={linkedProject.icon_fit} title={linkedProject.title} className="h-11 w-11 shrink-0 rounded-[22%]" decorative />
             <span className="min-w-0">
               <span className="flex items-center gap-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
                 <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />

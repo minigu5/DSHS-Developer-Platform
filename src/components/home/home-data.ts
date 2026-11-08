@@ -51,7 +51,7 @@ type CommentJoined = {
   is_author: boolean;
   public_user_id: string | null;
   user: Person;
-  projects: { title: string; icon_url: string | null } | null;
+  projects: { title: string; icon_url: string | null; icon_fit: unknown } | null;
 };
 
 const personName = (p: Person, fallback = "알 수 없음") => p?.nickname || p?.full_name || fallback;
@@ -100,6 +100,7 @@ async function fetchHomeData(): Promise<HomeData> {
         team_name,
         team_icon_url,
         icon_url,
+        icon_fit,
         features,
         public_author_id,
         users!projects_public_author_id_fkey (full_name, nickname, avatar_url)
@@ -111,7 +112,7 @@ async function fetchHomeData(): Promise<HomeData> {
     // 아이콘 나열: 많이 찾는 순(동률이면 최신 등록 우선) 11개 + "내 앱 올리기" 칸
     supabase
       .from("projects")
-      .select("id, title, icon_url")
+      .select("id, title, icon_url, icon_fit")
       .eq("visibility", "public")
       .order("click_count", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })
@@ -132,7 +133,7 @@ async function fetchHomeData(): Promise<HomeData> {
     // "이렇게 써요" 2단계 예시 — 공개 프로젝트에 달린 가장 최근 댓글 한 개(사람은 public_user_id 로만)
     supabase
       .from("project_comments")
-      .select("content, is_author, public_user_id, user:users!project_comments_public_user_id_fkey(nickname, full_name), projects!inner(title, icon_url)")
+      .select("content, is_author, public_user_id, user:users!project_comments_public_user_id_fkey(nickname, full_name), projects!inner(title, icon_url, icon_fit)")
       .eq("projects.visibility", "public")
       .order("created_at", { ascending: false })
       .limit(1)
@@ -176,6 +177,7 @@ async function fetchHomeData(): Promise<HomeData> {
         ? {
             title: latest.title,
             icon_url: latest.icon_url,
+            icon_fit: latest.icon_fit,
             authorName:
               latest.author_role === "anonymous"
                 ? ANONYMOUS_AUTHOR
@@ -197,6 +199,7 @@ async function fetchHomeData(): Promise<HomeData> {
                   : "알 수 없음",
               projectTitle: comment.projects.title,
               projectIcon: comment.projects.icon_url,
+              projectIconFit: comment.projects.icon_fit,
             }
           : null,
       latestIdea: ideas[0] ? { title: ideas[0].title, statusLabel: IDEA_STATUS_LABEL[ideas[0].status] } : null,

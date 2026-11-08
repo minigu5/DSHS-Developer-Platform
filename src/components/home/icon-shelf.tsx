@@ -9,6 +9,7 @@ export type ShelfProject = {
   id: string;
   title: string;
   icon_url: string | null;
+  icon_fit?: unknown;
 };
 
 // 아이콘 11개 + "내 앱 올리기" = 12칸. 모바일(72px, 간격 14px)에서 4칸씩 3줄로 딱 떨어진다.
@@ -39,7 +40,7 @@ export function IconShelf({ projects }: { projects: ShelfProject[] }) {
       {shown.map((project, i) => (
         <li key={project.id} className="tile-pop" style={popDelay(FIRST_DELAY + i * STAGGER)}>
           <Link href={`/projects/${project.id}`} aria-label={project.title} title={project.title} className={TILE_CLASS}>
-            <ProjectIcon src={project.icon_url} title={project.title} decorative className="h-full w-full rounded-[22%]" />
+            <ProjectIcon src={project.icon_url} fit={project.icon_fit} title={project.title} decorative className="h-full w-full rounded-[22%]" />
           </Link>
         </li>
       ))}

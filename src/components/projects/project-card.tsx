@@ -23,6 +23,8 @@ export type ProjectCardData = {
   /** 팀 프로젝트가 직접 올린 팀 아이콘 — 없으면 팀 이름 첫 글자 */
   team_icon_url: string | null;
   icon_url: string | null;
+  /** projects.icon_fit — 자기 바탕이 있는 아이콘 맞춤값(src/lib/icon-fit.ts) */
+  icon_fit?: unknown;
   features: string[] | null;
   /** 익명이면 null — 작성자 링크·이름은 이 칸으로만 정한다(author_id 는 사용자 키로 못 읽음) */
   public_author_id: string | null;
@@ -92,6 +94,7 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback, heart 
         <div className="flex items-start gap-4">
           <ProjectIcon
             src={project.icon_url}
+            fit={project.icon_fit}
             title={project.title}
             className="w-12 h-12 shrink-0 rounded-[22%] mt-[26px]"
             decorative

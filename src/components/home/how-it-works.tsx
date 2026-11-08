@@ -5,9 +5,9 @@ import { ProjectIcon } from "@/components/projects/project-icon";
 
 export type HowItWorksExamples = {
   /** 가장 최근 등록된 공개 프로젝트 */
-  latestProject: { title: string; icon_url: string | null; authorName: string; typeLabel: string } | null;
+  latestProject: { title: string; icon_url: string | null; icon_fit?: unknown; authorName: string; typeLabel: string } | null;
   /** 가장 최근 댓글 */
-  latestComment: { content: string; authorName: string; projectTitle: string; projectIcon: string | null } | null;
+  latestComment: { content: string; authorName: string; projectTitle: string; projectIcon: string | null; projectIconFit?: unknown } | null;
   /** 가장 최근 해줘! 요청 */
   latestIdea: { title: string; statusLabel: string } | null;
 };
@@ -31,7 +31,7 @@ export function HowItWorks({ examples }: { examples: HowItWorksExamples | null }
       body: "링크 하나와 짧은 설명이면 돼요. 아이콘은 주소에서 자동으로 가져와요. 팀 프로젝트면 팀원을 같이 적어요.",
       example: latestProject ? (
         <>
-          <ProjectIcon src={latestProject.icon_url} title={latestProject.title} decorative className="h-[34px] w-[34px] shrink-0 rounded-[22%] ring-2 ring-white shadow-[0_8px_20px_-8px_rgba(0,0,0,0.25)] dark:ring-zinc-900" />
+          <ProjectIcon src={latestProject.icon_url} fit={latestProject.icon_fit} title={latestProject.title} decorative className="h-[34px] w-[34px] shrink-0 rounded-[22%] ring-2 ring-white shadow-[0_8px_20px_-8px_rgba(0,0,0,0.25)] dark:ring-zinc-900" />
           <span className="min-w-0 truncate">
             <b className="font-semibold text-zinc-900 dark:text-white">{latestProject.title}</b>
             {` · ${latestProject.authorName} · ${latestProject.typeLabel}`}
@@ -46,7 +46,7 @@ export function HowItWorks({ examples }: { examples: HowItWorksExamples | null }
       body: "친구가 만든 프로그램을 써 보고 하트를 누르거나 댓글을 남겨요. 만든 사람에게 가장 큰 피드백이에요.",
       example: latestComment ? (
         <>
-          <ProjectIcon src={latestComment.projectIcon} title={latestComment.projectTitle} decorative className="h-[34px] w-[34px] shrink-0 rounded-[22%] ring-2 ring-white shadow-[0_8px_20px_-8px_rgba(0,0,0,0.25)] dark:ring-zinc-900" />
+          <ProjectIcon src={latestComment.projectIcon} fit={latestComment.projectIconFit} title={latestComment.projectTitle} decorative className="h-[34px] w-[34px] shrink-0 rounded-[22%] ring-2 ring-white shadow-[0_8px_20px_-8px_rgba(0,0,0,0.25)] dark:ring-zinc-900" />
           <span className="min-w-0 truncate">
             {`"${trim(latestComment.content, 22)}" · `}
             <b className="font-semibold text-zinc-900 dark:text-white">{latestComment.authorName}</b>

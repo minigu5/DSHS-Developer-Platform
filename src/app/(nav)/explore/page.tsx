@@ -16,6 +16,7 @@ const PROJECT_SELECT = `
   team_name,
   team_icon_url,
   icon_url,
+  icon_fit,
   features,
   public_author_id,
   visibility,

@@ -83,6 +83,10 @@ paths:
 - **웹사이트 + 전체 플랫폼**: `types`에 `website`가 있고 모든 플랫폼이 선택된 경우 카드에서는 "Web" 하나만 표시 (DB 실제 값은 유지).
 - **아이콘**: `mt-[5px]`로 텍스트 영역보다 5px 아래에 위치.
 - **아이콘 바탕·움직임**(2026-11-02 사용자 요청, `ProjectIcon`): 이미지 아이콘 바탕은 다크 모드에서도 `bg-white`(투명 배경 검은 그림이 어두운 카드에서 안 보였음). 움직이는 이미지(`.gif`·`.webp`·`.apng`)는 첫 장면만 — Cloudinary 주소는 `pg_1` 변환을 끼우고(받는 크기도 줄어듦), 바깥 주소는 숨긴 `<img>`로 받아 `<canvas>`에 첫 장면을 그린다. 업로드는 막지 않는다.
+- **아이콘 맞춤값 `icon_fit`**(2026-11-08 사용자 "안 예쁘게 나온다" — AFO는 그림 모서리(25%)와 우리 틀(22%)이 안 맞아 모서리에 흰 실선, 영화대교는 그림에 박힌 흰 여백이 흰 테두리로 보였음, 사용자가 자동 판별 선택): 서버가 그림을 한 번 살펴 `projects.icon_fit` = `{ src: 분석한 icon_url, bg?: '#rrggbb', box?: [x, y, 크기] }`(migration `20261108100000`, anon/authenticated SELECT GRANT)를 적고, `ProjectIcon`(`fit` prop)이 `src`가 지금 `icon_url`과 같을 때만 흰색 대신 `bg`를 깔고 `box` 영역을 틀에 꽉 차게 키운다(`parseIconFit`, `src/lib/icon-fit.ts` — 사용자 키로도 쓸 수 있는 칸이라 값 검사). 아이콘이 바뀌면 값이 저절로 무효(예전처럼 흰 바탕).
+  - 판정 `src/lib/icon-fit-analyze.ts`(테스트 있음, 순수): PNG(ICO 속 PNG 포함)는 직접 풀어 모서리가 투명하거나 테두리가 한 색이면 내용 상자를 구하고, 상자 네 변 안쪽이 다 불투명하면 "자기 바탕이 있는 타일" → 변 색 평균이 `bg`, 바깥 여백 2% 이상이면 `box`. 투명 배경 위 글자·동그라미 로고·꽉 찬 사진은 그대로(흰 바탕). SVG는 그릴 수 없어 **첫 도형이 꽉 찬(또는 여백 안 정사각형) 단색 `<rect>`**일 때만. JPEG 등은 할 일 없음.
+  - 언제: 폼 저장 직후 서버 액션 `refreshIconFit`(새 아이콘일 때만, 최대 2.5초 기다리고 이동), 매일 밤 파비콘 동기화(`/api/favicon-sync/run`, 자동 아이콘 — 도메인 바꾸기로 주소만 바뀐 것도 따라잡음), 한꺼번에는 로컬 `node scripts/backfill-icon-fit.mts [--dry-run] [--all]`(2026-11-08 처음 채움: 24개 중 7개 맞춤).
+  - **CPU**: 180px PNG를 그대로 풀면 처음 한 번 20~30ms라 Workers 무료 10ms를 넘는다 → Workers에선 `IMAGES` 바인딩으로 64px로 줄여서 살피고(`icon-fit-worker.ts`), 바인딩이 없으면 128px 이하만 푼다(크면 null = 다음에 다시). Cloudinary 주소는 `c_limit,w_64,h_64,f_png`로 받는다(`icon-fit-fetch.ts`).
 - **하트·댓글 수**(2026-11-05, 별점 삭제): 카드 오른쪽 위 `absolute top-4 right-4 z-20`(덮개 링크 z-10 위, 헤더는 `pr-16`)에 하트. `heart` prop이 있으면 `HeartButton`(`src/components/projects/heart-button.tsx`, rose 알약 — 제어 모드 `onToggle`+`count`는 탐색, 없으면 스스로 저장), 없으면 숫자만(0이면 숨김). 숫자는 쿼리의 `project_hearts(count)`(`heartCountOf`, `src/lib/hearts.ts`). 플랫폼 칩 옆엔 댓글 수(`project_comments(count)`, `MessageSquare`)만. 저장은 `setHeart`(`src/lib/hearts-client.ts`, 23505는 성공).
 
 ### 팀 프로젝트 수정 권한

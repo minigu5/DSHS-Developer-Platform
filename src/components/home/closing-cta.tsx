@@ -17,6 +17,7 @@ export function ClosingCta({ projects }: { projects: ShelfProject[] }) {
           <ProjectIcon
             key={p.id}
             src={p.icon_url}
+            fit={p.icon_fit}
             title={p.title}
             decorative
             className="h-9 w-9 rounded-[22%] ring-2 ring-zinc-900 dark:ring-zinc-100"

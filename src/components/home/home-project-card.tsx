@@ -41,6 +41,7 @@ export function HomeProjectCard({ project, className }: { project: ProjectCardDa
       <div className="flex items-start gap-4 p-5 pb-3">
         <ProjectIcon
           src={project.icon_url}
+          fit={project.icon_fit}
           title={project.title}
           decorative
           className="mt-[26px] h-12 w-12 shrink-0 rounded-[22%]"

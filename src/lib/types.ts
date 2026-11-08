@@ -111,6 +111,7 @@ export type Database = {
           team_icon_url: string | null;
           team_members: string[] | null;
           icon_url: string | null;
+          icon_fit: Json | null;
           icon_type: 'link' | 'auto' | null;
           license_features: string[] | null;
           license_custom: string | null;
@@ -151,6 +152,7 @@ export type Database = {
           team_icon_url?: string | null;
           team_members?: string[] | null;
           icon_url?: string | null;
+          icon_fit?: Json | null;
           icon_type?: 'link' | 'auto' | null;
           license_features?: string[] | null;
           license_custom?: string | null;
@@ -181,6 +183,7 @@ export type Database = {
           team_icon_url?: string | null;
           team_members?: string[] | null;
           icon_url?: string | null;
+          icon_fit?: Json | null;
           icon_type?: 'link' | 'auto' | null;
           license_features?: string[] | null;
           license_custom?: string | null;

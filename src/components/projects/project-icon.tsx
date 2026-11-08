@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { parseIconFit } from "@/lib/icon-fit";
 import { cn, isExternalImage } from "@/lib/utils";
 
 interface ProjectIconProps {
@@ -10,6 +11,8 @@ interface ProjectIconProps {
   className?: string;
   /** 옆에 프로젝트 이름이 함께 보이면 true — 스크린리더가 이름을 두 번 읽지 않게 함 */
   decorative?: boolean;
+  /** projects.icon_fit — 자기 바탕이 있는 아이콘의 바탕색·꽉 채울 영역(src/lib/icon-fit.ts) */
+  fit?: unknown;
 }
 
 // 아이콘이 없는 프로젝트용 이니셜 타일 색. 제목으로 고정 선택해 새로고침해도 같은 색 유지
@@ -71,7 +74,7 @@ function FrozenImage({ src, alt, onError }: { src: string; alt: string; onError:
   );
 }
 
-export function ProjectIcon({ src, title, className, decorative = false }: ProjectIconProps) {
+export function ProjectIcon({ src, title, className, decorative = false, fit }: ProjectIconProps) {
   const [error, setError] = useState(false);
 
   if (!src || error) {
@@ -94,22 +97,45 @@ export function ProjectIcon({ src, title, className, decorative = false }: Proje
   const stillSrc = stillCloudinaryUrl(src);
   // Cloudinary가 아닌 주소의 움직이는 형식만 canvas로 멈춘다
   const frozen = stillSrc === src && ANIMATED_EXT.test(src);
+  const iconFit = parseIconFit(fit, src);
+  const box = iconFit?.box;
+
+  const picture = frozen ? (
+    <FrozenImage src={src} alt={decorative ? "" : title} onError={() => setError(true)} />
+  ) : (
+    <Image
+      src={stillSrc}
+      alt={decorative ? "" : title}
+      fill
+      sizes="96px"
+      className="object-cover"
+      onError={() => setError(true)}
+      unoptimized={isExternalImage(stillSrc)}
+    />
+  );
 
   return (
-    // 바탕은 다크 모드에서도 흰색 — 투명 배경에 검은 그림인 아이콘이 어두운 카드 위에서 안 보였다
-    <div className={cn("relative overflow-hidden rounded-2xl bg-white outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10", className)}>
-      {frozen ? (
-        <FrozenImage src={src} alt={decorative ? "" : title} onError={() => setError(true)} />
+    // 바탕은 다크 모드에서도 흰색 — 투명 배경에 검은 그림인 아이콘이 어두운 카드 위에서 안 보였다.
+    // 자기 바탕이 있는 아이콘은 그 색을 깔아 투명한 모서리로 흰색이 안 비치게 한다
+    <div
+      className={cn("relative overflow-hidden rounded-2xl bg-white outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10", className)}
+      style={iconFit?.bg ? { backgroundColor: iconFit.bg } : undefined}
+    >
+      {box ? (
+        // 바깥 여백이 있는 타일 아이콘은 타일만 틀에 꽉 차게 키운다
+        <div
+          className="absolute"
+          style={{
+            left: `${(-box[0] / box[2]) * 100}%`,
+            top: `${(-box[1] / box[2]) * 100}%`,
+            width: `${100 / box[2]}%`,
+            height: `${100 / box[2]}%`,
+          }}
+        >
+          {picture}
+        </div>
       ) : (
-        <Image
-          src={stillSrc}
-          alt={decorative ? "" : title}
-          fill
-          sizes="96px"
-          className="object-cover"
-          onError={() => setError(true)}
-          unoptimized={isExternalImage(stillSrc)}
-        />
+        picture
       )}
     </div>
   );

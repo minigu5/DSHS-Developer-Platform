@@ -27,11 +27,11 @@ export default async function PosterStartPage() {
   const { data: rows } = ids.length
     ? await supabase
         .from("projects")
-        .select("id, title, icon_url")
+        .select("id, title, icon_url, icon_fit")
         .in("id", ids)
         .eq("visibility", "public")
         .order("created_at", { ascending: false })
-    : { data: [] as { id: string; title: string; icon_url: string | null }[] };
+    : { data: [] as { id: string; title: string; icon_url: string | null; icon_fit: unknown }[] };
   const projects = rows ?? [];
 
   const target = posterStartTarget(projects.map((p) => p.id));
@@ -49,7 +49,7 @@ export default async function PosterStartPage() {
                 href={`/projects/${p.id}/edit?poster=list`}
                 className="flex items-center gap-3 rounded-3xl border border-zinc-200 bg-white p-4 transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600"
               >
-                <ProjectIcon src={p.icon_url} title={p.title} decorative className="h-11 w-11 shrink-0 rounded-[22%]" />
+                <ProjectIcon src={p.icon_url} fit={p.icon_fit} title={p.title} decorative className="h-11 w-11 shrink-0 rounded-[22%]" />
                 <span className="min-w-0 flex-1 truncate font-semibold text-zinc-900 dark:text-white">{p.title}</span>
                 <ChevronRight className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden />
               </Link>

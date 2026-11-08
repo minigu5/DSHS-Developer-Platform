@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { isImageOk, resolveFavicon } from '@/lib/favicon'
 import { syncFavicon } from '@/lib/favicon-sync'
 import { FAVICON_SYNC_SIG_HEADER, verifyFaviconSync } from '@/lib/favicon-sync-job'
+import { iconFitStale } from '@/lib/icon-fit-fetch'
+import { computeIconFitInWorker } from '@/lib/icon-fit-worker'
 import { isJobId } from '@/lib/posters/ai-jobs-logic'
 import { createAdminClient } from '@/lib/supabase/server'
 
@@ -35,7 +37,7 @@ export async function POST(request: NextRequest) {
 
   const { data: row, error } = await admin
     .from('projects')
-    .select('id, title, url, icon_url')
+    .select('id, title, url, icon_url, icon_fit')
     .eq('id', target)
     .eq('icon_type', 'auto')
     .maybeSingle()
@@ -43,14 +45,17 @@ export async function POST(request: NextRequest) {
   if (!row) return NextResponse.json({ ok: true, kind: 'skipped', reason: '자동 아이콘 아님' })
 
   const outcome = await syncFavicon(row, { resolve: resolveFavicon, check: isImageOk })
-  if (outcome.kind === 'updated') {
+  // 아이콘 맞춤값(바탕색·꽉 채우기, src/lib/icon-fit.ts)도 지금 아이콘 것이 아니면 같이 맞춘다 — 도메인 바꾸기 등으로 주소만 바뀐 것도 여기서 따라잡는다
+  const iconUrl = outcome.kind === 'updated' ? outcome.patch.icon_url : row.icon_url
+  const fit = iconUrl && iconFitStale(iconUrl, row.icon_fit) ? await computeIconFitInWorker(iconUrl) : null
+  if (outcome.kind === 'updated' || fit) {
     // 그사이 사용자가 직접 올리기로 바꿨으면 덮어쓰지 않게 icon_type 도 조건에 건다
     const { error: updateError } = await admin
       .from('projects')
-      .update(outcome.patch)
+      .update({ ...(outcome.kind === 'updated' ? outcome.patch : {}), ...(fit ? { icon_fit: { ...fit } } : {}) })
       .eq('id', row.id)
       .eq('icon_type', 'auto')
     if (updateError) return NextResponse.json({ ok: false, error: updateError.message }, { status: 500 })
   }
-  return NextResponse.json({ ok: true, kind: outcome.kind })
+  return NextResponse.json({ ok: true, kind: outcome.kind, fit: Boolean(fit) })
 }

@@ -11,6 +11,8 @@ import { nameMatches } from '@/lib/confirm-name'
 import { isAllowedEmail, isDeveloper } from '@/lib/constants'
 import { fixOldAddresses, oldAddressPrefixes } from '@/lib/domains/old-address'
 import { getOldAddressSource } from '@/lib/domains/read'
+import { iconFitStale } from '@/lib/icon-fit-fetch'
+import { computeIconFitInWorker } from '@/lib/icon-fit-worker'
 import { posterImageUrlsOf } from '@/lib/posters/cleanup'
 import { releaseLiveDomain } from '@/lib/projects/release-domain'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
@@ -111,4 +113,24 @@ export async function replaceOldAddressesInDescription(projectId: string): Promi
 
   revalidatePath(`/projects/${projectId}`)
   return { ok: true }
+}
+
+/**
+ * 저장한 아이콘을 살펴 맞춤값(icon_fit — 자기 바탕이 있는 아이콘의 바탕색·꽉 채울 영역)을 적는다. 폼이 저장 직후 부른다.
+ * 결과는 그림에서만 나오고 이미 맞으면 아무것도 안 해서 누가 불러도 같다 — 로그인만 확인한다. 저장은 서비스 키(사용자 키로는 팀원 등 RLS 차이).
+ */
+export async function refreshIconFit(projectId: string): Promise<void> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user?.email || !isAllowedEmail(user.email)) return
+
+  const admin = createAdminClient()
+  const { data: row } = await admin.from('projects').select('icon_url, icon_fit').eq('id', projectId).maybeSingle()
+  if (!row?.icon_url || !iconFitStale(row.icon_url, row.icon_fit)) return
+  const fit = await computeIconFitInWorker(row.icon_url)
+  if (!fit) return
+  // 그사이 아이콘이 또 바뀌었으면 덮지 않는다
+  await admin.from('projects').update({ icon_fit: { ...fit } }).eq('id', projectId).eq('icon_url', row.icon_url)
 }
