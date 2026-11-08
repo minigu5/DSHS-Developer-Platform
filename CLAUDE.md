@@ -20,7 +20,7 @@
 | **Framework** | Next.js 16 (**App Router 필수**, TypeScript strict) |
 | **Styling** | Tailwind CSS v4 + shadcn/ui (`base-nova` style, base-ui/react 기반) |
 | **BaaS (DB & Auth)** | Supabase (PostgreSQL + Supabase Auth + **RLS**) |
-| **Hosting** | Cloudflare Workers (`@opennextjs/cloudflare`, 도메인 `dshs.dev`) — 2026-10-24 `dshs.dev` 연결 완료(옛 Vercel 주소는 마지막 배포 그대로 남음 — 2026-10-25 `vercel.json`으로 push 자동 배포 꺼서 Vercel CI 없음). 순서·설정: `docs/19-cloudflare-workers.md` |
+| **Hosting** | Cloudflare Workers (`@opennextjs/cloudflare`, 도메인 `dshs.dev`) — Vercel은 `vercel.json`으로 push 자동 배포 꺼짐(옛 주소는 마지막 배포 그대로). 순서·설정: `docs/19-cloudflare-workers.md` |
 | **추가 라이브러리** | `@supabase/ssr`, `react-hook-form`, `zod`, `lucide-react`, `date-fns`, `sonner`, `next-themes`, `react-markdown` + `remark-gfm` (바이브 코딩 가이드 렌더링), `cloudinary` (이미지 업로드) |
 
 > ⚠️ shadcn `base-nova` style 의 Button 은 **`asChild` 미지원**. Link 에 `buttonVariants()` 클래스를 입혀 사용.
@@ -118,7 +118,6 @@
 | 항목 | 설정값 |
 |---|---|
 | **Cloudflare Worker** | `dshs-developer-platform` (`wrangler.jsonc`), 배치 힌트 `aws:ap-northeast-2`로 DB 가까이 실행 |
-| **Vercel 배포 리전** (전환 전까지) | `icn1` (서울, ap-northeast-2) |
 | **Supabase DB 리전** | `ap-northeast-2` (서울) — DB·인증은 Supabase 유지(2026-10-24 사용자 결정, D1 이전 안 함) |
 
 > 서버 → DB 왕복 레이턴시를 줄이려고 서버를 DB(서울) 가까이에 둔다.
@@ -149,7 +148,6 @@
 - 문제: Cloudflare 무료 망은 한국 접속이 LAX를 거쳐 서버 왕복이 0.8~2초 — 링크를 누르면 1초쯤 아무 반응이 없었다.
 - 해결: 경로마다 `loading.tsx`가 실제 틀(PageHero 높이·카드 격자·글 레이아웃)과 같은 **회색 블록 뼈대**를 즉시 보여 준다(반짝임·펄스 없음). 메뉴(`PageNav`/`MobileNav`)는 누른 순간 활성 표시가 옮겨간다(`useOptimisticActive`).
 - `loading.tsx`는 그 폴더 아래 모든 하위 페이지를 감싸므로, 목록·상세가 같은 폴더인 곳은 **route group**으로 나눴다: `tips|haejwo|announcements/(list)/`, `…/[id]/(detail)/`, `projects/[id]/(detail)/`. 새 하위 페이지를 만들 때 엉뚱한 뼈대가 뜨지 않게 이 구조를 따른다.
-- 측정(dshs.dev, 데스크탑, 2026-11-04 전 — 그땐 보이는 링크를 다 미리 받았음): 메뉴 이동 0.05~0.1초, 공지 상세는 뼈대 0.05초 → 내용 0.8~2.4초. 첫 접속(주소 직접 입력)은 망 문제라 그대로.
 
 ## 📱 반응형 / 모바일 최적화
 
@@ -163,10 +161,7 @@
 - **카드/섹션 패딩**: `p-6 sm:p-8` (모바일 24px, 데스크탑 32px).
 - **세로 스택 전환**: 좁은 폭에서 잘리는 행은 `flex-col sm:flex-row`로 전환 (예: 상세 댓글 칸의 "로그인이 필요해요" 행).
 - **섹션 헤더 정렬**: `flex-col sm:flex-row justify-between` 컨테이너에서 `items-start sm:items-end` 패턴 사용 — 모바일(`flex-col`)에서 `items-end`를 쓰면 콘텐츠가 오른쪽으로 붙어버림.
-- **홈 CTA 버튼**: 모바일에서 `max-w-[280px] sm:max-w-none` 제한 — `w-full`만 두면 전체 너비로 늘어나 이상해 보임.
-- **홈 섹션별 카드 수**: 모바일에서 최대 3개만 표시. 프로젝트 fetch는 6개(데스크탑 3열 채움)이나 index ≥ 3 항목에 `hidden sm:block` 적용.
 - **대화창(`ui/dialog.tsx`)**(2026-11-02): 공용 `DialogContent`가 `max-h-[calc(100dvh-2rem)] overflow-y-auto` + 자식 `min-w-0` — 화면보다 긴 창은 안에서 스크롤돼 저장 버튼까지 닿는다(프로필 설정 창이 위아래·오른쪽으로 잘려 버튼을 못 눌렀음). 창 안의 `flex-1` 입력칸에는 `min-w-0`을 같이 줄 것(없으면 입력칸 기본 폭 때문에 창 밖으로 밀림).
-- **헤더 로고 글자 숨김 폭**(2026-11-02): 360px 미만(벨·로그인과 겹침)과 `showNav`일 때 640~767px(가로 폰 — 인라인 `PageNav`가 오른쪽 버튼 밑으로 파고듦)에서 로고 글자를 `sr-only`로(아이콘만 보임, 링크 이름은 유지). 내비 칸·라벨을 늘리면 이 폭에서 다시 겹치는지 확인.
 - **가로 스크롤 줄 안에 드롭다운 금지**: `overflow-x-auto` 상자 안의 `absolute` 메뉴는 잘린다 — 탐색 모바일 필터 바의 정렬 버튼은 스크롤 상자 밖 오른쪽에 둔다.
 - 신규 페이지/컴포넌트 작성 시에도 위 패턴을 따를 것.
 
@@ -231,39 +226,6 @@ Claude Code는 `.claudeignore`를 읽지 않는다(2026-11-02 삭제). 대신 �
 - **보안 헤더**(2026-10-26): `next.config.ts` `headers()`가 모든 응답에 `X-Frame-Options: DENY`·CSP `frame-ancestors 'none'`(클릭재킹 차단)·`nosniff`·`Referrer-Policy`·`Permissions-Policy`(카메라·마이크·위치 끔)를 붙이고 `poweredByHeader: false`. OpenNext에서도 적용됨을 `wrangler dev`로 확인. 우리 화면을 iframe에 넣는 기능이 생기면 여기를 고칠 것. HSTS는 `.dev`가 브라우저 preload 목록이라 안 둠. 스크립트 CSP는 아직 없음.
 
 ---
-
-## 🗂️ 현재 디렉토리 구조
-```
-src/
-├── app/                  # App Router 레이어 (auth, projects, developers, explore, guide, tips 등)
-│   ├── api/              # API 라우트
-│   │   ├── upload/       # POST /api/upload — Cloudinary 이미지 업로드
-│   │   ├── favicon/      # GET /api/favicon — 파비콘 추출
-│   │   └── resolve-image/ # GET /api/resolve-image — ibb.co URL 변환
-│   ├── guide/            # 바이브 코딩 가이드 (page=위저드, [...slug]=결과 페이지)
-│   ├── tips/             # 개발 팁 블로그 (page=목록, new, [id], [id]/edit)
-│   ├── haejwo/           # 해줘! 아이디어 요청 (page=목록, new, [id])
-│   └── announcements/    # 공지사항 (page=목록, new, [id], [id]/edit)
-├── components/
-│   ├── community/        # community-tabs(개발 팁 | 해줘! 탭 세그먼트)
-│   ├── shared/           # site-header, page-nav, announcements-link(헤더 공지 벨), page-hero, article-header, reading-surface, editor-tabs, markdown, image-upload-input, announcement-ticker 등
-│   ├── forms/            # select-card, toggle-chip, choice-row(선택 UI, tone="neutral"|섹션 키), form-section, form-rail(등록 폼 카드·목차)
-│   ├── auth/             # google-login-button, auth-shell(로그인·온보딩·접근 거부 공통 틀)
-│   ├── home/             # icon-shelf, reveal-observer, section-header, home-project-card, how-it-works, recent-posts, guide-teaser, domain-teaser, closing-cta, site-footer
-│   ├── projects/         # project-card, project-form, project-icon, project-comments, heart-button, stat-strip 등
-│   ├── explore/          # explore-client, mobile-filter-bar
-│   ├── guide/            # guide-wizard, guide-viewer(스테퍼), guide-step-body(단계 렌더러), guide-chapter-tools
-│   ├── guide-wiki/       # 가이드 위키 편집: editor/(카드 편집기·reducer), history-list, revert-dialog, step-diff-view, doc-render, stale-banner
-│   ├── privacy/          # privacy-gate(동의 팝업, 루트 레이아웃), withdraw-button(동의 철회·탈퇴)
-│   ├── domains/          # 도메인 마련하기: domain-list, domain-steps, host-picker, admin-domain-table
-│   ├── tips/             # tip-card, tip-editor, tip-like-button, tip-comments 등
-│   ├── haejwo/           # haejwo-wizard, haejwo-card, haejwo-status-tabs, haejwo-owner-actions, haejwo-complete-button
-│   ├── announcements/    # announcement-card, announcement-editor, announcement-owner-actions, announcement-pin-button
-│   └── ui/               # shadcn 컴포넌트
-├── content/guides/       # 가이드 조각 18개 (<key>.md, 작성법 README.md)
-├── lib/                  # 유틸리티 및 설정 (supabase, constants, types, utils, guide, guide-markup, guide-content, guide-wiki, haejwo, announcements, privacy, cloudinary, section-colors, type-icons, announcement-colors)
-└── middleware.ts         # 세션 관리 및 도메인 검증
-```
 
 ## ♿ 키보드 접근성 규칙
 

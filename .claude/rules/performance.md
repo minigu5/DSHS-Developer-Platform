@@ -69,3 +69,6 @@ paths:
 - **링크 미리 받기** (`src/components/shared/link.tsx`): `next/link` 기본값은 화면에 보이는 링크를 전부 미리 받는다(로그인 필요 경로는 비로그인 때 `/login` 리다이렉트까지 두세 번). 공용 `Link`는 `prefetch={false}` — **미리 받지 않는다**. 11-04~05엔 `onMouseEnter`·`onTouchStart`·`onFocus`에서 `router.prefetch(href)`를 불렀는데, 그 요청이 끝나기 전에 누르면(폰 터치는 거의 항상) Next 16.4.3이 뼈대(`loading.tsx`) 없이 머리·바닥 사이를 비운 채 서버 응답을 기다렸다 — 서버가 느린 상세(주인이면 확인할 게 많음)는 몇 초 빈 화면(2026-11-05 사용자 제보, 운영에서 rAF 기록으로 7번 중 5번 재현, 미리 받기를 막으면 7번 모두 뼈대). 미리 받지 않으면 누른 뒤 0.5~1초 이전 화면이 남았다가 뼈대가 뜬다. **hover 미리 받기를 되살리지 말 것**(Next를 올려 고쳐졌는지 확인하기 전엔). 모든 파일이 `next/link` 대신 이것을 import. 예외: `prefetchOnView` prop을 주면 화면에 보일 때 내용까지 미리 받는다(`prefetch={true}`) — 메뉴 5칸에만(2026-11-05, `nav.md`).
 - 결과(로컬 `next build`+`next start`): 페이지당 요청 ~160 → ~24(글꼴 4·스크립트 ~15, RSC 0), hover 시 RSC 2개(11-05부터 hover도 0).
 - 대시보드 규칙 `rate limit protection`(IP당 **200회/10초**, 넘으면 10초 Block): 2026-11-04 사용자가 식을 `(starts_with(http.request.uri.path, "/") and not starts_with(http.request.uri.path, "/_next/static/"))`로 바꿈 — 캐시되는 정적 파일은 세지 않는다. 확인: `/_next/static/` 300회/7초 전부 200, `/logo.svg` 300회/12초는 203회 뒤 429.
+
+### 로딩 뼈대 측정 (CLAUDE.md에서 옮김)
+- 측정(dshs.dev, 데스크탑, 2026-11-04 전 — 그땐 보이는 링크를 다 미리 받았음): 메뉴 이동 0.05~0.1초, 공지 상세는 뼈대 0.05초 → 내용 0.8~2.4초. 첫 접속(주소 직접 입력)은 망 문제라 그대로.

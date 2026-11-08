@@ -44,3 +44,6 @@ paths:
 ### 적용 방법
 - `SiteHeader`에 `showNav` prop → `<SiteHeader showNav />`. 로그인 계열(`AuthShell`)은 미적용. **홈(`/`)도 2026-10-25 사용자 요청으로 적용**: `<SiteHeader variant="transparent" maxWidth="md" showNav />` + 푸터를 `pb-16 sm:pb-0` 래퍼로 감싸고 맨 아래에 `<MobileNav />`(홈은 `(nav)` 레이아웃 밖이라 직접 둠). 홈에서는 활성 항목이 없어 슬라이딩 알약이 숨고 아이콘만 보인다. 이유: 모바일 홈에 메뉴가 전혀 없었고 메뉴가 5칸으로 늘어 가이드·도메인 마련하기·커뮤니티가 푸터까지 내려가야 보였음.
 - `(nav)/layout.tsx`: `<SiteHeader showNav />` + 콘텐츠 래퍼 + `<SiteFooter />`(`pb-16 sm:pb-0` 래퍼) + `<MobileNav />` 순서로 배치.
+
+### 헤더 로고 글자 숨김 (CLAUDE.md 「반응형」에서 옮김)
+- **헤더 로고 글자 숨김 폭**(2026-11-02): 360px 미만(벨·로그인과 겹침)과 `showNav`일 때 640~767px(가로 폰 — 인라인 `PageNav`가 오른쪽 버튼 밑으로 파고듦)에서 로고 글자를 `sr-only`로(아이콘만 보임, 링크 이름은 유지). 내비 칸·라벨을 늘리면 이 폭에서 다시 겹치는지 확인.
