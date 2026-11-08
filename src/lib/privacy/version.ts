@@ -1,9 +1,10 @@
-import { policyVersion } from './format.ts'
-import { PRIVACY_EFFECTIVE_DATE, PRIVACY_POLICY_MD } from './policy.ts'
-
 /**
- * 현재 처리방침 버전(시행일 + 본문 해시). 본문(policy.ts)을 고치면 자동으로 바뀐다.
- * 본문 문자열이 딸려 오므로 서버 코드(미들웨어·서버 액션·서버 컴포넌트)에서만 import 하고,
- * 클라이언트 컴포넌트에는 prop 으로 넘길 것.
+ * 동의받는 처리방침 버전. 로그인한 사람의 `privacy_consents` 에 이 값이 없으면 동의 창이 뜬다.
+ * 본문(policy.ts)만 고쳐서는 바뀌지 않는다 — 법상 처리방침은 고친 내용을 공개·공지하면 되고 다시 동의받을 필요가 없다.
+ * 아래처럼 동의가 다시 필요한 변경일 때만 손으로 올린다(그날 날짜 `YYYY-MM-DD`):
+ * - 서비스 제공에 꼭 필요하지 않은 정보를 새로 모으거나, 이미 모은 정보를 새 목적으로 쓸 때
+ * - 다른 회사가 자기 목적으로 쓰게 넘길 때(제3자 제공), 민감정보·마케팅
+ * 맡기는 업체(위탁)·해외 서버를 더하거나, 공개 범위를 줄이거나, 문구·오탈자를 고치는 건 올리지 않는다.
+ * DB CHECK 는 `YYYY-MM-DD` 또는 뒤에 `-` + 16진수 8자리(예전 자동 버전 = 본문 해시, 지금 값도 그것).
  */
-export const PRIVACY_POLICY_VERSION = policyVersion(PRIVACY_EFFECTIVE_DATE, PRIVACY_POLICY_MD)
+export const PRIVACY_CONSENT_VERSION = '2026-11-08-1f658b03'

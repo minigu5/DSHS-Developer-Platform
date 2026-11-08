@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 import { PrivacyGate } from '@/components/privacy/privacy-gate';
 import { ThemeProvider } from '@/components/shared/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
-import { PRIVACY_POLICY_VERSION } from '@/lib/privacy/version';
+import { PRIVACY_CONSENT_VERSION } from '@/lib/privacy/version';
 
 import './globals.css';
 
@@ -45,7 +45,7 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {children}
-          <PrivacyGate version={PRIVACY_POLICY_VERSION} />
+          <PrivacyGate version={PRIVACY_CONSENT_VERSION} />
           <Toaster richColors closeButton position="top-center" />
         </ThemeProvider>
       </body>

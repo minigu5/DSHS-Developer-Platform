@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 import { isAllowedEmail } from '@/lib/constants';
 import { PRIVACY_COOKIE, PRIVACY_COOKIE_OPTIONS } from '@/lib/privacy/config';
-import { PRIVACY_POLICY_VERSION } from '@/lib/privacy/version';
+import { PRIVACY_CONSENT_VERSION } from '@/lib/privacy/version';
 import { ONBOARDING_COOKIE_NAME, ONBOARDING_COOKIE_SECURE } from '@/lib/supabase/cookie-options';
 import { updateSession } from '@/lib/supabase/middleware';
 
@@ -73,15 +73,15 @@ export async function middleware(request: NextRequest) {
 
   // 처리방침 동의 확인 결과를 쿠키로 캐시. 동의했으면 DB 조회 없이 쿠키만 본다.
   // 동의 전이면 쿠키를 안 심는다 — 팝업(PrivacyGate)은 화면 쪽 몫이라 여기서 막지는 않는다.
-  if (user && request.cookies.get(PRIVACY_COOKIE)?.value !== PRIVACY_POLICY_VERSION) {
+  if (user && request.cookies.get(PRIVACY_COOKIE)?.value !== PRIVACY_CONSENT_VERSION) {
     const { data: consent } = await supabase
       .from('privacy_consents')
       .select('id')
       .eq('user_id', user.id)
-      .eq('policy_version', PRIVACY_POLICY_VERSION)
+      .eq('policy_version', PRIVACY_CONSENT_VERSION)
       .maybeSingle();
     if (consent) {
-      supabaseResponse.cookies.set(PRIVACY_COOKIE, PRIVACY_POLICY_VERSION, PRIVACY_COOKIE_OPTIONS);
+      supabaseResponse.cookies.set(PRIVACY_COOKIE, PRIVACY_CONSENT_VERSION, PRIVACY_COOKIE_OPTIONS);
     }
   }
 

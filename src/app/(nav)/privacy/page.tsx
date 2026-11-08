@@ -6,7 +6,7 @@ import { MarkdownRender } from "@/components/shared/markdown-render";
 import { PageHero } from "@/components/shared/page-hero";
 import { ReadingSurface } from "@/components/shared/reading-surface";
 import { PRIVACY_POLICY_MD } from "@/lib/privacy/policy";
-import { PRIVACY_POLICY_VERSION } from "@/lib/privacy/version";
+import { PRIVACY_CONSENT_VERSION } from "@/lib/privacy/version";
 
 export const metadata: Metadata = {
   title: "개인정보 처리방침 — DSHS Developer Platform",
@@ -26,7 +26,7 @@ export default function PrivacyPage() {
         description="어떤 정보를 왜 받고, 어떻게 지우는지 적었어요."
       />
       <main className="mx-auto grid max-w-3xl gap-5 bg-white px-6 py-8 *:min-w-0 dark:bg-zinc-950 sm:py-10">
-        <ConsentStatus version={PRIVACY_POLICY_VERSION} />
+        <ConsentStatus version={PRIVACY_CONSENT_VERSION} />
         <ReadingSurface>
           <MarkdownRender>{PRIVACY_POLICY_MD}</MarkdownRender>
         </ReadingSurface>

@@ -39,7 +39,7 @@
 | `community.md` | 개발 팁(공용 `Markdown` 렌더 포함)·해줘!·공지사항·홈 공지 티커 |
 | `explore.md` | 탐색 검색·필터·주소 쿼리 |
 | `profile.md` | 개발자 프로필 페이지·연락처 |
-| `privacy.md` | 개인정보 처리방침·동의 팝업·탈퇴 — **새 개인정보 수집·외부 위탁을 추가할 때도 읽을 것**(본문을 고치면 전원 재동의) |
+| `privacy.md` | 개인정보 처리방침·동의 팝업·탈퇴 — **새 개인정보 수집·외부 위탁을 추가할 때도 읽을 것**(재동의는 `PRIVACY_CONSENT_VERSION`을 손으로 올릴 때만) |
 | `performance.md` | 온보딩 쿠키, `next.config.ts`(staleTimes·이미지·optimizePackageImports), Cloudinary 업로드, API 캐시 헤더, preconnect |
 | `home.md` | 홈 구성·섹션·아이콘 나열·로딩 시퀀스·스크롤 리빌 |
 | `admin.md` | 관리자 대시보드 `/admin`(오늘 확인할 것·현황·최신 글·비속어·기간 차단·주소 관리), 차단 DB 트리거 |

@@ -21,7 +21,7 @@ function hasConsentCookie(version: string) {
  * 로그인했는데 현재 처리방침에 동의하지 않은 사람에게 뜨는 팝업. 닫을 수 없다(X·Esc·바깥 클릭 모두 무시).
  * 동의하거나, 동의하지 않고 로그아웃하는 두 길뿐. `/privacy` 에서는 읽을 수 있게 띄우지 않는다.
  * 루트 레이아웃에 두지만 서버에서 쿠키를 읽지 않아 홈·목록의 캐시(ISR)를 깨지 않는다.
- * `version` 은 서버가 계산한 현재 처리방침 버전(본문 해시 포함) — 본문이 바뀌면 값이 달라져 모두에게 다시 뜬다.
+ * `version` 은 동의받는 처리방침 버전(version.ts) — 이 값을 올리면 모두에게 다시 뜬다.
  * 예전 버전에 동의한 적이 있으면 "바뀌었어요" 문구로 보여 준다.
  */
 export function PrivacyGate({ version }: { version: string }) {

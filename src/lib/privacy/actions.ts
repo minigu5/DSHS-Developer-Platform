@@ -9,7 +9,7 @@ import { removeCloudflare } from '@/lib/domains/cleanup'
 import { getNaruClient, unbindNaruBestEffort } from '@/lib/domains/naru'
 import { posterImageUrlsOf } from '@/lib/posters/cleanup'
 import { PRIVACY_COOKIE, PRIVACY_COOKIE_OPTIONS, WITHDRAW_CONFIRM_TEXT } from '@/lib/privacy/config'
-import { PRIVACY_POLICY_VERSION } from '@/lib/privacy/version'
+import { PRIVACY_CONSENT_VERSION } from '@/lib/privacy/version'
 import { ONBOARDING_COOKIE_NAME, ONBOARDING_COOKIE_SECURE } from '@/lib/supabase/cookie-options'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 
@@ -74,18 +74,18 @@ async function eraseAccount(userId: string): Promise<boolean> {
 export async function acceptPrivacyPolicy(seenVersion: string): Promise<PrivacyResult> {
   const { user } = await currentUser()
   if (!user || !isAllowedEmail(user.email)) return { error: LOGIN_REQUIRED }
-  if (seenVersion !== PRIVACY_POLICY_VERSION) return { error: POLICY_CHANGED }
+  if (seenVersion !== PRIVACY_CONSENT_VERSION) return { error: POLICY_CHANGED }
 
   const { error } = await createAdminClient()
     .from('privacy_consents')
     .upsert(
-      { user_id: user.id, policy_version: PRIVACY_POLICY_VERSION },
+      { user_id: user.id, policy_version: PRIVACY_CONSENT_VERSION },
       { onConflict: 'user_id,policy_version', ignoreDuplicates: true },
     )
   if (error) return { error: UNKNOWN_ERROR }
 
   const cookieStore = await cookies()
-  cookieStore.set(PRIVACY_COOKIE, PRIVACY_POLICY_VERSION, PRIVACY_COOKIE_OPTIONS)
+  cookieStore.set(PRIVACY_COOKIE, PRIVACY_CONSENT_VERSION, PRIVACY_COOKIE_OPTIONS)
   revalidatePath('/', 'layout')
   return { ok: true }
 }
