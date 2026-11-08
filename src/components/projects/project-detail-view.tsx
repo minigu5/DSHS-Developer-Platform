@@ -347,28 +347,19 @@ export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anony
                   )}
                 </div>
               ) : (
-                <div>
-                  <div className="flex items-center gap-3">
-                    <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 text-[13px] font-bold text-zinc-700 dark:border-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
-                      {project.users?.avatar_url ? (
-                        <Image src={project.users.avatar_url} alt="" fill sizes="36px" className="object-cover" unoptimized={isExternalImage(project.users.avatar_url)} />
-                      ) : (
-                        authorName.charAt(0)
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-zinc-900 dark:text-white">{authorName}</div>
-                      {project.users?.email && <div className="truncate text-xs text-zinc-500 dark:text-zinc-400">{project.users.email}</div>}
-                    </div>
-                  </div>
-                  <Link
-                    href={`/developers/${project.public_author_id}`}
-                    className="mt-4 inline-flex items-center gap-0.5 rounded-sm text-[13px] font-medium text-blue-700 hover:underline underline-offset-4 dark:text-blue-300"
-                  >
-                    프로필 보기
-                    <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-                  </Link>
-                </div>
+                <Link href={`/developers/${project.public_author_id}`} className="group/author flex items-center gap-3 rounded-full">
+                  <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 text-[13px] font-bold text-zinc-700 dark:border-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
+                    {project.users?.avatar_url ? (
+                      <Image src={project.users.avatar_url} alt="" fill sizes="36px" className="object-cover" unoptimized={isExternalImage(project.users.avatar_url)} />
+                    ) : (
+                      authorName.charAt(0)
+                    )}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold text-zinc-900 underline-offset-4 group-hover/author:underline dark:text-white">{authorName}</span>
+                    {project.users?.email && <span className="block truncate text-xs text-zinc-500 dark:text-zinc-400">{project.users.email}</span>}
+                  </span>
+                </Link>
               )}
             </div>
 
