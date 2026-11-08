@@ -8,13 +8,15 @@ test('빈 주소는 기본값', () => {
 })
 
 test('주소 → 상태 → 주소가 그대로 돈다', () => {
-  const s = '?q=%EA%B2%8C%EC%9E%84&type=website%2Capp&category=game&platform=ios%2Cweb&fav=1&sort=hearts'
+  const s = '?q=%EA%B2%8C%EC%9E%84&type=website%2Capp&category=game&platform=ios%2Cweb&source=open&license=modify%2Ccommercial&fav=1&sort=hearts'
   const q = parseExploreQuery(new URLSearchParams(s))
   assert.deepEqual(q, {
     q: '게임',
     types: ['website', 'app'],
     categories: ['game'],
     platforms: ['web', 'ios'], // 목록 순서로 맞춤
+    sources: ['open'],
+    licenses: ['commercial', 'modify'],
     sort: 'hearts',
     favorites: true,
   })
@@ -48,4 +50,11 @@ test('즐겨찾기만은 fav=1일 때만', () => {
   assert.equal(parseExploreQuery(new URLSearchParams('fav=1')).favorites, true)
   assert.equal(parseExploreQuery(new URLSearchParams('fav=yes')).favorites, false)
   assert.equal(exploreQueryString({ ...EMPTY_EXPLORE_QUERY, favorites: true }), '?fav=1')
+})
+
+test('소스코드·라이선스 모르는 값은 버린다', () => {
+  const q = parseExploreQuery(new URLSearchParams('source=open,gpl&license=warranty,free'))
+  assert.deepEqual(q.sources, ['open'])
+  assert.deepEqual(q.licenses, ['warranty'])
+  assert.equal(exploreQueryString(q), '?source=open&license=warranty')
 })

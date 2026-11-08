@@ -2,21 +2,13 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronDown, Heart, X } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { PROJECT_TYPES, PLATFORMS, FEATURES } from "@/lib/constants";
-import { TYPE_ICONS, PLATFORM_ICONS, CATEGORY_ICONS } from "@/lib/type-icons";
-
-type GroupKey = "type" | "category" | "platform";
+import type { FilterGroup } from "@/components/explore/explore-client";
 
 type MobileFilterBarProps = {
-  selectedTypes: string[];
-  selectedCategories: string[];
-  selectedPlatforms: string[];
-  onToggleType: (value: string, checked: boolean) => void;
-  onToggleCategory: (value: string, checked: boolean) => void;
-  onTogglePlatform: (value: string, checked: boolean) => void;
+  /** 필터 그룹(상태는 부모가 가짐) — 사이드바와 같은 목록 */
+  groups: FilterGroup[];
   /** "즐겨찾기만" 토글 — 비로그인이면 null(버튼 안 보임) */
   favorites: { active: boolean; onToggle: () => void } | null;
   onReset: () => void;
@@ -24,34 +16,18 @@ type MobileFilterBarProps = {
   sortButton: ReactNode;
 };
 
-const GROUPS: Array<{
-  key: GroupKey;
-  label: string;
-  options: ReadonlyArray<{ value: string; label: string }>;
-  icons: Record<string, LucideIcon>;
-}> = [
-  { key: "type", label: "종류", options: PROJECT_TYPES, icons: TYPE_ICONS },
-  { key: "category", label: "카테고리", options: FEATURES, icons: CATEGORY_ICONS },
-  { key: "platform", label: "플랫폼", options: PLATFORMS, icons: PLATFORM_ICONS },
-];
-
 /**
  * 탐색 모바일 필터 바 — 머리 아래 헤더 밑에 고정. 데스크탑 사이드바 대신 가로 스크롤 한 줄:
- * [♥ 즐겨찾기][종류 ▾][카테고리 ▾][플랫폼 ▾] | 선택된 값 칩(× 해제) … [정렬].
+ * [♥ 즐겨찾기][종류 ▾][카테고리 ▾][플랫폼 ▾][소스코드 ▾][라이선스 ▾] | 선택된 값 칩(× 해제) … [정렬].
  * 드롭다운은 `absolute top-full` 패널이라 아래 내용이 밀리지 않는다. 바깥 클릭·Esc로 닫힌다.
  */
 export function MobileFilterBar({
-  selectedTypes,
-  selectedCategories,
-  selectedPlatforms,
-  onToggleType,
-  onToggleCategory,
-  onTogglePlatform,
+  groups,
   favorites,
   onReset,
   sortButton,
 }: MobileFilterBarProps) {
-  const [open, setOpen] = useState<GroupKey | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -72,19 +48,16 @@ export function MobileFilterBar({
     };
   }, [open]);
 
-  const selectedOf = (key: GroupKey) =>
-    key === "type" ? selectedTypes : key === "category" ? selectedCategories : selectedPlatforms;
-  const toggleOf = (key: GroupKey) =>
-    key === "type" ? onToggleType : key === "category" ? onToggleCategory : onTogglePlatform;
-
-  const activeChips = GROUPS.flatMap((g) =>
-    selectedOf(g.key).map((value) => ({
+  const activeChips = groups.flatMap((g) =>
+    g.selected.map((value) => ({
       key: g.key,
       value,
       label: g.options.find((o) => o.value === value)?.label ?? value,
       Icon: g.icons[value],
+      onRemove: () => g.onToggle(value, false),
     })),
   );
+  const openGroup = groups.find((g) => g.key === open);
   const activeCount = activeChips.length + (favorites?.active ? 1 : 0);
 
   return (
@@ -111,8 +84,8 @@ export function MobileFilterBar({
               즐겨찾기
             </button>
           )}
-          {GROUPS.map((g) => {
-            const count = selectedOf(g.key).length;
+          {groups.map((g) => {
+            const count = g.selected.length;
             const isOpen = open === g.key;
             return (
               <button
@@ -128,7 +101,7 @@ export function MobileFilterBar({
                     : "border-zinc-200 text-zinc-700 dark:border-zinc-800 dark:text-zinc-300",
                 )}
               >
-                {g.label}
+                {g.shortLabel ?? g.label}
                 {count > 0 && (
                   <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-semibold tabular-nums text-white">
                     {count}
@@ -146,7 +119,7 @@ export function MobileFilterBar({
                 <button
                   key={`${chip.key}-${chip.value}`}
                   type="button"
-                  onClick={() => toggleOf(chip.key)(chip.value, false)}
+                  onClick={chip.onRemove}
                   aria-label={`${chip.label} 필터 해제`}
                   className="inline-flex h-[34px] shrink-0 items-center gap-1.5 rounded-full bg-blue-50 pl-3 pr-2.5 text-[13px] font-medium whitespace-nowrap text-blue-700 dark:bg-blue-950 dark:text-blue-300"
                 >
@@ -168,21 +141,21 @@ export function MobileFilterBar({
         <div className="shrink-0">{sortButton}</div>
       </div>
 
-      {open && (
+      {openGroup && (
         <div
-          id={`filter-panel-${open}`}
+          id={`filter-panel-${openGroup.key}`}
           className="absolute left-0 right-0 top-full z-30 mx-6 mt-1 rounded-2xl border border-zinc-200 bg-white p-4 shadow-lg animate-in fade-in slide-in-from-top-2 dark:border-zinc-800 dark:bg-zinc-900"
         >
+          {openGroup.hint && <p className="mb-3 text-xs text-zinc-500 break-keep">{openGroup.hint}</p>}
           <div className="flex flex-wrap gap-2">
-            {GROUPS.find((g) => g.key === open)!.options.map(({ value, label }) => {
-              const group = GROUPS.find((g) => g.key === open)!;
-              const Icon = group.icons[value];
-              const active = selectedOf(open).includes(value);
+            {openGroup.options.map(({ value, label }) => {
+              const Icon = openGroup.icons[value];
+              const active = openGroup.selected.includes(value);
               return (
                 <button
                   key={value}
                   type="button"
-                  onClick={() => toggleOf(open)(value, !active)}
+                  onClick={() => openGroup.onToggle(value, !active)}
                   aria-pressed={active}
                   className={cn(
                     "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",

@@ -4,15 +4,16 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { Search, Filter, ChevronDown, ArrowUpDown, X, Heart } from "lucide-react";
 import type { CSSProperties, MouseEvent } from "react";
+import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { ProjectCard, type ProjectCardData } from "@/components/projects/project-card";
-import { PROJECT_TYPES, PLATFORMS, FEATURES } from "@/lib/constants";
-import { TYPE_ICONS, PLATFORM_ICONS, CATEGORY_ICONS } from "@/lib/type-icons";
+import { PROJECT_TYPES, PLATFORMS, FEATURES, LICENSE_FEATURES } from "@/lib/constants";
+import { TYPE_ICONS, PLATFORM_ICONS, CATEGORY_ICONS, SOURCE_ICONS, LICENSE_ICONS } from "@/lib/type-icons";
 import { PageHero } from "@/components/shared/page-hero";
 import { MobileFilterBar } from "@/components/explore/mobile-filter-bar";
-import { exploreQueryString, type ExploreQuery, type ExploreSort } from "@/lib/explore-query";
+import { exploreQueryString, SOURCE_FILTERS, type ExploreQuery, type ExploreSort } from "@/lib/explore-query";
 import { heartCountOf } from "@/lib/hearts";
 import { setHeart } from "@/lib/hearts-client";
 import { createClient } from "@/lib/supabase/client";
@@ -31,14 +32,29 @@ interface ExploreClientProps {
 
 type HeartState = Record<string, { hearted: boolean; count: number }>;
 
+/** 접이식 필터 그룹 하나 — 데스크탑 사이드바와 모바일 필터 바가 같은 목록을 쓴다 */
+export interface FilterGroup {
+  key: string;
+  /** 사이드바 제목. 모바일 알약은 shortLabel이 있으면 그것 */
+  label: string;
+  shortLabel?: string;
+  /** 그룹 안 첫 줄 안내(라이선스: 모두 허용) */
+  hint?: string;
+  options: ReadonlyArray<{ value: string; label: string }>;
+  icons: Record<string, LucideIcon>;
+  selected: string[];
+  onToggle: (value: string, checked: boolean) => void;
+}
+
 export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeartIds }: ExploreClientProps) {
   const [searchQuery, setSearchQuery] = useState(initialQuery.q);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(initialQuery.platforms);
   const [selectedTypes, setSelectedTypes] = useState<string[]>(initialQuery.types);
   const [selectedCategories, setSelectedCategories] = useState<string[]>(initialQuery.categories);
-  const [typeOpen, setTypeOpen] = useState(false);
-  const [categoryOpen, setCategoryOpen] = useState(false);
-  const [platformOpen, setPlatformOpen] = useState(false);
+  const [selectedSources, setSelectedSources] = useState<string[]>(initialQuery.sources);
+  const [selectedLicenses, setSelectedLicenses] = useState<string[]>(initialQuery.licenses);
+  // 사이드바 접이식 그룹 중 펼친 것
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set());
   const [sortBy, setSortBy] = useState<ExploreSort>(initialQuery.sort);
   const [sortOpen, setSortOpen] = useState(false);
   // 하트 누른 것만 보기(2026-11-06 — 맨 위 즐겨찾기 칸이 늘 떠서 필터로 바꿈). 비로그인이면 주소에 있어도 끈다.
@@ -112,6 +128,11 @@ export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeart
     );
   };
 
+  const toggleIn = (setter: (fn: (prev: string[]) => string[]) => void) => (value: string, checked: boolean) =>
+    setter(prev => (checked ? [...prev, value] : prev.filter(v => v !== value)));
+  const handleSourceChange = toggleIn(setSelectedSources);
+  const handleLicenseChange = toggleIn(setSelectedLicenses);
+
   const filteredProjects = useMemo(() => {
     const q = searchQuery.toLowerCase();
     const filtered = initialProjects.filter(project => {
@@ -145,9 +166,17 @@ export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeart
         selectedCategories.length === 0 ||
         selectedCategories.some(cat => tags.includes(cat));
 
+      const matchesSource =
+        selectedSources.length === 0 ||
+        (project.source_type != null && selectedSources.includes(project.source_type));
+
+      // 라이선스는 고른 권한을 모두 허용해야 한다("상업적 이용 + 수정" = 둘 다 되는 것)
+      const licenses = project.license_features ?? [];
+      const matchesLicense = selectedLicenses.every(l => licenses.includes(l));
+
       const matchesFavorite = !onlyFavorites || (hearts[project.id]?.hearted ?? false);
 
-      return matchesSearch && matchesPlatform && matchesType && matchesCategory && matchesFavorite;
+      return matchesSearch && matchesPlatform && matchesType && matchesCategory && matchesSource && matchesLicense && matchesFavorite;
     });
 
     if (sortBy === 'clicks') {
@@ -159,7 +188,7 @@ export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeart
     }
     // newest: 서버에서 created_at DESC로 정렬되어 옴
     return filtered;
-  }, [searchQuery, selectedPlatforms, selectedTypes, selectedCategories, onlyFavorites, initialProjects, sortBy, hearts]);
+  }, [searchQuery, selectedPlatforms, selectedTypes, selectedCategories, selectedSources, selectedLicenses, onlyFavorites, initialProjects, sortBy, hearts]);
 
   // 검색어·필터·정렬을 주소에 남긴다 — 새로고침·뒤로 가기·링크 공유에도 같은 결과.
   // 기록은 쌓지 않고(replaceState) 타자 칠 때마다 쓰지 않게 잠깐 모았다 쓴다(Safari는 30초에 100번 넘으면 막음).
@@ -170,6 +199,8 @@ export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeart
         types: selectedTypes,
         categories: selectedCategories,
         platforms: selectedPlatforms,
+        sources: selectedSources,
+        licenses: selectedLicenses,
         sort: sortBy,
         favorites: onlyFavorites,
       });
@@ -178,7 +209,7 @@ export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeart
       }
     }, 300);
     return () => window.clearTimeout(t);
-  }, [searchQuery, selectedTypes, selectedCategories, selectedPlatforms, sortBy, onlyFavorites]);
+  }, [searchQuery, selectedTypes, selectedCategories, selectedPlatforms, selectedSources, selectedLicenses, sortBy, onlyFavorites]);
 
   useEffect(() => {
     if (!sortOpen) return;
@@ -188,12 +219,15 @@ export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeart
   }, [sortOpen]);
 
   const activeFilterCount =
-    selectedTypes.length + selectedCategories.length + selectedPlatforms.length + (onlyFavorites ? 1 : 0);
+    selectedTypes.length + selectedCategories.length + selectedPlatforms.length +
+    selectedSources.length + selectedLicenses.length + (onlyFavorites ? 1 : 0);
 
   const resetFilters = () => {
     setSelectedTypes([]);
     setSelectedCategories([]);
     setSelectedPlatforms([]);
+    setSelectedSources([]);
+    setSelectedLicenses([]);
     setOnlyFavorites(false);
   };
 
@@ -238,6 +272,15 @@ export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeart
     </div>
   );
 
+  // 사이드바·모바일 바가 같이 쓰는 필터 그룹(순서 = 화면 순서)
+  const filterGroups: FilterGroup[] = [
+    { key: "type", label: "프로그램 종류", shortLabel: "종류", options: PROJECT_TYPES, icons: TYPE_ICONS, selected: selectedTypes, onToggle: handleTypeChange },
+    { key: "category", label: "카테고리", options: FEATURES, icons: CATEGORY_ICONS, selected: selectedCategories, onToggle: handleCategoryChange },
+    { key: "platform", label: "플랫폼", options: PLATFORMS, icons: PLATFORM_ICONS, selected: selectedPlatforms, onToggle: handlePlatformChange },
+    { key: "source", label: "소스코드", options: SOURCE_FILTERS, icons: SOURCE_ICONS, selected: selectedSources, onToggle: handleSourceChange },
+    { key: "license", label: "라이선스", hint: "고른 것을 모두 허용하는 프로젝트만", options: LICENSE_FEATURES, icons: LICENSE_ICONS, selected: selectedLicenses, onToggle: handleLicenseChange },
+  ];
+
   // 프로젝트를 열 때 적어 두면 상세의 "← 모든 프로젝트"가 뒤로 가기로 돌아와 스크롤·필터가 그대로다
   function rememberProjectClick(e: MouseEvent<HTMLDivElement>) {
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -279,12 +322,7 @@ export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeart
       </PageHero>
 
       <MobileFilterBar
-        selectedTypes={selectedTypes}
-        selectedCategories={selectedCategories}
-        selectedPlatforms={selectedPlatforms}
-        onToggleType={handleTypeChange}
-        onToggleCategory={handleCategoryChange}
-        onTogglePlatform={handlePlatformChange}
+        groups={filterGroups}
         favorites={viewerId ? { active: onlyFavorites, onToggle: () => setOnlyFavorites(o => !o) } : null}
         onReset={resetFilters}
         sortButton={sortButton}
@@ -319,152 +357,64 @@ export function ExploreClient({ initialProjects, initialQuery, viewerId, myHeart
                     </button>
                   )}
 
-                  {/* 프로그램 종류 */}
-                  <div>
-                    <button
-                      type="button"
-                      onClick={() => setTypeOpen(o => !o)}
-                      aria-expanded={typeOpen}
-                      className="w-full flex items-center justify-between rounded-lg px-1 py-1.5 text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white transition-colors"
-                    >
-                      <span className="flex items-center gap-1.5">
-                        프로그램 종류
-                        {selectedTypes.length > 0 && (
-                          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[11px] font-semibold tabular-nums text-white">
-                            {selectedTypes.length}
-                          </span>
-                        )}
-                      </span>
-                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", typeOpen && "rotate-180")} aria-hidden />
-                    </button>
-                    <div className={cn("grid transition-[grid-template-rows,visibility] duration-200 ease-out", typeOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr] invisible")}>
-                      <div className="overflow-hidden">
-                        <div className="mt-0.5 space-y-0.5 pb-1">
-                          {PROJECT_TYPES.map(({ value, label }) => {
-                            const Icon = TYPE_ICONS[value];
-                            const active = selectedTypes.includes(value);
-                            return (
-                              <button
-                                key={value}
-                                type="button"
-                                onClick={() => handleTypeChange(value, !active)}
-                                aria-pressed={active}
-                                className={cn(
-                                  "w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors text-left",
-                                  active
-                                    ? "bg-blue-500/12 text-blue-700 dark:text-blue-300"
-                                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-800 dark:hover:text-zinc-200"
-                                )}
-                              >
-                                {Icon && (
-                                  <Icon className={cn("w-4 h-4 shrink-0 transition-colors", active ? "text-blue-600 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500")} aria-hidden />
-                                )}
-                                {label}
-                              </button>
-                            );
+                  {filterGroups.map((g) => {
+                    const isOpen = openGroups.has(g.key);
+                    return (
+                      <div key={g.key}>
+                        <button
+                          type="button"
+                          onClick={() => setOpenGroups(prev => {
+                            const next = new Set(prev);
+                            if (isOpen) next.delete(g.key);
+                            else next.add(g.key);
+                            return next;
                           })}
+                          aria-expanded={isOpen}
+                          className="w-full flex items-center justify-between rounded-lg px-1 py-1.5 text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white transition-colors"
+                        >
+                          <span className="flex items-center gap-1.5">
+                            {g.label}
+                            {g.selected.length > 0 && (
+                              <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[11px] font-semibold tabular-nums text-white">
+                                {g.selected.length}
+                              </span>
+                            )}
+                          </span>
+                          <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", isOpen && "rotate-180")} aria-hidden />
+                        </button>
+                        <div className={cn("grid transition-[grid-template-rows,visibility] duration-200 ease-out", isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr] invisible")}>
+                          <div className="overflow-hidden">
+                            <div className="mt-0.5 space-y-0.5 pb-1">
+                              {g.hint && <p className="px-3 pb-1 text-xs text-zinc-500 break-keep">{g.hint}</p>}
+                              {g.options.map(({ value, label }) => {
+                                const Icon = g.icons[value];
+                                const active = g.selected.includes(value);
+                                return (
+                                  <button
+                                    key={value}
+                                    type="button"
+                                    onClick={() => g.onToggle(value, !active)}
+                                    aria-pressed={active}
+                                    className={cn(
+                                      "w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors text-left",
+                                      active
+                                        ? "bg-blue-500/12 text-blue-700 dark:text-blue-300"
+                                        : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-800 dark:hover:text-zinc-200"
+                                    )}
+                                  >
+                                    {Icon && (
+                                      <Icon className={cn("w-4 h-4 shrink-0 transition-colors", active ? "text-blue-600 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500")} aria-hidden />
+                                    )}
+                                    {label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* 카테고리 */}
-                  <div>
-                    <button
-                      type="button"
-                      onClick={() => setCategoryOpen(o => !o)}
-                      aria-expanded={categoryOpen}
-                      className="w-full flex items-center justify-between rounded-lg px-1 py-1.5 text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white transition-colors"
-                    >
-                      <span className="flex items-center gap-1.5">
-                        카테고리
-                        {selectedCategories.length > 0 && (
-                          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[11px] font-semibold tabular-nums text-white">
-                            {selectedCategories.length}
-                          </span>
-                        )}
-                      </span>
-                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", categoryOpen && "rotate-180")} aria-hidden />
-                    </button>
-                    <div className={cn("grid transition-[grid-template-rows,visibility] duration-200 ease-out", categoryOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr] invisible")}>
-                      <div className="overflow-hidden">
-                        <div className="mt-0.5 space-y-0.5 pb-1">
-                          {FEATURES.map(({ value, label }) => {
-                            const Icon = CATEGORY_ICONS[value];
-                            const active = selectedCategories.includes(value);
-                            return (
-                              <button
-                                key={value}
-                                type="button"
-                                onClick={() => handleCategoryChange(value, !active)}
-                                aria-pressed={active}
-                                className={cn(
-                                  "w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors text-left",
-                                  active
-                                    ? "bg-blue-500/12 text-blue-700 dark:text-blue-300"
-                                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-800 dark:hover:text-zinc-200"
-                                )}
-                              >
-                                {Icon && (
-                                  <Icon className={cn("w-4 h-4 shrink-0 transition-colors", active ? "text-blue-600 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500")} aria-hidden />
-                                )}
-                                {label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 플랫폼 */}
-                  <div>
-                    <button
-                      type="button"
-                      onClick={() => setPlatformOpen(o => !o)}
-                      aria-expanded={platformOpen}
-                      className="w-full flex items-center justify-between rounded-lg px-1 py-1.5 text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white transition-colors"
-                    >
-                      <span className="flex items-center gap-1.5">
-                        플랫폼
-                        {selectedPlatforms.length > 0 && (
-                          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[11px] font-semibold tabular-nums text-white">
-                            {selectedPlatforms.length}
-                          </span>
-                        )}
-                      </span>
-                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", platformOpen && "rotate-180")} aria-hidden />
-                    </button>
-                    <div className={cn("grid transition-[grid-template-rows,visibility] duration-200 ease-out", platformOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr] invisible")}>
-                      <div className="overflow-hidden">
-                        <div className="mt-0.5 space-y-0.5 pb-1">
-                          {PLATFORMS.map(({ value, label }) => {
-                            const Icon = PLATFORM_ICONS[value];
-                            const active = selectedPlatforms.includes(value);
-                            return (
-                              <button
-                                key={value}
-                                type="button"
-                                onClick={() => handlePlatformChange(value, !active)}
-                                aria-pressed={active}
-                                className={cn(
-                                  "w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors text-left",
-                                  active
-                                    ? "bg-blue-500/12 text-blue-700 dark:text-blue-300"
-                                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-zinc-800 dark:hover:text-zinc-200"
-                                )}
-                              >
-                                {Icon && (
-                                  <Icon className={cn("w-4 h-4 shrink-0 transition-colors", active ? "text-blue-600 dark:text-blue-400" : "text-zinc-400 dark:text-zinc-500")} aria-hidden />
-                                )}
-                                {label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    );
+                  })}
 
                   {activeFilterCount > 0 && (
                     <button

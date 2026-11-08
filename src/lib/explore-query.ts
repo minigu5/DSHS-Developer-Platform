@@ -2,7 +2,13 @@
 // 화면 상태를 주소에 남긴다(2026-11-01). 서버 페이지가 읽어 첫 화면부터 거른 목록을 그리고,
 // ExploreClient가 바뀔 때마다 history.replaceState로 다시 쓴다. node:test로 검증한다.
 
-import { FEATURES, PLATFORMS, PROJECT_TYPES } from './constants.ts';
+import { FEATURES, LICENSE_FEATURES, PLATFORMS, PROJECT_TYPES } from './constants.ts';
+
+/** 소스코드 필터 — 화면 이름은 등록 폼(Open/Closed Source)보다 쉬운 말로 */
+export const SOURCE_FILTERS = [
+  { value: 'open', label: '오픈소스' },
+  { value: 'closed', label: '소스 비공개' },
+] as const;
 
 export type ExploreSort = 'newest' | 'clicks' | 'hearts';
 
@@ -11,6 +17,10 @@ export interface ExploreQuery {
   types: string[];
   categories: string[];
   platforms: string[];
+  /** 소스코드 open/closed(`?source=`) */
+  sources: string[];
+  /** 라이선스 권한(`?license=`) — 다른 필터와 달리 고른 것을 **모두** 허용하는 프로젝트만 */
+  licenses: string[];
   sort: ExploreSort;
   /** 하트 누른 프로젝트만(`?fav=1`) — 로그인했을 때만 쓴다 */
   favorites: boolean;
@@ -21,6 +31,8 @@ export const EMPTY_EXPLORE_QUERY: ExploreQuery = {
   types: [],
   categories: [],
   platforms: [],
+  sources: [],
+  licenses: [],
   sort: 'newest',
   favorites: false,
 };
@@ -55,6 +67,8 @@ export function parseExploreQuery(params: URLSearchParams | Record<string, Raw>)
     types: pick(get('type'), PROJECT_TYPES),
     categories: pick(get('category'), FEATURES),
     platforms: pick(get('platform'), PLATFORMS),
+    sources: pick(get('source'), SOURCE_FILTERS),
+    licenses: pick(get('license'), LICENSE_FEATURES),
     sort: SORTS.includes(sort) ? sort : 'newest',
     favorites: first(get('fav')) === '1',
   };
@@ -71,6 +85,10 @@ export function exploreQueryString(query: ExploreQuery): string {
   if (types.length) p.set('type', types.join(','));
   if (categories.length) p.set('category', categories.join(','));
   if (platforms.length) p.set('platform', platforms.join(','));
+  const sources = pick(query.sources, SOURCE_FILTERS);
+  const licenses = pick(query.licenses, LICENSE_FEATURES);
+  if (sources.length) p.set('source', sources.join(','));
+  if (licenses.length) p.set('license', licenses.join(','));
   if (query.favorites) p.set('fav', '1');
   if (query.sort !== 'newest') p.set('sort', query.sort);
   const s = p.toString();

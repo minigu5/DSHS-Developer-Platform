@@ -26,6 +26,9 @@ export type ProjectCardData = {
   /** projects.icon_fit — 자기 바탕이 있는 아이콘 맞춤값(src/lib/icon-fit.ts) */
   icon_fit?: unknown;
   features: string[] | null;
+  /** 탐색 소스코드·라이선스 필터용(카드에는 안 그림) */
+  source_type?: 'open' | 'closed' | null;
+  license_features?: string[] | null;
   /** 익명이면 null — 작성자 링크·이름은 이 칸으로만 정한다(author_id 는 사용자 키로 못 읽음) */
   public_author_id: string | null;
   visibility?: 'public' | 'private' | null;

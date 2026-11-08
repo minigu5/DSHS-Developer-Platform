@@ -18,6 +18,8 @@ const PROJECT_SELECT = `
   icon_url,
   icon_fit,
   features,
+  source_type,
+  license_features,
   public_author_id,
   visibility,
   click_count,
