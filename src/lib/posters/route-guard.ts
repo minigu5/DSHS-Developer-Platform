@@ -12,7 +12,7 @@ import { loadPoster } from './poster-db'
 
 /**
  * AI 포스터 API 공통 검사: 출처(학생 주소는 same-site 라 쿠키가 실려 옴) → 포스터 → 프로젝트 권한.
- * 직접 올린 그림(kind='upload') 행은 없는 것으로 — 주소를 고쳐 거기에 AI 포스터를 만들면 '하루 1개'(poster_daily)를 피한다.
+ * 직접 올린 그림(kind='upload') 행은 없는 것으로 — 올린 그림 행에서 AI 경로가 돌면 안 된다.
  */
 export async function guardPosterRequest(
   request: NextRequest,

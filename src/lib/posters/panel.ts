@@ -10,7 +10,6 @@ import { settlePosterJob } from './ai-jobs'
 import { settleArtJob } from './art-jobs'
 import { POSTER_LIMITS, type PosterBandPosition, type PosterTone } from './config'
 import { canHangPoster, hangState, hungIsStale, type PosterKind } from './hang-logic'
-import { kstDate } from './kst'
 import { POSTER_COPY } from './messages'
 import { loadPoster, toPosterView } from './poster-db'
 import type { PosterView } from './store'
@@ -43,7 +42,6 @@ export type PosterListResult =
       posters: PosterListItem[]
       hasHung: boolean
       full: boolean
-      madeToday: boolean
     }
   | { ok: false; error: string }
 
@@ -63,13 +61,12 @@ export async function getPosterList(projectId: string): Promise<PosterListResult
 
   // 서비스 키 전용 표·칸 — 위에서 권한을 확인했다
   const admin = createAdminClient()
-  const [{ data }, { data: madeToday }, { data: project }] = await Promise.all([
+  const [{ data }, { data: project }] = await Promise.all([
     admin
       .from('project_posters')
       .select('id, kind, html, art_url, art_job_id, image_url, band_tone, band_position, updated_at')
       .eq('project_id', projectId)
       .order('updated_at', { ascending: false }),
-    admin.from('project_poster_days').select('day').eq('project_id', projectId).eq('day', kstDate()).maybeSingle(),
     admin.from('projects').select('poster_id, poster_hung_at, poster_image_url').eq('id', projectId).maybeSingle(),
   ])
   const rows = data ?? []
@@ -85,7 +82,6 @@ export async function getPosterList(projectId: string): Promise<PosterListResult
     canUseAi: access.canUseAi,
     hasHung: !!hungId,
     full: rows.length >= POSTER_LIMITS.perProject,
-    madeToday: !!madeToday,
     posters: rows.map((p) => ({
       id: p.id,
       kind: p.kind,
@@ -106,7 +102,7 @@ export async function getPosterList(projectId: string): Promise<PosterListResult
 export async function getPosterStudio(projectId: string, posterId: string): Promise<PosterStudioResult> {
   if (!UUID.test(projectId) || !UUID.test(posterId)) return { ok: false, error: POSTER_COPY.notFound }
   const poster = await loadPoster(posterId)
-  // 직접 올린 그림은 스튜디오가 없다 — 열어 두면 AI 로 만들어 '하루 1개'를 피할 수 있다
+  // 직접 올린 그림은 스튜디오가 없다 — AI 경로를 열지 않는다
   if (!poster || poster.project_id !== projectId || poster.kind !== 'ai') return { ok: false, error: POSTER_COPY.notFound }
   const access = await getPosterAccess(projectId)
   if (typeof access === 'string') return { ok: false, error: accessError(access) }

@@ -33,7 +33,6 @@ export async function createPoster(projectId: string): Promise<{ id: string } | 
     .select('id')
     .single()
   if (error || !data) {
-    if (error?.message.includes('poster_daily')) return { error: POSTER_COPY.daily }
     if (error?.message.includes('poster_limit')) return { error: POSTER_COPY.limit }
     return { error: '포스터를 만들지 못했어요. 잠시 뒤 다시 해 주세요.' }
   }

@@ -10,16 +10,15 @@ export function posterAllowed(isAdmin: boolean): boolean {
 
 export const POSTER_LIMITS = {
   perProject: 5,
-  // 새 포스터는 프로젝트마다 하루(KST) 1개 — 지웠다 다시 만들어도 막힘(DB project_poster_days, 사용자 결정 2026-11-06)
-  newPerProjectPerDay: 1,
   textPerUserPerDay: 20,
   textSitePerDay: 200,
   artPerUserPerDay: 5,
   // Workers AI 무료 10,000 neurons/일 ÷ klein 한 장(~1,360) − 여유 1장
   artSitePerDay: 6,
   // 학교 Mac mini 그림(KST 자정) — Mac 처리량을 실측해서 조정(설계 2026-11-06-poster-mac-art §5-5)
-  artLocalPerUserPerDay: 20,
-  artLocalSitePerDay: 100,
+  // 우리 Mac 이라 돈이 안 든다 — 바쁘면 줄을 설 뿐(2026-11-08 사용자 결정으로 20·100에서 올림)
+  artLocalPerUserPerDay: 50,
+  artLocalSitePerDay: 300,
 } as const
 
 // 학교 Mac mini 그림 대기 목록의 시간·크기 값(설계 2026-11-06-poster-mac-art). 바꾸면 설계 문서와 posters.md 에도 적는다.

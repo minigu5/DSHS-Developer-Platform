@@ -9,7 +9,7 @@ import { createPoster, deletePoster } from "@/lib/posters/actions";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { cn } from "@/lib/utils";
 
-/** 머리 버튼 줄에 올림 버튼과 나란히 — 꺼진 이유(개수·하루 1개)는 목록의 상태 줄이 보여 준다. 만들면 onCreated 로 스튜디오를 연다 */
+/** 머리 버튼 줄에 올림 버튼과 나란히 — 꺼진 이유(개수)는 목록의 상태 줄이 보여 준다. 만들면 onCreated 로 스튜디오를 연다 */
 export function NewPosterButton({ projectId, disabled, onCreated }: { projectId: string; disabled: boolean; onCreated: (posterId: string) => void }) {
   const [pending, start] = useTransition();
   return (

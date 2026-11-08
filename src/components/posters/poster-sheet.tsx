@@ -154,7 +154,7 @@ function ListView({ projectId, data, reload: load }: { projectId: string; data: 
 }
 
 function ListBody({ projectId, data, load }: { projectId: string; data: Extract<PosterListResult, { ok: true }>; load: () => void }) {
-  const { posters, full, madeToday, canUseAi, hasHung, title } = data;
+  const { posters, full, canUseAi, hasHung, title } = data;
   const uploader = usePosterUpload({ projectId, full, hangIfNone: !hasHung, onUploaded: load });
   // 목록 어디에 놓아도 올린다(버튼만 받으면 놓을 자리가 너무 작다)
   const drop = useFileDrop((file) => void uploader.upload(file));
@@ -187,14 +187,12 @@ function ListBody({ projectId, data, load }: { projectId: string; data: Extract<
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <PosterUploadButton uploader={uploader} />
-            {canUseAi && <NewPosterButton projectId={projectId} disabled={full || madeToday} onCreated={(id) => openPosterSheet(id)} />}
+            {canUseAi && <NewPosterButton projectId={projectId} disabled={full} onCreated={(id) => openPosterSheet(id)} />}
           </div>
         </div>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           {hasHung ? "지금 걸린 포스터에 '걸려 있어요' 표시가 있어요." : "아직 걸린 포스터가 없어요. 아래에서 하나를 골라 걸어 보세요."}
-          {full
-            ? ` 포스터는 ${POSTER_LIMITS.perProject}개까지예요. 하나를 지우면 올리거나 만들 수 있어요.`
-            : canUseAi && madeToday && " AI 포스터는 하루에 하나 새로 만들 수 있어요. 만든 포스터는 계속 고칠 수 있어요."}
+          {full && ` 포스터는 ${POSTER_LIMITS.perProject}개까지예요. 하나를 지우면 올리거나 만들 수 있어요.`}
         </p>
         {posters.length === 0 ? (
           <p className="text-center text-zinc-600 dark:text-zinc-400">

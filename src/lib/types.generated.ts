@@ -521,29 +521,6 @@ export type Database = {
           },
         ]
       }
-      project_poster_days: {
-        Row: {
-          day: string
-          project_id: string
-        }
-        Insert: {
-          day: string
-          project_id: string
-        }
-        Update: {
-          day?: string
-          project_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_poster_days_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       project_posters: {
         Row: {
           art_job_id: string | null
