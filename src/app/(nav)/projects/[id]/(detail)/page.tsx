@@ -53,6 +53,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         liveDomain={liveDomain}
         anonymousOwner={anonymousOwner}
         lock={lock}
+        posterSheet
       />
     </>
   );

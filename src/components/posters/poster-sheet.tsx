@@ -42,10 +42,14 @@ function prefetchStudio(projectId: string, posterId: string) {
 
 /**
  * 프로젝트 수정 화면 오른쪽에서 나오는 포스터 칸(2026-11-07 사용자 결정 — 수정에서만 들어가는 기능이 따로 된 페이지라 어색해서).
+ * 상세 페이지에도 같은 칸을 둔다(2026-11-08 — 옆칸의 빈 포스터 칸·"포스터 바꾸기"가 연다).
  * 목록(띠 받기·올리기·AI 만들기·걸기)과 만들기 화면을 `?poster=` 로 오간다. 휴대폰에선 화면을 다 채운다.
  * 포스터는 누르는 즉시 저장되고, 폼의 "저장하기"와는 따로다.
+ *
+ * `inForm`: 수정 화면(폼 옆) — 목록을 미리 받고, "저장하기와 따로" 안내를 단다. 상세는 주인·팀원·관리자가 자주 열어서
+ * 미리 받지 않고 칸을 열 때 받는다.
  */
-export function PosterSheet({ projectId, projectTitle }: { projectId: string; projectTitle: string }) {
+export function PosterSheet({ projectId, projectTitle, inForm = true }: { projectId: string; projectTitle: string; inForm?: boolean }) {
   const router = useRouter();
   const value = useSearchParams().get(POSTER_PARAM);
   // 닫히는 동안(밀려 나가는 0.2초)엔 주소에서 값이 빠져도 보던 화면을 그대로 둔다 — 목록이 번쩍 다시 불리지 않게
@@ -60,7 +64,14 @@ export function PosterSheet({ projectId, projectTitle }: { projectId: string; pr
       .then(setList)
       .catch(() => setList({ ok: false, error: LOAD_FAILED }));
   }, [projectId]);
-  useEffect(loadList, [loadList]);
+  useEffect(() => {
+    if (inForm) loadList();
+  }, [inForm, loadList]);
+  // 미리 받지 않았는데 주소로 만들기 화면부터 열었으면 그때 받는다(걸기 버튼이 목록의 걸린 상태를 쓴다)
+  const listMissing = !!value && value !== POSTER_LIST && list === null;
+  useEffect(() => {
+    if (listMissing) loadList();
+  }, [listMissing, loadList]);
   const listOpen = value === POSTER_LIST;
   useEffect(() => {
     if (listOpen) loadList();
@@ -88,7 +99,7 @@ export function PosterSheet({ projectId, projectTitle }: { projectId: string; pr
     return () => window.removeEventListener("popstate", notePosterSheetPop);
   }, []);
 
-  // 닫으면 폼의 「홍보 포스터」 카드(걸린 포스터 그림)를 새로 읽는다 — 폼에 쓰던 내용은 그대로 남는다.
+  // 닫으면 폼의 「홍보 포스터」 카드(상세면 옆칸의 걸린 포스터)를 새로 읽는다 — 폼에 쓰던 내용은 그대로 남는다.
   // 만들기 화면에서 고친 AI 포스터는 걸린 그림과 상관없어서(다시 걸기 전까지) 목록에서 바꾼 것만 센다
   useEffect(() => {
     if (value || !changed.current) return;
@@ -120,7 +131,7 @@ export function PosterSheet({ projectId, projectTitle }: { projectId: string; pr
             </DialogPrimitive.Close>
           </header>
           <DialogPrimitive.Description className="border-b border-zinc-200 bg-zinc-50 px-4 py-2 text-[13px] text-zinc-600 sm:px-6 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-400">
-            포스터는 누르는 즉시 저장돼요. 프로젝트의 &ldquo;저장하기&rdquo;와 따로예요.
+            {inForm ? <>포스터는 누르는 즉시 저장돼요. 프로젝트의 &ldquo;저장하기&rdquo;와 따로예요.</> : "포스터는 누르는 즉시 저장돼요."}
           </DialogPrimitive.Description>
           <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6">
             {studioId ? (

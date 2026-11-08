@@ -1,6 +1,6 @@
 // 프로젝트 상세 화면 — 서버 페이지(/projects/[id])와 브라우저의 빠른 상세 화면(quick-view)이 같이 그린다.
 // "use client" 를 달지 않는다: 서버 페이지에선 서버 컴포넌트로, 빠른 상세 화면에선 클라이언트 컴포넌트로 쓰인다(서버 전용 코드 import 금지).
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "@/components/shared/link";
 import { Globe, Code2, Lock, ExternalLink, ShieldCheck, ShieldAlert, ChevronRight } from "lucide-react";
@@ -13,6 +13,8 @@ import { HeartButton } from "@/components/projects/heart-button";
 import { ProjectIcon } from "@/components/projects/project-icon";
 import { EditButton } from "@/components/projects/edit-button";
 import { PosterShowcase } from "@/components/posters/poster-showcase";
+import { PosterSheet } from "@/components/posters/poster-sheet";
+import { PosterSlot } from "@/components/posters/poster-slot";
 import { showcaseVisible } from "@/lib/posters/hang-logic";
 import { BackToExplore } from "@/components/projects/back-to-explore";
 import { ANONYMOUS_AUTHOR, LICENSE_FEATURES, PLATFORMS, projectTypeLabels } from "@/lib/constants";
@@ -20,7 +22,6 @@ import { SECTION_COLORS } from "@/lib/section-colors";
 import { quickToConnect } from "@/lib/domains/offer";
 import { DomainNudge } from "@/components/projects/domain-nudge";
 import { OldAddressNudge } from "@/components/projects/old-address-nudge";
-import { PosterNudge } from "@/components/projects/poster-nudge";
 import { RedirectPill } from "@/components/domains/redirect-pill";
 import { StatStrip, type StatStripItem } from "@/components/projects/stat-strip";
 import { HeartStatSub, HeartStatValue } from "@/components/projects/heart-stat";
@@ -64,10 +65,14 @@ export type ProjectDetailViewProps = {
   back?: ReactNode;
   /** 댓글을 쓰고·고치고·지운 뒤 — 빠른 상세 화면은 router.refresh() 대신 브라우저가 다시 받는다 */
   onCommentsChanged?: () => void;
+  /** 포스터 옆 칸(PosterSheet)을 이 화면에 둔다 — 서버 페이지만. 빠른 상세는 pushState 로 바꾼 주소라 `?poster=` 를 얹지 않고 서버 상세로 넘긴다 */
+  posterSheet?: boolean;
 };
 
-export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anonymousOwner, lock = null, back, onCommentsChanged }: ProjectDetailViewProps) {
-  const { project, comments, heartCount, hearted, teamMemberProfiles, isOwner, canEdit, ownerPreview, ownerOffer, ownerOldAddress, ownerPoster } = detail;
+export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anonymousOwner, lock = null, back, onCommentsChanged, posterSheet = false }: ProjectDetailViewProps) {
+  const { project, comments, heartCount, hearted, teamMemberProfiles, isOwner, canEdit, ownerPreview, ownerOffer, ownerOldAddress, posterSlot } = detail;
+  // 포스터는 공개 프로젝트만 건다 — 수정 화면과 같은 조건
+  const withPosterSheet = posterSheet && canEdit && project.visibility === "public";
   const isAnonymous = project.author_role === 'anonymous';
   const authorName =
     (isAnonymous
@@ -265,7 +270,6 @@ export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anony
         {ownerOldAddress && (
           <OldAddressNudge projectId={project.id} fqdn={ownerOldAddress.fqdn} lines={ownerOldAddress.lines} readmeSync={!!project.readme_sync} />
         )}
-        {ownerPoster && <PosterNudge projectId={project.id} />}
 
         <StatStrip items={stats} className="mt-8" />
         {isAdmin && <LikersCard kind="project" id={project.id} className="mt-4" />}
@@ -290,9 +294,11 @@ export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anony
 
           {/* 사이드 */}
           <aside className="grid content-start gap-4">
-            {/* 걸린 포스터 — 공개 프로젝트만 */}
-            {showcaseVisible(project) && project.poster_image_url && (
-              <PosterShowcase projectId={project.id} title={project.title} imageUrl={project.poster_image_url} isAi={project.poster_is_ai} canEdit={canEdit} />
+            {/* 걸린 포스터 — 공개 프로젝트만. 없으면 주인·팀원에게만 빈 포스터 칸(누르면 포스터 옆 칸) */}
+            {showcaseVisible(project) && project.poster_image_url ? (
+              <PosterShowcase projectId={project.id} title={project.title} imageUrl={project.poster_image_url} isAi={project.poster_is_ai} canEdit={canEdit} sheet={withPosterSheet} />
+            ) : (
+              posterSlot && <PosterSlot projectId={project.id} sheet={withPosterSheet} />
             )}
             {/* 개발자 */}
             <div className={sideCard}>
@@ -476,6 +482,12 @@ export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anony
           onChanged={onCommentsChanged}
         />
       </main>
+      {/* 홍보 포스터 옆 칸 — `?poster=` 가 있으면 열린다(수정 화면과 같은 칸) */}
+      {withPosterSheet && (
+        <Suspense fallback={null}>
+          <PosterSheet projectId={project.id} projectTitle={project.title} inForm={false} />
+        </Suspense>
+      )}
     </div>
   );
 }

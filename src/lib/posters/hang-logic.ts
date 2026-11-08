@@ -42,9 +42,9 @@ export function showcaseVisible(p: { visibility: string; poster_image_url: strin
   return p.visibility === 'public' && !!p.poster_image_url
 }
 
-/** 주인에게만, 공개·걸린 포스터 없음, 다른 권유(미리보기 주소·옛 주소·도메인)가 이미 떠 있으면 안 띄운다 */
-export function posterNudgeVisible(i: { isOwner: boolean; isPublic: boolean; hasHungPoster: boolean; otherNudgeShown: boolean }): boolean {
-  return i.isOwner && i.isPublic && !i.hasHungPoster && !i.otherNudgeShown
+/** 상세 옆칸의 빈 포스터 칸 — 주인·팀원에게만(관리자 계정은 남의 프로젝트마다 뜨면 거슬려서 뺀다), 공개·걸린 포스터 없음 */
+export function posterSlotVisible(i: { isOwnerOrTeam: boolean; isPublic: boolean; hasHungPoster: boolean }): boolean {
+  return i.isOwnerOrTeam && i.isPublic && !i.hasHungPoster
 }
 
 const CLOUDINARY_UPLOAD = /^(https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/)/

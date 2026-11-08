@@ -11,18 +11,23 @@ import Link from "@/components/shared/link";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { posterImageAt } from "@/lib/posters/hang-logic";
 
+import { POSTER_LIST, POSTER_PARAM, openPosterSheet } from "./poster-sheet-nav";
+
 export function PosterShowcase({
   projectId,
   title,
   imageUrl,
   isAi,
   canEdit,
+  sheet,
 }: {
   projectId: string;
   title: string;
   imageUrl: string;
   isAi: boolean;
   canEdit: boolean;
+  /** 이 화면에 포스터 옆 칸이 있다(서버 상세 페이지) — "포스터 바꾸기"가 그 자리에서 연다. 빠른 상세는 서버 상세로 넘긴다 */
+  sheet: boolean;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -55,8 +60,19 @@ export function PosterShowcase({
             ) : (
               <span />
             )}
-            {canEdit ? (
-              <Link href={`/projects/${projectId}/edit?poster=list`} className="inline-flex items-center gap-1 text-sm font-medium text-zinc-700 underline-offset-4 hover:underline dark:text-zinc-300">
+            {canEdit && sheet ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  openPosterSheet();
+                }}
+                className="inline-flex items-center gap-1 text-sm font-medium text-zinc-700 underline-offset-4 hover:underline dark:text-zinc-300"
+              >
+                포스터 바꾸기 <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+              </button>
+            ) : canEdit ? (
+              <Link href={`/projects/${projectId}?${POSTER_PARAM}=${POSTER_LIST}`} className="inline-flex items-center gap-1 text-sm font-medium text-zinc-700 underline-offset-4 hover:underline dark:text-zinc-300">
                 포스터 바꾸기 <ArrowRight className="h-3.5 w-3.5" aria-hidden />
               </Link>
             ) : (

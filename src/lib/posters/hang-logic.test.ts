@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { canHangPoster, hangState, hungIsStale, posterImageAt, posterNudgeVisible, posterStartTarget, showcaseVisible } from './hang-logic.ts'
+import { canHangPoster, hangState, hungIsStale, posterImageAt, posterSlotVisible, posterStartTarget, showcaseVisible } from './hang-logic.ts'
 
 test('canHangPoster', () => {
   const none = { art_url: null, art_job_id: null, image_url: null }
@@ -29,13 +29,12 @@ test('showcaseVisible', () => {
   assert.equal(showcaseVisible({ visibility: 'public', poster_image_url: null }), false)
 })
 
-test('posterNudgeVisible', () => {
-  const base = { isOwner: true, isPublic: true, hasHungPoster: false, otherNudgeShown: false }
-  assert.equal(posterNudgeVisible(base), true)
-  assert.equal(posterNudgeVisible({ ...base, isOwner: false }), false)
-  assert.equal(posterNudgeVisible({ ...base, isPublic: false }), false)
-  assert.equal(posterNudgeVisible({ ...base, hasHungPoster: true }), false)
-  assert.equal(posterNudgeVisible({ ...base, otherNudgeShown: true }), false)
+test('posterSlotVisible', () => {
+  const base = { isOwnerOrTeam: true, isPublic: true, hasHungPoster: false }
+  assert.equal(posterSlotVisible(base), true)
+  assert.equal(posterSlotVisible({ ...base, isOwnerOrTeam: false }), false)
+  assert.equal(posterSlotVisible({ ...base, isPublic: false }), false)
+  assert.equal(posterSlotVisible({ ...base, hasHungPoster: true }), false)
 })
 
 test('posterImageAt: Cloudinary 원본은 폭을 줄인 주소로, 바깥 주소는 그대로', () => {

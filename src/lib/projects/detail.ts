@@ -9,7 +9,7 @@ import { isDeveloper } from '@/lib/constants'
 import { PROJECT_AUTHOR, PROJECT_COLUMNS } from '@/lib/projects/columns'
 import { domainOfferOf, previewAddressOf } from '@/lib/domains/offer'
 import { fixOldAddresses, oldAddressPrefixes } from '@/lib/domains/old-address'
-import { posterNudgeVisible } from '@/lib/posters/hang-logic'
+import { posterSlotVisible } from '@/lib/posters/hang-logic'
 
 type Client = SupabaseClient<Database>
 
@@ -40,8 +40,8 @@ export type ProjectDetail = {
   ownerPreview: { host: string; live: string } | null
   ownerOffer: ReturnType<typeof domainOfferOf>
   ownerOldAddress: { fqdn: string; lines: { before: string; after: string }[] } | null
-  /** 주인에게 포스터 만들기 안내 — 다른 안내가 없을 때만(한 번에 하나) */
-  ownerPoster: boolean
+  /** 옆칸의 빈 포스터 칸(누르면 포스터 옆 칸) — 주인·팀원, 공개, 걸린 포스터 없음 */
+  posterSlot: boolean
 }
 
 /**
@@ -96,9 +96,8 @@ export async function loadProjectDetail(
   const isOwner =
     !!viewer &&
     ((!!project.public_author_id && project.public_author_id === viewer.id) || (isAnonymous && myProjectIds.includes(project.id)))
-  const canEdit =
-    !!viewer &&
-    (isOwner || isDeveloper(viewer.email) || (!!viewer.email && (project.team_members ?? []).includes(viewer.email)))
+  const isTeamMember = !!viewer?.email && (project.team_members ?? []).includes(viewer.email)
+  const canEdit = !!viewer && (isOwner || isDeveloper(viewer.email) || isTeamMember)
 
   // 소유자에게만: 미리보기 주소 경고, 아니면 도메인 마련하기 안내(공개 웹사이트·이 프로젝트에 주소 없음·계정당 3개 미만),
   // 그리고 주소를 연결했는데 상세 설명에 옛 사이트 주소가 남아 있으면 바꿀지 묻는다. 주소는 소유자 본인 것이라 본인 권한으로 읽힌다
@@ -143,11 +142,10 @@ export async function loadProjectDetail(
     }
   }
 
-  const ownerPoster = posterNudgeVisible({
-    isOwner,
+  const posterSlot = posterSlotVisible({
+    isOwnerOrTeam: isOwner || isTeamMember,
     isPublic: project.visibility === 'public',
     hasHungPoster: !!project.poster_image_url,
-    otherNudgeShown: !!ownerPreview || !!ownerOffer || !!ownerOldAddress,
   })
 
   return {
@@ -161,6 +159,6 @@ export async function loadProjectDetail(
     ownerPreview,
     ownerOffer,
     ownerOldAddress,
-    ownerPoster,
+    posterSlot,
   }
 }
