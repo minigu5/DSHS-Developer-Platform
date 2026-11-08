@@ -119,6 +119,7 @@ export type Database = {
           allowed_users: string[];
           feature_custom: string | null;
           click_count: number;
+          heart_count: number;
           // 20 readme sync
           readme_sync: boolean;
           readme_etag: string | null;
@@ -190,6 +191,7 @@ export type Database = {
           allowed_users?: string[];
           feature_custom?: string | null;
           click_count?: number;
+          heart_count?: number;
           readme_sync?: boolean;
           readme_etag?: string | null;
           readme_synced_at?: string | null;

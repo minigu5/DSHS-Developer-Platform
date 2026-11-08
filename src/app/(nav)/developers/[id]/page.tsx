@@ -6,7 +6,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 
 import { createClient } from "@/lib/supabase/server";
-import { INTERESTS } from "@/lib/constants";
+import { INTERESTS, isDeveloper } from "@/lib/constants";
 import { cn, isExternalImage } from "@/lib/utils";
 import type { UserContact } from "@/lib/types";
 import { PageHero } from "@/components/shared/page-hero";
@@ -62,7 +62,7 @@ const riseDelay = (ms: number) => ({ "--rise-delay": `${ms}ms` }) as React.CSSPr
  * 머리는 홈 히어로의 축소판(아바타 스티커 → 닉네임 → 자기소개 → 연락처 알약 → 관심분야). 실명·이메일은 머리에 두지 않는다.
  */
 const CARD_COLUMNS = `id, title, short_description, types, platforms, author_role, team_name, team_icon_url, icon_url, icon_fit, features, public_author_id, visibility,
-  users!projects_public_author_id_fkey (*), project_hearts(count), project_comments(id)`;
+  users!projects_public_author_id_fkey (*), heart_count, project_comments(id)`;
 
 type FavoriteRow = { created_at: string; projects: ProjectCardData | null };
 
@@ -72,6 +72,8 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
 
   const { data: { user: currentUser } } = await supabase.auth.getUser();
   const isOwner = currentUser?.id === id;
+  // 즐겨찾기(하트 누른 프로젝트)는 본인·관리자만 본다(2026-11-08 사용자 결정). DB도 project_hearts 를 본인 행만 읽게 막았다.
+  const canSeeFavorites = isOwner || isDeveloper(currentUser?.email);
 
   const { data: developer, error: userError } = await supabase.from("users").select("*").eq("id", id).single();
   if (userError || !developer) notFound();
@@ -110,13 +112,15 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
       .order("created_at", { ascending: false })
       .limit(5)
       .returns<IdeaRow[]>(),
-    // 즐겨찾기(하트 누른 프로젝트, 최신 먼저) — 보는 사람이 볼 수 없는 프로젝트·만든 사람의 익명 프로젝트 하트는 RLS 가 뺀다
-    supabase
-      .from("project_hearts")
-      .select(`created_at, projects!inner(${CARD_COLUMNS})`)
-      .eq("user_id", id)
-      .order("created_at", { ascending: false })
-      .returns<FavoriteRow[]>(),
+    // 즐겨찾기(하트 누른 프로젝트, 최신 먼저) — 본인·관리자만
+    canSeeFavorites
+      ? supabase
+          .from("project_hearts")
+          .select(`created_at, projects!inner(${CARD_COLUMNS})`)
+          .eq("user_id", id)
+          .order("created_at", { ascending: false })
+          .returns<FavoriteRow[]>()
+      : Promise.resolve({ data: null }),
   ]);
 
   const favorites = (favoriteRows ?? []).flatMap((r) => (r.projects ? [r.projects] : []));
@@ -301,8 +305,8 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
         </div>
       </section>
 
-      {/* 즐겨찾기한 프로젝트 — 모두에게 공개(사용자 결정), 남의 프로필에서 0개면 띠를 숨긴다 */}
-      {(favorites.length > 0 || isOwner) && (
+      {/* 즐겨찾기한 프로젝트 — 본인·관리자만(2026-11-08 사용자 결정), 관리자가 본 남의 프로필에서 0개면 띠를 숨긴다 */}
+      {canSeeFavorites && (favorites.length > 0 || isOwner) && (
         <section className="border-b border-zinc-200 bg-zinc-50 py-8 dark:border-zinc-800 dark:bg-zinc-900/40 sm:py-11">
           <div className="mx-auto w-full max-w-5xl px-6">
             <div className="mb-[18px] flex items-baseline justify-between gap-4">

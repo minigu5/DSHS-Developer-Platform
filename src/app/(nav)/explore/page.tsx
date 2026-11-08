@@ -24,7 +24,7 @@ const PROJECT_SELECT = `
   visibility,
   click_count,
   users!projects_public_author_id_fkey (*),
-  project_hearts(count),
+  heart_count,
   project_comments(id)
 `;
 

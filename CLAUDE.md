@@ -105,12 +105,13 @@
 - **`users`**: `id`, `email`, `full_name`, `nickname`, `bio`, `interests`, `avatar_url`, `contacts`(JSONB, `docs/14-supabase-users-contacts.sql` 적용 필요)
 - **`projects`**: `id`, `author_id`, `title`, `description`, `types`(text[], `docs/17` 1·2단계 모두 운영 적용 — 옛 `type` 칸은 2026-10-27 migration `20261027120000`으로 삭제), `platforms`, `source_type`, `repo_url`, `url`, `license_features`, `visibility`, `allowed_users`, `icon_url`, `icon_fit`(아이콘 맞춤값 — 바탕색·꽉 채울 영역, `.claude/rules/projects.md`), `team_icon_url`(팀 아이콘, 팀만), `readme_sync`·`readme_etag`·`readme_synced_at`(`docs/20-supabase-projects-readme-sync.sql`, 적용 완료)
 - **`project_comments`**(옛 `reviews`, 2026-11-05 별점 삭제·1인 여러 개): `id`, `project_id`, `user_id`(사용자 키로 못 읽음), `content`, `is_author`, `public_user_id`(익명 프로젝트 소유자 댓글이면 NULL — 화면은 `users!project_comments_public_user_id_fkey`로만 사람을 붙임 — `(count)` 집계·`select=*` 금지, 수는 `project_comments(id)` 길이), `created_at`. 자세히는 `.claude/rules/projects.md` 「댓글·하트」
-- **`project_hearts`**: PK(`project_id`,`user_id`), `created_at`, `by_anonymous_owner` — 하트 = 즐겨찾기, 누가 눌렀는지 공개(만든 사람이 자기 익명 프로젝트에 누른 것만 남에게 숨김). 나중 팔로잉 피드용 인덱스 `(user_id, created_at DESC)`
+- **`project_hearts`**: PK(`project_id`,`user_id`), `created_at`, `by_anonymous_owner` — 하트 = 즐겨찾기. **누가 눌렀는지는 본인·관리자만**(2026-11-08 사용자 결정 — 예전엔 공개였음), 남에게는 수만: `projects.heart_count`(트리거가 채움, 사용자 키로 못 바꿈) — `project_hearts(count)` 집계는 본인 행만 세니 쓰지 말 것. 나중 팔로잉 피드용 인덱스 `(user_id, created_at DESC)`
 
 ### RLS 정책 요약
 - **`users`**: 누구나 조회 가능, 본인만 수정 가능.
 - **`projects`**: Public은 누구나, Private은 소유자 및 허용된 사용자만. 생성/삭제는 소유자만. **수정은 소유자 또는 `team_members`에 이메일이 포함된 팀원**도 가능(`docs/13-supabase-projects-team-edit.sql` 적용 후).
-- **`project_comments`·`project_hearts`**: 프로젝트 접근 권한자만 조회 가능, 본인만 생성/삭제(댓글은 글만 수정). 볼 수 없는 프로젝트엔 하트를 못 누름.
+- **`project_comments`**: 프로젝트 접근 권한자만 조회 가능, 본인만 생성/삭제(글만 수정).
+- **`project_hearts`**: 본인 행만 조회(관리자는 전부), 본인만 생성/삭제. 볼 수 없는 프로젝트엔 하트를 못 누름.
 
 ## 🌏 인프라 및 배포 설정
 

@@ -33,8 +33,8 @@ export type ProjectCardData = {
   public_author_id: string | null;
   visibility?: 'public' | 'private' | null;
   users: { full_name: string | null; nickname: string | null; avatar_url: string | null } | { full_name: string | null; nickname: string | null; avatar_url: string | null }[] | null;
-  /** PostgREST 집계 project_hearts(count) */
-  project_hearts?: { count: number }[] | null;
+  /** 하트 수 칸(트리거가 채움) — project_hearts 는 본인 행만 읽혀서 집계로 못 센다 */
+  heart_count?: number | null;
   /**
    * 댓글 id 목록 project_comments(id) — 개수만 쓴다. (count) 집계는 행 전체를 읽어서
    * user_id 칸 읽기를 막은 뒤(20261105140000) 권한 오류가 난다.

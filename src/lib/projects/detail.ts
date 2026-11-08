@@ -54,7 +54,7 @@ export async function loadProjectDetail(
   id: string,
   viewer: DetailViewer,
 ): Promise<ProjectDetail | null> {
-  const [projectResult, commentsResult, heartsResult, myHeartResult] = await Promise.all([
+  const [projectResult, commentsResult, myHeartResult] = await Promise.all([
     selectProject(data, id),
     // user_id 는 사용자 키로 못 읽는다 — 사람은 public_user_id 로만 붙인다(익명 프로젝트 소유자의 댓글은 NULL)
     data
@@ -62,7 +62,6 @@ export async function loadProjectDetail(
       .select('id, content, created_at, is_author, public_user_id, user:users!project_comments_public_user_id_fkey(full_name, nickname, avatar_url)')
       .eq('project_id', id)
       .order('created_at', { ascending: true }),
-    data.from('project_hearts').select('project_id', { count: 'exact', head: true }).eq('project_id', id),
     viewer
       ? self.from('project_hearts').select('project_id').eq('project_id', id).eq('user_id', viewer.id).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -151,7 +150,8 @@ export async function loadProjectDetail(
   return {
     project,
     comments,
-    heartCount: heartsResult.count ?? 0,
+    // project_hearts 는 본인 행만 읽힌다 — 수는 트리거가 채우는 칸으로
+    heartCount: project.heart_count ?? 0,
     hearted: !!myHeartResult.data,
     teamMemberProfiles,
     isOwner,
