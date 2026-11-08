@@ -35,6 +35,7 @@ import { Markdown } from "@/components/shared/markdown";
 import { ConfirmNameInput } from "@/components/shared/confirm-name-input";
 import { nameMatches } from "@/lib/confirm-name";
 import { parseGithubRepo } from "@/lib/github-readme";
+import type { RepoStatus } from "@/lib/github-repo-check";
 import { closeDomainOfPrivateProject, deleteProject, refreshIconFit } from "@/lib/projects/actions";
 import { parseIconFit } from "@/lib/icon-fit";
 import { addGithubToProfile } from "@/lib/profile/actions";
@@ -194,6 +195,25 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   // 저장소 링크는 GitHub 저장소만 받는다(2026-11-07 — vercel 주소를 적은 프로젝트가 있었음). 입력칸을 벗어난 뒤부터 경고, 수정 화면은 처음부터
   const [repoChecked, setRepoChecked] = useState(Boolean(initialData?.repo_url));
   const repoNotGithub = sourceType === "open" && Boolean(repoUrl.trim()) && !parseGithubRepo(repoUrl);
+  // 오픈소스 저장소가 실제로 공개인지(2026-11-08 — 오픈소스라고 해 놓고 비공개 저장소라 404인 프로젝트가 있었음).
+  // 입력칸을 벗어날 때와 저장할 때 확인하고, 비공개·없음(404)이면 저장을 막는다. 확인 못 하면(한도 등) 막지 않는다.
+  const [repoAccess, setRepoAccess] = useState<{ key: string; status: RepoStatus } | null>(null);
+  const repoMissing = sourceType === "open" && repoAccess?.status === "missing" && repoAccess.key === repoKey(repoUrl);
+  const checkRepoAccess = async (input: string): Promise<RepoStatus> => {
+    const key = repoKey(input);
+    if (!key) return "unknown";
+    if (repoAccess?.key === key && repoAccess.status !== "unknown") return repoAccess.status;
+    let status: RepoStatus = "unknown";
+    try {
+      const res = await fetch(`/api/github-repo?url=${encodeURIComponent(input.trim())}`);
+      const data = (await res.json()) as { status?: RepoStatus };
+      if (res.ok && data.status) status = data.status;
+    } catch {
+      status = "unknown";
+    }
+    setRepoAccess({ key, status });
+    return status;
+  };
 
   // 라이선스
   // 비공개 소스는 라이선스를 저장하지 않으므로 처음부터 비워 둔다
@@ -691,6 +711,13 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
       return;
     }
 
+    if (sourceType === 'open' && (await checkRepoAccess(repoUrl)) === 'missing') {
+      setRepoChecked(true);
+      setErrorMsg("저장소가 비공개이거나 없어요(GitHub에서 404). 저장소를 공개로 바꾸거나, 코드를 공개하지 않을 거면 소스코드를 '비공개'로 골라 주세요.");
+      scrollToField("repo_url_section");
+      return;
+    }
+
     if (closesDomain) {
       setShowPrivateDialog(true);
       return;
@@ -849,7 +876,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
     { id: "section-basic", title: "기본 정보", done: iconReady && Boolean(title.trim()) && (Boolean(url.trim()) || urlOptional) && Boolean(shortDesc.trim()) },
     { id: "section-description", title: "상세 설명", done: Boolean(description.trim()) },
     { id: "section-category", title: "분류", done: types.length > 0 && platformsReady },
-    { id: "section-source", title: "소스코드·라이선스", done: sourceType === "closed" || (Boolean(repoUrl.trim()) && !repoNotGithub) },
+    { id: "section-source", title: "소스코드·라이선스", done: sourceType === "closed" || (Boolean(repoUrl.trim()) && !repoNotGithub && !repoMissing) },
     { id: "section-visibility", title: "공개 범위·만든 사람", done: authorRole !== "team" || Boolean(teamName.trim()) },
     // 포스터는 프로젝트가 있어야 만들 수 있어서 수정 화면에만 있다
     ...(isEdit && initialData?.id ? [{ id: "section-poster", title: "홍보 포스터", done: Boolean(initialData.poster_image_url) }] : []),
@@ -1182,11 +1209,16 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
               <Label htmlFor="repo_url" className={labelClass}>저장소 링크{req}</Label>
               <div className="relative">
                 <Code2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" aria-hidden />
-                <Input id="repo_url" value={repoUrl} onChange={e => setRepoUrl(e.target.value)} onBlur={() => { setRepoChecked(true); void fillLicenseFromRepo(repoUrl); offerGithubFor(repoUrl); }} placeholder="https://github.com/username/repo" aria-invalid={repoChecked && repoNotGithub} aria-describedby={repoChecked && repoNotGithub ? "repo_url_error" : undefined} className="h-11 rounded-xl pl-9" />
+                <Input id="repo_url" value={repoUrl} onChange={e => setRepoUrl(e.target.value)} onBlur={() => { setRepoChecked(true); void fillLicenseFromRepo(repoUrl); void checkRepoAccess(repoUrl); offerGithubFor(repoUrl); }} placeholder="https://github.com/username/repo" aria-invalid={repoChecked && (repoNotGithub || repoMissing)} aria-describedby={repoChecked && (repoNotGithub || repoMissing) ? "repo_url_error" : undefined} className="h-11 rounded-xl pl-9" />
               </div>
               {repoChecked && repoNotGithub && (
                 <p id="repo_url_error" className="text-xs font-medium text-rose-600 break-keep dark:text-rose-400">
                   GitHub 저장소 주소만 적을 수 있어요(예: https://github.com/username/repo). 사이트 주소는 위 &quot;방문 주소&quot;에, 코드가 GitHub에 없으면 소스코드를 &quot;비공개&quot;로 골라 주세요.
+                </p>
+              )}
+              {repoChecked && repoMissing && (
+                <p id="repo_url_error" className="text-xs font-medium text-rose-600 break-keep dark:text-rose-400">
+                  저장소가 비공개이거나 없어서 다른 사람에겐 404로 보여요. GitHub에서 저장소를 공개(Public)로 바꾸거나, 코드를 공개하지 않을 거면 소스코드를 &quot;비공개&quot;로 골라 주세요.
                 </p>
               )}
               {showGithubOffer && (

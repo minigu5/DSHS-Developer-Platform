@@ -1,6 +1,7 @@
 name: Sync GitHub READMEs
 
 # "README와 자동 동기화"를 켠 프로젝트의 상세 설명을 매일 밤 GitHub README로 다시 채운다.
+# 이어서 오픈소스 저장소가 공개인지 점검한다(scripts/check-repos.mts).
 # 스크립트: scripts/sync-readmes.mts / 설정: docs/20-supabase-projects-readme-sync.sql
 
 on:
@@ -38,6 +39,15 @@ jobs:
 
       - name: Sync READMEs
         run: node scripts/sync-readmes.mts ${{ inputs.dry_run && '--dry-run' || '' }}
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+
+      # 오픈소스인데 저장소가 비공개이거나 없으면(404) 비공개 소스로 바꾼다 — README 동기화가 실패해도 돈다
+      - name: Check open-source repos
+        if: ${{ !cancelled() }}
+        run: node scripts/check-repos.mts ${{ inputs.dry_run && '--dry-run' || '' }}
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
