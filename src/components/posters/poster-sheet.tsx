@@ -179,21 +179,19 @@ function ListBody({ projectId, data, load }: { projectId: string; data: Extract<
             <h2 id="posters-title" className="font-heading text-lg font-semibold text-zinc-900 dark:text-white">
               상세 페이지에 걸 포스터
             </h2>
-            <p className="mt-1.5 text-sm text-zinc-600 dark:text-zinc-400">
+            {/* 걸린 상태는 카드의 "걸려 있어요" 알약이 보여 줘서 따로 적지 않는다 */}
+            <p className="mt-1.5 text-sm break-keep text-zinc-600 dark:text-zinc-400">
               {canUseAi
                 ? "직접 만든 포스터 그림을 올리거나(끌어다 놓아도 돼요) AI로 만들 수 있어요. 하나를 골라 걸면 프로젝트 페이지에 보여요."
                 : "직접 만든 포스터 그림을 올리면(끌어다 놓아도 돼요) 프로젝트 페이지에 걸 수 있어요."}
+              {full && ` 포스터는 ${POSTER_LIMITS.perProject}개까지예요. 하나를 지우면 올리거나 만들 수 있어요.`}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
             <PosterUploadButton uploader={uploader} />
             {canUseAi && <NewPosterButton projectId={projectId} disabled={full} onCreated={(id) => openPosterSheet(id)} />}
           </div>
         </div>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          {hasHung ? "지금 걸린 포스터에 '걸려 있어요' 표시가 있어요." : "아직 걸린 포스터가 없어요. 아래에서 하나를 골라 걸어 보세요."}
-          {full && ` 포스터는 ${POSTER_LIMITS.perProject}개까지예요. 하나를 지우면 올리거나 만들 수 있어요.`}
-        </p>
         {posters.length === 0 ? (
           <p className="text-center text-zinc-600 dark:text-zinc-400">
             아직 포스터가 없어요.{" "}
@@ -229,8 +227,11 @@ function ListBody({ projectId, data, load }: { projectId: string; data: Extract<
                     <PosterPreview html={p.html} artUrl={p.artUrl} title={title} projectId={projectId} tone={p.tone} position={p.position} className="rounded-xl" />
                   </button>
                 )}
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <PosterHangButton posterId={p.id} projectId={projectId} hung={p.hung} stale={p.stale} disabled={!p.canHang} onChanged={load} />
+                <div className="flex items-start justify-between gap-1">
+                  {/* 제목이 이미 "상세 페이지에 걸 포스터"라 버튼은 "걸기"만 — 휴대폰 2열에서도 지우기와 한 줄 */}
+                  <div className="min-w-0">
+                    <PosterHangButton posterId={p.id} projectId={projectId} hung={p.hung} stale={p.stale} disabled={!p.canHang} onChanged={load} label="걸기" />
+                  </div>
                   <DeletePosterButton posterId={p.id} onDeleted={load} />
                 </div>
                 <span className="text-xs text-zinc-500">
