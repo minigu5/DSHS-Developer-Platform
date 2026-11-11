@@ -7,7 +7,7 @@
 |---|---|
 | `dshs.socket`·`dshs.service`·`dshs-deploy.service`·`dshs-deploy.timer` | `/etc/systemd/system/` |
 | `deploy.sh` | `/srv/dshs/deploy.sh` (root 750) |
-| `socket-fd.js` | `/srv/dshs/socket-fd.js` (root 644) |
+| `preload.js` | `/srv/dshs/preload.js` (root 644) — systemd 포트 넘겨받기 + 요청 주소를 공개 주소로 |
 | `nftables.conf` | `/etc/nftables.conf` (8080은 노드 게이트웨이 10.250.0.1과 서버 자신만) |
 | `env.example` | `/srv/dshs/.env`의 키 이름 (dshs-app 600, 값은 서버에만) |
 
