@@ -2,11 +2,13 @@ import 'server-only'
 
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 
+import { isNodeServer } from '@/lib/runtime'
 import { createAdminClient } from '@/lib/supabase/server'
 import type { Json, ProjectPosterRow } from '@/lib/types'
 
 import { isFinished, judgeAiJobStuck, type AiJobKind, type AiJobStatus } from './ai-jobs-logic'
 import { POSTER_COPY } from './messages'
+import { runInBackground } from './node-jobs'
 import { loadPoster } from './poster-db'
 import { runPosterAsk, runPosterRedraw, runSafely, type PosterActor, type PosterAskInput, type PosterRunResult } from './run-ai'
 import { releaseUsage, UsageLedger, type UsageKind } from './usage'
@@ -44,10 +46,15 @@ export async function enqueuePosterJob(i: {
   // next dev 에는 큐 소비자가 없다(일감이 영영 안 끝남)
   if (process.env.NODE_ENV !== 'production') return null
   let queue: QueueEnv['POSTER_JOBS']
-  try {
-    queue = (getCloudflareContext().env as unknown as QueueEnv).POSTER_JOBS
-  } catch {
-    return null
+  if (isNodeServer()) {
+    // 대곽나루 서버: 큐 없이 프로세스 안에서 끝까지(탭을 닫아도 계속, 배포 재시작은 instrumentation 이 기다림)
+    queue = { send: async ({ jobId }) => runInBackground('poster', () => runPosterJob(jobId)) }
+  } else {
+    try {
+      queue = (getCloudflareContext().env as unknown as QueueEnv).POSTER_JOBS
+    } catch {
+      return null
+    }
   }
   if (!queue) return null
 

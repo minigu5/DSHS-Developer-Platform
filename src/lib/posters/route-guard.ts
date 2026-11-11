@@ -3,11 +3,13 @@ import 'server-only'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { isNodeServer } from '@/lib/runtime'
 import { isSameOrigin } from '@/lib/same-origin'
 import type { ProjectPosterRow } from '@/lib/types'
 
 import { getPosterAccess, type PosterAccess } from './access'
 import { POSTER_COPY } from './messages'
+import { runInBackground } from './node-jobs'
 import { loadPoster } from './poster-db'
 
 /**
@@ -31,6 +33,8 @@ export async function guardPosterRequest(
 
 /** 탭을 닫아도 AI 결과 저장까지 끝나게 Workers ctx.waitUntil 에 맡긴다(heartbeatJson 세 번째 인자) */
 export function keepAliveAfterDisconnect(): ((job: Promise<unknown>) => void) | undefined {
+  // 대곽나루 서버는 끊겨도 일이 이어지지만, 배포 재시작 때 기다릴 수 있게 목록에 올린다(걸 PNG 찍기도 Worker 처럼 뒤에서)
+  if (isNodeServer()) return (job) => runInBackground('keepalive', () => job)
   try {
     const { ctx } = getCloudflareContext()
     return (job) => ctx.waitUntil(job)
