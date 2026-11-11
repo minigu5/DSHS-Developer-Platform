@@ -35,6 +35,8 @@ log() { echo "[$(date '+%F %T')] $*"; }
 as_app() { runuser -u "$APP_USER" -- "$@"; }
 
 mkdir -p "$LOG_DIR" "$STATE_DIR"
+# sudo 로 손으로 돌리면 작업 폴더가 내 홈이라 dshs-app 으로 돈 find 가 "initial working directory" 에서 실패하고 멈췄다
+cd /
 exec 9>/run/dshs-deploy.lock
 flock -n 9 || { log "다른 배포가 도는 중 — 건너뜀"; exit 0; }
 
