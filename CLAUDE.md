@@ -20,7 +20,7 @@
 | **Framework** | Next.js 16 (**App Router 필수**, TypeScript strict) |
 | **Styling** | Tailwind CSS v4 + shadcn/ui (`base-nova` style, base-ui/react 기반) |
 | **BaaS (DB & Auth)** | Supabase (PostgreSQL + Supabase Auth + **RLS**) |
-| **Hosting** | Cloudflare Workers (`@opennextjs/cloudflare`, 도메인 `dshs.dev`) — Vercel은 `vercel.json`으로 push 자동 배포 꺼짐(옛 주소는 마지막 배포 그대로). 순서·설정: `docs/19-cloudflare-workers.md` |
+| **Hosting** | Cloudflare Workers (`@opennextjs/cloudflare`, 도메인 `dshs.dev`) — Vercel은 `vercel.json`으로 push 자동 배포 꺼짐(옛 주소는 마지막 배포 그대로). 순서·설정: `docs/19-cloudflare-workers.md`. **대곽나루 서버 이전 시험 중**(2026-11-11, 시험 주소 `dshs2.dshs.dev`, `DSHS_RUNTIME=node`일 때만 Node 경로 — Cloudflare 바인딩 쓰는 코드를 고칠 땐 `docs/25-naru-server.md`의 표도 볼 것) |
 | **추가 라이브러리** | `@supabase/ssr`, `react-hook-form`, `zod`, `lucide-react`, `date-fns`, `sonner`, `next-themes`, `react-markdown` + `remark-gfm` (바이브 코딩 가이드 렌더링), `cloudinary` (이미지 업로드) |
 
 > ⚠️ shadcn `base-nova` style 의 Button 은 **`asChild` 미지원**. Link 에 `buttonVariants()` 클래스를 입혀 사용.
