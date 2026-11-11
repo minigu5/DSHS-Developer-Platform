@@ -1,0 +1,10 @@
+# DSHS 자동 배포 주기 — /etc/systemd/system/dshs-deploy.timer (2026-11-11)
+[Unit]
+Description=DSHS developer platform auto deploy (every 2 min)
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=2min
+
+[Install]
+WantedBy=timers.target

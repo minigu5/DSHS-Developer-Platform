@@ -1,0 +1,13 @@
+# DSHS 개발자 플랫폼 8080 포트 — /etc/systemd/system/dshs.socket (2026-11-11)
+# 대곽나루 노드 nginx 가 이 서버 IP:8080 으로 보낸다. systemd 가 포트를 쥐고 있어 배포 재시작 동안 온 요청이 거절되지 않는다.
+# 노드 게이트웨이 말고는 8080 에 못 오게 nftables 로 막는다(nftables.conf) — 직접 오면 cf-connecting-ip 를 꾸밀 수 있다.
+# 앱을 일부러 멈출 때는 sudo systemctl stop dshs.socket dshs (dshs 만 멈추면 다음 요청이 다시 켬).
+[Unit]
+Description=DSHS developer platform socket (8080)
+
+[Socket]
+ListenStream=0.0.0.0:8080
+Backlog=1024
+
+[Install]
+WantedBy=sockets.target

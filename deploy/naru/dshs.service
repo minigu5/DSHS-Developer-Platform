@@ -1,0 +1,46 @@
+# DSHS 개발자 플랫폼(Next.js) — /etc/systemd/system/dshs.service (2026-11-11)
+# 전용 계정 dshs-app 으로, 쓰기는 /srv/dshs 만. 비밀 값은 /srv/dshs/.env(600)에만 있다.
+# DSHS_RUNTIME=node: 코드가 Cloudflare 바인딩 대신 Node 경로를 쓴다(src/lib/runtime.ts).
+# NEXT_MANUAL_SIG_HANDLE=true: 멈출 때 Next 가 바로 나가지 않고 앱이 포스터 일감을 최대 100초 기다린다(src/instrumentation.ts).
+[Unit]
+Description=DSHS developer platform (Next.js)
+Requires=dshs.socket
+After=network-online.target dshs.socket
+Wants=network-online.target
+
+[Service]
+User=dshs-app
+Group=dshs-app
+WorkingDirectory=/srv/dshs/current
+EnvironmentFile=/srv/dshs/.env
+Environment=NODE_ENV=production DSHS_RUNTIME=node NEXT_MANUAL_SIG_HANDLE=true NEXT_TELEMETRY_DISABLED=1
+ExecStart=/usr/bin/node --require /srv/dshs/socket-fd.js node_modules/next/dist/bin/next start -p 8080
+TimeoutStopSec=120
+Restart=always
+RestartSec=3
+
+UMask=0027
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/srv/dshs
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target

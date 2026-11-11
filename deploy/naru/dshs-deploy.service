@@ -1,0 +1,11 @@
+# DSHS 자동 배포 한 번 — /etc/systemd/system/dshs-deploy.service (2026-11-11). 타이머가 2분마다 부른다.
+# root 로 돌고 git·npm·빌드는 deploy.sh 가 dshs-app 계정으로 내려서 한다(재시작만 root).
+[Unit]
+Description=DSHS developer platform auto deploy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/srv/dshs/deploy.sh
+TimeoutStartSec=30min
