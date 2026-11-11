@@ -60,5 +60,6 @@ const nextConfig: NextConfig = {
 export default nextConfig;
 
 // `next dev`에서도 Cloudflare 바인딩(env)을 쓸 수 있게 한다 — OpenNext(Cloudflare Workers) 배포용.
+// 개발 서버에서만 — `next build`에서도 부르면 wrangler 원격 세션을 열려다 토큰이 없는 대곽나루 서버 빌드가 멈춘다(2026-11-11 실측).
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
-initOpenNextCloudflareForDev();
+if (process.env.NODE_ENV === "development") initOpenNextCloudflareForDev();
