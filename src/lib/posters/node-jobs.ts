@@ -15,16 +15,15 @@ export function runInBackground(name: string, job: () => Promise<unknown>): void
   running.add(task)
 }
 
-/** 남은 일이 끝나거나 timeoutMs 가 지나면 돌아온다. 끝나지 못한 개수. */
+/** 남은 일이 끝나거나 timeoutMs 가 지나면 돌아온다. 끝나지 못한 개수. 기다리는 동안 새로 들어온 일도 기다린다(멈추는 중에도 요청을 받으므로). */
 export async function drainBackgroundJobs(timeoutMs: number): Promise<number> {
-  if (running.size === 0) return 0
   let timer: ReturnType<typeof setTimeout> | undefined
-  await Promise.race([
-    Promise.allSettled([...running]),
-    new Promise<void>((resolve) => {
-      timer = setTimeout(resolve, timeoutMs)
-    }),
-  ])
+  const deadline = new Promise<'timeout'>((resolve) => {
+    timer = setTimeout(() => resolve('timeout'), timeoutMs)
+  })
+  while (running.size > 0) {
+    if ((await Promise.race([Promise.allSettled([...running]), deadline])) === 'timeout') break
+  }
   clearTimeout(timer)
   return running.size
 }

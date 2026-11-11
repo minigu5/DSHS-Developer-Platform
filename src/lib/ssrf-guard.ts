@@ -44,15 +44,33 @@ function isPrivateOrReservedV4(ip: string): boolean {
   return ranges.some((r) => inV4Range(ip, r));
 }
 
+// IPv6 를 16비트 8칸으로 푼다('::' 줄임·끝의 점 표기 IPv4 포함). net.isIPv6 를 통과한 값만 넣는다.
+function ipv6Groups(ip: string): number[] {
+  let text = ip.toLowerCase();
+  const dotted = text.match(/(\d+\.\d+\.\d+\.\d+)$/);
+  if (dotted) {
+    const [a, b, c, d] = dotted[1].split('.').map(Number);
+    text = text.slice(0, -dotted[1].length) + `${((a << 8) | b).toString(16)}:${((c << 8) | d).toString(16)}`;
+  }
+  const [head, tail] = text.includes('::') ? text.split('::') : [text, null];
+  const left = head ? head.split(':') : [];
+  const right = tail ? tail.split(':') : [];
+  const zeros = tail === null ? [] : Array(8 - left.length - right.length).fill('0');
+  return [...left, ...zeros, ...right].map((g) => parseInt(g, 16));
+}
+
 function isPrivateOrReservedV6(ip: string): boolean {
   const lower = ip.toLowerCase();
   if (lower === '::' || lower === '::1') return true;
   if (lower.startsWith('fe80:') || lower.startsWith('fc') || lower.startsWith('fd')) return true;
   if (lower.startsWith('ff')) return true; // multicast
-  if (lower.startsWith('::ffff:')) {
-    const v4 = lower.slice(7);
-    if (net.isIPv4(v4)) return isPrivateOrReservedV4(v4);
-  }
+  // IPv4 를 품은 주소는 그 IPv4 로 판정 — URL 은 [::ffff:127.0.0.1] 을 [::ffff:7f00:1] 로 바꿔 써서 점 표기만 보면 뚫린다(2026-11-11 리뷰)
+  // ::ffff:0:0/96(mapped), ::/96(compatible), 64:ff9b::/96(NAT64)
+  const g = ipv6Groups(lower);
+  const firstFiveZero = g.slice(0, 5).every((x) => x === 0);
+  const embedsV4 =
+    (firstFiveZero && (g[5] === 0xffff || g[5] === 0)) || (g[0] === 0x64 && g[1] === 0xff9b && g.slice(2, 6).every((x) => x === 0));
+  if (embedsV4) return isPrivateOrReservedV4(`${g[6] >> 8}.${g[6] & 255}.${g[7] >> 8}.${g[7] & 255}`);
   return false;
 }
 

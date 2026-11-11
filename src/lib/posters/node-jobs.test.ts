@@ -38,3 +38,14 @@ test('남은 일이 없으면 바로 0', async () => {
   assert.equal(await drainBackgroundJobs(5000), 0)
   assert.ok(Date.now() - started < 100)
 })
+
+test('기다리는 동안 새로 들어온 일도 기다린다', async () => {
+  let done = 0
+  runInBackground('first', async () => {
+    await wait(100)
+    runInBackground('late', async () => { await wait(200); done++ })
+    done++
+  })
+  assert.equal(await drainBackgroundJobs(2000), 0)
+  assert.equal(done, 2)
+})

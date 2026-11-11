@@ -52,3 +52,8 @@ test('이름 풀기에서 사설 주소가 나오면 거절', async () => {
 test('공인 이름은 통과', { skip: process.env.OFFLINE === '1' }, async () => {
   assert.equal(await lookupOf('one.one.one.one'), null)
 })
+
+test('IPv6 안에 넣은 IPv4 루프백 주소로도 못 간다', async () => {
+  await assert.rejects(fetch(`http://[::ffff:127.0.0.1]:${port}/`))
+  await assert.rejects(fetch(`http://[::ffff:7f00:1]:${port}/`))
+})

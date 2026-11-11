@@ -1,5 +1,5 @@
 # DSHS 개발자 플랫폼(Next.js) — /etc/systemd/system/dshs.service (2026-11-11)
-# 전용 계정 dshs-app 으로, 쓰기는 /srv/dshs 만. 비밀 값은 /srv/dshs/.env(600)에만 있다.
+# 전용 계정 dshs-app 으로, 쓰기는 /srv/dshs/releases 만(next start 가 .next/cache 에 씀). 비밀 값은 /etc/dshs/env(root 600)에만 — systemd 가 읽어 넘긴다.
 # DSHS_RUNTIME=node: 코드가 Cloudflare 바인딩 대신 Node 경로를 쓴다(src/lib/runtime.ts).
 # NEXT_MANUAL_SIG_HANDLE=true: 멈출 때 Next 가 바로 나가지 않고 앱이 포스터 일감을 최대 100초 기다린다(src/instrumentation.ts).
 [Unit]
@@ -12,19 +12,21 @@ Wants=network-online.target
 User=dshs-app
 Group=dshs-app
 WorkingDirectory=/srv/dshs/current
-EnvironmentFile=/srv/dshs/.env
+EnvironmentFile=/etc/dshs/env
 Environment=NODE_ENV=production DSHS_RUNTIME=node NEXT_MANUAL_SIG_HANDLE=true NEXT_TELEMETRY_DISABLED=1
-# -H·-p 는 요청 주소(request.url)를 만드는 값이다 — 실제 포트는 dshs.socket 의 8080(preload.js 가 넘겨받음). 공개 호스트는 .env 의 NEXT_PUBLIC_SITE_URL 에서.
+# -H·-p 는 요청 주소(request.url)를 만드는 값이다 — 실제 포트는 dshs.socket 의 8080(preload.js 가 넘겨받음). 공개 호스트는 /etc/dshs/env 의 NEXT_PUBLIC_SITE_URL 에서.
 # ($$ 는 systemd 가 아니라 sh 가 풀게 하는 표시)
-ExecStart=/bin/sh -c 'exec /usr/bin/node --require /srv/dshs/preload.js node_modules/next/dist/bin/next start -H "$${NEXT_PUBLIC_SITE_URL#https://}" -p 443'
+ExecStart=/bin/sh -c 'exec /usr/bin/node --require /usr/local/lib/dshs/preload.js node_modules/next/dist/bin/next start -H "$${NEXT_PUBLIC_SITE_URL#https://}" -p 443'
 TimeoutStopSec=120
 Restart=always
 RestartSec=3
+# 빌드가 메모리를 다 쓰면 커널이 앱보다 빌드를 먼저 죽이게(dshs-deploy.service 는 +500)
+OOMScoreAdjust=-500
 
 UMask=0027
 NoNewPrivileges=yes
 ProtectSystem=strict
-ReadWritePaths=/srv/dshs
+ReadWritePaths=/srv/dshs/releases
 ProtectHome=yes
 PrivateTmp=yes
 PrivateDevices=yes

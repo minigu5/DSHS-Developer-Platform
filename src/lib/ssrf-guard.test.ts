@@ -30,3 +30,14 @@ test('IP 가 하나도 없으면 빈 배열', () => {
 test('isBlockedIp 는 IP 가 아닌 문자열을 여전히 막는다', () => {
   assert.equal(isBlockedIp('a.example.com.'), true)
 })
+
+test('IPv6 안에 넣은 IPv4(16진 표기 포함)도 사설이면 막는다 — URL 이 [::ffff:127.0.0.1] 을 [::ffff:7f00:1] 로 바꿔 씀', () => {
+  assert.equal(isBlockedIp('::ffff:7f00:1'), true)
+  assert.equal(isBlockedIp('::ffff:127.0.0.1'), true)
+  assert.equal(isBlockedIp('::ffff:afa:1'), true) // 10.250.0.1
+  assert.equal(isBlockedIp('0:0:0:0:0:ffff:7f00:1'), true)
+  assert.equal(isBlockedIp('::7f00:1'), true) // IPv4-compatible
+  assert.equal(isBlockedIp('64:ff9b::7f00:1'), true) // NAT64
+  assert.equal(isBlockedIp('::ffff:808:808'), false) // 8.8.8.8
+  assert.equal(isBlockedIp('2606:4700:4700::1111'), false)
+})
