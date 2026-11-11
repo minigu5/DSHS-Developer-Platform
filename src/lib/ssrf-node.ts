@@ -6,8 +6,9 @@
 
 import dns from 'node:dns'
 import net from 'node:net'
-import { Agent, buildConnector, setGlobalDispatcher } from 'undici'
+import type * as Undici from 'undici'
 
+import { nodeRequire } from './node-require.ts'
 import { isBlockedIp } from './ssrf-guard.ts'
 
 type LookupCallback = (err: NodeJS.ErrnoException | null, address: string | dns.LookupAddress[], family?: number) => void
@@ -29,7 +30,8 @@ export function safeLookup(hostname: string, options: dns.LookupOptions, callbac
 }
 
 /** 전역 fetch 의 연결을 safeLookup 으로. IP 리터럴 주소는 이름 풀기를 안 거치므로 연결 전에 따로 거른다. */
-export function installSafeDispatcher(): void {
+export async function installSafeDispatcher(): Promise<void> {
+  const { Agent, buildConnector, setGlobalDispatcher } = await nodeRequire<typeof Undici>('undici')
   const connectSafely = buildConnector({ lookup: safeLookup })
   setGlobalDispatcher(
     new Agent({

@@ -5,6 +5,6 @@ import { isNodeServer } from '@/lib/runtime'
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME !== 'nodejs' || !isNodeServer()) return
   const { installSafeDispatcher } = await import('@/lib/ssrf-node')
-  installSafeDispatcher()
+  await installSafeDispatcher()
   console.log('[naru] 서버 fetch 사설 주소 차단 켬')
 }

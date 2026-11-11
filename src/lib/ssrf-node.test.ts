@@ -14,7 +14,7 @@ before(async () => {
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
   port = (server.address() as AddressInfo).port
   original = getGlobalDispatcher()
-  installSafeDispatcher()
+  await installSafeDispatcher()
 })
 
 after(() => {

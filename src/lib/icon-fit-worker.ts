@@ -5,6 +5,7 @@ import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 import { computeIconFit } from '@/lib/icon-fit-fetch'
 import type { IconFit } from '@/lib/icon-fit'
+import { isNodeServer } from '@/lib/runtime'
 
 interface ImagesBinding {
   input(stream: ReadableStream<Uint8Array>): {
@@ -29,6 +30,12 @@ async function shrinkWithImages(png: Uint8Array): Promise<Uint8Array | null> {
   return new Uint8Array(await out.response().arrayBuffer())
 }
 
+// 대곽나루 서버(Node)는 sharp 로 줄인다. sharp 는 Worker 번들에서 불러오면 안 되므로 갈림길 안에서만 import.
+async function shrinkWithSharpLazy(png: Uint8Array): Promise<Uint8Array | null> {
+  const { shrinkWithSharp } = await import('@/lib/icon-fit-shrink-node')
+  return shrinkWithSharp(png)
+}
+
 export function computeIconFitInWorker(src: string): Promise<IconFit | null> {
-  return computeIconFit(src, { shrink: shrinkWithImages, maxPixels: 128 * 128 })
+  return computeIconFit(src, { shrink: isNodeServer() ? shrinkWithSharpLazy : shrinkWithImages, maxPixels: 128 * 128 })
 }

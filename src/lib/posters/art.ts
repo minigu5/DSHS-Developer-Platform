@@ -3,7 +3,9 @@ import 'server-only'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 import { cloudinary } from '@/lib/cloudinary'
+import { isNodeServer } from '@/lib/runtime'
 
+import { runArtModelRest } from './art-rest'
 import { fitArtSize } from './art-size'
 import { POSTER_ART_MODEL, type PosterArtOrder } from './config'
 import { classifyArtError } from './decide'
@@ -43,6 +45,15 @@ export async function uploadPosterArtBlob(body: Blob): Promise<string | null> {
   }
 }
 
+// Worker: AI 바인딩. 대곽나루 서버는 같은 모델을 REST 로(art-rest.ts)
+async function runArtModelBinding(form: FormData): Promise<{ image?: string }> {
+  const packed = new Response(form)
+  const { env } = getCloudflareContext()
+  return (env as unknown as AiEnv).AI.run(POSTER_ART_MODEL, {
+    multipart: { body: packed.body, contentType: packed.headers.get('content-type') },
+  })
+}
+
 /**
  * Workers AI(flux-2-klein)로 글자 없는 그림 한 장 → Cloudinary 에 올리고 URL.
  * 비율은 Gemini 가 정한 그림 자리 그대로, 넓이만 줄인다. base64 는 디코딩하지 않고 data URI 로 넘긴다(CPU 절약).
@@ -54,11 +65,7 @@ export async function drawPosterArt(order: PosterArtOrder): Promise<{ ok: true; 
     form.append('prompt', order.prompt)
     form.append('width', String(width))
     form.append('height', String(height))
-    const packed = new Response(form)
-    const { env } = getCloudflareContext()
-    const out = await (env as unknown as AiEnv).AI.run(POSTER_ART_MODEL, {
-      multipart: { body: packed.body, contentType: packed.headers.get('content-type') },
-    })
+    const out = isNodeServer() ? await runArtModelRest(POSTER_ART_MODEL, form) : await runArtModelBinding(form)
     if (!out?.image) return { ok: false, reason: 'error' }
     const uploaded = await cloudinary.uploader.upload(`data:image/png;base64,${out.image}`, {
       folder: 'dshs/posters',
