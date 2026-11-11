@@ -42,7 +42,9 @@ if ! as_app timeout 120 git -C "$REPO" fetch -q origin "+refs/heads/$BRANCH:refs
   exit 0
 fi
 SHA="$(as_app git -C "$REPO" rev-parse "origin/$BRANCH")"
-PREV="$(readlink -f "$ROOT/current" 2>/dev/null || true)"
+# 처음엔 current 가 없다 — readlink -f 는 없는 경로도 그대로 돌려줘서, 되돌릴 때 current 가 자기 자신을 가리켰다(2026-11-11)
+PREV=""
+[[ -L "$ROOT/current" ]] && PREV="$(readlink -f "$ROOT/current")"
 if [[ $FORCE -eq 0 && "$(basename "${PREV:-none}")" == "$SHA" ]]; then
   exit 0
 fi

@@ -33,7 +33,8 @@ ProtectControlGroups=yes
 ProtectClock=yes
 ProtectHostname=yes
 ProtectProc=invisible
-RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+# AF_NETLINK: next start 가 켜질 때 os.networkInterfaces() 를 부른다 — 막으면 EAFNOSUPPORT 로 멈춰 요청이 영영 안 끝남(2026-11-11)
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
 RestrictNamespaces=yes
 RestrictRealtime=yes
 RestrictSUIDSGID=yes
