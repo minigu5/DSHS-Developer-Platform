@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { dshsNameOf, visitUrlFor } from "@/lib/domains/visit-url";
+import { clientIpOf } from "@/lib/client-ip";
 
 async function buildIpHash(request: NextRequest): Promise<string> {
-  // Cloudflare 가 넣는 cf-connecting-ip 를 먼저 — x-forwarded-for 첫 값은 요청자가 꾸밀 수 있음
-  const ip =
-    request.headers.get("cf-connecting-ip") ||
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown";
+  // 대곽나루 서버로 갈 땐 서울 입구가 키와 함께 넘긴 IP, 아니면 cf-connecting-ip(src/lib/client-ip.ts)
+  const ip = clientIpOf(request.headers, process.env.DSHS_RELAY_KEY);
   const ua = request.headers.get("user-agent") || "";
   const raw = new TextEncoder().encode(ip + "|" + ua);
   const buf = await crypto.subtle.digest("SHA-256", raw);
