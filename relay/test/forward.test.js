@@ -80,9 +80,9 @@ test('ORIGIN_HOST 가 없으면 예전처럼 Worker 만', async () => {
   assert.equal(res.headers.get('x-dshs-origin'), 'worker')
 })
 
-test('헤더 한 줄이 너무 크면(노드 nginx 8KB 한도) 서버로 안 보내고 바로 Worker 로', async () => {
+test('헤더 한 줄이 너무 크면(노드 nginx 32KB 한도에 여유) 서버로 안 보내고 바로 Worker 로', async () => {
   let called = false
-  const big = 'a'.repeat(7000)
+  const big = 'a'.repeat(25000)
   const res = await forwardWithFallback(req('/', { headers: { cookie: `sb=${big}` } }), env(), {
     fetchImpl: async () => { called = true; return new Response('origin') },
   })
@@ -95,4 +95,9 @@ test('서버가 "헤더가 너무 크다" 400 을 주면 GET 은 Worker 로', as
     fetchImpl: async () => new Response('<center>Request Header Or Cookie Too Large</center>', { status: 400 }),
   })
   assert.equal(res.headers.get('x-dshs-origin'), 'worker')
+})
+
+test('12KB 쿠키는 이제 서버로(노드 nginx 32KB)', async () => {
+  const res = await forwardWithFallback(req('/', { headers: { cookie: `sb=${'a'.repeat(12000)}` } }), env(), { fetchImpl: async () => new Response('origin') })
+  assert.equal(res.headers.get('x-dshs-origin'), 'naru')
 })

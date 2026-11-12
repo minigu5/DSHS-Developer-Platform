@@ -16,9 +16,9 @@ const NOT_PROCESSED = new Set([502, 503, 521, 522, 523, 530])
 const MAYBE_PROCESSED = new Set([504, 524])
 // 이보다 큰 본문은 담아 두지 않고 서버로만 보낸다(실패해도 Worker 로 다시 못 보냄)
 const MAX_BUFFER = 12 * 1024 * 1024
-// 대곽나루 노드 nginx 는 요청 헤더 한 줄을 8KB 까지만 받는다(넘으면 400 "Request Header Or Cookie Too Large" — 2026-11-12 운영에서 쿠키가 커서
-// 막힘). 우리·대곽나루 입구가 헤더를 더 붙이므로 여유를 두고, 이보다 긴 헤더가 있으면 서버로 보내지 않고 Worker(32KB까지 받음)로.
-const MAX_HEADER_LINE = 6000
+// 대곽나루 노드 nginx 가 받는 요청 헤더 한 줄 한도 — 처음엔 8KB 라 쿠키가 큰 사람이 400 "Request Header Or Cookie Too Large"를 받았고
+// (2026-11-12), 대곽나루가 32KB 로 올렸다(server_connection d14f3fd). 입구들이 헤더를 더 붙이므로 여유를 두고, 이보다 긴 헤더는 Worker 로.
+const MAX_HEADER_LINE = 24000
 
 function tag(res, origin) {
   const out = new Response(res.body, res)
