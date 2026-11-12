@@ -31,6 +31,8 @@
 
 - **request.url이 localhost**: `next start`는 route handler의 `request.url`을 `-H`·연 포트로 만든다(Host 헤더 안 봄, Next 16엔 `trustHostHeader`도 없음) → 로그인 콜백·클릭 집계가 `http://localhost:8080`으로 리다이렉트. `deploy/naru/preload.js`가 모든 요청을 https로 표시하고 소켓 주소를 443으로 알려 주며, 유닛이 `-H <NEXT_PUBLIC_SITE_URL의 호스트> -p 443`을 준다 → `https://dshs2.dshs.dev/…`.
 - **AF_NETLINK**: systemd `RestrictAddressFamilies`에 없으면 `next start`가 `os.networkInterfaces()`에서 멈춰 요청이 영영 안 끝난다.
+- **리뷰 반영(2026-11-11~12)**: IPv4를 품은 IPv6(`[::ffff:7f00:1]` 등)로 SSRF 차단이 뚫리던 것(`ssrf-guard.ts` — Worker에도 적용), 켤 때 차단 자가 시험(안 걸리면 안 켜짐), 배포 파일·비밀 값을 root 전용 위치로(`deploy/naru/README.md`), 릴리스 폴더 `<sha>-<시각>`(같은 커밋 `--force`도 돌던 폴더를 안 건드림), 실패한 커밋 반복 안 함, 빌드 OOM은 빌드가 먼저 죽게, 멈출 때 기다리는 중 새 일감도 기다리고 서버를 닫아 응답 마무리, 방화벽은 우리 표만·소켓보다 먼저(재부팅으로 순서 확인).
+- **사용자 IP 꾸미기 시험**(2026-11-12): 꾸민 `CF-Connecting-IP`는 Cloudflare가 403으로 막고, `X-Forwarded-For`·`X-Real-IP`·`x-naru-client-ip`(+가짜 키)·`True-Client-IP`·`Forwarded`를 붙여도 클릭 집계엔 진짜 IP 해시가 찍혔다.
 - 빌드: `npm ci`+`next build` 첫 회 약 7분, 캐시 뒤 75초. 빌드 중 서버 메모리 최대 1,699MB/2,048MB(앱 실행 중 포함). 배포 중 0.2초 간격 요청 389건 모두 200(최대 1.3초).
 - 확인한 것(2026-11-11, 시험 계정): 로그인 필요한 화면, `/api/upload`(Cloudinary), 앞단 SSRF 400, 파비콘 동기화 → sharp 축소로 icon_fit 계산(180px PNG), Workers AI REST 그림 1장(0.9초), 클릭 집계 IP 해시가 실제 사용자 IP와 일치(노드 nginx가 `CF-Connecting-IP` 복원). 첫 응답: 시험 주소 약 0.35초 vs 운영 0.11초(Pages → 터널 → 노드 nginx 구간).
 - 사용자가 직접 볼 것: Google 로그인·온보딩, 프로젝트 등록·수정 화면, 댓글·하트, 글쓰기, 가이드 편집, AI 포스터(만들기·탭 닫기·걸기·PNG/PDF), 관리자 화면.
