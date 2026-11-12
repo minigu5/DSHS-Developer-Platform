@@ -98,14 +98,14 @@ export async function loadProjectDetail(
   const isTeamMember = !!viewer?.email && (project.team_members ?? []).includes(viewer.email)
   const canEdit = !!viewer && (isOwner || isDeveloper(viewer.email) || isTeamMember)
 
-  // 소유자에게만: 미리보기 주소 경고, 아니면 도메인 마련하기 안내(공개 웹사이트·이 프로젝트에 주소 없음·계정당 3개 미만),
+  // 소유자에게만: 미리보기 주소 경고, 아니면 도메인 마련하기 안내(웹사이트 — 비공개도·이 프로젝트에 주소 없음·계정당 3개 미만),
   // 그리고 주소를 연결했는데 상세 설명에 옛 사이트 주소가 남아 있으면 바꿀지 묻는다. 주소는 소유자 본인 것이라 본인 권한으로 읽힌다
   const ownerPreview = isOwner && project.url ? previewAddressOf(project.url) : null
   let ownerOffer: ProjectDetail['ownerOffer'] = null
   let ownerOldAddress: ProjectDetail['ownerOldAddress'] = null
   if (viewer && isOwner) {
     const offer =
-      !ownerPreview && project.url && project.visibility === 'public' && (project.types ?? []).includes('website')
+      !ownerPreview && project.url && (project.types ?? []).includes('website')
         ? domainOfferOf(project.url)
         : null
     const [mine, source] = await Promise.all([

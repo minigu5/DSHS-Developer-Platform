@@ -36,7 +36,7 @@ import { ConfirmNameInput } from "@/components/shared/confirm-name-input";
 import { nameMatches } from "@/lib/confirm-name";
 import { parseGithubRepo } from "@/lib/github-readme";
 import type { RepoStatus } from "@/lib/github-repo-check";
-import { closeDomainOfPrivateProject, deleteProject, refreshIconFit } from "@/lib/projects/actions";
+import { deleteProject, refreshIconFit } from "@/lib/projects/actions";
 import { parseIconFit } from "@/lib/icon-fit";
 import { addGithubToProfile } from "@/lib/profile/actions";
 import { domainOfferOf, previewAddressOf, quickToConnect } from "@/lib/domains/offer";
@@ -76,8 +76,8 @@ interface ProjectFormProps {
   canDelete?: boolean;
   /** 이 프로젝트에 살아 있는 주소(서브도메인) 이름 — 삭제하면 함께 반납돼요 */
   subdomainName?: string | null;
-  /** 관리자 계정 — 비공개 프로젝트에도 주소를 둘 수 있어서 비공개로 바꿔도 주소를 닫지 않고 "주소 닫기" 띠도 안 띄운다 */
-  keepDomainWhenPrivate?: boolean;
+  /** 연결된 주소(https://<이름>.dshs.dev) — 연결된 동안 방문 주소는 이 주소로 고정(DB 가드 projects_guard_domain_url). 팀원에게도 넘긴다 */
+  domainUrl?: string | null;
   /** 연결된(active) 주소 이름과 옛 사이트 주소 후보 — 상세 설명에 옛 주소가 있으면 새 주소로 바꿀지 묻는다 */
   oldAddress?: { name: string; prefixes: string[] } | null;
   /** 관리자 잠금(수정 화면) — 있으면 "공개"를 고를 수 없고 이유를 보여 준다 */
@@ -88,7 +88,7 @@ interface ProjectFormProps {
   nextHref?: string | null;
 }
 
-export function ProjectForm({ initialData, isEdit = false, canDelete = true, subdomainName = null, keepDomainWhenPrivate = false, oldAddress = null, lock = null, initialType = null, nextHref = null }: ProjectFormProps) {
+export function ProjectForm({ initialData, isEdit = false, canDelete = true, subdomainName = null, domainUrl = null, oldAddress = null, lock = null, initialType = null, nextHref = null }: ProjectFormProps) {
   const router = useRouter();
   const supabase = createClient();
   const [isLoading, setIsLoading] = useState(false);
@@ -97,10 +97,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showPrivateDialog, setShowPrivateDialog] = useState(false);
-  // 저장 없이 주소만 닫기(이미 비공개인데 주소가 남은 경우) — 같은 확인 창을 쓴다
-  const [closeOnly, setCloseOnly] = useState(false);
-  // 삭제·주소 반납 확인 창에서 직접 적는 프로젝트 이름 — 저장된 이름(initialData.title)과 같아야 버튼이 켜진다
+  // 삭제 확인 창에서 직접 적는 프로젝트 이름 — 저장된 이름(initialData.title)과 같아야 버튼이 켜진다
   const [confirmName, setConfirmName] = useState("");
   const savedTitle = initialData?.title ?? "";
   const confirmed = nameMatches(confirmName, savedTitle);
@@ -118,11 +115,6 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   const [visibility, setVisibility] = useState<Visibility>(
     initialData?.visibility ?? "public",
   );
-  // 살아 있는 주소가 있는 프로젝트를 비공개로 바꾸는 저장 — 저장하면 주소도 반납돼요
-  const closesDomain = isEdit && Boolean(subdomainName) && !keepDomainWhenPrivate && visibility === "private" && initialData?.visibility !== "private";
-  // 이미 비공개로 저장됐는데 주소가 살아 있음 — 비공개 전환 때 반납이 실패한 뒤 새로 고쳤거나, 폼을 거치지 않고 비공개로 바뀐 경우.
-  // (비공개 프로젝트는 새로 주소를 받을 수 없으니 이 상태는 의도치 않은 것 — 관리자 계정은 일부러 둘 수 있어 빼 둔다) 저장 없이 주소만 닫는 길을 보여 준다.
-  const strandedDomain = isEdit && Boolean(subdomainName) && !keepDomainWhenPrivate && initialData?.visibility === "private" && visibility === "private";
 
   // 설명
   const [shortDesc, setShortDesc] = useState<string>(initialData?.short_description ?? "");
@@ -190,7 +182,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
   // Firebase·Pages 미리보기 주소는 며칠 뒤 사라진다 — 원래 주소로 바꾸게 알린다
   const previewAddress = previewAddressOf(url);
   // 수정 화면: 주소를 아직 안 받은 소유자에게 주소 칸 아래 한 줄로 다시 권한다
-  const editDomainOffer = isEdit && canDelete && !subdomainName && isWebsite && visibility === 'public' && initialData?.id ? domainOfferOf(url) : null;
+  const editDomainOffer = isEdit && canDelete && !subdomainName && isWebsite && initialData?.id ? domainOfferOf(url) : null;
   const [repoUrl, setRepoUrl] = useState<string>(initialData?.repo_url ?? "");
   // 저장소 링크는 GitHub 저장소만 받는다(2026-11-07 — vercel 주소를 적은 프로젝트가 있었음). 입력칸을 벗어난 뒤부터 경고, 수정 화면은 처음부터
   const [repoChecked, setRepoChecked] = useState(Boolean(initialData?.repo_url));
@@ -718,24 +710,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
       return;
     }
 
-    if (closesDomain) {
-      setShowPrivateDialog(true);
-      return;
-    }
     await saveProject();
-  };
-
-  const closeDomainNow = async () => {
-    if (!initialData?.id) return;
-    setIsLoading(true);
-    setErrorMsg("");
-    const closed = await closeDomainOfPrivateProject(initialData.id);
-    setIsLoading(false);
-    if (!closed.ok) {
-      setErrorMsg(closed.error);
-      return;
-    }
-    router.refresh();
   };
 
   // 저장에 성공하면 페이지가 바뀔 때까지 다시 저장하지 않는다 — 이동이 1~2초 걸리는 동안 버튼을 또 눌러 같은 프로젝트가 여러 번 등록됐다(2026-11-04).
@@ -809,11 +784,6 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         // 수정 시 author_id 는 포함하지 않음 — 원작자 변경 방지 (개발자 계정 포함)
         const { error } = await supabase.from('projects').update(commonFields).eq('id', initialData.id);
         if (error) throw error;
-        if (closesDomain) {
-          // 방문 주소가 이 주소로 저장된 뒤에 반납해야 이전 방문 주소로 되돌아간다. 실패해도 비공개 저장은 끝난 상태 — 다시 저장하면 반납을 다시 시도한다.
-          const closed = await closeDomainOfPrivateProject(initialData.id);
-          if (!closed.ok) throw new Error(`비공개로는 저장했지만 주소는 아직 닫히지 않았어요. ${closed.error}`);
-        }
         await fitIcon(initialData.id);
         allowLeave();
         router.push(`/projects/${initialData.id}`);
@@ -823,12 +793,12 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         if (error) throw error;
         await fitIcon(data.id);
         allowLeave();
-        if (nextHref && shouldFollowNext(nextHref, { isWebsite, isPublic: visibility === 'public' })) {
+        if (nextHref && shouldFollowNext(nextHref, { isWebsite })) {
           router.push(withProject(nextHref, data.id));
           router.refresh();
           return;
         }
-        const offer = isWebsite && visibility === 'public' ? await domainOfferFor(url, session.user.id) : null;
+        const offer = isWebsite ? await domainOfferFor(url, session.user.id) : null;
         if (offer) {
           setDomainOffer({ projectId: data.id, ...offer });
           return;
@@ -851,6 +821,8 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         msg = '관리자가 잠근 프로젝트라 볼 수 있는 사람을 더 늘릴 수 없어요.';
       } else if (msg.includes('project_locked')) {
         msg = '관리자가 잠근 프로젝트라 공개로 바꿀 수 없어요.';
+      } else if (msg.includes('project_url_locked')) {
+        msg = '도메인이 연결된 동안은 방문 주소를 바꿀 수 없어요. 다른 주소를 쓰려면 도메인 마련하기에서 주소를 먼저 반납해 주세요.';
       } else if (msg.includes('projects_duplicate_recent')) {
         msg = '방금 같은 이름으로 등록한 프로젝트가 있어요. 내 프로젝트에서 확인해 주세요.';
       }
@@ -942,8 +914,25 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
               <Label htmlFor="url" className={labelClass}>웹사이트 또는 다운로드 링크{!urlOptional && req}</Label>
               <div className="relative">
                 <LinkIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" aria-hidden />
-                <Input id="url" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://..." className="h-11 rounded-xl pl-9" />
+                <Input
+                  id="url"
+                  value={url}
+                  onChange={e => setUrl(e.target.value)}
+                  readOnly={Boolean(domainUrl)}
+                  aria-describedby={domainUrl ? "url_locked_hint" : undefined}
+                  placeholder="https://..."
+                  className={cn("h-11 rounded-xl pl-9", domainUrl && "bg-zinc-50 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400")}
+                />
               </div>
+              {domainUrl && (
+                <p id="url_locked_hint" className={hintClass}>
+                  도메인이 연결돼 있어서 방문 주소는 <span className="font-mono">{domainUrl.replace(/^https:\/\//, "")}</span>로 고정돼요. 다른 주소를 쓰려면{" "}
+                  <a href="/domains" className="font-medium text-teal-700 underline underline-offset-2 hover:text-teal-800 dark:text-teal-400 dark:hover:text-teal-300">
+                    도메인 마련하기
+                  </a>
+                  에서 주소를 먼저 반납해요.
+                </p>
+              )}
               {urlOptional && <p className={hintClass}>방문 주소는 비워도 돼요. 대곽나루 서버에 주소를 붙인 뒤에 바꿔도 돼요.</p>}
               {previewAddress ? (
                 <div role="alert" className="grid gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
@@ -1315,31 +1304,6 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
 
           {lock && <LockNotice reason={lock.reason} />}
 
-          {closesDomain && (
-            <div role="status" className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
-              비공개로 저장하면 이 프로젝트의 주소 <span className="font-mono font-semibold">{subdomainName}.dshs.dev</span>도 반납돼요. 저장할 때 한 번 더 물어봐요.
-            </div>
-          )}
-
-          {strandedDomain && (
-            <div role="status" className="flex flex-col gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 sm:flex-row sm:items-center dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
-              <p className="flex-1">
-                비공개 프로젝트지만 주소가 아직 열려 있어요: <span className="font-mono font-semibold">{subdomainName}.dshs.dev</span>
-              </p>
-              <button
-                type="button"
-                disabled={isLoading}
-                onClick={() => {
-                  setCloseOnly(true);
-                  setShowPrivateDialog(true);
-                }}
-                className="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-rose-300 bg-white px-4 text-sm font-semibold text-rose-700 transition-colors hover:bg-rose-100 disabled:opacity-50 dark:border-rose-800 dark:bg-zinc-900 dark:text-rose-300 dark:hover:bg-rose-950"
-              >
-                주소 닫기
-              </button>
-            </div>
-          )}
-
           {visibility === "private" && (
             <div className="animate-in fade-in slide-in-from-top-2">
               <div className="space-y-2">
@@ -1577,59 +1541,6 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
             </button>
             <button type="button" onClick={() => finishDomainOffer(true)} className={cn(buttonVariants(), "rounded-xl", SECTION_COLORS.domains.button)}>
               도메인 마련하기
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={showPrivateDialog}
-        onOpenChange={(open) => {
-          setShowPrivateDialog(open);
-          if (!open) {
-            setCloseOnly(false);
-            setConfirmName("");
-          }
-        }}
-      >
-        <DialogContent showCloseButton={false} className="rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-lg">{closeOnly ? "이 주소를 닫을까요?" : "비공개로 바꾸면 주소도 닫혀요"}</DialogTitle>
-            <DialogDescription>
-              <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-200">{subdomainName}.dshs.dev</span> 주소를 반납해요.
-            </DialogDescription>
-          </DialogHeader>
-          <ul className="list-disc space-y-1.5 pl-5 text-sm text-zinc-600 dark:text-zinc-400">
-            <li>이 주소로는 더 이상 사이트가 열리지 않아요.</li>
-            <li>이름이 풀려서 다른 사람이 바로 가져갈 수 있어요.</li>
-            <li>방문 주소가 이 주소였다면 도메인을 받기 전 주소로 돌아가요. 기억된 주소가 없으면 비워져요.</li>
-            <li>다시 공개로 바꿔도 주소는 돌아오지 않아요. 도메인 마련하기에서 새로 받아야 해요.</li>
-          </ul>
-          <ConfirmNameInput name={savedTitle} value={confirmName} onChange={setConfirmName} />
-          <DialogFooter>
-            <button
-              type="button"
-              onClick={() => { setShowPrivateDialog(false); setCloseOnly(false); setConfirmName(""); }}
-              className={cn(buttonVariants({ variant: "outline" }), "rounded-xl")}
-            >
-              취소
-            </button>
-            <button
-              type="button"
-              disabled={!confirmed}
-              onClick={() => {
-                setShowPrivateDialog(false);
-                setConfirmName("");
-                if (closeOnly) {
-                  setCloseOnly(false);
-                  void closeDomainNow();
-                } else {
-                  void saveProject();
-                }
-              }}
-              className={cn(buttonVariants(), "rounded-xl bg-red-600 text-white hover:bg-red-700 disabled:opacity-50")}
-            >
-              {closeOnly ? "주소 반납" : "비공개로 바꾸고 주소 반납"}
             </button>
           </DialogFooter>
         </DialogContent>

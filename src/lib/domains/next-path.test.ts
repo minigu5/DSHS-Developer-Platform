@@ -48,11 +48,10 @@ test('서버 id 는 8자리 소문자 16진수만', () => {
   }
 })
 
-test('shouldFollowNext: 웹사이트이고 공개일 때만 next 를 따른다', () => {
-  assert.equal(shouldFollowNext('/domains?naru=fa4e0001', { isWebsite: true, isPublic: true }), true)
-  assert.equal(shouldFollowNext('/domains?naru=fa4e0001', { isWebsite: true, isPublic: false }), false)
-  assert.equal(shouldFollowNext('/domains?naru=fa4e0001', { isWebsite: false, isPublic: true }), false)
-  assert.equal(shouldFollowNext(null, { isWebsite: true, isPublic: true }), false)
+test('shouldFollowNext: 웹사이트일 때만 next 를 따른다(공개 범위는 안 봄)', () => {
+  assert.equal(shouldFollowNext('/domains?naru=fa4e0001', { isWebsite: true }), true)
+  assert.equal(shouldFollowNext('/domains?naru=fa4e0001', { isWebsite: false }), false)
+  assert.equal(shouldFollowNext(null, { isWebsite: true }), false)
 })
 
 test('hostParamIsNaru: ?host=naru 만 대곽나루', () => {

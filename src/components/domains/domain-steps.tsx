@@ -478,6 +478,14 @@ function UrlSuggestion({ domain, onApplied }: { domain: DomainView; onApplied: (
   );
 }
 
+function ConnectNote({ fqdn }: { fqdn: string | null }) {
+  return (
+    <p className="mb-2 text-sm text-zinc-600 dark:text-zinc-400">
+      연결하면 프로젝트의 방문 주소가 <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-200">{fqdn}</span>로 바뀌어요. 주소를 반납하면 원래대로 돌아가요.
+    </p>
+  );
+}
+
 // 어디에 올린 사이트인지 — 대곽나루 서버면 확인 코드 없이 서버만 골라 연결하고, 그 밖의 호스트면 ② 확인 코드 → ③ 호스트 연결
 function ModeCards({ naru, onChange }: { naru: boolean; onChange: (naru: boolean) => void }) {
   const card = (active: boolean) =>
@@ -537,7 +545,7 @@ export function DomainSteps({
   const [changeServer, setChangeServer] = useState(false);
   const [reconnect, setReconnect] = useState(false);
   const [changeSite, setChangeSite] = useState(false);
-  // "바꾸기" 직후 project.url 이 새 주소로 바뀌므로, 안내에 쓸 옛 주소는 누르는 순간에 붙잡아 둔다
+  // 연결(또는 "바꾸기") 직후 project.url 이 새 주소로 바뀌므로, 안내에 쓸 옛 주소는 누르는 순간에 붙잡아 둔다
   const [urlChange, setUrlChange] = useState<{ from: string | null; open: boolean } | null>(null);
   const fqdn = domain ? `${domain.name}.dshs.dev` : null;
   // 옮기는 중에는 아직 새 호스트에 연결한 게 아니고, 대곽나루로 한 "확인"은 새 호스트 확인으로 치지 않는다
@@ -555,6 +563,10 @@ export function DomainSteps({
   // 바로가기는 사이트가 원래 주소에서 그대로 돌아서 DB·로그인 설정을 바꿀 일이 없다 → 안내 창 없음
   const redirect = isRedirectHost(domain?.host ?? null);
   const hostLabel = hostLabelOf(domain?.host);
+  // 연결하면 DB 가 방문 주소를 이 주소로 바꾼다(공개·비공개 모두) — 처음 바뀌는 때만 내 사이트 쪽 정리 안내를 띄운다
+  const afterConnect = (redirectHost: boolean) => {
+    if (!urlIsDomain && !redirectHost) setUrlChange({ from: project.url?.trim() || null, open: true });
+  };
 
   if (naruMode) {
     const naruConnected = domain !== null && isNaruHost(domain.host);
@@ -578,8 +590,16 @@ export function DomainSteps({
             state={!domain ? "todo" : naruConnected && !changeServer ? "done" : "current"}
             title={naruConnected && !changeServer ? "연결됨 — 내 대곽나루 서버가 이 주소로 열려요" : "대곽나루 서버에 연결하기"}
           >
+            {showPanel && !urlIsDomain && <ConnectNote fqdn={fqdn} />}
             {showPanel && (
-              <NaruPanel domain={domain} preselectId={naruServerId} onDone={() => setChangeServer(false)} onCancel={naruConnected ? () => setChangeServer(false) : undefined} />
+              <NaruPanel
+                domain={domain}
+                preselectId={naruServerId}
+                onDone={() => {
+                  setChangeServer(false);
+                  afterConnect(false);
+                }}
+                onCancel={naruConnected ? () => setChangeServer(false) : undefined} />
             )}
             {domain && naruConnected && !changeServer && (
               <div className="flex flex-col gap-2">
@@ -690,7 +710,16 @@ export function DomainSteps({
               지금 주소는 아직 예전 사이트({hostLabel})로 연결돼 있어요. 아래에서 다시 연결해야 새 사이트로 열려요.
             </p>
           )}
-          {domain && showHost && <HostPicker domain={domain} onDone={() => setReconnect(false)} />}
+          {domain && showHost && !urlIsDomain && <ConnectNote fqdn={fqdn} />}
+          {domain && showHost && (
+            <HostPicker
+              domain={domain}
+              onDone={() => {
+                setReconnect(false);
+                afterConnect(isRedirectHost(domain.siteHost));
+              }}
+            />
+          )}
           {domain && showHost && reconnect && !staleConnection && (
             <button type="button" onClick={() => setReconnect(false)} className="mt-2 text-xs text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400">
               다시 연결하지 않을게요

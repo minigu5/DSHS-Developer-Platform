@@ -118,6 +118,12 @@ function done() {
   revalidatePath('/domains', 'layout')
 }
 
+// 연결하면 DB 트리거가 방문 주소를 <이름>.dshs.dev 로 바꾼다(20261112140000) — 목록·상세도 다시 그리게
+function urlChanged() {
+  revalidatePath('/explore')
+  revalidatePath('/projects/[id]', 'page')
+}
+
 export async function checkNameAvailable(raw: string): Promise<ActionResult<{ available: boolean; reason?: string }>> {
   if (!(await currentUser())) return LOGIN_REQUIRED
   const name = normalizeName(raw)
@@ -146,14 +152,13 @@ export async function reserveSubdomain(projectId: string, rawName: string, opts?
   const v = validateName(name)
   if (!v.ok) return { ok: false, error: NAME_REASONS[v.reason] }
 
-  // 비공개 프로젝트는 주소를 못 받는다(관리자 계정은 예외). 내 프로젝트만 읽어서(남의 공개 범위는 알려 주지 않음), 아니면 아래 RPC 가 not_owner 로 거른다.
+  // 비공개 프로젝트도 받을 수 있다(2026-11-12). 내 프로젝트만 읽어서 방문 주소를 보고, 아니면 아래 RPC 가 not_owner 로 거른다.
   const { data: project } = await createAdminClient()
     .from('projects')
-    .select('visibility, url')
+    .select('url')
     .eq('id', projectId)
     .eq('author_id', user.id)
     .maybeSingle()
-  if (project?.visibility === 'private' && !isDeveloper(user.email)) return { ok: false, error: '비공개 프로젝트는 도메인을 마련할 수 없어요.' }
   if (project && !opts?.naru && !project.url?.trim()) return { ok: false, error: RPC_ERRORS.not_website }
 
   const admin = createAdminClient()
@@ -281,6 +286,7 @@ export async function connectHost(id: string, host: HostKey, rawTarget: string, 
       )
       await unbindIfMovedFromNaru(row, user.email)
       done()
+      urlChanged()
       return { ok: true, data: null }
     }
 
@@ -314,6 +320,7 @@ export async function connectHost(id: string, host: HostKey, rawTarget: string, 
   }
   await unbindIfMovedFromNaru(row, user.email)
   done()
+  urlChanged()
   return { ok: true, data: null }
 }
 
@@ -466,6 +473,7 @@ export async function connectNaru(id: string, serverId: string): Promise<ActionR
     await unbindNaruBestEffort(naru, { host: 'naru', naruServerId: row.naru_server_id, ownerEmail: user.email })
   }
   done()
+  urlChanged()
   return { ok: true, data: null }
 }
 
@@ -477,8 +485,7 @@ export async function applyProjectUrl(id: string): Promise<ActionResult> {
   const { error } = await createAdminClient().rpc('subdomain_set_url', { p_user: user.id, p_id: id })
   if (error) return rpcError('subdomain_set_url', error)
   done()
-  revalidatePath('/explore')
-  revalidatePath('/projects/[id]', 'page')
+  urlChanged()
   return { ok: true, data: null }
 }
 

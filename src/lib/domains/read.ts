@@ -163,6 +163,18 @@ export async function getLiveDomain(projectId: string, onlyActive = false): Prom
   return data ? { name: data.name, redirect: isRedirectHost(data.host) } : null
 }
 
+/** 호스트에 연결된(설정 중·끊김 포함) 주소 — 그동안 방문 주소는 이 주소로 고정이다(DB 가드 projects_guard_domain_url). 수정 폼이 주소 칸을 잠그는 데 쓴다 */
+export async function getConnectedDomainUrl(projectId: string): Promise<string | null> {
+  const { data } = await createAdminClient()
+    .from('subdomains')
+    .select('name')
+    .eq('project_id', projectId)
+    .in('status', ['pending', 'active', 'broken'])
+    .not('host', 'is', null)
+    .maybeSingle()
+  return data ? `https://${data.name}.dshs.dev` : null
+}
+
 /** 연결된(active) 주소와 옛 사이트 주소 후보 — 상세 페이지의 "설명 속 옛 주소" 안내·바꾸기용. 호출하는 쪽이 소유자 확인을 먼저 한다. */
 export async function getOldAddressSource(projectId: string): Promise<OldAddressSource | null> {
   const admin = createAdminClient()

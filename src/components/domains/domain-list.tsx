@@ -72,7 +72,6 @@ export function DomainList({
   initialOpen = null,
   naruServerId = null,
   initialNaru = false,
-  allowPrivate = false,
 }: {
   rows: DomainProjectRow[];
   limitReached: boolean;
@@ -82,8 +81,6 @@ export function DomainList({
   naruServerId?: string | null;
   /** 주소의 ?host=naru — 연결 방법 고르기가 새로고침에 사라지지 않게 남겨 둔 값. 펼친 줄의 연결 방법이 대곽나루로 미리 골라진다 */
   initialNaru?: boolean;
-  /** 관리자 계정 — 비공개 프로젝트에도 새 주소를 받을 수 있다 */
-  allowPrivate?: boolean;
 }) {
   const [open, setOpen] = useState<string | null>(initialOpen);
   // 패널이 접혀 있어도 호스트 연결을 마친 주소는 여기서 자동으로 확인한다. 대곽나루 주소는 자동 확인 대상이 아니다(훅이 뺀다) —
@@ -106,10 +103,8 @@ export function DomainList({
         const disabled = rowDisabled({ url: project.url, naruServerId, live });
         const expanded = open === project.id;
         const panelId = `domain-panel-${project.id}`;
-        // 비공개 프로젝트는 새 주소를 못 받는다(이미 받은 주소는 관리할 수 있게 둔다, 관리자 계정은 예외)
-        const privateBlocked = project.isPrivate && !live && !allowPrivate;
-        // 새 주소를 받을 수 없는 줄: 방문 주소 없음, 비공개, 또는 3개를 다 쓴 상태에서 아직 주소가 없는 프로젝트
-        const blocked = disabled || privateBlocked || (!live && limitReached);
+        // 새 주소를 받을 수 없는 줄: 방문 주소 없음, 또는 3개를 다 쓴 상태에서 아직 주소가 없는 프로젝트(비공개도 받을 수 있다 — 2026-11-12)
+        const blocked = disabled || (!live && limitReached);
         // 이미 내 도메인이나 직접 만든 `*.dshs.dev`를 쓰는 줄은 새 주소를 받을 이유가 없어 버튼 대신 알약만 둔다
         const ownDomain = !live && project.url ? (customDomainOf(project.url) ?? dshsAddressOf(project.url)) : null;
 
@@ -137,14 +132,7 @@ export function DomainList({
               {domain && <StatusPill domain={domain} />}
               {domain && isLive(domain) && isRedirectHost(domain.host) && <RedirectPill className="hidden sm:inline" />}
               {ownDomain && <OwnDomainPill host={ownDomain} />}
-              {privateBlocked ? (
-                <Link
-                  href={`/projects/${project.id}/edit`}
-                  className="text-xs text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400"
-                >
-                  비공개 프로젝트는 도메인을 마련할 수 없어요
-                </Link>
-              ) : disabled ? (
+              {disabled ? (
                 <Link
                   href={`/projects/${project.id}/edit`}
                   className="text-xs text-zinc-500 underline-offset-2 hover:underline dark:text-zinc-400"

@@ -42,16 +42,14 @@ export default async function DomainsPage({ searchParams }: { searchParams: Prom
   }
 
   const rows = await listMyDomainProjects(user.id);
-  // 관리자 계정은 비공개 프로젝트에도 주소를 받을 수 있다
-  const allowPrivate = isDeveloper(user.email);
   const used = rows.filter((r) => r.domain && LIVE_STATUSES.includes(r.domain.status)).length;
   // 등록 직후 "도메인 마련하기"로 왔을 때(?project=) 그 줄을 펼친다 — 내 목록에 있고 아직 주소가 없을 때만
   // 대곽나루 흐름에서는 방문 주소가 없어도 된다
-  const openable = (r: (typeof rows)[number]) => (naruServerId || r.project.url) && (allowPrivate || !r.project.isPrivate) && !r.domain && used < MAX_DOMAINS;
+  const openable = (r: (typeof rows)[number]) => (naruServerId || r.project.url) && !r.domain && used < MAX_DOMAINS;
   const openRow = rows.find((r) => r.project.id === requested && openable(r));
   // 대곽나루 흐름에서 줄이 하나뿐(주소 받을 수 있는 프로젝트 하나)이면 그 줄을 바로 연다
   const naruCandidates = naruServerId ? rows.filter(openable) : [];
-  // 웹사이트 프로젝트는 있지만 어느 것도 주소를 받을 수 없으면(비공개·이미 주소 있음·3개 한도) 고를 게 없다 → 새 프로젝트를 등록하게 한다
+  // 웹사이트 프로젝트는 있지만 어느 것도 주소를 받을 수 없으면(이미 주소 있음·3개 한도) 고를 게 없다 → 새 프로젝트를 등록하게 한다
   // 주소를 이미 3개 쓰고 있으면 새 프로젝트를 등록해도 못 받는다 → 등록 버튼 대신 한도 안내
   const guide = naruGuideKind({ naruServerId, rowCount: rows.length, candidates: naruCandidates.length, used, max: MAX_DOMAINS });
   const needsNewProject = guide === "no-project" || guide === "new-project";
@@ -122,7 +120,7 @@ export default async function DomainsPage({ searchParams }: { searchParams: Prom
             </Link>
           </div>
         ) : (
-          <DomainList rows={rows} limitReached={used >= MAX_DOMAINS} initialOpen={initialOpen} naruServerId={naruServerId} initialNaru={naruHost} allowPrivate={allowPrivate} />
+          <DomainList rows={rows} limitReached={used >= MAX_DOMAINS} initialOpen={initialOpen} naruServerId={naruServerId} initialNaru={naruHost} />
         )}
 
         <p className="mt-8 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
