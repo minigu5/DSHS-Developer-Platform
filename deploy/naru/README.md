@@ -12,6 +12,7 @@ root가 실행·읽는 것은 전부 root만 바꿀 수 있는 곳에 둔다 —
 | `preload.js`·`preload-lib.js` | `/usr/local/lib/dshs/` (root 644) — systemd 포트 넘겨받기, 요청 주소를 공개 주소로(`start` 뒤에 `-H`·`-p 443`), 멈출 때 서버 닫기 |
 | `firewall.nft` | `/usr/local/lib/dshs/firewall.nft` (root 644) — 8080은 노드 게이트웨이 10.250.0.1과 서버 자신만, 우리 표 `inet dshs`만 만든다 |
 | `dshs-firewall.service` | `/etc/systemd/system/` — 소켓이 Requires(방화벽 없이 8080이 열리지 않음) |
+| `dshs.service.d/zzzz-harden.conf`·`dshs-deploy.service.d/zzzz-harden.conf` | `/etc/systemd/system/<유닛>.d/` — LXC 가 `zzz-lxc-service.conf`로 끈 `ProtectProc`·`NoNewPrivileges`를 이름 순으로 뒤에서 다시 켬(앱·빌드가 다른 계정 프로세스 명령줄을 못 봄) |
 | `env.example` | `/etc/dshs/env`의 키 이름 (root 600, 값은 서버에만) |
 
 그 밖: `/etc/dshs/deploy.conf`(받을 곳 바꾸기, 선택), `/srv/dshs`(root 755) 아래 `current` 링크(root)와 `repo/`·`releases/`·`static-pool/`(dshs-app), 빌드 로그 `/var/log/dshs-deploy/`, 실패한 커밋 `/var/lib/dshs-deploy/failed-sha`.
