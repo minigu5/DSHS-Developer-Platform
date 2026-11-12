@@ -960,8 +960,8 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
               ) : (
                 editDomainOffer && (
                   <p className={hintClass}>
-                    짧은 주소도 받을 수 있어요{editDomainOffer.suggestion && <> (예: <span className="font-mono">{editDomainOffer.suggestion}.dshs.dev</span>)</>}.{" "}
-                    <a href={`/domains?project=${initialData?.id}`} className="font-medium text-teal-700 underline underline-offset-2 hover:text-teal-800 dark:text-teal-400 dark:hover:text-teal-300">
+                    짧은 주소도 받을 수 있어요{editDomainOffer.suggestion && <> <span className="whitespace-nowrap">(예: <span className="font-mono">{editDomainOffer.suggestion}.dshs.dev</span>).</span></>}{!editDomainOffer.suggestion && "."}{" "}
+                    <a href={`/domains?project=${initialData?.id}`} className="whitespace-nowrap font-medium text-teal-700 underline underline-offset-2 hover:text-teal-800 dark:text-teal-400 dark:hover:text-teal-300">
                       도메인 마련하기
                     </a>
                   </p>
