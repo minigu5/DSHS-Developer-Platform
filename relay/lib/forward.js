@@ -16,6 +16,9 @@ const NOT_PROCESSED = new Set([502, 503, 521, 522, 523, 530])
 const MAYBE_PROCESSED = new Set([504, 524])
 // 이보다 큰 본문은 담아 두지 않고 서버로만 보낸다(실패해도 Worker 로 다시 못 보냄)
 const MAX_BUFFER = 12 * 1024 * 1024
+// 대곽나루 노드 nginx 는 요청 헤더 한 줄을 8KB 까지만 받는다(넘으면 400 "Request Header Or Cookie Too Large" — 2026-11-12 운영에서 쿠키가 커서
+// 막힘). 우리·대곽나루 입구가 헤더를 더 붙이므로 여유를 두고, 이보다 긴 헤더가 있으면 서버로 보내지 않고 Worker(32KB까지 받음)로.
+const MAX_HEADER_LINE = 6000
 
 function tag(res, origin) {
   const out = new Response(res.body, res)
@@ -30,6 +33,10 @@ async function toWorker(request, env, body) {
 
 export async function forwardWithFallback(request, env, { fetchImpl = fetch, timeoutMs = 10_000 } = {}) {
   if (!env.ORIGIN_HOST) return tag(await env.APP.fetch(request), 'worker')
+
+  for (const [name, value] of request.headers) {
+    if (name.length + value.length > MAX_HEADER_LINE) return tag(await env.APP.fetch(request), 'worker')
+  }
 
   const url = new URL(request.url)
   const idempotent = request.method === 'GET' || request.method === 'HEAD'
@@ -71,7 +78,9 @@ export async function forwardWithFallback(request, env, { fetchImpl = fetch, tim
   }
   if (timer) clearTimeout(timer)
 
-  if (replayable && (NOT_PROCESSED.has(res.status) || (idempotent && MAYBE_PROCESSED.has(res.status)))) {
+  // 노드 nginx 가 헤더가 크다고 거절(위 검사를 빠져나간 경우) — 앱까지 안 갔으니 다시 보내도 된다
+  const headerTooLarge = res.status === 400 && /Request Header Or Cookie Too Large/i.test(await res.clone().text().catch(() => ''))
+  if (replayable && (headerTooLarge || NOT_PROCESSED.has(res.status) || (idempotent && MAYBE_PROCESSED.has(res.status)))) {
     await res.body?.cancel()
     return toWorker(request, env, body)
   }
