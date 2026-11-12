@@ -8,6 +8,9 @@ export const RESERVED_NAMES: readonly string[] = [
   'dev', 'staging', 'test', 'status', 'auth', 'login', 'static', 'assets', 'cdn', 'app',
   'docs', 'blog', 'domains', 'guide', 'tips', 'haejwo', 'explore', 'dshs', 'root',
   'support', 'help', 'security',
+  // dshs.dev 입구가 넘기는 대곽나루 원 주소(relay/wrangler.jsonc ORIGIN_HOST, 2026-11-12) — 지금 행은 운영자 것. 풀려도 남이 못 받게.
+  // 원 주소를 바꾸면 새 이름도 여기·DB(subdomain_reserved)에 넣을 것
+  'dshs2',
 ]
 
 export type NameCheck = { ok: true } | { ok: false; reason: 'length' | 'chars' | 'reserved' | 'idn' }

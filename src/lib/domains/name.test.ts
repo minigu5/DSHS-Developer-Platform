@@ -25,6 +25,8 @@ test('영어 소문자·숫자·하이픈만, 하이픈으로 시작·끝 금지
 test('예약어는 막는다', () => {
   assert.deepEqual(validateName('www'), { ok: false, reason: 'reserved' })
   assert.deepEqual(validateName('admin'), { ok: false, reason: 'reserved' })
+  // dshs.dev 입구가 넘기는 원 주소(relay/wrangler.jsonc ORIGIN_HOST) — 풀려서 남이 받으면 dshs.dev 전체를 가로챈다
+  assert.deepEqual(validateName('dshs2'), { ok: false, reason: 'reserved' })
   assert.ok(RESERVED_NAMES.includes('domains'))
 })
 

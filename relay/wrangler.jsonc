@@ -1,17 +1,17 @@
 // 서울 입구 Pages 프로젝트 — functions/_middleware.js 참고.
 // 올리기: cd relay && npx wrangler pages deploy --branch main      (미리보기: --branch <이름> → <이름>.dshs-relay.pages.dev)
 // (toml이 아니라 jsonc여야 한다 — 위 폴더의 wrangler.jsonc를 먼저 집어 버린다)
-// ORIGIN_HOST: 앱을 받는 대곽나루 학생 주소(비우면 Worker 만). ORIGIN_KEY 는 비밀값(Pages secret, 서버 /etc/dshs/env 의 DSHS_RELAY_KEY 와 같은 값).
+// ORIGIN_HOST: 앱을 받는 대곽나루 학생 주소(비우면 Worker 만 — 바꾸면 src/lib/domains/name.ts 예약어·DB subdomain_reserved 도). PUBLIC_HOST: 서버에 넘길 x-forwarded-host. ORIGIN_KEY 는 비밀값(Pages secret, 서버 /etc/dshs/env 의 DSHS_RELAY_KEY 와 같은 값).
 {
   "name": "dshs-relay",
   "pages_build_output_dir": "./public",
   "compatibility_date": "2026-11-01",
   "services": [{ "binding": "APP", "service": "dshs-developer-platform" }],
-  "vars": { "ORIGIN_HOST": "dshs2.dshs.dev" },
+  "vars": { "ORIGIN_HOST": "dshs2.dshs.dev", "PUBLIC_HOST": "dshs.dev" },
   "env": {
     "preview": {
       "services": [{ "binding": "APP", "service": "dshs-developer-platform" }],
-      "vars": { "ORIGIN_HOST": "dshs2.dshs.dev" }
+      "vars": { "ORIGIN_HOST": "dshs2.dshs.dev", "PUBLIC_HOST": "dshs.dev" }
     }
   }
 }

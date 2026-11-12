@@ -1,7 +1,7 @@
 // /usr/local/lib/dshs/preload.js — dshs.service 가 `node --require` 로 먼저 읽는다(2026-11-11). 릴리스 밖에 두는 이유: 옛 릴리스로 되돌려도 그대로 돌아야 해서.
 'use strict'
 const http = require('http')
-const { nextStartArgs } = require('./preload-lib.js')
+const { nextStartArgs, shouldRedirectToSite } = require('./preload-lib.js')
 
 // 1. systemd 가 쥔 포트 받기
 // `next start` 는 포트를 직접 연다. systemd(dshs.socket)가 쥔 8080(fd 3)을 받았으면 그걸 쓰게 첫 listen 을 바꾼다 —
@@ -50,6 +50,12 @@ if (process.env.DSHS_RUNTIME === 'node') {
   const at = process.argv.indexOf('start')
   if (at >= 0) process.argv.splice(at + 1, 0, ...nextStartArgs(process.env.NEXT_PUBLIC_SITE_URL))
 }
+let siteOrigin = ''
+try {
+  siteOrigin = new URL(process.env.NEXT_PUBLIC_SITE_URL || '').origin
+} catch {
+  // 손으로 실행 등 — 돌려보내기 안 함
+}
 const createServer = http.createServer
 http.createServer = function (...args) {
   const i = args.findIndex((a) => typeof a === 'function')
@@ -57,6 +63,11 @@ http.createServer = function (...args) {
     const handler = args[i]
     args[i] = function (req, res) {
       req.headers['x-forwarded-proto'] = 'https'
+      // 3. 서울 입구를 거치지 않은 바깥 요청(원 주소로 직접)은 공개 주소로 — preload-lib.js shouldRedirectToSite
+      if (siteOrigin && shouldRedirectToSite({ relayKey: process.env.DSHS_RELAY_KEY, headerKey: req.headers['x-dshs-relay-key'], remoteAddress: req.socket.remoteAddress })) {
+        res.writeHead(308, { location: siteOrigin + req.url, 'cache-control': 'no-store' })
+        return res.end()
+      }
       return handler.call(this, req, res)
     }
   }

@@ -16,3 +16,19 @@ test('주소가 없거나 https 가 아니면 던진다(잘못된 주소로 켜�
   assert.throws(() => nextStartArgs('http://dshs2.dshs.dev'))
   assert.throws(() => nextStartArgs('not a url'))
 })
+
+const { shouldRedirectToSite } = require('../preload-lib.js')
+
+test('입구 키가 없거나 틀린 바깥 요청은 공개 주소로 돌려보낸다', () => {
+  assert.equal(shouldRedirectToSite({ relayKey: 'k'.repeat(64), headerKey: undefined, remoteAddress: '10.250.0.1' }), true)
+  assert.equal(shouldRedirectToSite({ relayKey: 'k'.repeat(64), headerKey: 'nope', remoteAddress: '10.250.0.1' }), true)
+  assert.equal(shouldRedirectToSite({ relayKey: 'k'.repeat(64), headerKey: ['a', 'b'], remoteAddress: '10.250.0.1' }), true)
+})
+
+test('키가 맞거나, 서버 안(루프백)에서 온 요청이거나, 서버에 키가 없으면 그대로', () => {
+  assert.equal(shouldRedirectToSite({ relayKey: 'k'.repeat(64), headerKey: 'k'.repeat(64), remoteAddress: '10.250.0.1' }), false)
+  assert.equal(shouldRedirectToSite({ relayKey: 'k'.repeat(64), headerKey: undefined, remoteAddress: '127.0.0.1' }), false)
+  assert.equal(shouldRedirectToSite({ relayKey: 'k'.repeat(64), headerKey: undefined, remoteAddress: '::ffff:127.0.0.1' }), false)
+  assert.equal(shouldRedirectToSite({ relayKey: 'k'.repeat(64), headerKey: undefined, remoteAddress: '::1' }), false)
+  assert.equal(shouldRedirectToSite({ relayKey: '', headerKey: undefined, remoteAddress: '10.250.0.1' }), false)
+})
