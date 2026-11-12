@@ -1,4 +1,4 @@
-# 대곽나루 서버에서 돌리기 (2026-11-11, 1단계 시험 중)
+# 대곽나루 서버에서 돌리기 (2026-11-11 시험, 2026-11-12 운영 전환)
 
 같은 코드가 Cloudflare Worker(지금 운영 `dshs.dev`, 나중엔 예비)와 대곽나루에서 빌린 서버(Node `next start`) 양쪽에서 돈다.
 설계 `docs/superpowers/specs/2026-11-11-naru-server-hosting-design.md`, 계획 `docs/superpowers/plans/2026-11-11-naru-server-hosting.md`.
@@ -10,7 +10,12 @@
 - 시험 주소 **`dshs2.dshs.dev`** — 운영 `/domains`에서 대곽나루 호스트로 붙임(서울 입구 `naru-sites` → 노드 nginx → 서버 `10.250.0.2:8080`). 운영 Supabase를 같이 쓴다.
 - 받을 곳: GitHub `main`(2026-11-12 병합 9efb9cb부터 — 그 전 시험 땐 git bundle). main 푸시 = Workers Builds(운영 Worker) + 이 서버 2분 안 자동 배포. 다른 브랜치를 시험하려면 `/etc/dshs/deploy.conf`(`deploy/naru/README.md`).
 - `NARU_HUB_KEY`는 넣지 않았다 — 시험 주소의 도메인 마련하기 "대곽나루" 호스트만 "준비 안 됨"(사용자 결정, 연결은 운영 화면에서).
-- 2단계(dshs.dev를 서버로)는 아직 — 사용자가 시점을 정한다. 계획의 "허브·노드 nginx 바꾸기"는 "학생처럼 서버 ssh 안에서만" 원칙과 부딪혀 다시 설계해야 한다.
+- **2단계 운영 전환 완료(2026-11-12 04:28 UTC)**: `dshs.dev`는 우리 서울 입구(Pages `dshs-relay`, `relay/`)가 대곽나루 학생 주소 `dshs2.dshs.dev`로 넘긴다 — 학생이 받은 주소를 쓰는 것과 같은 길이라 허브·노드는 안 바꿈("ssh 안에서만" 원칙). 응답 헤더 `x-dshs-origin: naru|worker`.
+  - 예비: 서버가 연결 실패·502/503·Cloudflare 521/522/523/530이면 같은 요청을 service binding으로 Worker에(`relay/lib/forward.js`, 테스트 `relay/test/`). 504·524·GET 10초 시간 초과는 처리됐을 수도 있어 GET/HEAD만. 12MB 넘는 본문은 다시 못 보냄. 실측: 서버를 끄자 GET·POST 모두 0.1~0.8초에 `worker`, 켜자 `naru`. 중계 자체가 죽으면 예전처럼 허브 지킴이가 주황(→ Worker Route)으로.
+  - 사용자 IP: 중계 두 번이라 서버의 `cf-connecting-ip`는 입구 출구 IP — 입구가 `x-dshs-client-ip`+`x-dshs-relay-key`(Pages secret `ORIGIN_KEY` = 서버 `/etc/dshs/env`의 `DSHS_RELAY_KEY`, 맥에 사본 없음 — 바꾸면 둘 다)로 넘기고 앱은 키가 맞을 때만 믿는다(`src/lib/client-ip.ts`). 꾸민 헤더를 붙여도 진짜 IP 해시로 찍힘(미리보기에서 실측). Worker엔 키가 없어 헤더를 늘 무시.
+  - 서버 `NEXT_PUBLIC_SITE_URL=https://dshs.dev`(요청 주소·같은 출처 검사 기준) — 그래서 `dshs2.dshs.dev`로 직접 들어가 쓰는 건 이제 안 맞는다(원 주소용).
+  - 되돌리기: `relay/wrangler.jsonc`의 `ORIGIN_HOST`를 `""`로 바꿔 `cd relay && npx wrangler pages deploy --branch main`(계정 여러 개면 `CLOUDFLARE_ACCOUNT_ID=370e521d…`) → 예전처럼 Worker만. 미리보기는 `--branch <이름>` → `<이름>.dshs-relay.pages.dev`(env.preview).
+  - 주의: 정적 파일(`/_next/static`)도 같은 출처라 입구 함수 호출 수(Workers 무료 하루 10만, 계정 공유)와 대곽나루 입구(`naru-sites`, 플랫폼 계정) 호출에 더해진다. 넘칠 기미가 보이면 서버 빌드도 `ASSET_PREFIX`(pages.dev)를 쓰는 걸 검토.
 
 ## Worker와 다른 점 (`DSHS_RUNTIME=node`일 때만, `src/lib/runtime.ts`)
 
