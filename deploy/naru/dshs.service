@@ -1,5 +1,5 @@
 # DSHS 개발자 플랫폼(Next.js) — /etc/systemd/system/dshs.service (2026-11-11)
-# 전용 계정 dshs-app 으로, 쓰기는 /srv/dshs/releases 만(next start 가 .next/cache 에 씀). 비밀 값은 /etc/dshs/env(root 600)에만 — systemd 가 읽어 넘긴다.
+# 전용 계정 dshs-app 으로, 쓰기는 지금 릴리스의 .next/cache 만. 비밀 값은 /etc/dshs/env(root 600)에만 — systemd 가 읽어 넘긴다.
 # DSHS_RUNTIME=node: 코드가 Cloudflare 바인딩 대신 Node 경로를 쓴다(src/lib/runtime.ts).
 # NEXT_MANUAL_SIG_HANDLE=true: 멈출 때 Next 가 바로 나가지 않고 앱이 포스터 일감을 최대 100초 기다린다(src/instrumentation.ts).
 [Unit]
@@ -25,7 +25,8 @@ OOMScoreAdjust=-500
 UMask=0027
 NoNewPrivileges=yes
 ProtectSystem=strict
-ReadWritePaths=/srv/dshs/releases
+# 지금 릴리스의 캐시만 쓴다(시작할 때 current 링크가 풀린 경로) — 되돌릴 이전 릴리스·새 릴리스는 못 고친다(2026-11-12 보안 점검)
+ReadWritePaths=-/srv/dshs/current/.next/cache
 ProtectHome=yes
 PrivateTmp=yes
 PrivateDevices=yes

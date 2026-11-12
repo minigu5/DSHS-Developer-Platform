@@ -1,15 +1,26 @@
 #!/usr/sbin/nft -f
-# /usr/local/lib/dshs/firewall.nft (2026-11-11) — 8080 은 대곽나루 노드 게이트웨이(10.250.0.1)와 서버 자신만.
-# 우리 표(inet dshs)만 지우고 다시 만든다 — 서버의 다른 방화벽 규칙은 건드리지 않는다(예전엔 flush ruleset 이 전부 지웠음, 2026-11-11 리뷰).
+# /usr/local/lib/dshs/firewall.nft (2026-11-11) — 우리 표(inet dshs)만 지우고 다시 만든다(서버의 다른 규칙은 안 건드림).
 # 게이트웨이 주소는 `ip -4 route | grep default` 로 확인 — 바뀌면 여기도.
 table inet dshs {}
 delete table inet dshs
 
 table inet dshs {
+  # 8080 은 대곽나루 노드 게이트웨이(10.250.0.1)와 서버 자신만 — 직접 오면 cf-connecting-ip 를 꾸밀 수 있다
   chain input {
     type filter hook input priority 0; policy accept;
     tcp dport 8080 iif "lo" accept
     tcp dport 8080 ip saddr 10.250.0.1 accept
     tcp dport 8080 drop
+  }
+  # 앱 계정(dshs-app — 앱과 빌드 둘 다)은 서버 안·학교망·사설 주소로 새 연결을 못 연다(2026-11-12 보안 점검).
+  # 이 서버엔 플랫폼 웹 터미널(127.0.0.1:7681)이 있어서, 앱이나 npm 패키지가 뚫리면 거기 붙어 root 가 될 수 있었다.
+  # fetch 의 dispatcher 차단(src/lib/ssrf-node.ts)은 fetch 만 막으니 커널에서 한 번 더. 받은 요청에 대한 응답·DNS(127.0.0.53/54)는 통과.
+  chain output {
+    type filter hook output priority 0; policy accept;
+    ct state established,related accept
+    meta skuid != "dshs-app" accept
+    ip daddr { 127.0.0.53, 127.0.0.54 } meta l4proto { udp, tcp } th dport 53 accept
+    ip daddr { 0.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16, 224.0.0.0/3 } reject
+    ip6 daddr { ::/128, ::1/128, ::ffff:0:0/96, fc00::/7, fe80::/10, ff00::/8 } reject
   }
 }

@@ -10,6 +10,14 @@ const SECURITY_HEADERS = [
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
 ];
 
+const SUPABASE_HOST = (() => {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').hostname
+  } catch {
+    return ''
+  }
+})();
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   // 정적 파일(/_next/static)을 서울에서 응답하는 *.pages.dev에서 받는다 — scripts/deploy.sh가 배포 때 넣는다(없으면 예전처럼 같은 주소)
@@ -37,10 +45,8 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'avatars.githubusercontent.com',
       },
-      {
-        protocol: 'https',
-        hostname: '*.supabase.co',
-      },
+      // 우리 Supabase 저장소만 — '*.supabase.co'면 남의 프로젝트에 큰 그림을 올려 두고 서버 축소(1코어 sharp)·캐시를 쓰게 할 수 있었다(2026-11-12 보안 점검)
+      ...(SUPABASE_HOST ? [{ protocol: 'https' as const, hostname: SUPABASE_HOST, pathname: '/storage/v1/object/public/**' }] : []),
       {
         protocol: 'https',
         hostname: 'i.ibb.co',
@@ -49,11 +55,15 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'ibb.co',
       },
+      // 우리 Cloudinary 계정(이름은 공개 주소에 들어 있는 값)만
       {
         protocol: 'https',
         hostname: 'res.cloudinary.com',
+        pathname: '/duz2xx21s/**',
       },
     ],
+    // 축소하려고 받는 원본 크기 상한(기본 50MB) — 1코어·2GB 서버를 큰 그림으로 묶지 못하게
+    maximumResponseBody: 10_000_000,
   },
 };
 

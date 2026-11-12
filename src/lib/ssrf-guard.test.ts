@@ -41,3 +41,17 @@ test('IPv6 안에 넣은 IPv4(16진 표기 포함)도 사설이면 막는다 —
   assert.equal(isBlockedIp('::ffff:808:808'), false) // 8.8.8.8
   assert.equal(isBlockedIp('2606:4700:4700::1111'), false)
 })
+
+test('IPv6 사설·특수 대역을 비트로 판정 — fe80::/10 전체, fec0::/10, 6to4·Teredo·NAT64 지역 대역', () => {
+  assert.equal(isBlockedIp('fe90::1'), true) // fe80::/10 안
+  assert.equal(isBlockedIp('febf::1'), true)
+  assert.equal(isBlockedIp('fec0::1'), true) // site-local(옛)
+  assert.equal(isBlockedIp('64:ff9b:1::7f00:1'), true) // 지역 NAT64
+  assert.equal(isBlockedIp('::ffff:0:7f00:1'), true) // SIIT
+  assert.equal(isBlockedIp('2002:7f00:1::1'), true) // 6to4
+  assert.equal(isBlockedIp('2001:0:4136:e378::1'), true) // Teredo
+  assert.equal(isBlockedIp('2001:db8::1'), true) // 문서용
+  assert.equal(isBlockedIp('100::1'), true) // discard
+  assert.equal(isBlockedIp('2606:4700:4700::1111'), false)
+  assert.equal(isBlockedIp('2404:6800:4004:80a::200e'), false)
+})

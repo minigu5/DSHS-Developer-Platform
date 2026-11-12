@@ -59,17 +59,28 @@ function ipv6Groups(ip: string): number[] {
   return [...left, ...zeros, ...right].map((g) => parseInt(g, 16));
 }
 
+// 막는 IPv6 대역 [앞 16비트 값, 앞 16비트 마스크, 둘째 16비트 값(선택), 둘째 마스크] — 문자열 앞부분이 아니라 비트로 본다(2026-11-12 리뷰:
+// 'fe80:' 로 시작하는지만 봐서 fe90::~febf::(같은 fe80::/10)가 빠졌음)
+const BLOCKED_V6: readonly [number, number, number?, number?][] = [
+  [0xfe80, 0xffc0], // fe80::/10 link-local
+  [0xfec0, 0xffc0], // fec0::/10 site-local(옛)
+  [0xfc00, 0xfe00], // fc00::/7 unique local
+  [0xff00, 0xff00], // ff00::/8 multicast
+  [0x2002, 0xffff], // 2002::/16 6to4 — IPv4 를 품어 우회 길이 됨
+  [0x2001, 0xffff, 0x0000, 0xffff], // 2001::/32 Teredo
+  [0x2001, 0xffff, 0x0db8, 0xffff], // 2001:db8::/32 문서용
+  [0x0064, 0xffff, 0xff9b, 0xffff], // 64:ff9b::/32 — NAT64(::/96)·지역 NAT64(1::/48) 둘 다
+]
+
 function isPrivateOrReservedV6(ip: string): boolean {
-  const lower = ip.toLowerCase();
-  if (lower === '::' || lower === '::1') return true;
-  if (lower.startsWith('fe80:') || lower.startsWith('fc') || lower.startsWith('fd')) return true;
-  if (lower.startsWith('ff')) return true; // multicast
+  const g = ipv6Groups(ip.toLowerCase());
+  if (g.every((x) => x === 0) || (g.slice(0, 7).every((x) => x === 0) && g[7] === 1)) return true; // :: · ::1
+  if (BLOCKED_V6.some(([v0, m0, v1, m1]) => (g[0] & m0) === v0 && (v1 === undefined || (g[1] & (m1 ?? 0)) === v1))) return true;
+  if (g[0] === 0x0100 && g.slice(1, 4).every((x) => x === 0)) return true; // 100::/64 discard
   // IPv4 를 품은 주소는 그 IPv4 로 판정 — URL 은 [::ffff:127.0.0.1] 을 [::ffff:7f00:1] 로 바꿔 써서 점 표기만 보면 뚫린다(2026-11-11 리뷰)
-  // ::ffff:0:0/96(mapped), ::/96(compatible), 64:ff9b::/96(NAT64)
-  const g = ipv6Groups(lower);
-  const firstFiveZero = g.slice(0, 5).every((x) => x === 0);
-  const embedsV4 =
-    (firstFiveZero && (g[5] === 0xffff || g[5] === 0)) || (g[0] === 0x64 && g[1] === 0xff9b && g.slice(2, 6).every((x) => x === 0));
+  // ::ffff:0:0/96(mapped), ::/96(compatible), ::ffff:0:0:0/96(SIIT)
+  const firstFourZero = g.slice(0, 4).every((x) => x === 0);
+  const embedsV4 = firstFourZero && ((g[4] === 0 && (g[5] === 0xffff || g[5] === 0)) || (g[4] === 0xffff && g[5] === 0));
   if (embedsV4) return isPrivateOrReservedV4(`${g[6] >> 8}.${g[6] & 255}.${g[7] >> 8}.${g[7] & 255}`);
   return false;
 }
