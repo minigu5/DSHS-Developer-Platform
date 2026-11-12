@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { cloudinary } from "@/lib/cloudinary";
+import { releaseUsage, reserveUsage } from "@/lib/posters/usage";
 import { isSameOrigin } from "@/lib/same-origin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -34,6 +35,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "파일 크기는 10MB를 초과할 수 없습니다." }, { status: 400 });
   }
 
+  // 한 사람이 Cloudinary 용량을 다 쓰지 못하게 하루 횟수를 묶는다
+  const usage = await reserveUsage("upload", user.id);
+  if (usage !== "ok") {
+    return NextResponse.json({ error: "오늘은 이미지를 너무 많이 올렸어요. 내일 다시 해 주세요." }, { status: 429 });
+  }
+
   try {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
@@ -50,6 +57,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: result.secure_url });
   } catch {
+    await releaseUsage("upload", user.id);
     return NextResponse.json({ error: "업로드에 실패했습니다. 잠시 후 다시 시도해주세요." }, { status: 500 });
   }
 }

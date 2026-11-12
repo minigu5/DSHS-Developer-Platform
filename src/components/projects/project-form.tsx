@@ -847,7 +847,9 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         msg = [e.message, e.details, e.hint, e.code && `(code: ${e.code})`].filter(Boolean).join(' / ') || msg;
       }
       msg = friendlyWriteError(msg, ban.until) ?? msg;
-      if (msg.includes('project_locked')) {
+      if (msg.includes('project_locked_share')) {
+        msg = '관리자가 잠근 프로젝트라 볼 수 있는 사람을 더 늘릴 수 없어요.';
+      } else if (msg.includes('project_locked')) {
         msg = '관리자가 잠근 프로젝트라 공개로 바꿀 수 없어요.';
       } else if (msg.includes('projects_duplicate_recent')) {
         msg = '방금 같은 이름으로 등록한 프로젝트가 있어요. 내 프로젝트에서 확인해 주세요.';

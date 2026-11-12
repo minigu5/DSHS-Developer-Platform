@@ -32,7 +32,7 @@ paths:
 ### Cloudinary 이미지 업로드 (`src/app/api/upload/route.ts`)
 - 프로필 아바타 · 프로젝트 아이콘 · 팁 커버 이미지를 사이트 내에서 직접 업로드.
 - 공용 컴포넌트: `src/components/shared/image-upload-input.tsx` — 파일 드래그·선택 드롭존 + URL 직접 입력 폴백.
-- 서버: `POST /api/upload` — 로그인 검증 후 Cloudinary에 업로드, `secure_url` 반환. 최대 10MB, 이미지 포맷만 허용.
+- 서버: `POST /api/upload` — 로그인 검증 후 Cloudinary에 업로드, `secure_url` 반환. 최대 10MB, 이미지 포맷만 허용. 사람당 하루 60번·사이트 1000번(`reserveUsage('upload')`, 실패하면 돌려줌, 넘으면 429 — 2026-11-12 감사).
 - 자동 압축: `quality: "auto:good"`, `fetch_format: "auto"` 변환 적용. **SVG는 변환 없이 SVG 그대로 저장**(2026-11-05) — `fetch_format: auto`가 SVG 자체 크기(아이콘은 보통 24px)의 PNG로 바꿔 상세 112px 아이콘이 흐렸다. `<img>`로만 보여 주므로 SVG 속 스크립트는 실행 안 됨, `.svg`는 `isExternalImage`로 `unoptimized`.
 - 환경변수 3개 필요: `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` (Cloudflare에는 `wrangler secret put`으로 설정).
 - `src/lib/parse-image-url.ts`와 `GET /api/resolve-image`는 기존 imgbb URL을 위해 유지.

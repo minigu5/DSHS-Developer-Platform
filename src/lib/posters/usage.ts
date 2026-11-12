@@ -5,12 +5,15 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { POSTER_LIMITS } from './config'
 
 // art = Workers AI(UTC 자정), art_local = 학교 Mac mini(KST 자정)
-export type UsageKind = 'text' | 'art' | 'art_local'
+// upload = 이미지 올리기(Cloudinary 용량), export = 포스터 PNG·PDF(Browser Rendering 무료 한도는 계정 공유) — KST 자정, 2026-11-12 감사
+export type UsageKind = 'text' | 'art' | 'art_local' | 'upload' | 'export'
 
 const LIMITS: Record<UsageKind, { user: number; site: number }> = {
   text: { user: POSTER_LIMITS.textPerUserPerDay, site: POSTER_LIMITS.textSitePerDay },
   art: { user: POSTER_LIMITS.artPerUserPerDay, site: POSTER_LIMITS.artSitePerDay },
   art_local: { user: POSTER_LIMITS.artLocalPerUserPerDay, site: POSTER_LIMITS.artLocalSitePerDay },
+  upload: { user: 60, site: 1000 },
+  export: { user: 15, site: 60 },
 }
 
 /** 요청 시작 때 1회 예약. 글은 KST 자정, 그림은 UTC 자정(KST 09:00)에 새 날 — migration 20261106150000 */

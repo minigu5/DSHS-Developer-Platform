@@ -3,10 +3,18 @@ import assert from 'node:assert/strict'
 import { POSTER_CSP, posterExportPage, posterSrcdoc } from './document.ts'
 import { posterBandHtml } from './band.ts'
 
-test('ART를 그림 URL로, CSP meta를 head 맨 앞에', () => {
+test('ART를 그림 URL로, CSP meta를 문서 맨 앞에', () => {
   const out = posterSrcdoc('<html><head><title>t</title></head><body><img src="ART"></body></html>', 'https://res.cloudinary.com/x/a.png')
-  assert.match(out, /<head><meta http-equiv="Content-Security-Policy"/)
+  assert.match(out, /^<meta http-equiv="Content-Security-Policy"/)
   assert.match(out, /src="https:\/\/res\.cloudinary\.com\/x\/a\.png"/)
+})
+
+test('CSP는 head 앞에 낸 요소보다도 먼저, doctype은 맨 앞에 남김', () => {
+  const sneaky = posterSrcdoc('<img src="https://evil.example/p.gif"><html><head></head><body></body></html>', null)
+  assert.ok(sneaky.indexOf('Content-Security-Policy') < sneaky.indexOf('evil.example'))
+  const typed = posterSrcdoc('<!-- x -->\n<!DOCTYPE html><html><head></head><body><img src="ART"></body></html>', 'https://res.cloudinary.com/x/a.png')
+  assert.match(typed, /^<!-- x -->\n<!DOCTYPE html><meta http-equiv="Content-Security-Policy"/)
+  assert.match(typed, /<head><style>img\[data-poster-art\]/)
 })
 
 test('그림 없으면 회색 data URI, head 없으면 문서 앞에 CSP', () => {

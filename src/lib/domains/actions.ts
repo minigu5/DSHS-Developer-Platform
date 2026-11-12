@@ -194,6 +194,8 @@ export async function reserveSubdomain(projectId: string, rawName: string, opts?
 export async function setSiteAddress(id: string, raw: string): Promise<ActionResult<{ siteUrl: string; host: HostKey }>> {
   const user = await currentUser()
   if (!user) return LOGIN_REQUIRED
+  const banned = await banNoticeFor(user.id)
+  if (banned) return { ok: false, error: banned }
   const site = siteAddressFor(raw)
   if (!site) return { ok: false, error: RPC_ERRORS.site_invalid }
   if (isRedirectHost(site.host) && !redirectConfigured()) return { ok: false, error: REDIRECT_NOT_READY }
@@ -220,6 +222,8 @@ export async function setSiteAddress(id: string, raw: string): Promise<ActionRes
 export async function connectHost(id: string, host: HostKey, rawTarget: string, rawTxt: TxtInput[]): Promise<ActionResult> {
   const user = await currentUser()
   if (!user) return LOGIN_REQUIRED
+  const banned = await banNoticeFor(user.id)
+  if (banned) return { ok: false, error: banned }
   if (!Object.hasOwn(HOST_PRESETS, host)) return { ok: false, error: RPC_ERRORS.target_invalid }
   if (isRedirectHost(host) && !redirectConfigured()) return { ok: false, error: REDIRECT_NOT_READY }
 
@@ -405,6 +409,8 @@ export async function listMyNaruServers(): Promise<ActionResult<NaruServer[]>> {
 export async function connectNaru(id: string, serverId: string): Promise<ActionResult> {
   const user = await currentUser()
   if (!user) return LOGIN_REQUIRED
+  const banned = await banNoticeFor(user.id)
+  if (banned) return { ok: false, error: banned }
   const naru = getNaruClient()
   if (!naru) return { ok: false, error: NARU_NOT_READY }
   if (!NARU_SERVER_ID.test(serverId)) return { ok: false, error: NARU_NOT_MINE }
@@ -466,6 +472,8 @@ export async function connectNaru(id: string, serverId: string): Promise<ActionR
 export async function applyProjectUrl(id: string): Promise<ActionResult> {
   const user = await currentUser()
   if (!user) return LOGIN_REQUIRED
+  const banned = await banNoticeFor(user.id)
+  if (banned) return { ok: false, error: banned }
   const { error } = await createAdminClient().rpc('subdomain_set_url', { p_user: user.id, p_id: id })
   if (error) return rpcError('subdomain_set_url', error)
   done()

@@ -1,8 +1,11 @@
 // 개인정보 처리방침 설정. 순수 상수만 — 미들웨어(edge)·서버·클라이언트 어디서든 import 한다.
 // 동의받는 처리방침 버전은 version.ts 에 있다.
 
-/** 동의 확인 결과 캐시 쿠키(값 = 동의한 버전). 미들웨어가 DB 에서 확인한 뒤 심고, 동의 버전을 올리면 자동으로 무효. */
-export const PRIVACY_COOKIE = 'ds_privacy'
+/**
+ * 동의 확인 결과 캐시 쿠키(값 = 동의한 버전). 미들웨어가 DB 에서 확인한 뒤 심고, 동의 버전을 올리면 자동으로 무효.
+ * 운영은 `__Host-` — 학생 주소(*.dshs.dev) JS 가 `Domain=.dshs.dev` 로 심어 동의 창을 건너뛰게 못 한다(cookie-options.ts 와 같은 이유, 2026-11-12 감사).
+ */
+export const PRIVACY_COOKIE = process.env.NODE_ENV === 'production' ? '__Host-ds_privacy' : 'ds_privacy'
 export const PRIVACY_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
 // httpOnly 가 아니다: 클라이언트(PrivacyGate)가 읽고 확인 요청을 건너뛴다. 버전 문자열뿐이라 민감하지 않다.
 export const PRIVACY_COOKIE_OPTIONS = {

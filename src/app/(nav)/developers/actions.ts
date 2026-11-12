@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { banNoticeFor } from "@/lib/admin/guard";
 import { INTERESTS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 import type { UserContact } from "@/lib/types";
@@ -94,6 +95,8 @@ export async function updateProfile(data: {
       });
 
     if (error) {
+      // 차단 중엔 DB 가 닉네임·소개·사진·연락처·관심 분야 변경을 막는다(users_guard_profile)
+      if (error.message.includes("user_banned")) return { error: (await banNoticeFor(user.id)) ?? "지금은 프로필을 바꿀 수 없어요." };
       console.error("Profile update error:", error);
       return { error: error.message };
     }

@@ -6,7 +6,7 @@ import Link from "@/components/shared/link";
 import { Globe, Code2, Lock, ExternalLink, ShieldCheck, ShieldAlert, ChevronRight } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
-import { cn, isExternalImage } from "@/lib/utils";
+import { cn, httpHref, isExternalImage } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ProjectComments } from "@/components/projects/project-comments";
 import { HeartButton } from "@/components/projects/heart-button";
@@ -219,9 +219,9 @@ export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anony
                   <span className="sr-only"> (새 탭에서 열림)</span>
                 </a>
               )}
-              {project.source_type === "open" && project.repo_url && !repoIsSite && (
+              {project.source_type === "open" && httpHref(project.repo_url) && !repoIsSite && (
                 <a
-                  href={project.repo_url}
+                  href={httpHref(project.repo_url) ?? undefined}
                   target="_blank"
                   rel="noreferrer"
                   className={cn(

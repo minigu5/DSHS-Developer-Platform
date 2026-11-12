@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 import { renderPosterFile } from '@/lib/posters/render'
 import { guardPosterRequest } from '@/lib/posters/route-guard'
+import { releaseUsage, reserveUsage } from '@/lib/posters/usage'
 
 // PNG(2480×3508)·PDF(1쪽): 띠까지 합친 HTML 을 Cloudflare Browser Rendering 으로 찍는다(src/lib/posters/render.ts).
 export async function GET(request: NextRequest, { params }: { params: Promise<{ posterId: string }> }) {
@@ -12,8 +13,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { poster, access } = guarded
   if (!poster.html) return NextResponse.json({ error: '아직 만든 포스터가 없어요.' }, { status: 400 })
 
+  // Browser Rendering 무료 한도는 계정 전체(걸기 PNG 포함) 공유라 내보내기는 하루 횟수를 묶는다
+  const usage = await reserveUsage('export', access.userId)
+  if (usage !== 'ok') {
+    const error = usage === 'user_limit' ? '오늘은 파일을 너무 많이 만들었어요. 내일 다시 해 주세요.' : '오늘은 사이트 전체 파일 만들기 한도를 다 썼어요. 내일 다시 해 주세요.'
+    return NextResponse.json({ error }, { status: 429 })
+  }
   const file = await renderPosterFile({ poster, title: access.project.title, projectId: access.project.id, format, scale: 2, printArt: true })
   if (!file.ok) {
+    await releaseUsage('export', access.userId)
     if (file.status === 503) return NextResponse.json({ error: '지금은 파일을 만들 수 없어요.' }, { status: 503 })
     const error = file.status === 429 ? '파일을 너무 자주 만들었어요. 10초쯤 뒤에 다시 눌러 주세요.' : '지금은 파일을 만들 수 없어요. 잠시 뒤 다시 해 주세요.'
     return NextResponse.json({ error }, { status: 502 })

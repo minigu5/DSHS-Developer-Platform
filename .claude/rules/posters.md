@@ -56,6 +56,7 @@ paths:
   - 캡처·글자는 그림 횟수를 미리 잡지 않는다(`styleMayUseArt`). 알아서는 Gemini가 종류를 보고 셋 중 하나(캡처 제외).
 
 ## 보안
+- `posterSrcdoc`은 CSP meta를 **문서 맨 앞**(doctype 바로 뒤)에 넣는다(2026-11-12 감사 — 첫 `<head>` 뒤에 끼우면 AI가 head 앞에 낸 `<img>`가 CSP 없이 먼저 불렸다).
 - AI HTML은 `<iframe sandbox="" srcDoc>`에만(`PosterPreview`). `allow-same-origin`·`allow-scripts` 금지. 저장 전 `sanitizePosterHtml`(script·on*·javascript:·iframe/object/embed/form/base·meta refresh·Google Fonts 외 link).
 - `project_posters`·`ai_usage`는 RLS 켜고 정책 없음 — 서버가 `getPosterAccess` 뒤 서비스 키로만. API는 `guardPosterRequest`(isSameOrigin → 포스터 → 권한).
 - 띠는 밝게/어둡게(`band_tone`)·위/아래(`band_position`, 사용자 요청 2026-11-06) — 위/아래는 AI 포스터 스튜디오에서만(띠 받기 카드는 테두리 선 위치만 바뀌어 2026-11-07 뺐다, 아래 고정) — 스튜디오 세그먼트, 미리보기는 `flex-col-reverse`, 내보내기는 `posterExportPage(…, position)`.
@@ -63,7 +64,7 @@ paths:
 
 ## 권한·제한
 - **2단계 = 학생에게 열림**(2026-11-07): `POSTER_OPEN_TO_ALL = true`(`config.ts`) — 수정할 수 있는 사람(소유자·팀원·관리자) 누구나, 공개 프로젝트만(비공개로 바뀌면 숨김, 지우지 않음), 차단된 사람 불가. 판정 `decidePosterAccess`. 처리방침(Google Gemini 위탁·학습 가능, 포스터 그림)을 **같은 배포**에 넣어 전원 재동의(`.claude/rules/privacy.md`). 탭 닫힘 문제는 같은 날 다른 작업에서 Cloudflare Queues로 옮겨 해결됐다(아래 「긴 응답·내보내기」).
-- 횟수(`POSTER_LIMITS`, DB `reserve_ai_usage`로 예약·실패 시 `release_ai_usage`): 글 사람당 20/일·사이트 200/일(**KST 자정**), 그림 사람당 5/일·사이트 6/일(**UTC 자정 = KST 09:00**, Cloudflare 할당량과 같은 시계). 프로젝트당 포스터 5개(AI+올림 합쳐, 트리거 `poster_limit`). 버전 5개·대화 10개.
+- 횟수(`POSTER_LIMITS`, DB `reserve_ai_usage`로 예약·실패 시 `release_ai_usage`): 글 사람당 20/일·사이트 200/일(**KST 자정**), 그림 사람당 5/일·사이트 6/일(**UTC 자정 = KST 09:00**, Cloudflare 할당량과 같은 시계). 프로젝트당 포스터 5개(AI+올림 합쳐, 트리거 `poster_limit`). 버전 5개·대화 10개. PNG·PDF 내보내기 `export` 사람당 15/일·사이트 60/일, 포스터 그림 올리기는 `/api/upload`와 같은 `upload` 몫(사람당 60/일·사이트 1000/일) — 둘 다 KST 자정, 한도는 `usage.ts`, 실패하면 돌려줌(2026-11-12 감사 — Browser Rendering 무료 한도는 계정 공유, 걸기 PNG는 안 셈).
 - **"새 포스터 하루 1개" 없앰**(2026-11-08 사용자 "굳이 제한을 둬야 하나"): 비용은 글·그림 횟수가 이미 막아 겹치는 제한이었다 — migration `20261108140000`이 트리거에서 빼고 `project_poster_days` 삭제. **남겨 둘 한도의 기준**: 공짜 외부 한도를 지키는 것(Gemini 사이트 200/일, Workers AI 6/일 — 계정 공유)과 그걸 한 사람이 다 못 쓰게 하는 사람당 몫. 글을 학교 Mac 공개 모델로 옮기는 건 기각(Gemini Flash보다 한국어·HTML 품질이 낮고 몇 배 느리며 그림과 메모리를 다툼).
 - **학교 Mac 그림 `art_local`**: 사람당 50/일·사이트 300/일(**KST 자정**, 2026-11-08 20·100에서 올림 — 우리 Mac이라 돈이 안 들고 바쁘면 줄을 설 뿐). 기존 `art`(Workers AI)는 넘어가기용으로 그대로.
 - Workers AI 무료 10,000 neurons/일은 **계정 전체 공유**. 장당 비용(1024×768): klein ~1,360, flux-2-dev ~5,600, lucid/phoenix ~2,400, schnell ~330.

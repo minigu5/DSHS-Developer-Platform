@@ -30,3 +30,8 @@ export function isExternalImage(url: string | null | undefined): boolean {
 export function isInternalHref(href: string | undefined): boolean {
   return Boolean(href && /^\/(?!\/)/.test(href));
 }
+
+/** http(s) 주소만 그대로, 아니면 null — 사용자가 API 로 적을 수 있는 칸(repo_url 등)을 href 에 넣기 전에(`javascript:` 막기) */
+export function httpHref(url: string | null | undefined): string | null {
+  return url && /^https?:\/\//i.test(url.trim()) ? url : null;
+}

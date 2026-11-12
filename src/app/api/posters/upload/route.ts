@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 import { deleteCloudinaryImages } from '@/lib/cloudinary-delete'
 import { getBandAccess } from '@/lib/posters/access'
+import { releaseUsage, reserveUsage } from '@/lib/posters/usage'
 import { uploadPosterArtBlob } from '@/lib/posters/art'
 import { sniffImageType } from '@/lib/posters/art-jobs-logic'
 import { setHungPoster } from '@/lib/posters/hang-db'
@@ -39,8 +40,12 @@ export async function POST(request: NextRequest) {
   if (file.size > MAX_BYTES) return fail(413, POSTER_COPY.uploadSize)
   if (!sniffImageType(new Uint8Array(await file.slice(0, 12).arrayBuffer()))) return fail(415, POSTER_COPY.uploadType)
 
+  if ((await reserveUsage('upload', access.userId)) !== 'ok') return fail(429, '오늘은 이미지를 너무 많이 올렸어요. 내일 다시 해 주세요.')
   const url = await uploadPosterArtBlob(file)
-  if (!url) return fail(502, POSTER_COPY.uploadFailed)
+  if (!url) {
+    await releaseUsage('upload', access.userId)
+    return fail(502, POSTER_COPY.uploadFailed)
+  }
 
   const { data, error } = await createAdminClient()
     .from('project_posters')

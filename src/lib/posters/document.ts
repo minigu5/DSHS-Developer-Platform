@@ -33,8 +33,15 @@ export function posterSrcdoc(html: string, artUrl: string | null, pending = fals
   const shown = artUrl && !transformed ? posterArtDisplayUrl(artUrl) : artUrl
   const src = escapeAttr(shown ?? (pending ? DRAWING_ART : EMPTY_ART))
   const withArt = html.replace(/\bsrc\s*=\s*(["'])ART\1/gi, artUrl ? `data-poster-art src="${src}"` : `src="${src}"`)
-  const head = artUrl ? CSP_META + ART_STYLE : CSP_META
-  return /<head\b[^>]*>/i.test(withArt) ? withArt.replace(/<head\b[^>]*>/i, (m) => m + head) : head + withArt
+  const withStyle = !artUrl
+    ? withArt
+    : /<head\b[^>]*>/i.test(withArt)
+      ? withArt.replace(/<head\b[^>]*>/i, (m) => m + ART_STYLE)
+      : ART_STYLE + withArt
+  // CSP 는 doctype 바로 뒤, 어떤 요소보다 먼저 — head 뒤에 끼우면 AI 가 head 앞에 낸 <img> 가 CSP 없이 먼저 불려 간다(2026-11-12 감사).
+  // doctype 앞에 두면 quirks 모드가 되니 doctype(앞의 공백·주석 포함)은 그대로 맨 앞에 남긴다.
+  const doctype = withStyle.match(/^(?:\s|<!--[\s\S]*?-->)*<!doctype[^>]*>/i)?.[0] ?? ''
+  return doctype + CSP_META + withStyle.slice(doctype.length)
 }
 
 export function posterExportPage(srcdoc: string, bandHtml: string, position: PosterBandPosition = 'bottom'): string {

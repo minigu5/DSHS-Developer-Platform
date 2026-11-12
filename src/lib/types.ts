@@ -592,7 +592,7 @@ export type Database = {
           poster_id: string;
           user_id: string;
           input: Json;
-          holds: ('text' | 'art' | 'art_local')[]; // 아직 돌려줄 수 있는 횟수 — 막힘 정리가 한 번만 돌려준다
+          holds: ('text' | 'art' | 'art_local' | 'upload' | 'export')[]; // 아직 돌려줄 수 있는 횟수 — 막힘 정리가 한 번만 돌려준다
           status: 'queued' | 'working' | 'done' | 'failed' | 'expired';
           result: Json | null;
           usage_released_at: string | null;
@@ -600,10 +600,10 @@ export type Database = {
           started_at: string | null;
           finished_at: string | null;
         };
-        Insert: { kind: 'ask' | 'redraw'; poster_id: string; user_id: string; input?: Json; holds?: ('text' | 'art' | 'art_local')[] };
+        Insert: { kind: 'ask' | 'redraw'; poster_id: string; user_id: string; input?: Json; holds?: ('text' | 'art' | 'art_local' | 'upload' | 'export')[] };
         Update: {
           status?: 'queued' | 'working' | 'done' | 'failed' | 'expired';
-          holds?: ('text' | 'art' | 'art_local')[];
+          holds?: ('text' | 'art' | 'art_local' | 'upload' | 'export')[];
           result?: Json | null;
           usage_released_at?: string | null;
           started_at?: string | null;
@@ -612,7 +612,7 @@ export type Database = {
         Relationships: [];
       };
       ai_usage: {
-        Row: { kind: 'text' | 'art' | 'art_local'; user_id: string; day: string; count: number };
+        Row: { kind: 'text' | 'art' | 'art_local' | 'upload' | 'export'; user_id: string; day: string; count: number };
         Insert: Record<string, never>;
         Update: Record<string, never>;
         Relationships: [];
@@ -786,11 +786,11 @@ export type Database = {
     Views: Record<string, never>;
     Functions: {
       reserve_ai_usage: {
-        Args: { p_kind: 'text' | 'art' | 'art_local'; p_user: string; p_user_limit: number; p_site_limit: number };
+        Args: { p_kind: 'text' | 'art' | 'art_local' | 'upload' | 'export'; p_user: string; p_user_limit: number; p_site_limit: number };
         Returns: 'ok' | 'user_limit' | 'site_limit';
       };
       release_ai_usage: {
-        Args: { p_kind: 'text' | 'art' | 'art_local'; p_user: string };
+        Args: { p_kind: 'text' | 'art' | 'art_local' | 'upload' | 'export'; p_user: string };
         Returns: undefined;
       };
       claim_poster_art_job: {
