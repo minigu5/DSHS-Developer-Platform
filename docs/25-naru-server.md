@@ -15,6 +15,7 @@
   - 사용자 IP: 중계 두 번이라 서버의 `cf-connecting-ip`는 입구 출구 IP — 입구가 `x-dshs-client-ip`+`x-dshs-relay-key`(Pages secret `ORIGIN_KEY` = 서버 `/etc/dshs/env`의 `DSHS_RELAY_KEY`, 맥에 사본 없음 — 바꾸면 둘 다)로 넘기고 앱은 키가 맞을 때만 믿는다(`src/lib/client-ip.ts`). 꾸민 헤더를 붙여도 진짜 IP 해시로 찍힘(미리보기에서 실측). Worker엔 키가 없어 헤더를 늘 무시.
   - 서버 `NEXT_PUBLIC_SITE_URL=https://dshs.dev`(요청 주소·같은 출처 검사 기준) — 그래서 `dshs2.dshs.dev`로 직접 들어가 쓰는 건 이제 안 맞는다(원 주소용).
   - 되돌리기: `relay/wrangler.jsonc`의 `ORIGIN_HOST`를 `""`로 바꿔 `cd relay && npx wrangler pages deploy --branch main`(계정 여러 개면 `CLOUDFLARE_ACCOUNT_ID=370e521d…`) → 예전처럼 Worker만. 미리보기는 `--branch <이름>` → `<이름>.dshs-relay.pages.dev`(env.preview).
+  - 요청 헤더 한도(2026-11-12): 전환 직후 쿠키 줄이 8KB를 넘는 사용자가 노드 nginx 400 "Request Header Or Cookie Too Large"를 받음(Worker는 32KB). 대곽나루가 `large_client_header_buffers 4 32k`로 올림(server_connection d14f3fd). 입구는 헤더 한 줄 24,000자 초과나 그 400이면 Worker로(실측: 12KB 쿠키 naru, 25KB worker).
   - 주의: 정적 파일(`/_next/static`)도 같은 출처라 입구 함수 호출 수(Workers 무료 하루 10만, 계정 공유)와 대곽나루 입구(`naru-sites`, 플랫폼 계정) 호출에 더해진다. 넘칠 기미가 보이면 서버 빌드도 `ASSET_PREFIX`(pages.dev)를 쓰는 걸 검토.
 
 ## Worker와 다른 점 (`DSHS_RUNTIME=node`일 때만, `src/lib/runtime.ts`)
