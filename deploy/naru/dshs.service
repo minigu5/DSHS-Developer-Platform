@@ -14,9 +14,8 @@ Group=dshs-app
 WorkingDirectory=/srv/dshs/current
 EnvironmentFile=/etc/dshs/env
 Environment=NODE_ENV=production DSHS_RUNTIME=node NEXT_MANUAL_SIG_HANDLE=true NEXT_TELEMETRY_DISABLED=1
-# -H·-p 는 요청 주소(request.url)를 만드는 값이다 — 실제 포트는 dshs.socket 의 8080(preload.js 가 넘겨받음). 공개 호스트는 /etc/dshs/env 의 NEXT_PUBLIC_SITE_URL 에서.
-# ($$ 는 systemd 가 아니라 sh 가 풀게 하는 표시)
-ExecStart=/bin/sh -c 'exec /usr/bin/node --require /usr/local/lib/dshs/preload.js node_modules/next/dist/bin/next start -H "$${NEXT_PUBLIC_SITE_URL#https://}" -p 443'
+# preload.js 가 `start` 뒤에 -H <NEXT_PUBLIC_SITE_URL 의 호스트> -p 443 을 붙인다(요청 주소용 — 실제 포트는 dshs.socket 의 8080).
+ExecStart=/usr/bin/node --require /usr/local/lib/dshs/preload.js node_modules/next/dist/bin/next start
 TimeoutStopSec=120
 Restart=always
 RestartSec=3

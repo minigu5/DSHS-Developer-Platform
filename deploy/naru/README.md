@@ -9,8 +9,9 @@ root가 실행·읽는 것은 전부 root만 바꿀 수 있는 곳에 둔다 —
 |---|---|
 | `dshs.socket`·`dshs.service`·`dshs-deploy.service`·`dshs-deploy.timer` | `/etc/systemd/system/` |
 | `deploy.sh` | `/usr/local/lib/dshs/deploy.sh` (root 755) |
-| `preload.js` | `/usr/local/lib/dshs/preload.js` (root 644) — systemd 포트 넘겨받기 + 요청 주소를 공개 주소로 |
-| `nftables.conf` | `/etc/nftables.conf` (8080은 노드 게이트웨이 10.250.0.1과 서버 자신만) |
+| `preload.js`·`preload-lib.js` | `/usr/local/lib/dshs/` (root 644) — systemd 포트 넘겨받기, 요청 주소를 공개 주소로(`start` 뒤에 `-H`·`-p 443`), 멈출 때 서버 닫기 |
+| `firewall.nft` | `/usr/local/lib/dshs/firewall.nft` (root 644) — 8080은 노드 게이트웨이 10.250.0.1과 서버 자신만, 우리 표 `inet dshs`만 만든다 |
+| `dshs-firewall.service` | `/etc/systemd/system/` — 소켓이 Requires(방화벽 없이 8080이 열리지 않음) |
 | `env.example` | `/etc/dshs/env`의 키 이름 (root 600, 값은 서버에만) |
 
 그 밖: `/etc/dshs/deploy.conf`(받을 곳 바꾸기, 선택), `/srv/dshs`(root 755) 아래 `current` 링크(root)와 `repo/`·`releases/`·`static-pool/`(dshs-app), 빌드 로그 `/var/log/dshs-deploy/`, 실패한 커밋 `/var/lib/dshs-deploy/failed-sha`.
@@ -24,8 +25,8 @@ sudo install -d -m 755 -o root -g root /srv/dshs /usr/local/lib/dshs
 sudo install -d -m 700 -o root -g root /etc/dshs
 sudo install -d -m 755 -o dshs-app -g dshs-app /srv/dshs/releases /srv/dshs/static-pool
 # 파일 복사(위 표) 후
-sudo nft -f /etc/nftables.conf && sudo systemctl enable nftables
-sudo systemctl daemon-reload && sudo systemctl enable --now dshs.socket dshs.service dshs-deploy.timer
+# nftables.service 는 켜지 않는다(그 유닛은 멈출 때 flush ruleset) — 방화벽은 dshs-firewall.service 가
+sudo systemctl daemon-reload && sudo systemctl enable --now dshs-firewall.service dshs.socket dshs.service dshs-deploy.timer
 ```
 
 ## 자주 쓰는 것
@@ -40,3 +41,5 @@ sudo systemctl stop dshs.socket dshs                                       # 일
 
 받을 곳은 기본 GitHub `main`. 시험 때는 `/etc/dshs/deploy.conf`에 `REPO_URL=/srv/dshs/src.bundle`·`BRANCH=naru-server`를 두고
 맥에서 `git bundle create … naru-server`로 만든 파일을 `/srv/dshs/src.bundle`(root 644)로 올린다.
+
+시험: `node --test deploy/naru/test/`(preload 순수 함수). 앱 쪽 Node 경로는 `npm test`.

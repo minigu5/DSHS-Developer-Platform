@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import http from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { getGlobalDispatcher, setGlobalDispatcher, type Dispatcher } from 'undici'
-import { installSafeDispatcher, safeLookup } from './ssrf-node.ts'
+import { installSafeDispatcher, safeDispatcherActive, safeLookup } from './ssrf-node.ts'
 
 let server: http.Server
 let port = 0
@@ -56,4 +56,14 @@ test('공인 이름은 통과', { skip: process.env.OFFLINE === '1' }, async () 
 test('IPv6 안에 넣은 IPv4 루프백 주소로도 못 간다', async () => {
   await assert.rejects(fetch(`http://[::ffff:127.0.0.1]:${port}/`))
   await assert.rejects(fetch(`http://[::ffff:7f00:1]:${port}/`))
+})
+
+test('켤 때 자가 시험: 차단이 실제로 걸려 있으면 true, 아니면 false', async () => {
+  assert.equal(await safeDispatcherActive(), true)
+  setGlobalDispatcher(original)
+  try {
+    assert.equal(await safeDispatcherActive(), false)
+  } finally {
+    await installSafeDispatcher()
+  }
 })

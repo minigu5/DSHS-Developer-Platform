@@ -1,0 +1,15 @@
+#!/usr/sbin/nft -f
+# /usr/local/lib/dshs/firewall.nft (2026-11-11) — 8080 은 대곽나루 노드 게이트웨이(10.250.0.1)와 서버 자신만.
+# 우리 표(inet dshs)만 지우고 다시 만든다 — 서버의 다른 방화벽 규칙은 건드리지 않는다(예전엔 flush ruleset 이 전부 지웠음, 2026-11-11 리뷰).
+# 게이트웨이 주소는 `ip -4 route | grep default` 로 확인 — 바뀌면 여기도.
+table inet dshs {}
+delete table inet dshs
+
+table inet dshs {
+  chain input {
+    type filter hook input priority 0; policy accept;
+    tcp dport 8080 iif "lo" accept
+    tcp dport 8080 ip saddr 10.250.0.1 accept
+    tcp dport 8080 drop
+  }
+}

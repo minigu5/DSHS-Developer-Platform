@@ -93,6 +93,8 @@ fi
 
 # 옛 /_next/static 채우기: 이번 빌드를 모아 두는 곳에 더하고(14일 지난 건 지움), 모아 둔 것 중 없는 파일만 새 릴리스에
 as_app mkdir -p "$ROOT/static-pool"
+# 지금 돌고 있는 릴리스의 조각은 덮어써서 날짜를 새로 — 오래 배포가 없다가 배포해도 직전 릴리스 조각이 14일 정리에 안 걸리게(2026-11-11 리뷰)
+[[ -n "$PREV" && -d "$PREV/.next/static" ]] && as_app cp -r "$PREV/.next/static/." "$ROOT/static-pool/"
 as_app cp -r --update=none "$REL/.next/static/." "$ROOT/static-pool/"
 as_app find "$ROOT/static-pool" -type f -mtime +14 -delete
 as_app cp -r --update=none "$ROOT/static-pool/." "$REL/.next/static/"

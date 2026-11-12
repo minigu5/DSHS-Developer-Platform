@@ -43,3 +43,16 @@ export async function installSafeDispatcher(): Promise<void> {
     }),
   )
 }
+
+/**
+ * 켤 때 자가 시험 — 닫힌 루프백 포트(2 — 9 같은 포트는 fetch 가 스스로 막아 시험이 안 됨)로 fetch 해서 "연결 거부"가 아니라 우리 차단으로 실패하는지 본다.
+ * Node·undici 를 올리다 전역 dispatcher 자리가 바뀌면 차단이 조용히 꺼질 수 있어서(2026-11-11 리뷰). false 면 켜지 말 것.
+ */
+export async function safeDispatcherActive(): Promise<boolean> {
+  try {
+    await fetch('http://127.0.0.1:2/', { signal: AbortSignal.timeout(3000) })
+    return false
+  } catch (e) {
+    return (e as { cause?: { code?: string } }).cause?.code === 'EBLOCKEDPRIVATE'
+  }
+}
