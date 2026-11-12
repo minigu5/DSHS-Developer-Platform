@@ -37,4 +37,5 @@
 - **사용자 IP 꾸미기 시험**(2026-11-12): 꾸민 `CF-Connecting-IP`는 Cloudflare가 403으로 막고, `X-Forwarded-For`·`X-Real-IP`·`x-naru-client-ip`(+가짜 키)·`True-Client-IP`·`Forwarded`를 붙여도 클릭 집계엔 진짜 IP 해시가 찍혔다.
 - 빌드: `npm ci`+`next build` 첫 회 약 7분, 캐시 뒤 75초. 빌드 중 서버 메모리 최대 1,699MB/2,048MB(앱 실행 중 포함). 배포 중 0.2초 간격 요청 389건 모두 200(최대 1.3초).
 - 확인한 것(2026-11-11, 시험 계정): 로그인 필요한 화면, `/api/upload`(Cloudinary), 앞단 SSRF 400, 파비콘 동기화 → sharp 축소로 icon_fit 계산(180px PNG), Workers AI REST 그림 1장(0.9초), 클릭 집계 IP 해시가 실제 사용자 IP와 일치(노드 nginx가 `CF-Connecting-IP` 복원). 첫 응답: 시험 주소 약 0.35초 vs 운영 0.11초(Pages → 터널 → 노드 nginx 구간).
+- 사용자 확인(2026-11-12): Google 로그인(노드 nginx 수정 뒤), AI 포스터 만들기(서버 안 일감 30초 — 그 전 두 번은 Gemini 503·시간 초과로 "지금 AI가 붐벼요", 서버 문제 아님)·그림·걸기(PNG 찍기 뒤에서 끝남).
 - 사용자가 직접 볼 것: Google 로그인·온보딩, 프로젝트 등록·수정 화면, 댓글·하트, 글쓰기, 가이드 편집, AI 포스터(만들기·탭 닫기·걸기·PNG/PDF), 관리자 화면.
