@@ -13,6 +13,10 @@ export const RESERVED_NAMES: readonly string[] = [
   'dshs2',
 ]
 
+// 대곽나루가 학생 서버마다 자동으로 주는 기본 주소 srv-<서버 id 16진수 8자리>(2026-11-12, server_connection hub/default_dns.py).
+// 허브가 dshs.dev에 직접 CNAME을 만든다 — 학생이 같은 이름을 받으면 남의 서버 주소와 겹친다. DB 트리거(subdomains_block_naru_default)도 같은 모양
+export const NARU_DEFAULT_NAME = /^srv-[0-9a-f]{8}$/
+
 export type NameCheck = { ok: true } | { ok: false; reason: 'length' | 'chars' | 'reserved' | 'idn' }
 
 export function normalizeName(raw: string): string {
@@ -24,6 +28,6 @@ export function validateName(name: string): NameCheck {
   if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(name)) return { ok: false, reason: 'chars' }
   // 한글 같은 이름을 바꾼 punycode — 모양이 비슷한 글자로 공식 주소를 흉내 낼 수 있어 막는다
   if (name.startsWith('xn--')) return { ok: false, reason: 'idn' }
-  if (RESERVED_NAMES.includes(name)) return { ok: false, reason: 'reserved' }
+  if (RESERVED_NAMES.includes(name) || NARU_DEFAULT_NAME.test(name)) return { ok: false, reason: 'reserved' }
   return { ok: true }
 }

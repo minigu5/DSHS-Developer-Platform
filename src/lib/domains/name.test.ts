@@ -30,6 +30,12 @@ test('예약어는 막는다', () => {
   assert.ok(RESERVED_NAMES.includes('domains'))
 })
 
+test('대곽나루 기본 주소 모양(srv-<16진수 8자리>)은 못 받는다', () => {
+  assert.deepEqual(validateName('srv-abcd1234'), { ok: false, reason: 'reserved' })
+  assert.deepEqual(validateName('srv-myapp'), { ok: true })
+  assert.deepEqual(validateName('srv-abcd12345'), { ok: true })
+})
+
 test('xn-- 로 시작하는 이름(한글 등을 바꾼 punycode)은 따로 구분해 막는다', () => {
   assert.deepEqual(validateName('xn--abc'), { ok: false, reason: 'idn' })
   assert.deepEqual(validateName('xn--9d0bw1i8usvmp'), { ok: false, reason: 'idn' })
