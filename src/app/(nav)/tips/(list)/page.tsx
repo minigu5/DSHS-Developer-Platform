@@ -19,7 +19,7 @@ type TipRowJoined = {
   tags: string[];
   created_at: string;
   author: TipCardData["author"] | TipCardData["author"][] | null;
-  tip_likes: { count: number }[];
+  like_count: number;
   tip_comments: { count: number }[];
 };
 
@@ -35,7 +35,7 @@ export default async function TipsPage() {
     .select(
       `id, title, summary, cover_url, tags, created_at,
        author:users!tips_author_id_fkey(nickname, full_name, avatar_url),
-       tip_likes(count), tip_comments(count)`,
+       like_count, tip_comments(count)`,
     )
     .order("created_at", { ascending: false })
     .returns<TipRowJoined[]>();
@@ -48,7 +48,7 @@ export default async function TipsPage() {
     tags: t.tags ?? [],
     created_at: t.created_at,
     author: Array.isArray(t.author) ? t.author[0] ?? null : t.author,
-    likeCount: t.tip_likes?.[0]?.count ?? 0,
+    likeCount: t.like_count ?? 0,
     commentCount: t.tip_comments?.[0]?.count ?? 0,
   }));
 

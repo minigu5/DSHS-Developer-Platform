@@ -49,7 +49,7 @@ type TipRow = {
   title: string;
   cover_url: string | null;
   created_at: string;
-  tip_likes: { count: number }[];
+  like_count: number;
   tip_comments: { count: number }[];
 };
 
@@ -100,7 +100,7 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
       .returns<ProjectCardData[]>(),
     supabase
       .from("tips")
-      .select("id, title, cover_url, created_at, tip_likes(count), tip_comments(count)", { count: "exact" })
+      .select("id, title, cover_url, created_at, like_count, tip_comments(count)", { count: "exact" })
       .eq("author_id", id)
       .order("created_at", { ascending: false })
       .limit(5)
@@ -145,7 +145,7 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
       title: t.title,
       created_at: t.created_at,
       cover_url: t.cover_url,
-      likeCount: t.tip_likes?.[0]?.count ?? 0,
+      likeCount: t.like_count ?? 0,
       commentCount: t.tip_comments?.[0]?.count ?? 0,
     })),
     ...(ideaRows ?? []).map<PostRow>((i) => ({ kind: "idea", id: i.id, title: i.title, created_at: i.created_at, status: i.status })),

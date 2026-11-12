@@ -33,7 +33,7 @@ type TipJoined = {
   title: string;
   cover_url: string | null;
   author: Person;
-  tip_likes: { count: number }[] | null;
+  like_count: number | null;
   tip_comments: { count: number }[] | null;
 };
 
@@ -120,7 +120,7 @@ async function fetchHomeData(): Promise<HomeData> {
       .returns<ShelfProject[]>(),
     supabase
       .from("tips")
-      .select("id, title, cover_url, author:users!tips_author_id_fkey(nickname, full_name), tip_likes(count), tip_comments(count)")
+      .select("id, title, cover_url, author:users!tips_author_id_fkey(nickname, full_name), like_count, tip_comments(count)")
       .order("created_at", { ascending: false })
       .limit(3)
       .returns<TipJoined[]>(),
@@ -167,7 +167,7 @@ async function fetchHomeData(): Promise<HomeData> {
       title: t.title,
       cover_url: t.cover_url,
       authorName: personName(t.author),
-      likeCount: t.tip_likes?.[0]?.count ?? 0,
+      likeCount: t.like_count ?? 0,
       commentCount: t.tip_comments?.[0]?.count ?? 0,
     })),
     ideas,

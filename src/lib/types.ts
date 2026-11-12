@@ -287,6 +287,7 @@ export type Database = {
           content: string;
           cover_url: string | null;
           tags: string[];
+          like_count: number; // tip_likes 트리거가 채움, 사용자 키로 못 바꿈(20261112110000)
           created_at: string;
           updated_at: string;
         };

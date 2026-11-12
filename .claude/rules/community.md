@@ -32,9 +32,9 @@ paths:
 
 ### 팁(블로그) 테이블 — `docs/08-supabase-tips.sql`
 - **`tips`**: `id`, `author_id`, `title`, `summary`, `content`(마크다운), `cover_url`, `tags[]`, `created_at`, `updated_at`(트리거 자동 갱신).
-- **`tip_likes`**: `tip_id`, `user_id`, `created_at`, PK(`tip_id`,`user_id`) — 좋아요 1인 1회.
+- **`tip_likes`**: `tip_id`, `user_id`, `created_at`, PK(`tip_id`,`user_id`) — 좋아요 1인 1회. **누가 눌렀는지는 본인·관리자만**(2026-11-12 사용자 결정, 프로젝트 하트와 같음): 수는 `tips.like_count`(AFTER INSERT/DELETE 트리거 `tip_likes_count`, 사용자 키로 못 바꿈 `tips_guard_like_count`, 좋아요만 바뀌면 `updated_at` 안 바뀜 — migration A `20261112110000`), `tip_likes`는 본인 행만 SELECT·anon 권한 없음(B `20261112120000`, 코드 배포 뒤). 목록·상세·프로필·홈은 `like_count`를 읽는다 — `tip_likes(count)` 집계는 내 것만 세니 쓰지 말 것. 명단은 관리자 `LikersCard`(서비스 키).
 - **`tip_comments`**: `id`, `tip_id`, `user_id`, `content`, `created_at`.
-- RLS: 모두 조회는 누구나, 생성은 로그인, 수정/삭제는 본인만. (좋아요는 수정 없음)
+- RLS: 모두 조회는 누구나, 생성은 로그인, 수정/삭제는 본인만. (좋아요는 수정 없음, 조회는 본인 행만 — 위)
 - ⚠️ 새 환경에서는 이 SQL을 Supabase에서 실행해야 함.
 
 ---

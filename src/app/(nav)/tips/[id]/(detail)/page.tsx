@@ -29,7 +29,7 @@ type TipDetailRow = {
     | { nickname: string | null; full_name: string | null; avatar_url: string | null }
     | { nickname: string | null; full_name: string | null; avatar_url: string | null }[]
     | null;
-  tip_likes: { count: number }[];
+  like_count: number;
 };
 
 export default async function TipDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -40,9 +40,8 @@ export default async function TipDetailPage({ params }: { params: Promise<{ id: 
     supabase
       .from("tips")
       .select(
-        `id, author_id, title, summary, content, cover_url, tags, created_at,
-         author:users!tips_author_id_fkey(nickname, full_name, avatar_url),
-         tip_likes(count)`,
+        `id, author_id, title, summary, content, cover_url, tags, created_at, like_count,
+         author:users!tips_author_id_fkey(nickname, full_name, avatar_url)`,
       )
       .eq("id", id)
       .single<TipDetailRow>(),
@@ -60,7 +59,7 @@ export default async function TipDetailPage({ params }: { params: Promise<{ id: 
 
   const author = Array.isArray(tip.author) ? tip.author[0] ?? null : tip.author;
   const authorName = author?.nickname || author?.full_name || "알 수 없음";
-  const likeCount = tip.tip_likes?.[0]?.count ?? 0;
+  const likeCount = tip.like_count ?? 0;
 
   const comments: TipCommentItem[] = (commentsResult.data ?? []).map((c) => ({
     id: c.id,
