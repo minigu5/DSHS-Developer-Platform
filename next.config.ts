@@ -32,6 +32,9 @@ const nextConfig: NextConfig = {
     },
     // 사용하는 아이콘/함수만 번들에 포함시켜 JS 크기 감소 (기법 6: 번들링)
     optimizePackageImports: ['lucide-react', 'date-fns'],
+    // 대곽나루 서버: 다시 만든 페이지를 디스크에 쓰지 않고 메모리에만 — 앱은 릴리스 폴더에 못 쓰게 막혀 있어(systemd ProtectSystem)
+    // revalidatePath('/') 뒤마다 "Failed to update prerender cache" 오류가 찍혔다(2026-11-12). 빌드 때 만든 파일은 그대로 읽는다.
+    ...(process.env.DSHS_RUNTIME === 'node' ? { isrFlushToDisk: false } : {}),
   },
   images: {
     // AVIF → WebP → JPEG 순으로 최신 포맷 우선 제공 (기법 2: 이미지 포맷)

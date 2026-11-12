@@ -29,6 +29,7 @@
 | 포스터 일감 | Cloudflare Queues + `custom-worker.ts` | 프로세스 안(`src/lib/posters/node-jobs.ts`), 배포 재시작 때 최대 100초 기다림 |
 | 걸 PNG 찍기 등 `waitUntil` | `ctx.waitUntil` | 같은 `runInBackground` |
 | 매일 밤 파비콘 동기화 | Worker cron | **안 돈다**(두 번 돌지 않게 Worker만) |
+| 다시 만든 페이지 캐시(`revalidatePath`) | OpenNext 캐시 | 메모리만(`next.config.ts` `isrFlushToDisk: false` — 앱은 릴리스 폴더에 못 써서 디스크에 쓰려다 오류만 찍혔다, 2026-11-12) |
 | 정적 파일 | `dshs-assets.pages.dev` | 같은 출처(다른 출처 청크는 하이드레이션이 1초 늦었던 대곽나루 포털 기록) |
 
 - `sharp`·`undici`는 `nodeRequire`(`src/lib/node-require.ts`)로만 불러 Worker 묶음에 안 들어간다(그냥 import하면 gzip +218KB, 무료 한도 3MB).
