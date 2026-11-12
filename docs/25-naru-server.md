@@ -8,7 +8,7 @@
 
 - 서버 `ssh dshs-srv-acad2ff0`(대곽나루 관리자 계정으로 빌림, Ubuntu 24.04·1코어·2GB·스왑 없음, 출구 ICN).
 - 시험 주소 **`dshs2.dshs.dev`** — 운영 `/domains`에서 대곽나루 호스트로 붙임(서울 입구 `naru-sites` → 노드 nginx → 서버 `10.250.0.2:8080`). 운영 Supabase를 같이 쓴다.
-- 받을 곳: 시험 중엔 GitHub에 올리지 않고 맥에서 만든 git bundle(`/srv/dshs/src.bundle`, `deploy.conf`의 `BRANCH=naru-server`). main에 합치면 `deploy.conf`를 지워 GitHub `main`을 받게.
+- 받을 곳: GitHub `main`(2026-11-12 병합 9efb9cb부터 — 그 전 시험 땐 git bundle). main 푸시 = Workers Builds(운영 Worker) + 이 서버 2분 안 자동 배포. 다른 브랜치를 시험하려면 `/etc/dshs/deploy.conf`(`deploy/naru/README.md`).
 - `NARU_HUB_KEY`는 넣지 않았다 — 시험 주소의 도메인 마련하기 "대곽나루" 호스트만 "준비 안 됨"(사용자 결정, 연결은 운영 화면에서).
 - 2단계(dshs.dev를 서버로)는 아직 — 사용자가 시점을 정한다. 계획의 "허브·노드 nginx 바꾸기"는 "학생처럼 서버 ssh 안에서만" 원칙과 부딪혀 다시 설계해야 한다.
 
