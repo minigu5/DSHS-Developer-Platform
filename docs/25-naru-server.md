@@ -6,6 +6,8 @@
 
 ## 지금 상태
 
+- **2026-11-15 대곽나루 길 끔(사용자 의도)**: 소유자가 `dshs2` 주소를 해지해 DNS가 없어졌고, 입구 `ORIGIN_HOST`를 `""`로 비워 재배포(Pages) — 지금은 Worker만 응답(`x-dshs-origin: worker`). 되돌리려면 `/domains`에서 `dshs2`를 서버에 다시 묶고 `ORIGIN_HOST`를 `dshs2.dshs.dev`로. 아래 내용은 켜져 있던 때의 기록.
+
 - 서버 `ssh dshs-srv-acad2ff0`(대곽나루 관리자 계정으로 빌림, Ubuntu 24.04·1코어·2GB·스왑 없음, 출구 ICN).
 - 시험 주소 **`dshs2.dshs.dev`** — 운영 `/domains`에서 대곽나루 호스트로 붙임(서울 입구 `naru-sites` → 노드 nginx → 서버 `10.250.0.2:8080`). 운영 Supabase를 같이 쓴다.
 - 받을 곳: GitHub `main`(2026-11-12 병합 9efb9cb부터 — 그 전 시험 땐 git bundle). main 푸시 = Workers Builds(운영 Worker) + 이 서버 2분 안 자동 배포. 다른 브랜치를 시험하려면 `/etc/dshs/deploy.conf`(`deploy/naru/README.md`).
