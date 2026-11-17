@@ -3,7 +3,7 @@
 import Link from "@/components/shared/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
-import { Search, Rocket, BookOpen, Globe, MessagesSquare } from "lucide-react";
+import { Search, Plus, BookOpen, Globe, MessagesSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { resolveActive } from "@/lib/nav-active";
 import { SECTION_COLORS } from "@/lib/section-colors";
@@ -11,7 +11,7 @@ import { SECTION_COLORS } from "@/lib/section-colors";
 // 알약 색은 섹션 색 맵(src/lib/section-colors.ts)과 공유 — 페이지 머리 타일·주 버튼과 같은 색
 const NAV_ITEMS = [
   { href: "/explore", label: "모든 프로젝트", icon: Search, pillClass: SECTION_COLORS.explore.pill },
-  { href: "/projects/new", label: "프로젝트 등록", icon: Rocket, pillClass: SECTION_COLORS.new.pill },
+  { href: "/projects/new", label: "프로젝트 등록", icon: Plus, pillClass: SECTION_COLORS.new.pill },
   { href: "/guide", label: "나도 개발해볼래!", icon: BookOpen, pillClass: SECTION_COLORS.guide.pill },
   // 학생 웹사이트에 이름.dshs.dev 주소를 붙여 주는 화면 — 배포 직후 찾아오도록 가이드 바로 다음
   { href: "/domains", label: "도메인 마련하기", icon: Globe, pillClass: SECTION_COLORS.domains.pill },
@@ -20,6 +20,9 @@ const NAV_ITEMS = [
 ] as const;
 
 // 공지사항은 내비 칸이 아니라 헤더 오른쪽 벨(announcements-link.tsx)이다 — 공지 화면에서는 어느 칸도 켜지지 않는다.
+
+// 데스크탑 메뉴줄에서는 "프로젝트 등록"을 빼고 헤더 오른쪽 큰 버튼(RegisterButton)으로 둔다(이슈 #5)
+const DESKTOP_ITEMS = NAV_ITEMS.filter((i) => i.href !== "/projects/new");
 
 const STORAGE_KEY = "pagenav-pill";
 
@@ -50,7 +53,7 @@ function useOptimisticActive() {
 // 데스크탑 전용 — SiteHeader 안에서 사용
 export function PageNav() {
   const { pathname, active, onNavigate } = useOptimisticActive();
-  const activeIndex = NAV_ITEMS.findIndex((i) => i.href === active);
+  const activeIndex = DESKTOP_ITEMS.findIndex((i) => i.href === active);
 
   const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
   const [pill, setPill] = useState({ left: 0, top: 0, width: 0, height: 0, ready: false });
@@ -91,11 +94,25 @@ export function PageNav() {
     setPill({ ...next, top, height, ready: true });
   }, [activeIndex, pathname]);
 
-  const activeItem = activeIndex >= 0 ? NAV_ITEMS[activeIndex] : null;
+  // 창 폭이 바뀌어 글자 표시가 달라지면(xl) 알약 위치를 다시 잰다 — 안 그러면 알약이 글자보다 좁아 겹쳐 보인다
+  const navRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const ro = new ResizeObserver(() => {
+      const el = activeIndex >= 0 ? itemRefs.current[activeIndex] : null;
+      if (el) setPill({ left: el.offsetLeft, top: el.offsetTop, width: el.offsetWidth, height: el.offsetHeight, ready: true });
+    });
+    ro.observe(nav);
+    itemRefs.current.forEach((el) => el && ro.observe(el));
+    return () => ro.disconnect();
+  }, [activeIndex]);
+
+  const activeItem = activeIndex >= 0 ? DESKTOP_ITEMS[activeIndex] : null;
   const activePill = activeItem ? pillFor(activeItem.href, activeItem.pillClass, pathname) : "";
 
   return (
-    <nav aria-label="주요 메뉴" className="relative flex items-center gap-0.5 sm:gap-1">
+    <nav ref={navRef} aria-label="주요 메뉴" className="relative flex items-center gap-0.5 sm:gap-1">
       <span
         aria-hidden
         className={cn(
@@ -110,7 +127,7 @@ export function PageNav() {
           height: pill.height,
         }}
       />
-      {NAV_ITEMS.map(({ href, label, icon: Icon }, i) => {
+      {DESKTOP_ITEMS.map(({ href, label, icon: Icon }, i) => {
         const isActive = active === href;
         return (
           <Link
@@ -132,10 +149,13 @@ export function PageNav() {
             )}
           >
             <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {isActive && (
+            {isActive ? (
               <span className="ml-1.5 whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-200 motion-reduce:animate-none">
                 {label}
               </span>
+            ) : (
+              // 넓은 화면(xl)에선 글자를 항상 보여 아이콘만으론 모르던 기능을 바로 알 수 있게(이슈 #5)
+              <span className="ml-1.5 hidden whitespace-nowrap xl:inline">{label}</span>
             )}
           </Link>
         );
@@ -179,5 +199,23 @@ export function MobileNav() {
         );
       })}
     </nav>
+  );
+}
+
+// 데스크탑 헤더 오른쪽의 큰 등록 버튼 — 메뉴줄과 떨어뜨려 눈에 띄게(이슈 #5)
+export function RegisterButton() {
+  return (
+    <Link
+      href="/projects/new"
+      aria-label="프로젝트 등록"
+      className={cn(
+        "hidden sm:inline-flex h-9 items-center justify-center gap-1.5 rounded-full px-3 lg:px-4 text-sm font-medium text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600",
+        SECTION_COLORS.new.pill,
+        "hover:bg-emerald-800",
+      )}
+    >
+      <Plus className="h-4 w-4 shrink-0" aria-hidden />
+      <span className="hidden whitespace-nowrap lg:inline">프로젝트 등록</span>
+    </Link>
   );
 }

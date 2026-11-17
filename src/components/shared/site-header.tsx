@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { AuthButtons } from "@/components/shared/auth-buttons";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { AnnouncementsLink } from "@/components/shared/announcements-link";
-import { PageNav } from "@/components/shared/page-nav";
+import { PageNav, RegisterButton } from "@/components/shared/page-nav";
 import { cn } from "@/lib/utils";
 
 interface SiteHeaderProps {
@@ -82,6 +82,7 @@ export function SiteHeader({
             <ThemeToggle />
           </div>
           <AnnouncementsLink />
+          {showNav && <RegisterButton />}
           <AuthButtons />
         </div>
       </div>
