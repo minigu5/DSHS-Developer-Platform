@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import type { HowItWorksExamples } from "@/components/home/how-it-works";
 import { SHELF_LIMIT, type ShelfProject } from "@/components/home/icon-shelf";
-import type { RecentAnnouncement, RecentIdea, RecentTip } from "@/components/home/recent-posts";
+import type { RecentAnnouncement, RecentIdea } from "@/components/home/recent-posts";
 import type { ProjectCardData } from "@/components/projects/project-card";
 import type { TickerItem } from "@/components/shared/announcement-ticker";
 import { ANONYMOUS_AUTHOR, projectTypeLabels } from "@/lib/constants";
@@ -19,7 +19,6 @@ export type HomeData = {
   ticker: TickerItem[];
   recentProjects: ProjectCardData[];
   shelf: ShelfProject[];
-  tips: RecentTip[];
   ideas: RecentIdea[];
   recentAnnouncements: RecentAnnouncement[];
   examples: HowItWorksExamples;
@@ -27,15 +26,6 @@ export type HomeData = {
 };
 
 type Person = { nickname: string | null; full_name: string | null } | null;
-
-type TipJoined = {
-  id: string;
-  title: string;
-  cover_url: string | null;
-  author: Person;
-  like_count: number | null;
-  tip_comments: { count: number }[] | null;
-};
 
 type IdeaJoined = {
   id: string;
@@ -76,7 +66,6 @@ async function fetchHomeData(): Promise<HomeData> {
     { data: announcementsRaw },
     { data: projectsRaw },
     { data: shelfRaw },
-    { data: tipsRaw },
     { data: ideasRaw },
     { data: commentRaw },
     { data: showcaseRaw },
@@ -119,12 +108,6 @@ async function fetchHomeData(): Promise<HomeData> {
       .limit(SHELF_LIMIT)
       .returns<ShelfProject[]>(),
     supabase
-      .from("tips")
-      .select("id, title, cover_url, author:users!tips_author_id_fkey(nickname, full_name), like_count, tip_comments(count)")
-      .order("created_at", { ascending: false })
-      .limit(3)
-      .returns<TipJoined[]>(),
-    supabase
       .from("ideas")
       .select("id, title, type, category, status, author:users!ideas_author_id_fkey(nickname, full_name)")
       .order("created_at", { ascending: false })
@@ -162,14 +145,6 @@ async function fetchHomeData(): Promise<HomeData> {
     ticker,
     recentProjects,
     shelf: shelfRaw ?? [],
-    tips: (tipsRaw ?? []).map((t) => ({
-      id: t.id,
-      title: t.title,
-      cover_url: t.cover_url,
-      authorName: personName(t.author),
-      likeCount: t.like_count ?? 0,
-      commentCount: t.tip_comments?.[0]?.count ?? 0,
-    })),
     ideas,
     recentAnnouncements: ticker.slice(0, 4),
     examples: {
@@ -212,7 +187,6 @@ const EMPTY: HomeData = {
   ticker: [],
   recentProjects: [],
   shelf: [],
-  tips: [],
   ideas: [],
   recentAnnouncements: [],
   examples: { latestProject: null, latestComment: null, latestIdea: null },

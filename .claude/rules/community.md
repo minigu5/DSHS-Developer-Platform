@@ -1,13 +1,9 @@
 ---
 paths:
-  - "src/components/tips/**"
   - "src/components/haejwo/**"
   - "src/components/announcements/**"
-  - "src/components/community/**"
-  - "src/app/**/tips/**"
   - "src/app/**/haejwo/**"
   - "src/app/**/announcements/**"
-  - "src/lib/tips/**"
   - "src/lib/haejwo/**"
   - "src/lib/announcements/**"
   - "src/lib/announcement-colors.ts"
@@ -15,33 +11,21 @@ paths:
   - "src/components/shared/markdown*.tsx"
 ---
 
-# 개발 팁·해줘!·공지사항
+# 해줘!·공지사항(개발 팁은 2026-11-17 없앰)
 
 > CLAUDE.md에서 옮겨 온 기능 문서(2026-11-02). 위 경로의 파일을 열면 자동으로 불러온다. 이 기능의 결정·변경 사항은 이 파일에 적는다.
 
-## 📝 개발 팁 블로그 (`/tips`)
-- **목록** `/tips`(`revalidate=30`): 카드 그리드(커버·태그·작성자·좋아요/댓글 수·상대시간). 머리 버튼은 "팁 작성" 하나, 머리 아래 도구줄에 커뮤니티 탭(개발 팁 | 해줘!) + 팁 개수.
-- **작성** `/tips/new` · **수정** `/tips/[id]/edit`: 페이지는 `PageHero variant="compact"`(타일 + 제목만). `TipEditor`(`src/components/tips/tip-editor.tsx`) — 카드 2장: ① 큰 밑줄 제목 입력(`TITLE_INPUT_CLASS`) + 2열(한 줄 요약/태그) + 대표 이미지, ② 본문(`EditorTabs` 작성/분할/미리보기, Tab 들여쓰기). 제출 버튼은 섹션 색(`SECTION_COLORS.tips.button`) "팁 발행"/"저장". 둘 다 보호 라우트(미들웨어). 수정은 작성자만. 공지 작성(`AnnouncementEditor`)도 같은 틀 — 카드 ① 맨 위에 카테고리 카드 선택(단일 선택이라 sky 유지).
-- **상세** `/tips/[id]`(`revalidate=30`): 글 레이아웃 — `ArticleHeader`("← 개발 팁" 줄 + 태그 + h1 + 요약 + 작성자 줄) → 커버 16:9 → `ReadingSurface`(마크다운, 하단에 `TipLikeButton` 알약 + "도움이 됐다면 눌러 주세요") → `TipComments`(카드 없이 "댓글 N" 제목 + 행 목록). 작성자에게만 수정/삭제 노출(`TipOwnerActions`). 팁·해줘·공지 상세가 같은 틀을 쓴다.
-- 서버 액션: **`src/lib/tips/actions.ts`**(`createTip`/`updateTip`/`deleteTip`). 라우트 그룹 밖에 위치 — `(nav)` 경로에 두면 Turbopack에서 client→server action 바인딩이 깨지는 문제 있음.
-- 팁 작성 필수 필드: 제목, **한 줄 요약(최대 30자)**, **대표 이미지 (파일 업로드 또는 URL)**, 본문.
-- 삭제 확인창은 `window.confirm` 대신 shadcn `Dialog` 컴포넌트 사용(팁 삭제·댓글 삭제 모두).
-- Supabase join 시 `users` 테이블 관계가 모호하면 PGRST201 오류 발생 → `author:users!tips_author_id_fkey(...)` 처럼 **FK 이름을 명시**해야 함.
-- 마크다운 렌더 공용 컴포넌트: `src/components/shared/markdown.tsx`(팁·가이드 공유) — **브라우저에서만 그린다**(2026-11-01, `next/dynamic` `ssr:false`, 서버 HTML엔 회색 줄 자리). 변환이 서버 CPU를 많이 써서(팁 상세 24→10ms) Workers 무료 한도 503의 원인이었음. 실제 렌더는 `markdown-render.tsx`의 `MarkdownRender` — 빌드 때 그려지는 정적 페이지(`/privacy`)만 직접 쓴다. `table`/`thead`/`tbody`/`tr`/`th`/`td` 커스텀 컴포넌트로 표 테두리·구분선·헤더 배경 스타일 적용(다크모드 포함). 바깥 테두리는 `rounded-xl` 컨테이너로 감싸 오버플로우 처리. **문서 안 바로가기**(2026-11-04): 제목(h1~h6)에 GitHub과 같은 규칙의 id를 붙이고(`rehypeHeadingIds`, `src/lib/heading-slug.ts`, 같은 제목은 `-1`·`-2`), `#…` 링크는 새 탭이 아니라 같은 탭으로 — 전엔 README의 `[설치](#설치-방법)`가 새 탭으로 열려 맨 위에 떴다. 제목에 `scroll-mt-20`(고정 헤더 64px에 안 가리게). **언어 없는 ``` 블록**(2026-11-04): `code`는 `language-` 클래스로 블록을 가리는데 언어를 안 적으면 인라인으로 오인돼 줄마다 분홍 글자·배경이 붙었다 — `pre`의 `[&>code]:` 클래스로 안쪽 code 스타일을 되돌림.
-- **상세 페이지 작성자 링크**: `/tips/[id]`에서 작성자 아바타+이름 영역을 `<Link href="/developers/[author_id]">` 로 감쌈 — 클릭 시 프로필 페이지 이동.
-
-### 팁(블로그) 테이블 — `docs/08-supabase-tips.sql`
-- **`tips`**: `id`, `author_id`, `title`, `summary`, `content`(마크다운), `cover_url`, `tags[]`, `created_at`, `updated_at`(트리거 자동 갱신).
-- **`tip_likes`**: `tip_id`, `user_id`, `created_at`, PK(`tip_id`,`user_id`) — 좋아요 1인 1회. **누가 눌렀는지는 본인·관리자만**(2026-11-12 사용자 결정, 프로젝트 하트와 같음): 수는 `tips.like_count`(AFTER INSERT/DELETE 트리거 `tip_likes_count`, 사용자 키로 못 바꿈 `tips_guard_like_count`, 좋아요만 바뀌면 `updated_at` 안 바뀜 — migration A `20261112110000`), `tip_likes`는 본인 행만 SELECT·anon 권한 없음(B `20261112120000`, 코드 배포 뒤). 목록·상세·프로필·홈은 `like_count`를 읽는다 — `tip_likes(count)` 집계는 내 것만 세니 쓰지 말 것. 명단은 관리자 `LikersCard`(서비스 키).
-- **`tip_comments`**: `id`, `tip_id`, `user_id`, `content`, `created_at`.
-- RLS: 모두 조회는 누구나, 생성은 로그인, 수정/삭제는 본인만. (좋아요는 수정 없음, 조회는 본인 행만 — 위)
-- ⚠️ 새 환경에서는 이 SQL을 Supabase에서 실행해야 함.
+## ~~📝 개발 팁 블로그~~ — 2026-11-17 없앰
+- 사용자 결정(11-17, "개발 팁만 없애자"): `/tips`·작성·수정·상세 화면, `src/components/tips/`, `src/lib/tips/`, 커뮤니티 탭(`CommunityTabs`), `tip-*` 분홍 색 토큰, 홈 "개발 팁" 칸·푸터 링크·프로필 글 목록의 팁을 모두 걷어냈다. `/tips`·`/tips/*`는 `next.config.ts` redirects로 `/haejwo`(임시 302). 내비 "해줘!" 칸은 `/haejwo` 하나로 간다(이름은 "해줘!"·메가폰 아이콘으로 바꿈).
+- **DB는 그대로 남김**(1단계): `tips`·`tip_likes`·`tip_comments` 테이블·트리거·`types.ts`, 관리자 대시보드(최신 글 팁·팁 댓글 칩, 현황 "개발 팁" 수, 숨김·차단, `LikersCard` kind `tip`)도 그대로 — 남은 글 점검용. 관리자 목록의 `/tips/<id>` 링크는 이제 해줘! 목록으로 넘어간다. **2단계(미룸)**: 테이블 DROP migration + 관리자 팁 항목 제거 + `withdraw_account` 안내·Cloudinary 팁 커버 정리 + 처리방침 "개발 팁·댓글·좋아요" 문구(재동의는 필요 없음, 시행일만 고치고 공지) — 글은 지우면 되돌릴 수 없으니 사용자 확인 뒤에.
+- 마크다운 렌더 공용 컴포넌트 `src/components/shared/markdown.tsx`는 가이드·해줘·공지가 계속 쓴다 — **브라우저에서만 그린다**(2026-11-01, `next/dynamic` `ssr:false`, 서버 HTML엔 회색 줄 자리). 변환이 서버 CPU를 많이 써서 Workers 무료 한도 503의 원인이었음. 실제 렌더는 `markdown-render.tsx`의 `MarkdownRender` — 빌드 때 그려지는 정적 페이지(`/privacy`)만 직접 쓴다. `table` 계열 커스텀 컴포넌트로 표 스타일 적용(다크 포함). **문서 안 바로가기**(2026-11-04): 제목(h1~h6)에 GitHub과 같은 규칙의 id(`rehypeHeadingIds`, `src/lib/heading-slug.ts`, 같은 제목은 `-1`·`-2`), `#…` 링크는 같은 탭, 제목에 `scroll-mt-20`. **언어 없는 ``` 블록**: `pre`의 `[&>code]:` 클래스로 안쪽 code 스타일을 되돌림.
+- 삭제 확인창은 `window.confirm` 대신 shadcn `Dialog`. Supabase join에서 `users` 관계가 모호하면 PGRST201 → FK 이름 명시(`users!ideas_author_id_fkey`).
 
 ---
 
 ## 💡 해줘! 아이디어 요청 (`/haejwo`)
 - **목적**: 비개발자가 아이디어를 올리고 개발자에게 구현을 요청하는 기능. 기능 이름 "해줘".
-- **진입점**: 내비 "커뮤니티" 칸 → 커뮤니티 탭(`CommunityTabs`)의 "해줘!" 탭 → `/haejwo` 목록 페이지. (개발 팁 머리의 "해줘! 둘러보기" 버튼은 2026-10-24 제거)
+- **진입점**: 내비 "해줘!" 칸 → `/haejwo` 목록 페이지(2026-11-17부터 탭 없이 바로).
 - **목록** `/haejwo`(`revalidate=30`): 카드 그리드(종류·카테고리·상태·작성자·상대시간).
 - **위저드** `/haejwo/new` (보호 라우트): 단계별 아이디어 작성.
   - 1단계: 프로그램 종류 선택 (`PROJECT_TYPES` 기반 카드 리스트)
@@ -52,7 +36,7 @@ paths:
 - DB 스키마: `docs/10-supabase-haejwo.sql` — `ideas` 테이블 (`id`, `author_id`, `title`, `type`, `category`, `content`, `status`(`open`/`in_progress`/`done`), `linked_project_id`(nullable FK → projects), `created_at`, `updated_at`).
 - 컴포넌트: `src/components/haejwo/haejwo-wizard.tsx`, `src/components/haejwo/haejwo-owner-actions.tsx`, `src/components/haejwo/haejwo-complete-button.tsx`.
 - **구현완료 흐름**: 로그인된 사용자가 상세 페이지 하단 "구현완료" 버튼 클릭 → 다이얼로그에서 내 프로젝트 목록 표시 → 선택 시 `markIdeaDone(ideaId, projectId)` 서버 액션 호출 → `status='done'`, `linked_project_id` 업데이트 → 완료 후 연결된 프로젝트 카드 노출. **DB도 막는다**(2026-11-12 감사, 트리거 `ideas_guard_linked_project` → `idea_link_not_own`): 글쓴이가 자기 이름(익명 아님)으로 올린 자기 프로젝트만 연결된다(예전엔 정책에 WITH CHECK가 없어 API로 남의 프로젝트도 연결됐음). 연결된 프로젝트를 익명으로 바꾸면 `projects_refresh_anonymous_marks`가 연결을 비운다(anon이 `ideas.author_id`+`linked_project_id`로 주인을 알 수 있었음 — 다시 공개 이름으로 바꿔도 안 돌아옴). 프로젝트 미등록 시 "프로젝트 등록하기" 버튼 제공.
-- 색상 포인트: **오렌지** (`orange-700`) — 개발 팁(`tip-*` 분홍)과 구별. 목록 도구줄 오른쪽(커뮤니티 탭 옆) **상태 세그먼트** `HaejwoStatusTabs`(전체·구현 요청 중·완료, `?status=` 링크; `in_progress`는 설정 UI가 없어 세그먼트에 없음). 카드는 `HaejwoCard`(상태 알약·종류 아이콘 칩·카테고리 칩, 완료는 점선 테두리 + 연결 프로젝트 한 줄). 상세는 글 레이아웃(`ArticleHeader` + `ReadingSurface`) + 미완료면 점선 "만들었어요?" 카드, 완료면 emerald 연결 프로젝트 카드.
+- 색상 포인트: **오렌지** (`orange-700`) — 내비 커뮤니티 칸도 같은 색. 목록 머리 아래 **상태 세그먼트** `HaejwoStatusTabs`(전체·구현 요청 중·완료, `?status=` 링크; `in_progress`는 설정 UI가 없어 세그먼트에 없음). 카드는 `HaejwoCard`(상태 알약·종류 아이콘 칩·카테고리 칩, 완료는 점선 테두리 + 연결 프로젝트 한 줄). 상세는 글 레이아웃(`ArticleHeader` + `ReadingSurface`) + 미완료면 점선 "만들었어요?" 카드, 완료면 emerald 연결 프로젝트 카드.
 - ⚠️ 새 환경에서는 `docs/10-supabase-haejwo.sql` → `docs/11-supabase-haejwo-alter.sql` 순서로 Supabase에서 실행해야 함.
 
 ---

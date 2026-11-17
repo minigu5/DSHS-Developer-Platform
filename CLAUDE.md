@@ -36,14 +36,14 @@
 | `projects.md` | 등록·수정 폼 UX(README·라이선스 가져오기, 이탈 경고, 등록 직후 권유, 팀원), 상세·카드, 팀 수정 권한·삭제 확인, 댓글·하트 |
 | `domains.md` | 도메인 마련하기 전체(확인 먼저, 호스트 프리셋, 바로가기, 대곽나루, DB 함수, 매일 점검, 비공개 전환 시 반납) |
 | `guide.md` | 바이브 코딩 가이드(위저드·스테퍼·조각 표기·설치 링크 규칙), 가이드 위키 편집 |
-| `community.md` | 개발 팁(공용 `Markdown` 렌더 포함)·해줘!·공지사항·홈 공지 티커 |
+| `community.md` | 해줘!(공용 `Markdown` 렌더 포함, 개발 팁은 11-17 없앰)·공지사항·홈 공지 티커 |
 | `explore.md` | 탐색 검색·필터·주소 쿼리 |
 | `profile.md` | 개발자 프로필 페이지·연락처 |
 | `privacy.md` | 개인정보 처리방침·동의 팝업·탈퇴 — **새 개인정보 수집·외부 위탁을 추가할 때도 읽을 것**(재동의는 `PRIVACY_CONSENT_VERSION`을 손으로 올릴 때만) |
 | `performance.md` | 온보딩 쿠키, `next.config.ts`(staleTimes·이미지·optimizePackageImports), Cloudinary 업로드, API 캐시 헤더, preconnect |
 | `home.md` | 홈 구성·섹션·아이콘 나열·로딩 시퀀스·스크롤 리빌 |
 | `admin.md` | 관리자 대시보드 `/admin`(오늘 확인할 것·현황·최신 글·비속어·기간 차단·주소 관리), 차단 DB 트리거 |
-| `nav.md` | `PageNav`/`MobileNav`·활성 판정·섹션 색·커뮤니티 탭 |
+| `nav.md` | `PageNav`/`MobileNav`·활성 판정·섹션 색 |
 | `posters.md` | AI 포스터 만들기(Gemini HTML + Workers AI 그림, 1단계 관리자만, 횟수·내보내기) |
 
 ---
@@ -65,7 +65,7 @@
 | **User** (로그인) | 위 + 프로젝트 게시/수정/삭제, 댓글 작성·하트(즐겨찾기). Private 프로젝트는 작성자 또는 `allowed_users`에 포함된 사용자만 접근 |
 
 ### 보호 라우트 (`src/middleware.ts`)
-- `/projects/new`, `/projects/[id]/edit`, `/projects/[id]/poster`(옛 포스터 주소 — 이제 수정 화면 `?poster=` 옆 칸으로 넘김), `/posters/start`(남의 포스터에서 "내 프로젝트로도 만들기"), `/tips/new`, `/haejwo/new`, `/me`, `/guide-wiki/[key]/edit`, `/domains`, `/admin`(관리자 대시보드 — `/domains/admin`은 `/admin#domains`로)
+- `/projects/new`, `/projects/[id]/edit`, `/projects/[id]/poster`(옛 포스터 주소 — 이제 수정 화면 `?poster=` 옆 칸으로 넘김), `/posters/start`(남의 포스터에서 "내 프로젝트로도 만들기"), `/haejwo/new`, `/me`, `/guide-wiki/[key]/edit`, `/domains`, `/admin`(관리자 대시보드 — `/domains/admin`은 `/admin#domains`로)
 - 비로그인 시 `/login?next=<원래경로+쿼리>` 로 리다이렉트 (쿼리 보존 — 가이드 편집기의 `?from=` 복귀용)
 - 이미 로그인된 사용자가 `/login` 진입 시 홈으로
 
@@ -141,21 +141,21 @@
 
 ### 페이지별 캐시 전략
 - 홈(`/`): `force-static`(2026-11-01) — 빌드 때 만든 틀만 내려주고, 목록(공지 띠·아이콘 나열·최근 프로젝트·이렇게 써요 예시·요즘 글·도메인 현황·마무리 아이콘)은 `home-slots.tsx`의 슬롯들이 `home-data.ts`(`useHomeData`, 요청 하나를 나눠 씀, 30초 캐시)로 브라우저에서 anon 키로 읽는다. 받기 전엔 같은 크기 회색 자리. `RevealObserver`는 나중에 붙는 `.reveal`도 MutationObserver로 잡는다.
-- 팁 목록·상세(`/tips`, `/tips/[id]`), 해줘 목록(`/haejwo`): `revalidate = 30` (ISR, 30초)
+- 해줘 목록(`/haejwo`): `revalidate = 30` (ISR, 30초)
 - 탐색(`/explore`), 프로젝트 상세(`/projects/[id]`): `force-dynamic` — RLS 기반 사용자별 콘텐츠(개발자 계정은 비공개 프로젝트까지 조회)이므로 서버 캐시 사용 불가. 단 목록에서 누른 프로젝트 상세는 서버를 거치지 않고 브라우저가 Supabase로 바로 그린다(빠른 상세, 2026-11-06 — `.claude/rules/projects.md`)
 
 ### 로딩 뼈대 (`loading.tsx` + `src/components/shared/page-skeleton.tsx`, 2026-10-24)
 - 문제: Cloudflare 무료 망은 한국 접속이 LAX를 거쳐 서버 왕복이 0.8~2초 — 링크를 누르면 1초쯤 아무 반응이 없었다.
 - 해결: 경로마다 `loading.tsx`가 실제 틀(PageHero 높이·카드 격자·글 레이아웃)과 같은 **회색 블록 뼈대**를 즉시 보여 준다(반짝임·펄스 없음). 메뉴(`PageNav`/`MobileNav`)는 누른 순간 활성 표시가 옮겨간다(`useOptimisticActive`).
-- `loading.tsx`는 그 폴더 아래 모든 하위 페이지를 감싸므로, 목록·상세가 같은 폴더인 곳은 **route group**으로 나눴다: `tips|haejwo|announcements/(list)/`, `…/[id]/(detail)/`, `projects/[id]/(detail)/`. 새 하위 페이지를 만들 때 엉뚱한 뼈대가 뜨지 않게 이 구조를 따른다.
+- `loading.tsx`는 그 폴더 아래 모든 하위 페이지를 감싸므로, 목록·상세가 같은 폴더인 곳은 **route group**으로 나눴다: `haejwo|announcements/(list)/`, `…/[id]/(detail)/`, `projects/[id]/(detail)/`. 새 하위 페이지를 만들 때 엉뚱한 뼈대가 뜨지 않게 이 구조를 따른다.
 
 ## 📱 반응형 / 모바일 최적화
 
 > 원칙: **데스크탑(`sm:` 640px 이상) 디자인은 그대로 두고, 모바일(기본 브레이크포인트)에서만 보강**한다. 모든 반응형 클래스는 `기본값(모바일) + sm:기존값(데스크탑 동일)` 패턴으로 작성해 데스크탑 레이아웃이 픽셀 단위로 동일하게 유지되도록 한다.
 
 - **좌우 여백**: 페이지 `<main>`/섹션은 **모든 폭에서 `px-6`(24px)** — 2026-10-24 "모바일 16px은 너무 좁다" 피드백으로 `px-4 sm:px-6`을 폐기. 헤더(`SiteHeader`) 컨테이너도 동일. 카드 안 여백(20px)은 그대로.
-- **헤더 우측 버튼**: 좁은 폰에서 오버플로우 방지를 위해 라벨을 반응형 처리. 예) tips의 "팁 작성"은 모바일 "작성"/데스크탑 "팁 작성"(`<span className="hidden sm:inline">`). 모바일 헤더는 로고·공지 벨·프로필만 표시(다크모드는 프로필 메뉴 안, `PageNav`는 하단 탭바로 분리). 헤더 오른쪽 묶음은 모바일 `gap-1` / 데스크탑 `gap-2`.
-- **목록 도구줄**: 커뮤니티 탭 줄처럼 왼쪽·오른쪽 컨트롤을 한 줄에 두는 곳은 `flex flex-wrap justify-between gap-x-4 gap-y-3` — 모바일에선 오른쪽 요소가 아래로 내려가 가로 스크롤이 생기지 않는다.
+- **헤더 우측 버튼**: 좁은 폰에서 오버플로우 방지를 위해 라벨을 반응형 처리. 예) 해줘!의 "해줘! 등록"처럼 긴 라벨은 모바일에선 짧게(`<span className="hidden sm:inline">`). 모바일 헤더는 로고·공지 벨·프로필만 표시(다크모드는 프로필 메뉴 안, `PageNav`는 하단 탭바로 분리). 헤더 오른쪽 묶음은 모바일 `gap-1` / 데스크탑 `gap-2`.
+- **목록 도구줄**: 왼쪽·오른쪽 컨트롤을 한 줄에 두는 곳은 `flex flex-wrap justify-between gap-x-4 gap-y-3` — 모바일에선 오른쪽 요소가 아래로 내려가 가로 스크롤이 생기지 않는다.
 - **모바일 하단 탭바**: `MobileNav`(`sm:hidden`)가 뷰포트 바닥에 고정. 아이콘 전용, 활성 항목은 원형 컬러 배경+흰색 아이콘으로 강조. 콘텐츠가 가려지지 않도록 `(nav)/layout.tsx`에서 `pb-16 sm:pb-0` 여백 처리.
 - **큰 제목**: 모바일에서 한 단계 작게. 홈 히어로 `text-3xl sm:text-6xl`, 페이지 머리(`PageHero`) h1 `text-3xl sm:text-[40px]`(compact `text-2xl sm:text-[28px]`). 모바일 머리는 설명 문장을 숨긴다.
 - **카드/섹션 패딩**: `p-6 sm:p-8` (모바일 24px, 데스크탑 32px).
@@ -171,11 +171,11 @@
 
 - **바탕**: `bg-white dark:bg-zinc-950`. 보조 구간만 `bg-zinc-50 dark:bg-zinc-900/40` + `border-t` 띠(프로필 프로젝트). `bg-zinc-50` 페이지 바탕 금지.
 - **페이지 머리 `PageHero`** (`src/components/shared/page-hero.tsx`): 홈 히어로의 축소판 — 모눈 배경 + 가운데 세로 스택(섹션 색 아이콘 타일 → h1 Plex → 한 줄 설명 → 알약 버튼 → 추가 요소). `variant="compact"`(에디터·위저드: 타일 36px + 제목만), `avatar`(프로필), `maxWidth="lg"`(탐색), `children`(검색창·세그먼트). 머리 요소만 `.rise` 0/60/120/180ms로 한 번 등장; 카드·목록은 애니메이션 없음. **모바일은 설명 문장을 숨긴다.**
-- **섹션 색 `SECTION_COLORS`** (`src/lib/section-colors.ts`): 쓰는 곳은 세 군데만 — 머리 아이콘 타일(연한 배경), 페이지의 주 버튼, 활성 칩(필터·세그먼트·내비). 나머지는 zinc. 개발 팁은 `tip-*` 토큰(분홍).
+- **섹션 색 `SECTION_COLORS`** (`src/lib/section-colors.ts`): 쓰는 곳은 세 군데만 — 머리 아이콘 타일(연한 배경), 페이지의 주 버튼, 활성 칩(필터·세그먼트·내비). 나머지는 zinc.
 - **다중 선택 폼은 무채색**: 프로젝트 등록·수정, 온보딩 관심 분야처럼 선택이 많은 폼은 선택 상태에 섹션 색을 쓰지 않는다 — `SelectCard`/`ToggleChip`/`ChoiceRow`(`src/components/forms/`) 기본 `tone="neutral"` = zinc-900 반전(다크 흰색). 한 화면에서 하나만 고르는 위저드(가이드·해줘 등록)는 `tone="guide"|"haejwo"`로 섹션 색.
 - **등록 폼** `ProjectForm`: `FormSection` 카드 5장(기본 정보 → 상세 설명 → 분류 → 소스코드·라이선스 → 공개 범위·만든 사람) + 수정 페이지 소유자만 "위험 구역"(rose). 데스크탑(`lg:`)은 오른쪽 `FormRail` 목차(완료 체크, "필수 항목 N / 6"(앱이면 플랫폼까지 7 — `handleSubmit` 검사와 같음), IntersectionObserver 강조, 클릭 스크롤). emerald는 머리 타일과 "등록하기/저장하기" 버튼에만.
-- **글 상세**(팁·해줘·공지): `ArticleHeader` + `ReadingSurface`. 다크에서 긴 글은 바탕(zinc-950)보다 밝은 zinc-900 카드 위에 올린다("눈 아프다" 피드백). 본문 글자 라이트 zinc-700 / 다크 zinc-300.
-- **에디터**: `EditorTabs`(작성/분할/미리보기 세그먼트, `showSplit`) + `TITLE_INPUT_CLASS`(밑줄만 있는 Plex 제목 입력). 팁·공지·프로젝트·해줘 에디터가 공유.
+- **글 상세**(해줘·공지): `ArticleHeader` + `ReadingSurface`. 다크에서 긴 글은 바탕(zinc-950)보다 밝은 zinc-900 카드 위에 올린다("눈 아프다" 피드백). 본문 글자 라이트 zinc-700 / 다크 zinc-300.
+- **에디터**: `EditorTabs`(작성/분할/미리보기 세그먼트, `showSplit`) + `TITLE_INPUT_CLASS`(밑줄만 있는 Plex 제목 입력). 공지·프로젝트·해줘 에디터가 공유.
 - **프로젝트 아이콘 = 스티커**: 어디서나 `rounded-[22%]`; 상세 112px·등록 폼 미리보기 72px·프로필 아바타는 홈 나열과 같은 `ring-[3px] ring-white dark:ring-zinc-950` + 그림자.
 - **모눈 물결** (`globals.css` `.paper-grid`): 모눈은 `::before` 레이어(요소는 `relative isolation-isolate`, 내용 래퍼에 `relative z-10` 필요). 라인 `#f0f0f3`(다크 `#18181c`). 모눈 전체가 10초에 한 칸(24px) 대각선으로 흐르고(`grid-drift`), `mask-image` 3층으로 "잘 보이는 구역" 두 덩이가 28초 주기로 지나가 일부는 또렷·일부는 흐림(`grid-wave`, 바탕 가시도 38%). 색 블롭이 아니라 모눈 가시도만 바뀌는 것. 동작 줄이기면 전역 규칙으로 정지.
 - **로그인 계열** `AuthShell`(`src/components/auth/auth-shell.tsx`): 헤더 없는 독립 화면(로그인·온보딩·접근 거부). 모눈 물결이 화면 전체, 가운데 스택(데스크탑 620px / 모바일 400px), 로고 스티커 또는 rose 방패 타일, `AuthNote` 안내 상자. 로그인 버튼은 흰 알약 + Google 로고 "Google로 계속하기". 온보딩은 단계 알약 "1 / 2단계" + `ToggleChip` 관심 분야, 고정 다크 배경 제거.
@@ -234,7 +234,7 @@ Claude Code는 `.claudeignore`를 읽지 않는다(2026-11-02 삭제). 대신 �
 - **본문 건너뛰기 링크**: `SiteHeader` 첫 요소(`sr-only focus:not-sr-only`) → `#main-content`. `(nav)/layout.tsx` 콘텐츠 래퍼와 홈 `<main>`에 `id="main-content" tabIndex={-1}`.
 - **포커스 표시 기본값**: `globals.css`에서 `:where(a, button, [role="button"], summary, [tabindex]):focus-visible`에 파란 outline. 개별 컴포넌트의 `focus-visible:ring-*`이 있으면 그쪽이 우선.
 - **동작 줄이기**: `prefers-reduced-motion: reduce`면 전역 애니메이션·트랜지션 사실상 0. 장식 애니메이션 추가 시 `motion-reduce:` 변형도 고려.
-- **색 대비**: 흰 글자 배경색은 WCAG AA(4.5:1) 충족 색만 사용 — blue-600, purple-600, emerald-700, tip-600(#db2777), orange-700, sky-700 이상. (Tailwind v4 `pink-600`은 oklch라 대비가 경계선이어서 팁 색은 hex 토큰으로 고정.) `*-500` 배경 + 흰 글자 금지. 회색 본문은 `text-zinc-500` 이상(밝은 배경), `text-zinc-400`은 장식 아이콘에만.
+- **색 대비**: 흰 글자 배경색은 WCAG AA(4.5:1) 충족 색만 사용 — blue-600, purple-600, emerald-700, orange-700, sky-700 이상. `*-500` 배경 + 흰 글자 금지. 회색 본문은 `text-zinc-500` 이상(밝은 배경), `text-zinc-400`은 장식 아이콘에만.
 - **내비게이션**: `PageNav`/`MobileNav` 각 링크에 `aria-label`(아이콘 전용 대비) + 현재 페이지 `aria-current="page"`, `<nav aria-label="주요 메뉴">`.
 - **아이콘**: 장식 아이콘은 `aria-hidden`, 아이콘 전용 버튼은 한국어 `aria-label`. 이름 옆 아바타 이미지는 `alt=""`.
 - **토글/펼침 버튼**: 선택형 칩은 `aria-pressed`, 접이식·드롭다운 트리거는 `aria-expanded`. 접힌 영역은 `invisible`로 Tab 순서에서 제외.
@@ -251,7 +251,7 @@ className={cn("... focus-visible:outline-none focus-visible:ring-2 focus-visible
 ```
 
 - 비활성(disabled) 카드는 `tabIndex={-1}` + `aria-disabled={true}`로 Tab 순서에서 제외.
-- 이미 `<button>` 요소를 사용하는 곳(`guide-wizard`, `haejwo-wizard`, `profile-settings-dialog`, `review-form`, `tip-editor`)은 기본 키보드 접근성이 보장되므로 별도 처리 불필요.
+- 이미 `<button>` 요소를 사용하는 곳(`guide-wizard`, `haejwo-wizard`, `profile-settings-dialog`, `review-form`)은 기본 키보드 접근성이 보장되므로 별도 처리 불필요.
 - 다크 배경 모달/카드의 경우 `focus-visible:ring-offset-zinc-900`을 추가로 지정.
 
 ---

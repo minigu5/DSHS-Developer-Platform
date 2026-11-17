@@ -16,16 +16,16 @@ paths:
 ## 🧭 전역 페이지 내비게이션 (`PageNav` / `MobileNav`)
 
 - 파일: `src/components/shared/page-nav.tsx` (`"use client"`, 두 컴포넌트 모두 export)
-- **5개 항목**(2026-10-24 6칸에서 병합해 4칸 → 2026-10-25 "도메인 마련하기" 추가): 모든 프로젝트(→ `/explore`), 프로젝트 등록(→ `/projects/new`), 나도 개발해볼래!(→ `/guide`), **도메인 마련하기(→ `/domains`, teal-700)**, **커뮤니티(→ `/tips`)**. 커뮤니티 = 개발 팁 + 해줘!(URL은 `/tips`·`/haejwo` 그대로, 두 목록 사이는 `CommunityTabs`로 오감). **공지사항은 내비 칸이 아니라 헤더 오른쪽 벨 아이콘**(`src/components/shared/announcements-link.tsx`, 프로필 옆, 글자·안 읽음 점 없음, 모바일 포함).
+- **5개 항목**(2026-10-24 6칸에서 병합해 4칸 → 2026-10-25 "도메인 마련하기" 추가): 모든 프로젝트(→ `/explore`), 프로젝트 등록(→ `/projects/new`), 나도 개발해볼래!(→ `/guide`), **도메인 마련하기(→ `/domains`, teal-700)**, **커뮤니티(→ `/haejwo`)**. 커뮤니티 = 해줘! 하나(2026-11-17 개발 팁을 없애며 탭·`CommunityTabs` 삭제, 칸 이름은 "해줘!"·메가폰 아이콘). **공지사항은 내비 칸이 아니라 헤더 오른쪽 벨 아이콘**(`src/components/shared/announcements-link.tsx`, 프로필 옆, 글자·안 읽음 점 없음, 모바일 포함).
 - **미리 받기는 메뉴만**(2026-11-04, 11-05 수정): 예전엔 모든 Link가 `prefetch={true}`(화면에 보이면 미리 받기)였는데 페이지마다 요청이 25~30개라 학교 IP가 속도 제한(100회/10초)에 걸렸다. 11-04엔 hover·터치·포커스 때만 `router.prefetch`했지만, 그게 끝나기 전에 누르면 뼈대 없이 빈 화면이 떠서 11-05부터 사이트 공용 `Link`(`src/components/shared/link.tsx`)는 미리 받지 않는다 — 「성능」 문서 참고. **단, 메뉴 5칸(`PageNav`·`MobileNav`)은 `prefetchOnView`로 화면에 보일 때 미리 받는다**(2026-11-05) — 무료 Cloudflare는 한국 접속이 LA를 거쳐 왕복 1~2초라 폰에서 메뉴를 누를 때마다 멈췄다. 처음엔 뼈대까지만(기본값 auto) 받았는데 뼈대 뒤에 또 1~2초 기다려서 같은 날 `prefetch={true}`(내용까지)로 바꿨다 — 메뉴를 누르면 서버 요청 없이 바로 넘어간다. 비로그인은 `/projects/new`·`/domains`가 `/login` 리다이렉트까지 받아 첫 화면 RSC 8개(각 3KB 이하), 이동 뒤엔 라우터 캐시라 거의 다시 안 받음(로컬 `next start` 실측).
 - **활성 버튼 판정**:
   - `/explore`, `/projects/*`(등록·수정 제외), `/developers/*` → "모든 프로젝트"
   - `/projects/new`, `*/edit`, `/projects/<id>/poster…`(포스터 화면), `/posters/*` → "프로젝트 등록"(2026-11-07 — 포스터는 등록과 묶음, 탭 분할은 안 함). 판정은 순수 함수 `resolveActive`(`src/lib/nav-active.ts`, 테스트 있음)
   - `/guide/*` → "나도 개발해볼래!"
-  - `/tips/*`, `/haejwo/*` → "커뮤니티" (활성 키는 `href`인 `"/tips"` — `useOptimisticActive`가 href로 비교)
+  - `/haejwo/*` → "커뮤니티" (활성 키는 `href`인 `"/haejwo"` — `useOptimisticActive`가 href로 비교)
   - `/announcements/*` → 내비 알약은 모두 꺼지고 헤더 벨이 활성(`SECTION_COLORS.announcements.chip` 연한 sky + `aria-current`)
-- **버튼별 고유 색**: `src/lib/section-colors.ts`의 `SECTION_COLORS`에서 가져온다 — 모든 프로젝트=blue-600, 프로젝트 등록=emerald-700, 나도 개발해볼래!=purple-600, **커뮤니티=화면 따라 바뀜: `/tips*`=tip-600(분홍 `#db2777`, `globals.css` `@theme`의 `--color-tip-*` 커스텀 토큰), `/haejwo*`=orange-700**(`pillFor()`, PC 알약은 `background-color`도 transition). 같은 맵이 페이지 머리 타일·주 버튼·활성 칩에도 쓰인다(`tips`·`haejwo`·`announcements` 키는 합치지 않음).
-- **커뮤니티 탭 도구줄** (`src/components/community/community-tabs.tsx`, 서버 컴포넌트, `current` prop): `/tips`·`/haejwo` 목록의 머리(`PageHero`) 아래 `main` 맨 위 한 줄 — 왼쪽 탭(개발 팁 | 해줘!, 활성은 섹션 색 칩), 오른쪽은 팁 개수 / 해줘! 상태 세그먼트. `flex-wrap`이라 모바일에선 오른쪽 요소가 아래 줄로. ISR 유지를 위해 탭은 `usePathname`을 안 쓴다. 로딩 뼈대는 `ListPageSkeleton community="count"|"segment"`.
+- **버튼별 고유 색**: `src/lib/section-colors.ts`의 `SECTION_COLORS`에서 가져온다 — 모든 프로젝트=blue-600, 프로젝트 등록=emerald-700, 나도 개발해볼래!=purple-600, 도메인 마련하기=teal-700, 커뮤니티(해줘!)=orange-700. 같은 맵이 페이지 머리 타일·주 버튼·활성 칩에도 쓰인다(`haejwo`·`announcements` 키는 합치지 않음). (분홍 `tip-*` 토큰·`pillFor()`는 11-17에 삭제)
+- 해줘! 목록 머리 아래에는 상태 세그먼트(`HaejwoStatusTabs`)만 있다. 로딩 뼈대는 `ListPageSkeleton community="segment"`.
 
 ### 데스크탑 (`PageNav`, `sm:` 이상)
 - **이슈 #5(2026-11-17)**: 데스크탑 메뉴줄에서 "프로젝트 등록"을 빼고 헤더 오른쪽(벨 옆)에 초록 테두리 알약 `RegisterButton`(`lg:`부터 글자만, 미만은 로켓 아이콘만; 사용자가 `+`·`SquarePlus`는 싫어함). 모바일 하단 탭바는 5칸 그대로. 1100px부터 메뉴 5칸 중 4칸이 아이콘 없이 글자만 보임(아이콘+글자 병기는 어수선하다는 피드백). 테마 토글은 프로필 메뉴로 옮김(비로그인은 로그인 버튼 옆 유지). 헤더 폭은 페이지 원래 값 그대로 — 넓히면 메뉴와 오른쪽 사이가 휑해서 되돌림. 알약은 `ResizeObserver`로 폭이 바뀌면 다시 잰다.

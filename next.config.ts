@@ -22,6 +22,13 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // 정적 파일(/_next/static)을 서울에서 응답하는 *.pages.dev에서 받는다 — scripts/deploy.sh가 배포 때 넣는다(없으면 예전처럼 같은 주소)
   assetPrefix: process.env.ASSET_PREFIX || undefined,
+  // 개발 팁 기능은 없앴다(2026-11-17) — 옛 주소는 해줘! 목록으로
+  async redirects() {
+    return [
+      { source: '/tips', destination: '/haejwo', permanent: false },
+      { source: '/tips/:path*', destination: '/haejwo', permanent: false },
+    ];
+  },
   async headers() {
     return [{ source: '/:path*', headers: SECURITY_HEADERS }];
   },

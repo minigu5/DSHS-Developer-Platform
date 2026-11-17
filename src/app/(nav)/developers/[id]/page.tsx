@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "@/components/shared/link";
-import { Mail, GitBranch, Camera, MessageSquare, Globe, Heart, Plus, User } from "lucide-react";
+import { Mail, GitBranch, Camera, MessageSquare, Globe, Plus, User } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 
@@ -40,18 +40,7 @@ function contactText(contact: UserContact): string {
   return contact.value;
 }
 
-type PostRow =
-  | { kind: "tip"; id: string; title: string; created_at: string; cover_url: string | null; likeCount: number; commentCount: number }
-  | { kind: "idea"; id: string; title: string; created_at: string; status: string };
-
-type TipRow = {
-  id: string;
-  title: string;
-  cover_url: string | null;
-  created_at: string;
-  like_count: number;
-  tip_comments: { count: number }[];
-};
+type PostRow = { id: string; title: string; created_at: string; status: string };
 
 type IdeaRow = { id: string; title: string; status: string; created_at: string };
 
@@ -89,7 +78,7 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
     .filter(Boolean)
     .join(",");
 
-  const [{ data: projects }, { data: tipRows, count: tipCount }, { data: ideaRows, count: ideaCount }, { data: favoriteRows }] = await Promise.all([
+  const [{ data: projects }, { data: ideaRows, count: ideaCount }, { data: favoriteRows }] = await Promise.all([
     supabase
       .from("projects")
       .select(
@@ -98,13 +87,6 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
       .or(teamFilter)
       .order("created_at", { ascending: false })
       .returns<ProjectCardData[]>(),
-    supabase
-      .from("tips")
-      .select("id, title, cover_url, created_at, like_count, tip_comments(count)", { count: "exact" })
-      .eq("author_id", id)
-      .order("created_at", { ascending: false })
-      .limit(5)
-      .returns<TipRow[]>(),
     supabase
       .from("ideas")
       .select("id, title, status, created_at", { count: "exact" })
@@ -138,22 +120,9 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
   }
   const heartOf = (projectId: string) => ({ viewerId: currentUser?.id ?? null, hearted: viewerHearts.has(projectId) });
 
-  const posts: PostRow[] = [
-    ...(tipRows ?? []).map<PostRow>((t) => ({
-      kind: "tip",
-      id: t.id,
-      title: t.title,
-      created_at: t.created_at,
-      cover_url: t.cover_url,
-      likeCount: t.like_count ?? 0,
-      commentCount: t.tip_comments?.[0]?.count ?? 0,
-    })),
-    ...(ideaRows ?? []).map<PostRow>((i) => ({ kind: "idea", id: i.id, title: i.title, created_at: i.created_at, status: i.status })),
-  ]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 6);
-  // 목록은 최근 6개만 보여 주지만 제목 옆 숫자는 쓴 글 전체 수
-  const postCount = (tipCount ?? tipRows?.length ?? 0) + (ideaCount ?? ideaRows?.length ?? 0);
+  const posts: PostRow[] = (ideaRows ?? []).map((i) => ({ id: i.id, title: i.title, created_at: i.created_at, status: i.status }));
+  // 목록은 최근 5개만 보여 주지만 제목 옆 숫자는 쓴 글 전체 수
+  const postCount = ideaCount ?? ideaRows?.length ?? 0;
 
   const avatarUrl = developer.avatar_url ?? "";
   const nickname = developer.nickname ?? "";
@@ -348,8 +317,8 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
             <div className="rounded-3xl border border-dashed border-zinc-300 py-12 text-center dark:border-zinc-700">
               <p className="text-zinc-600 dark:text-zinc-400">아직 쓴 글이 없어요.</p>
               {isOwner && (
-                <Link href="/tips/new" className="mt-2 inline-block text-sm font-medium text-blue-700 underline underline-offset-4 dark:text-blue-300">
-                  첫 팁 쓰기
+                <Link href="/haejwo/new" className="mt-2 inline-block text-sm font-medium text-blue-700 underline underline-offset-4 dark:text-blue-300">
+                  첫 해줘! 쓰기
                 </Link>
               )}
             </div>
@@ -357,47 +326,23 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
             <ul className="grid gap-2.5">
               {posts.map((post) => {
                 const when = formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: ko });
-                const href = post.kind === "tip" ? `/tips/${post.id}` : `/haejwo/${post.id}`;
-                const status = post.kind === "idea" ? HAEJWO_STATUS[post.status] ?? HAEJWO_STATUS.open : null;
+                const status = HAEJWO_STATUS[post.status] ?? HAEJWO_STATUS.open;
                 return (
-                  <li key={`${post.kind}-${post.id}`}>
+                  <li key={post.id}>
                     <Link
-                      href={href}
+                      href={`/haejwo/${post.id}`}
                       className="flex items-center gap-3.5 rounded-2xl border border-zinc-200 bg-white px-[18px] py-3.5 transition-colors hover:border-zinc-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600"
                     >
-                      <span
-                        className={cn(
-                          "relative h-10 w-14 shrink-0 overflow-hidden rounded-[10px]",
-                          post.kind === "tip" ? "bg-zinc-100 dark:bg-zinc-800" : "bg-orange-100 dark:bg-orange-950",
-                        )}
-                        aria-hidden
-                      >
-                        {post.kind === "tip" && post.cover_url && (
-                          <Image src={post.cover_url} alt="" fill sizes="56px" className="object-cover" unoptimized={isExternalImage(post.cover_url)} />
-                        )}
-                      </span>
+                      <span className="relative h-10 w-14 shrink-0 overflow-hidden rounded-[10px] bg-orange-100 dark:bg-orange-950" aria-hidden />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-semibold text-zinc-900 dark:text-white">{post.title}</span>
                         <span className="block text-xs text-zinc-500 dark:text-zinc-400">
-                          {post.kind === "tip" ? "개발 팁" : "해줘!"} · {when}
+                          해줘! · {when}
                         </span>
                       </span>
-                      {post.kind === "tip" ? (
-                        <span className="flex shrink-0 items-center gap-2.5 text-[11px] text-zinc-500 tabular-nums dark:text-zinc-400">
-                          <span className="inline-flex items-center gap-0.5">
-                            <Heart className="h-3 w-3" aria-hidden /> {post.likeCount}
-                          </span>
-                          <span className="inline-flex items-center gap-0.5">
-                            <MessageSquare className="h-3 w-3" aria-hidden /> {post.commentCount}
-                          </span>
-                        </span>
-                      ) : (
-                        status && (
-                          <span className={cn("inline-flex h-[22px] shrink-0 items-center rounded-full px-2.5 text-[11px] font-semibold", status.cls)}>
-                            {status.label}
-                          </span>
-                        )
-                      )}
+                      <span className={cn("inline-flex h-[22px] shrink-0 items-center rounded-full px-2.5 text-[11px] font-semibold", status.cls)}>
+                        {status.label}
+                      </span>
                     </Link>
                   </li>
                 );

@@ -12,7 +12,6 @@ import { PageHero } from "@/components/shared/page-hero";
 import type { HaejwoCardData } from "@/components/haejwo/haejwo-card";
 import { HaejwoStatusTabs } from "@/components/haejwo/haejwo-status-tabs";
 import { HaejwoGrid } from "@/components/haejwo/haejwo-grid";
-import { CommunityTabs } from "@/components/community/community-tabs";
 
 export const metadata = {
   title: "해줘! 아이디어 — DSHS Developer Platform",
@@ -75,14 +74,13 @@ export default async function HaejwoPage() {
       />
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-9">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-          <CommunityTabs current="haejwo" />
-          {ideas.length > 0 && (
+        {ideas.length > 0 && (
+          <div className="mb-5">
             <Suspense fallback={null}>
               <HaejwoStatusTabs counts={counts} />
             </Suspense>
-          )}
-        </div>
+          </div>
+        )}
         <Suspense fallback={null}>
           <HaejwoGrid ideas={ideas} />
         </Suspense>

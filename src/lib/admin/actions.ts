@@ -30,15 +30,13 @@ const FAILED: AdminActionResult = { ok: false, error: '처리하지 못했어요
 type Admin = ReturnType<typeof createAdminClient>
 type ActionLog = Database['public']['Tables']['admin_actions']['Insert']
 
-const CONTENT_KINDS: ContentKind[] = ['project', 'project_comment', 'tip', 'tip_comment', 'idea', 'guide', 'profile']
+const CONTENT_KINDS: ContentKind[] = ['project', 'project_comment', 'idea', 'guide', 'profile']
 const BAN_DURATIONS: BanDuration[] = ['1d', '7d', '30d', 'forever']
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-const TABLE: Record<Exclude<ContentKind, 'guide' | 'profile'>, 'projects' | 'project_comments' | 'tips' | 'tip_comments' | 'ideas'> = {
+const TABLE: Record<Exclude<ContentKind, 'guide' | 'profile'>, 'projects' | 'project_comments' | 'ideas'> = {
   project: 'projects',
   project_comment: 'project_comments',
-  tip: 'tips',
-  tip_comment: 'tip_comments',
   idea: 'ideas',
 }
 
@@ -117,14 +115,6 @@ async function authorOf(admin: Admin, kind: ContentKind, id: string): Promise<{ 
     case 'project_comment': {
       const { data } = await admin.from('project_comments').select('user_id, public_user_id').eq('id', id).maybeSingle()
       return data ? { userId: data.user_id, anonymous: data.public_user_id === null } : null
-    }
-    case 'tip': {
-      const { data } = await admin.from('tips').select('author_id').eq('id', id).maybeSingle()
-      return data ? { userId: data.author_id, anonymous: false } : null
-    }
-    case 'tip_comment': {
-      const { data } = await admin.from('tip_comments').select('user_id').eq('id', id).maybeSingle()
-      return data ? { userId: data.user_id, anonymous: false } : null
     }
     case 'idea': {
       const { data } = await admin.from('ideas').select('author_id').eq('id', id).maybeSingle()
@@ -310,29 +300,19 @@ export async function loadMoreFeed(kinds: ContentKind[] | null, before: string):
 export type Liker = { userId: string; name: string; at: string; anonymousOwner: boolean }
 
 /**
- * 하트(프로젝트)·좋아요(팁)를 누른 사람 — 관리자만(2026-11-05 사용자 요청). 관리자가 아니면 null.
+ * 하트(프로젝트)를 누른 사람 — 관리자만(2026-11-05 사용자 요청). 관리자가 아니면 null.
  * 만든 사람이 자기 익명 프로젝트에 누른 하트(남에게 숨김)도 anonymousOwner 로 표시해 보여 준다.
  */
-export async function adminListLikers(kind: 'project' | 'tip', id: string): Promise<Liker[] | null> {
+export async function adminListLikers(id: string): Promise<Liker[] | null> {
   const actor = await requireAdmin()
   if (!actor || !UUID.test(id)) return null
   const admin = createAdminClient()
-  const rows =
-    kind === 'project'
-      ? (
-          await admin
-            .from('project_hearts')
-            .select('user_id, created_at, by_anonymous_owner, user:users(nickname, full_name)')
-            .eq('project_id', id)
-            .order('created_at', { ascending: false })
-        ).data?.map((r) => ({ ...r, anonymousOwner: r.by_anonymous_owner }))
-      : (
-          await admin
-            .from('tip_likes')
-            .select('user_id, created_at, user:users(nickname, full_name)')
-            .eq('tip_id', id)
-            .order('created_at', { ascending: false })
-        ).data?.map((r) => ({ ...r, anonymousOwner: false }))
+  const { data } = await admin
+    .from('project_hearts')
+    .select('user_id, created_at, by_anonymous_owner, user:users(nickname, full_name)')
+    .eq('project_id', id)
+    .order('created_at', { ascending: false })
+  const rows = data?.map((r) => ({ ...r, anonymousOwner: r.by_anonymous_owner }))
   return (rows ?? []).map((r) => ({
     userId: r.user_id,
     name: personLabel(Array.isArray(r.user) ? r.user[0] : r.user),

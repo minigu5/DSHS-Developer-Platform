@@ -15,8 +15,6 @@ export type Counts = {
   users: number
   projects: number
   projectComments: number
-  tips: number
-  tipComments: number
   ideas: number
   guideEdits: number
   clicks: number
@@ -81,7 +79,8 @@ const anonymousAuthorIds = (items: RpcFeedItem[]) => items.filter((i) => i.anony
 export async function loadFeed(kinds: ContentKind[] | null, before: string | null): Promise<FeedItem[]> {
   const { data, error } = await createAdminClient().rpc('admin_recent_content', { p_kinds: kinds, p_before: before, p_limit: 50 })
   if (error) throw error
-  const items = asArray<RpcFeedItem>(data)
+  // 팁은 없앴지만 DB 함수가 바뀌기 전까지 남은 글이 섞여 올 수 있어 거른다(2026-11-17)
+  const items = asArray<RpcFeedItem>(data).filter((i) => (i.kind as string) !== 'tip' && (i.kind as string) !== 'tip_comment')
   const names = await namesOf(anonymousAuthorIds(items))
   return items.map((i) => stripAuthor(i, names))
 }

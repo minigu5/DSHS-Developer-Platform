@@ -6,7 +6,7 @@ const POSTER_PAGE = /^\/projects\/[^/]+\/poster(\/|$)/
 export function resolveActive(pathname: string): string {
   if (pathname.startsWith('/guide')) return '/guide'
   if (pathname === '/domains' || pathname.startsWith('/domains/')) return '/domains'
-  if (pathname.startsWith('/tips') || pathname.startsWith('/haejwo')) return '/tips'
+  if (pathname.startsWith('/haejwo')) return '/haejwo'
   if (pathname === '/projects/new' || pathname.endsWith('/edit')) return '/projects/new'
   if (POSTER_PAGE.test(pathname) || pathname.startsWith('/posters/')) return '/projects/new'
   if (pathname.startsWith('/explore') || pathname.startsWith('/developers/') || pathname.startsWith('/projects/')) return '/explore'

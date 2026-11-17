@@ -3,14 +3,14 @@ import assert from 'node:assert/strict'
 import { buildTodayItems, type FeedItem } from './today.ts'
 
 const item = (over: Partial<FeedItem> = {}): FeedItem => ({
-  kind: 'tip_comment',
+  kind: 'project_comment',
   id: 'c1',
   createdAt: '2026-11-05T01:00:00Z',
   authorName: '민규',
   anonymous: false,
   title: null,
   body: '좋은 글이에요',
-  href: '/tips/t1',
+  href: '/projects/p1',
   ...over,
 })
 
@@ -39,7 +39,7 @@ test('종류 순서: 비속어 → 몰아 올리기 → 위키 삭제 → 끊긴
   const burstItems = [item({ id: 'b1' }), item({ id: 'b2' }), item({ id: 'b3' })]
   const out = buildTodayItems({
     feed: [item({ id: 'bad', body: '시발' })],
-    bursts: [{ kind: 'tip_comment', authorKey: 'k1', anonymous: false, items: burstItems }],
+    bursts: [{ kind: 'project_comment', authorKey: 'k1', anonymous: false, items: burstItems }],
     guideShrinks: [{ revId: 'r1', docKey: 'agent-claude', docTitle: 'Claude', minus: 900, plus: 100, createdAt: '2026-11-05T00:00:00Z' }],
     brokenDomains: [{ id: 'd1', name: 'omm', brokenSince: '2026-11-04T00:00:00Z' }],
     endedBans: [{ banId: 'x1', name: '민규', anonymous: false, until: '2026-11-04T00:00:00Z' }],
