@@ -78,7 +78,7 @@ export function HeroSkeleton({
   );
 }
 
-/** 카드 격자 뼈대 — 목록 페이지(팁·해줘·공지)와 같은 1/2/3열. 모바일은 3장만 */
+/** 카드 격자 뼈대 — 목록 페이지(해줘·공지)와 같은 1/2/3열. 모바일은 3장만 */
 export function CardGridSkeleton({ count = 6, cover = false }: { count?: number; cover?: boolean }) {
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -138,7 +138,7 @@ function ReadingSkeleton({ lines = 9 }: { lines?: number }) {
   );
 }
 
-/** 글 상세(팁·해줘·공지) — ArticleHeader + (커버) + 본문 */
+/** 글 상세(해줘·공지) — ArticleHeader + (커버) + 본문 */
 export function ArticleSkeleton({ cover = false }: { cover?: boolean }) {
   return (
     <SkeletonPage>

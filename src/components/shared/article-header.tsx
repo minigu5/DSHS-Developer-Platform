@@ -13,7 +13,7 @@ type ArticleHeaderProps = {
   /** 제목 위 칩 줄 — 태그·카테고리·상태 */
   chips?: ReactNode;
   title: string;
-  /** 제목 아래 한 줄 요약(팁) */
+  /** 제목 아래 한 줄 요약 */
   lead?: string | null;
   author: { id: string; name: string; avatarUrl: string | null };
   dateLabel: string;
@@ -22,7 +22,7 @@ type ArticleHeaderProps = {
 };
 
 /**
- * 글 상세(팁·해줘·공지)의 머리 — "← 목록" 줄, 칩, h1, 요약, 작성자 줄.
+ * 글 상세(해줘·공지)의 머리 — "← 목록" 줄, 칩, h1, 요약, 작성자 줄.
  * 작성자 영역은 프로필 링크. 본문은 이 아래 `ReadingSurface`에 둔다.
  */
 export function ArticleHeader({

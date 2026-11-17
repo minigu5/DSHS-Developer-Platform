@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 export type EditorTab = "write" | "split" | "preview";
 
-/** 에디터의 큰 제목 입력 — 테두리 없이 밑줄만, Plex 제목 글꼴. 팁·공지·해줘 에디터가 공유 */
+/** 에디터의 큰 제목 입력 — 테두리 없이 밑줄만, Plex 제목 글꼴. 공지·해줘 에디터가 공유 */
 export const TITLE_INPUT_CLASS =
   "h-auto w-full rounded-none border-0 border-b border-zinc-200 bg-transparent px-0 py-2 font-heading text-[22px] font-bold tracking-tight text-zinc-900 shadow-none placeholder:font-medium placeholder:text-zinc-400 focus-visible:border-zinc-900 focus-visible:ring-0 sm:text-[26px] dark:border-zinc-800 dark:text-white dark:focus-visible:border-white";
 
@@ -18,7 +18,7 @@ const TABS: Array<{ value: EditorTab; label: string; icon: typeof Pencil; splitO
 
 /**
  * 마크다운 에디터 탭(작성 / 분할 / 미리보기) — 세그먼트형. 분할은 데스크탑에서만 보인다(`showSplit`).
- * 팁·공지·프로젝트 등록·해줘 에디터가 공유한다.
+ * 공지·프로젝트 등록·해줘 에디터가 공유한다.
  */
 export function EditorTabs({
   value,
