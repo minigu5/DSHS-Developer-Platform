@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { HowItWorksExamples } from "@/components/home/how-it-works";
 import { SHELF_LIMIT, type ShelfProject } from "@/components/home/icon-shelf";
 import type { RecentAnnouncement, RecentIdea, RecentTip } from "@/components/home/recent-posts";
+import { AWARDS_SELECT } from "@/lib/awards";
 import type { ProjectCardData } from "@/components/projects/project-card";
 import type { TickerItem } from "@/components/shared/announcement-ticker";
 import { ANONYMOUS_AUTHOR, projectTypeLabels } from "@/lib/constants";
@@ -103,7 +104,8 @@ async function fetchHomeData(): Promise<HomeData> {
         icon_fit,
         features,
         public_author_id,
-        users!projects_public_author_id_fkey (full_name, nickname, avatar_url)
+        users!projects_public_author_id_fkey (full_name, nickname, avatar_url),
+        ${AWARDS_SELECT}
       `)
       .eq("visibility", "public")
       .order("created_at", { ascending: false })

@@ -38,6 +38,13 @@ export type AdminDashboard = {
   hungPosters: HungPosterView[]
   /** 관리자가 비공개로 잠근 프로젝트 — 주인은 다시 공개할 수 없다(2026-11-07) */
   lockedProjects: LockedProjectView[]
+  events: AdminEventView[]
+}
+
+export type AdminEventView = {
+  id: string
+  name: string
+  awards: { projectId: string; title: string; rankLabel: string; isPrivate: boolean }[]
 }
 
 export type LockedProjectView = { projectId: string; title: string; reason: string | null; lockedAt: string }
@@ -92,7 +99,7 @@ export async function loadAdminDashboard(): Promise<AdminDashboard> {
   // 탈퇴한 사람의 차단 기록은 차단이 끝나면 파기한다(처리방침)
   await admin.from('user_bans').delete().is('user_id', null).lt('until', new Date().toISOString())
 
-  const [stats, feed, bursts, shrinks, bans, dismissals, domains, hung, locks] = await Promise.all([
+  const [stats, feed, bursts, shrinks, bans, dismissals, domains, hung, locks, events, awards] = await Promise.all([
     admin.rpc('admin_site_stats'),
     admin.rpc('admin_recent_content', { p_limit: 50 }),
     admin.rpc('admin_bursts'),
@@ -107,8 +114,10 @@ export async function loadAdminDashboard(): Promise<AdminDashboard> {
       .order('poster_hung_at', { ascending: false })
       .limit(20),
     admin.from('project_locks').select('project_id, reason, created_at').order('created_at', { ascending: false }),
+    admin.from('events').select('id, name').order('created_at', { ascending: false }),
+    admin.from('project_awards').select('project_id, event_id, rank_label, created_at, projects(title, visibility)').order('created_at', { ascending: true }),
   ])
-  for (const r of [stats, feed, bursts, shrinks, bans, dismissals, hung, locks]) if (r.error) throw r.error
+  for (const r of [stats, feed, bursts, shrinks, bans, dismissals, hung, locks, events, awards]) if (r.error) throw r.error
   const lockRows = locks.data ?? []
   const lockTitles = lockRows.length
     ? new Map(((await admin.from('projects').select('id, title').in('id', lockRows.map((l) => l.project_id))).data ?? []).map((p) => [p.id, p.title]))
@@ -153,6 +162,16 @@ export async function loadAdminDashboard(): Promise<AdminDashboard> {
       imageUrl: p.poster_image_url ?? '',
       isAi: p.poster_is_ai,
       hungAt: p.poster_hung_at ?? '',
+    })),
+    events: (events.data ?? []).map((e) => ({
+      id: e.id,
+      name: e.name,
+      awards: (awards.data ?? [])
+        .filter((a) => a.event_id === e.id)
+        .map((a) => {
+          const p = Array.isArray(a.projects) ? a.projects[0] : a.projects
+          return { projectId: a.project_id, title: p?.title ?? '(제목 없음)', rankLabel: a.rank_label, isPrivate: p?.visibility === 'private' }
+        }),
     })),
     lockedProjects: lockRows.map((l) => ({
       projectId: l.project_id,

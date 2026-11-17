@@ -6,6 +6,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/types'
 import type { CommentRowView } from '@/lib/comments'
 import { isDeveloper } from '@/lib/constants'
+import { AWARDS_SELECT } from '@/lib/awards'
 import { PROJECT_AUTHOR, PROJECT_COLUMNS } from '@/lib/projects/columns'
 import { domainOfferOf, previewAddressOf } from '@/lib/domains/offer'
 import { fixOldAddresses, oldAddressPrefixes } from '@/lib/domains/old-address'
@@ -16,7 +17,7 @@ type Client = SupabaseClient<Database>
 export type DetailViewer = { id: string; email: string | null } | null
 
 function selectProject(client: Client, id: string) {
-  return client.from('projects').select(`${PROJECT_COLUMNS}, ${PROJECT_AUTHOR} (*)`).eq('id', id).single()
+  return client.from('projects').select(`${PROJECT_COLUMNS}, ${PROJECT_AUTHOR} (*), ${AWARDS_SELECT}`).eq('id', id).single()
 }
 
 export type ProjectDetailRow = NonNullable<Awaited<ReturnType<typeof selectProject>>['data']>

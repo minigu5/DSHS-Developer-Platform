@@ -4,6 +4,7 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { ExploreClient } from "@/components/explore/explore-client";
 import { isDeveloper } from "@/lib/constants";
 import type { ProjectCardData } from "@/components/projects/project-card";
+import { AWARDS_SELECT } from "@/lib/awards";
 import { parseExploreQuery } from "@/lib/explore-query";
 
 const PROJECT_SELECT = `
@@ -25,7 +26,8 @@ const PROJECT_SELECT = `
   click_count,
   users!projects_public_author_id_fkey (*),
   heart_count,
-  project_comments(id)
+  project_comments(id),
+  ${AWARDS_SELECT}
 `;
 
 export default async function ExplorePage({

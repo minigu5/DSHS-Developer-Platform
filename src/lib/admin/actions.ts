@@ -16,6 +16,8 @@ import { releaseLiveDomain } from '@/lib/projects/release-domain'
 import { createAdminClient } from '@/lib/supabase/server'
 import type { Database, Json } from '@/lib/types'
 
+import { cleanLabel } from '@/lib/awards'
+
 import { banUntil, type BanDuration } from './ban'
 import { requireAdmin } from './guard'
 import { personLabel } from './people'
@@ -297,6 +299,79 @@ export async function adminFindUsers(query: string): Promise<{ id: string; name:
     .or(`nickname.ilike.%${q}%,full_name.ilike.%${q}%`)
     .limit(10)
   return (data ?? []).map((u) => ({ id: u.id, name: u.nickname || u.full_name || '이름 없음' }))
+}
+
+// ───── 이벤트·수상(2026-11-17) — 이벤트를 만들고 프로젝트에 등위를 매기면 목록·상세에 배지가 붙는다 ─────
+
+function refreshAwardPages(projectId?: string) {
+  revalidatePath('/explore')
+  if (projectId) revalidatePath(`/projects/${projectId}`)
+}
+
+export async function adminCreateEvent(name: string): Promise<AdminActionResult> {
+  const actor = await requireAdmin()
+  if (!actor) return NOT_ADMIN
+  const clean = cleanLabel(name)
+  if (!clean) return { ok: false, error: '이벤트 이름을 적어 주세요.' }
+  if (clean.length > 60) return { ok: false, error: '이벤트 이름은 60자까지예요.' }
+  const admin = createAdminClient()
+  const { data, error } = await admin.from('events').insert({ name: clean, created_by: actor.id }).select('id').single()
+  if (error) return error.code === '23505' ? { ok: false, error: '같은 이름의 이벤트가 이미 있어요.' } : FAILED
+  await record(admin, { action: 'event', target_kind: 'event', target_id: data.id, detail: { op: 'create', name: clean } })
+  return done()
+}
+
+/** 이벤트를 지우면 그 이벤트의 수상(배지)도 함께 사라진다 */
+export async function adminDeleteEvent(eventId: string): Promise<AdminActionResult> {
+  const actor = await requireAdmin()
+  if (!actor) return NOT_ADMIN
+  if (!UUID.test(eventId)) return FAILED
+  const admin = createAdminClient()
+  const { error } = await admin.from('events').delete().eq('id', eventId)
+  if (error) return FAILED
+  await record(admin, { action: 'event', target_kind: 'event', target_id: eventId, detail: { op: 'delete' } })
+  refreshAwardPages()
+  return done()
+}
+
+/** 프로젝트에 등위를 준다 — 같은 이벤트에 이미 있으면 등위만 바꾼다 */
+export async function adminSetAward(projectId: string, eventId: string, rankLabel: string): Promise<AdminActionResult> {
+  const actor = await requireAdmin()
+  if (!actor) return NOT_ADMIN
+  if (!UUID.test(projectId) || !UUID.test(eventId)) return FAILED
+  const label = cleanLabel(rankLabel)
+  if (!label) return { ok: false, error: '등위를 적어 주세요. (예: 1위)' }
+  if (label.length > 20) return { ok: false, error: '등위는 20자까지예요.' }
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from('project_awards')
+    .upsert({ project_id: projectId, event_id: eventId, rank_label: label, created_by: actor.id })
+  if (error) return FAILED
+  await record(admin, { action: 'award', target_kind: 'project', target_id: projectId, detail: { op: 'set', eventId, rank: label } })
+  refreshAwardPages(projectId)
+  return done()
+}
+
+export async function adminRemoveAward(projectId: string, eventId: string): Promise<AdminActionResult> {
+  const actor = await requireAdmin()
+  if (!actor) return NOT_ADMIN
+  if (!UUID.test(projectId) || !UUID.test(eventId)) return FAILED
+  const admin = createAdminClient()
+  const { error } = await admin.from('project_awards').delete().eq('project_id', projectId).eq('event_id', eventId)
+  if (error) return FAILED
+  await record(admin, { action: 'award', target_kind: 'project', target_id: projectId, detail: { op: 'remove', eventId } })
+  refreshAwardPages(projectId)
+  return done()
+}
+
+/** 수상 줄 만들 때 프로젝트 고르기 — 제목으로 찾는다(비공개 포함, 관리자 전용) */
+export async function adminFindProjects(query: string): Promise<{ id: string; title: string; isPrivate: boolean }[]> {
+  const actor = await requireAdmin()
+  if (!actor) return []
+  const q = query.trim().replace(/[%_,()]/g, '')
+  if (q.length < 1) return []
+  const { data } = await createAdminClient().from('projects').select('id, title, visibility').ilike('title', `%${q}%`).order('created_at', { ascending: false }).limit(10)
+  return (data ?? []).map((p) => ({ id: p.id, title: p.title, isPrivate: p.visibility === 'private' }))
 }
 
 export async function loadMoreFeed(kinds: ContentKind[] | null, before: string): Promise<FeedItem[]> {

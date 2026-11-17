@@ -6,6 +6,8 @@ import { cn, isExternalImage } from "@/lib/utils";
 import { ANONYMOUS_AUTHOR, PLATFORMS, projectTypeLabels } from "@/lib/constants";
 import { ProjectIcon } from "@/components/projects/project-icon";
 import type { ProjectCardData } from "@/components/projects/project-card";
+import { AwardBadge } from "@/components/projects/award-badge";
+import { awardsOf } from "@/lib/awards";
 
 function authorOf(p: ProjectCardData): { name: string; avatar: string | null } {
   if (p.author_role === "anonymous") return { name: ANONYMOUS_AUTHOR, avatar: null };
@@ -20,6 +22,7 @@ function authorOf(p: ProjectCardData): { name: string; avatar: string | null } {
  */
 export function HomeProjectCard({ project, className }: { project: ProjectCardData; className?: string }) {
   const author = authorOf(project);
+  const awards = awardsOf(project.project_awards);
   const tags = (project.features ?? []).slice(0, 2);
   const isWebsite = project.types?.includes("website") ?? false;
   const hasAllPlatforms = (project.platforms?.length ?? 0) >= PLATFORMS.length;
@@ -65,6 +68,13 @@ export function HomeProjectCard({ project, className }: { project: ProjectCardDa
               </span>
             ))}
           </div>
+          {awards.length > 0 && (
+            <div className="mb-1.5 flex h-5 gap-1.5 overflow-hidden">
+              {awards.slice(0, 2).map((a) => (
+                <AwardBadge key={`${a.eventName}:${a.rankLabel}`} award={a} />
+              ))}
+            </div>
+          )}
           <h3 className="truncate text-lg font-bold text-zinc-900 dark:text-white">{project.title}</h3>
           <p className="mt-1 line-clamp-2 min-h-[2.5rem] text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
             {project.short_description || "설명이 없습니다."}

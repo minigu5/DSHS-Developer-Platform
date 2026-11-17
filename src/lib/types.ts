@@ -685,10 +685,25 @@ export type Database = {
         Update: { reason?: string | null };
         Relationships: [];
       };
+      events: {
+        Row: { id: string; name: string; created_by: string | null; created_at: string };
+        Insert: { id?: string; name: string; created_by?: string | null; created_at?: string };
+        Update: { name?: string };
+        Relationships: [];
+      };
+      project_awards: {
+        Row: { project_id: string; event_id: string; rank_label: string; created_by: string | null; created_at: string };
+        Insert: { project_id: string; event_id: string; rank_label: string; created_by?: string | null; created_at?: string };
+        Update: { rank_label?: string };
+        Relationships: [
+          { foreignKeyName: 'project_awards_event_id_fkey'; columns: ['event_id']; isOneToOne: false; referencedRelation: 'events'; referencedColumns: ['id'] },
+          { foreignKeyName: 'project_awards_project_id_fkey'; columns: ['project_id']; isOneToOne: false; referencedRelation: 'projects'; referencedColumns: ['id'] },
+        ];
+      };
       admin_actions: {
         Row: {
           id: number;
-          action: 'delete' | 'ban' | 'unban' | 'private' | 'dismiss' | 'revert' | 'unhang' | 'lock' | 'unlock';
+          action: 'delete' | 'ban' | 'unban' | 'private' | 'dismiss' | 'revert' | 'unhang' | 'lock' | 'unlock' | 'event' | 'award';
           target_kind: string | null;
           target_id: string | null;
           target_user_id: string | null;
@@ -696,7 +711,7 @@ export type Database = {
           created_at: string;
         };
         Insert: {
-          action: 'delete' | 'ban' | 'unban' | 'private' | 'dismiss' | 'revert' | 'unhang' | 'lock' | 'unlock';
+          action: 'delete' | 'ban' | 'unban' | 'private' | 'dismiss' | 'revert' | 'unhang' | 'lock' | 'unlock' | 'event' | 'award';
           target_kind?: string | null;
           target_id?: string | null;
           target_user_id?: string | null;
