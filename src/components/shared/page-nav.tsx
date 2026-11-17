@@ -3,7 +3,7 @@
 import Link from "@/components/shared/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
-import { Search, SquarePlus, BookOpen, Globe, MessagesSquare } from "lucide-react";
+import { Search, Rocket, BookOpen, Globe, MessagesSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { resolveActive } from "@/lib/nav-active";
 import { SECTION_COLORS } from "@/lib/section-colors";
@@ -11,7 +11,7 @@ import { SECTION_COLORS } from "@/lib/section-colors";
 // 알약 색은 섹션 색 맵(src/lib/section-colors.ts)과 공유 — 페이지 머리 타일·주 버튼과 같은 색
 const NAV_ITEMS = [
   { href: "/explore", label: "모든 프로젝트", icon: Search, pillClass: SECTION_COLORS.explore.pill },
-  { href: "/projects/new", label: "프로젝트 등록", icon: SquarePlus, pillClass: SECTION_COLORS.new.pill },
+  { href: "/projects/new", label: "프로젝트 등록", icon: Rocket, pillClass: SECTION_COLORS.new.pill },
   { href: "/guide", label: "나도 개발해볼래!", icon: BookOpen, pillClass: SECTION_COLORS.guide.pill },
   // 학생 웹사이트에 이름.dshs.dev 주소를 붙여 주는 화면 — 배포 직후 찾아오도록 가이드 바로 다음
   { href: "/domains", label: "도메인 마련하기", icon: Globe, pillClass: SECTION_COLORS.domains.pill },
@@ -209,12 +209,10 @@ export function RegisterButton() {
       href="/projects/new"
       aria-label="프로젝트 등록"
       className={cn(
-        "hidden sm:inline-flex h-9 items-center justify-center gap-1.5 rounded-full px-3 lg:px-4 text-sm font-medium text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600",
-        SECTION_COLORS.new.pill,
-        "hover:bg-emerald-800",
+        "hidden sm:inline-flex h-9 items-center justify-center gap-1.5 rounded-full border-[1.5px] border-emerald-700 px-3 lg:px-4 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:border-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-950/40",
       )}
     >
-      <SquarePlus className="h-4 w-4 shrink-0 lg:hidden" aria-hidden />
+      <Rocket className="h-4 w-4 shrink-0 lg:hidden" aria-hidden />
       <span className="hidden whitespace-nowrap lg:inline">프로젝트 등록</span>
     </Link>
   );
