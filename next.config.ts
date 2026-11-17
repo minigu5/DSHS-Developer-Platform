@@ -26,6 +26,7 @@ const nextConfig: NextConfig = {
     return [{ source: '/:path*', headers: SECURITY_HEADERS }];
   },
   experimental: {
+    agentUpgrade: 'security',
     staleTimes: {
       dynamic: 30,
       static: 180,
