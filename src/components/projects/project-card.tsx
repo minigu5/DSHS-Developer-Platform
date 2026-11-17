@@ -9,6 +9,8 @@ import { ProjectIcon } from "@/components/projects/project-icon";
 import { ANONYMOUS_AUTHOR, PLATFORMS, projectTypeLabels } from "@/lib/constants";
 import { heartCountOf } from "@/lib/hearts";
 import { HeartButton } from "@/components/projects/heart-button";
+import { AwardBadge } from "@/components/projects/award-badge";
+import { awardsOf, type AwardRow } from "@/lib/awards";
 
 // projects 테이블에서 카드 표시에 필요한 최소 컬럼들.
 // users join 결과는 supabase 가 객체 또는 배열로 줄 수 있어 둘 다 허용.
@@ -41,6 +43,8 @@ export type ProjectCardData = {
    */
   project_comments?: { id: string }[] | null;
   click_count?: number | null;
+  /** 이벤트 수상 project_awards(rank_label, events(name)) — 관리자가 매긴 등위 배지 */
+  project_awards?: AwardRow[] | null;
 };
 
 function resolveAuthorName(p: ProjectCardData, fallback = '알 수 없음'): string {
@@ -79,6 +83,7 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback, heart 
   const tags = (project.features ?? []).slice(0, 2);
   const heartCount = heart?.count ?? heartCountOf(project);
   const commentCount = project.project_comments?.length ?? 0;
+  const awards = awardsOf(project.project_awards);
 
   const isWebsite = project.types?.includes('website') ?? false;
   const hasAllPlatforms = (project.platforms?.length ?? 0) >= PLATFORMS.length;
@@ -120,6 +125,13 @@ export function ProjectCard({ project, mode = 'showcase', authorFallback, heart 
                 </Badge>
               ))}
             </div>
+            {awards.length > 0 && (
+              <div className="mb-1.5 flex h-5 gap-1.5 overflow-hidden">
+                {awards.slice(0, 2).map((a) => (
+                  <AwardBadge key={`${a.eventName}:${a.rankLabel}`} award={a} />
+                ))}
+              </div>
+            )}
             <CardTitle className="text-lg font-bold line-clamp-1">
               {project.title}
             </CardTitle>

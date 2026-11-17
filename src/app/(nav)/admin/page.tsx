@@ -3,6 +3,7 @@ import { ShieldCheck } from "lucide-react";
 
 import { AdminsManager } from "@/components/admin/admins-manager";
 import { BanList } from "@/components/admin/ban-list";
+import { EventsAdmin } from "@/components/admin/events-admin";
 import { ContentFeed } from "@/components/admin/content-feed";
 import { HungPosters } from "@/components/admin/hung-posters";
 import { LockedProjects } from "@/components/admin/locked-projects";
@@ -64,6 +65,10 @@ export default async function AdminPage() {
         <section>
           <SectionTitle id="locks" title="잠긴 프로젝트" note="만든 사람은 다시 공개할 수 없어요" />
           <LockedProjects locks={data.lockedProjects} />
+        </section>
+        <section>
+          <SectionTitle id="events" title="이벤트·수상" note="등위를 넣으면 프로젝트 목록·상세에 배지가 붙어요" />
+          <EventsAdmin events={data.events} />
         </section>
         <section>
           <SectionTitle id="bans" title="차단" />

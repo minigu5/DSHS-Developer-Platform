@@ -17,6 +17,8 @@ import { PosterSheet } from "@/components/posters/poster-sheet";
 import { PosterSlot } from "@/components/posters/poster-slot";
 import { showcaseVisible } from "@/lib/posters/hang-logic";
 import { BackToExplore } from "@/components/projects/back-to-explore";
+import { AwardBadges } from "@/components/projects/award-badge";
+import { awardsOf } from "@/lib/awards";
 import { ANONYMOUS_AUTHOR, LICENSE_FEATURES, PLATFORMS, projectTypeLabels } from "@/lib/constants";
 import { SECTION_COLORS } from "@/lib/section-colors";
 import { quickToConnect } from "@/lib/domains/offer";
@@ -145,6 +147,8 @@ export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anony
                 </Badge>
               ))}
             </div>
+
+            <AwardBadges awards={awardsOf(project.project_awards)} className="mt-2" />
 
             <h1 className="mt-2.5 font-heading text-[26px] font-bold leading-[1.15] tracking-tight text-zinc-900 break-keep dark:text-white sm:text-[38px]">
               {project.title}
