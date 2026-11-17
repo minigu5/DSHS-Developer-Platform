@@ -94,7 +94,7 @@ export function PageNav() {
     setPill({ ...next, top, height, ready: true });
   }, [activeIndex, pathname]);
 
-  // 창 폭이 바뀌어 글자 표시가 달라지면(xl) 알약 위치를 다시 잰다 — 안 그러면 알약이 글자보다 좁아 겹쳐 보인다
+  // 창 폭이 바뀌어 글자 표시가 달라지면(1440px) 알약 위치를 다시 잰다 — 안 그러면 알약이 글자보다 좁아 겹쳐 보인다
   const navRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     const nav = navRef.current;
@@ -154,8 +154,8 @@ export function PageNav() {
                 {label}
               </span>
             ) : (
-              // 넓은 화면(xl)에선 글자를 항상 보여 아이콘만으론 모르던 기능을 바로 알 수 있게(이슈 #5)
-              <span className="ml-1.5 hidden whitespace-nowrap xl:inline">{label}</span>
+              // 넓은 화면(1440px+)에선 글자를 항상 보여 아이콘만으론 모르던 기능을 바로 알 수 있게(이슈 #5)
+              <span className="ml-1.5 hidden whitespace-nowrap min-[1440px]:inline">{label}</span>
             )}
           </Link>
         );

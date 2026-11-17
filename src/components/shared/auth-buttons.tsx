@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import Link from "@/components/shared/link";
 import { useRouter } from "next/navigation";
 import { LogOut, Moon, ShieldCheck, Sun, User as UserIcon } from "lucide-react";
@@ -18,24 +18,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { isDeveloper } from "@/lib/constants";
 
-// 모바일(sm 미만) 여부 — 모바일에서는 헤더의 다크모드 토글이 숨겨져 프로필 메뉴에 테마 항목을 둔다.
-// 메뉴 항목을 sm:hidden으로 숨기면 데스크탑에서 화살표 키 이동이 숨은 항목에 걸릴 수 있어 아예 렌더하지 않는다.
-// Tailwind sm(40rem)과 같은 단위로 — px로 쓰면 브라우저 글꼴을 키운 사용자에게 토글이 양쪽 다 사라지는 구간이 생긴다.
-const MOBILE_QUERY = "(width < 40rem)";
-function subscribeMobile(onChange: () => void) {
-  const mql = window.matchMedia(MOBILE_QUERY);
-  mql.addEventListener("change", onChange);
-  return () => mql.removeEventListener("change", onChange);
-}
-
 export function AuthButtons() {
-  const isMobile = useSyncExternalStore(
-    subscribeMobile,
-    () => window.matchMedia(MOBILE_QUERY).matches,
-    () => false,
-  );
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
   const [user, setUser] = useState<User | null>(null);
@@ -124,12 +110,10 @@ export function AuthButtons() {
               <span>관리자</span>
             </DropdownMenuItem>
           )}
-          {isMobile && (
-            <DropdownMenuItem onClick={() => setTheme(isDark ? "light" : "dark")} className="cursor-pointer">
-              {isDark ? <Sun className="mr-2 h-4 w-4" aria-hidden /> : <Moon className="mr-2 h-4 w-4" aria-hidden />}
-              <span>{isDark ? "라이트 모드로 전환" : "다크 모드로 전환"}</span>
-            </DropdownMenuItem>
-          )}
+          <DropdownMenuItem onClick={() => setTheme(isDark ? "light" : "dark")} className="cursor-pointer">
+            {isDark ? <Sun className="mr-2 h-4 w-4" aria-hidden /> : <Moon className="mr-2 h-4 w-4" aria-hidden />}
+            <span>{isDark ? "라이트 모드로 전환" : "다크 모드로 전환"}</span>
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400">
             <LogOut className="mr-2 h-4 w-4" aria-hidden />
@@ -141,8 +125,13 @@ export function AuthButtons() {
   }
 
   return (
-    <Link href="/login" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "rounded-full font-medium bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700")}>
+    <>
+      <div className="hidden sm:block">
+        <ThemeToggle />
+      </div>
+      <Link href="/login" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "rounded-full font-medium bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700")}>
       로그인
     </Link>
+    </>
   );
 }

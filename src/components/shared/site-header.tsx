@@ -3,7 +3,6 @@ import Image from "next/image";
 import type { ReactNode } from "react";
 
 import { AuthButtons } from "@/components/shared/auth-buttons";
-import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { AnnouncementsLink } from "@/components/shared/announcements-link";
 import { PageNav, RegisterButton } from "@/components/shared/page-nav";
 import { cn } from "@/lib/utils";
@@ -18,7 +17,7 @@ interface SiteHeaderProps {
 const MAX_WIDTH_CLASS: Record<NonNullable<SiteHeaderProps["maxWidth"]>, string> = {
   sm: "max-w-3xl",
   md: "max-w-5xl",
-  lg: "max-w-7xl",
+  lg: "max-w-[96rem]",
 };
 
 export function SiteHeader({
@@ -77,10 +76,6 @@ export function SiteHeader({
 
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {rightExtra}
-          {/* 모바일은 헤더가 좁아 다크모드 토글을 프로필 메뉴로 옮긴다(auth-buttons.tsx) */}
-          <div className="hidden sm:block">
-            <ThemeToggle />
-          </div>
           <AnnouncementsLink />
           {showNav && <RegisterButton />}
           <AuthButtons />
