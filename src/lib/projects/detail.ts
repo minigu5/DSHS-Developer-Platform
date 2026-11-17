@@ -5,7 +5,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/types'
 import type { CommentRowView } from '@/lib/comments'
-import { isDeveloper } from '@/lib/constants'
 import { AWARDS_SELECT } from '@/lib/awards'
 import { PROJECT_AUTHOR, PROJECT_COLUMNS } from '@/lib/projects/columns'
 import { domainOfferOf, previewAddressOf } from '@/lib/domains/offer'
@@ -48,12 +47,14 @@ export type ProjectDetail = {
 /**
  * `data`: 프로젝트·댓글·하트 수·팀원을 읽는 클라이언트(서버는 개발자 계정이면 서비스 키).
  * `self`: 본인 권한으로만 읽는 것(내 하트·내 프로젝트·내 주소). 브라우저는 둘이 같다.
+ * `viewerIsAdmin`: 서버가 is_admin() 으로 확인한 값(브라우저 빠른 상세는 관리자를 서버 페이지로 보내므로 항상 false).
  * 못 찾으면 null.
  */
 export async function loadProjectDetail(
   { data, self }: { data: Client; self: Client },
   id: string,
   viewer: DetailViewer,
+  { viewerIsAdmin = false }: { viewerIsAdmin?: boolean } = {},
 ): Promise<ProjectDetail | null> {
   const [projectResult, commentsResult, myHeartResult] = await Promise.all([
     selectProject(data, id),
@@ -97,7 +98,7 @@ export async function loadProjectDetail(
     !!viewer &&
     ((!!project.public_author_id && project.public_author_id === viewer.id) || (isAnonymous && myProjectIds.includes(project.id)))
   const isTeamMember = !!viewer?.email && (project.team_members ?? []).includes(viewer.email)
-  const canEdit = !!viewer && (isOwner || isDeveloper(viewer.email) || isTeamMember)
+  const canEdit = !!viewer && (isOwner || viewerIsAdmin || isTeamMember)
 
   // 소유자에게만: 미리보기 주소 경고, 아니면 도메인 마련하기 안내(웹사이트 — 비공개도·이 프로젝트에 주소 없음·계정당 3개 미만),
   // 그리고 주소를 연결했는데 상세 설명에 옛 사이트 주소가 남아 있으면 바꿀지 묻는다. 주소는 소유자 본인 것이라 본인 권한으로 읽힌다

@@ -3,7 +3,7 @@
 
 import { hasProfanity } from './profanity.ts'
 
-export type ContentKind = 'project' | 'project_comment' | 'tip' | 'tip_comment' | 'idea' | 'guide' | 'profile'
+export type ContentKind = 'project' | 'project_comment' | 'idea' | 'guide' | 'profile'
 
 export type FeedItem = {
   kind: ContentKind

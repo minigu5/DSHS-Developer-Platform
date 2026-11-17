@@ -5,8 +5,6 @@ const ITEMS: { key: keyof Counts; label: string }[] = [
   { key: "projects", label: "새 프로젝트" },
   { key: "projectComments", label: "프로젝트 댓글" },
   { key: "clicks", label: "프로젝트 방문" },
-  { key: "tips", label: "개발 팁" },
-  { key: "tipComments", label: "팁 댓글" },
   { key: "ideas", label: "해줘" },
   { key: "guideEdits", label: "위키 수정" },
 ];

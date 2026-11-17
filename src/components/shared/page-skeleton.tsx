@@ -78,7 +78,7 @@ export function HeroSkeleton({
   );
 }
 
-/** 카드 격자 뼈대 — 목록 페이지(팁·해줘·공지)와 같은 1/2/3열. 모바일은 3장만 */
+/** 카드 격자 뼈대 — 목록 페이지(해줘·공지)와 같은 1/2/3열. 모바일은 3장만 */
 export function CardGridSkeleton({ count = 6, cover = false }: { count?: number; cover?: boolean }) {
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -108,22 +108,15 @@ export function ListPageSkeleton({
 }: {
   actions?: number;
   cover?: boolean;
-  /** 커뮤니티 도구줄(왼쪽 탭 + 오른쪽 개수/상태 세그먼트) 자리 — 개발 팁은 "count", 해줘!는 "segment" */
-  community?: "count" | "segment";
+  /** 해줘! 목록의 상태 세그먼트 자리 */
+  community?: "segment";
 }) {
   return (
     <SkeletonPage>
       <HeroSkeleton actions={actions} />
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-9">
         {community ? (
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-            <Bone className="h-[42px] w-48 rounded-full" />
-            {community === "count" ? (
-              <Bone className="h-4 w-16" />
-            ) : (
-              <Bone className="h-[38px] w-72 max-w-full rounded-full" />
-            )}
-          </div>
+          <Bone className="mb-5 h-[38px] w-72 max-w-full rounded-full" />
         ) : (
           <Bone className="mb-4 h-4 w-16" />
         )}
@@ -145,7 +138,7 @@ function ReadingSkeleton({ lines = 9 }: { lines?: number }) {
   );
 }
 
-/** 글 상세(팁·해줘·공지) — ArticleHeader + (커버) + 본문 */
+/** 글 상세(해줘·공지) — ArticleHeader + (커버) + 본문 */
 export function ArticleSkeleton({ cover = false }: { cover?: boolean }) {
   return (
     <SkeletonPage>

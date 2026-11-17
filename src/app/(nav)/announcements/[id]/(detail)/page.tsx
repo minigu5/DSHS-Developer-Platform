@@ -13,7 +13,7 @@ import { announcementCategoryColor, announcementCategoryLabel } from "@/lib/anno
 import { Markdown } from "@/components/shared/markdown";
 import { AnnouncementOwnerActions } from "@/components/announcements/announcement-owner-actions";
 import { AnnouncementPinButton } from "@/components/announcements/announcement-pin-button";
-import { isDeveloper } from "@/lib/constants";
+import { isAdminUser } from "@/lib/admin/is-admin";
 
 type AnnouncementDetailRow = {
   id: string;
@@ -63,7 +63,7 @@ export default async function AnnouncementDetailPage({
   const isEdited =
     new Date(announcement.updated_at).getTime() - new Date(announcement.created_at).getTime() > 5000;
 
-  const isAdmin = isDeveloper(currentUser?.email);
+  const isAdmin = !!currentUser && (await isAdminUser());
 
   return (
     <div className="flex min-h-screen flex-col bg-white dark:bg-zinc-950">

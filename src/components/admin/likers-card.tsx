@@ -5,30 +5,27 @@ import { ChevronDown, ShieldCheck } from "lucide-react";
 
 import Link from "@/components/shared/link";
 import { adminListLikers, type Liker } from "@/lib/admin/actions";
-import { isDeveloper } from "@/lib/constants";
-import { createClient } from "@/lib/supabase/client";
+import { fetchIsAdmin } from "@/lib/admin/is-admin-client";
 
 /**
- * 하트·좋아요를 누른 사람 — 관리자에게만 보이는 접이식 카드. 관리자가 아니면 아무것도 그리지 않는다.
- * 세션 이메일은 화면 표시 여부만 정하고, 실제 권한은 서버 액션(requireAdmin)이 다시 확인한다.
+ * 하트를 누른 사람 — 관리자에게만 보이는 접이식 카드. 관리자가 아니면 아무것도 그리지 않는다.
+ * 관리자 확인(is_admin RPC)은 화면 표시 여부만 정하고, 실제 권한은 서버 액션(requireAdmin)이 다시 확인한다.
  */
-export function LikersCard({ kind, id, className }: { kind: "project" | "tip"; id: string; className?: string }) {
+export function LikersCard({ id, className }: { id: string; className?: string }) {
   const [likers, setLikers] = useState<Liker[] | null>(null);
-  const word = kind === "project" ? "하트" : "좋아요";
+  const word = "하트";
 
   useEffect(() => {
     let active = true;
-    createClient()
-      .auth.getSession()
-      .then(async ({ data: { session } }) => {
-        if (!active || !isDeveloper(session?.user.email)) return;
-        const rows = await adminListLikers(kind, id);
-        if (active) setLikers(rows);
-      });
+    fetchIsAdmin().then(async (isAdmin) => {
+      if (!active || !isAdmin) return;
+      const rows = await adminListLikers(id);
+      if (active) setLikers(rows);
+    });
     return () => {
       active = false;
     };
-  }, [kind, id]);
+  }, [id]);
 
   if (!likers) return null;
 

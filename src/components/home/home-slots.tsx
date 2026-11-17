@@ -91,14 +91,14 @@ export function RecentPostsSlot() {
   const data = useHomeData();
   if (!data) {
     return (
-      <div aria-hidden className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {[0, 1, 2].map((i) => (
+      <div aria-hidden className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {[0, 1].map((i) => (
           <div key={i} className={cn("h-[280px] rounded-[20px]", BLOCK)} />
         ))}
       </div>
     );
   }
-  return <RecentPosts tips={data.tips} ideas={data.ideas} announcements={data.recentAnnouncements} />;
+  return <RecentPosts ideas={data.ideas} announcements={data.recentAnnouncements} />;
 }
 
 /** 사용 현황 줄은 받은 뒤에만(3개 미만이면 DomainTeaser가 숨긴다). */

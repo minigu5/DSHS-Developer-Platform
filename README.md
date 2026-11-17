@@ -40,7 +40,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
 docs/03-supabase-schema.sql        # 기본 테이블 (users, projects, reviews)
 docs/06-supabase-alter-users.sql   # users 컬럼 추가
 docs/07-supabase-onboarding.sql    # 온보딩
-docs/08-supabase-tips.sql          # 개발 팁 (tips, tip_likes, tip_comments)
 docs/09-supabase-developer-role.sql
 docs/10-supabase-haejwo.sql        # 해줘! (ideas)
 docs/11-supabase-haejwo-alter.sql  # ideas.linked_project_id 추가
@@ -69,7 +68,6 @@ src/
 │   │   ├── explore/        # 프로젝트 탐색
 │   │   ├── projects/       # 프로젝트 등록·수정·상세
 │   │   ├── guide/          # 바이브 코딩 가이드 위저드 + 결과
-│   │   ├── tips/           # 개발 팁 블로그
 │   │   └── haejwo/         # 해줘! 아이디어 요청
 │   ├── auth/               # OAuth 콜백·forbidden
 │   ├── me/                 # 내 프로필
@@ -78,12 +76,10 @@ src/
 │   ├── shared/             # SiteHeader, PageNav, Markdown 등
 │   ├── projects/           # 프로젝트 카드·폼
 │   ├── guide/              # 가이드 위저드·뷰어
-│   ├── tips/               # 팁 에디터·카드·댓글
 │   └── haejwo/             # 해줘 위저드·완료 버튼
 ├── content/guides/         # 가이드 마크다운 파일
 └── lib/
     ├── supabase/           # 서버·클라이언트 헬퍼
-    ├── tips/actions.ts     # 팁 서버 액션
     ├── haejwo/actions.ts   # 해줘 서버 액션
     ├── constants.ts        # 옵션 상수
     ├── types.ts            # Supabase 타입

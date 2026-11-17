@@ -3,7 +3,7 @@
 import Link from "@/components/shared/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
-import { Search, Plus, BookOpen, Globe, MessagesSquare } from "lucide-react";
+import { Search, Rocket, BookOpen, Globe, Megaphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { resolveActive } from "@/lib/nav-active";
 import { SECTION_COLORS } from "@/lib/section-colors";
@@ -11,12 +11,12 @@ import { SECTION_COLORS } from "@/lib/section-colors";
 // 알약 색은 섹션 색 맵(src/lib/section-colors.ts)과 공유 — 페이지 머리 타일·주 버튼과 같은 색
 const NAV_ITEMS = [
   { href: "/explore", label: "모든 프로젝트", icon: Search, pillClass: SECTION_COLORS.explore.pill },
-  { href: "/projects/new", label: "프로젝트 등록", icon: Plus, pillClass: SECTION_COLORS.new.pill },
+  { href: "/projects/new", label: "프로젝트 등록", icon: Rocket, pillClass: SECTION_COLORS.new.pill },
   { href: "/guide", label: "나도 개발해볼래!", icon: BookOpen, pillClass: SECTION_COLORS.guide.pill },
   // 학생 웹사이트에 이름.dshs.dev 주소를 붙여 주는 화면 — 배포 직후 찾아오도록 가이드 바로 다음
   { href: "/domains", label: "도메인 마련하기", icon: Globe, pillClass: SECTION_COLORS.domains.pill },
-  // 개발 팁(/tips)과 해줘!(/haejwo)를 한 칸으로 — 칸은 /tips로 가고, 활성은 두 경로 모두 이 칸
-  { href: "/tips", label: "커뮤니티", icon: MessagesSquare, pillClass: SECTION_COLORS.tips.pill },
+  // 개발 팁을 없앤 뒤(2026-11-17) 커뮤니티 칸은 "해줘!"(/haejwo) 하나가 됐다
+  { href: "/haejwo", label: "해줘!", icon: Megaphone, pillClass: SECTION_COLORS.haejwo.pill },
 ] as const;
 
 // 공지사항은 내비 칸이 아니라 헤더 오른쪽 벨(announcements-link.tsx)이다 — 공지 화면에서는 어느 칸도 켜지지 않는다.
@@ -25,11 +25,6 @@ const NAV_ITEMS = [
 const DESKTOP_ITEMS = NAV_ITEMS.filter((i) => i.href !== "/projects/new");
 
 const STORAGE_KEY = "pagenav-pill";
-
-// 커뮤니티 칸은 해줘! 화면에서 주황, 개발 팁 화면에서 분홍 — 페이지 머리 타일·주 버튼 색과 맞춘다
-function pillFor(href: string, pillClass: string, pathname: string): string {
-  return href === "/tips" && pathname.startsWith("/haejwo") ? SECTION_COLORS.haejwo.pill : pillClass;
-}
 
 // 누른 메뉴를 주소가 바뀌기 전에 먼저 활성으로 보여 준다(서버 왕복이 길어 1초쯤 반응이 없던 문제, 2026-10-24).
 // 주소가 바뀌면 눌렀던 기록을 지우고 실제 주소 기준으로 돌아간다 — 지우지 않으면 벨·푸터·뒤로가기로
@@ -94,7 +89,7 @@ export function PageNav() {
     setPill({ ...next, top, height, ready: true });
   }, [activeIndex, pathname]);
 
-  // 창 폭이 바뀌어 글자 표시가 달라지면(1440px) 알약 위치를 다시 잰다 — 안 그러면 알약이 글자보다 좁아 겹쳐 보인다
+  // 창 폭이 바뀌어 알약 위치를 다시 잰다 — 안 그러면 알약이 글자보다 좁아 겹쳐 보인다
   const navRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     const nav = navRef.current;
@@ -109,7 +104,7 @@ export function PageNav() {
   }, [activeIndex]);
 
   const activeItem = activeIndex >= 0 ? DESKTOP_ITEMS[activeIndex] : null;
-  const activePill = activeItem ? pillFor(activeItem.href, activeItem.pillClass, pathname) : "";
+  const activePill = activeItem ? activeItem.pillClass : "";
 
   return (
     <nav ref={navRef} aria-label="주요 메뉴" className="relative flex items-center gap-0.5 sm:gap-1">
@@ -149,13 +144,10 @@ export function PageNav() {
             )}
           >
             <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {isActive ? (
+            {isActive && (
               <span className="ml-1.5 whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-200 motion-reduce:animate-none">
                 {label}
               </span>
-            ) : (
-              // 넓은 화면(1440px+)에선 글자를 항상 보여 아이콘만으론 모르던 기능을 바로 알 수 있게(이슈 #5)
-              <span className="ml-1.5 hidden whitespace-nowrap min-[1440px]:inline">{label}</span>
             )}
           </Link>
         );
@@ -166,7 +158,7 @@ export function PageNav() {
 
 // 모바일 전용 — (nav)/layout.tsx 최하단에서 사용
 export function MobileNav() {
-  const { pathname, active, onNavigate } = useOptimisticActive();
+  const { active, onNavigate } = useOptimisticActive();
 
   return (
     <nav
@@ -189,7 +181,7 @@ export function MobileNav() {
               className={cn(
                 "flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-200 group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-blue-600",
                 isActive
-                  ? cn(pillFor(href, pillClass, pathname), "text-white")
+                  ? cn(pillClass, "text-white")
                   : "text-zinc-600 dark:text-zinc-400",
               )}
             >
@@ -209,12 +201,10 @@ export function RegisterButton() {
       href="/projects/new"
       aria-label="프로젝트 등록"
       className={cn(
-        "hidden sm:inline-flex h-9 items-center justify-center gap-1.5 rounded-full px-3 lg:px-4 text-sm font-medium text-white transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600",
-        SECTION_COLORS.new.pill,
-        "hover:bg-emerald-800",
+        "hidden sm:inline-flex h-9 items-center justify-center gap-1.5 rounded-full border-[1.5px] border-emerald-700 px-3 lg:px-4 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:border-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-950/40",
       )}
     >
-      <Plus className="h-4 w-4 shrink-0" aria-hidden />
+      <Rocket className="h-4 w-4 shrink-0 lg:hidden" aria-hidden />
       <span className="hidden whitespace-nowrap lg:inline">프로젝트 등록</span>
     </Link>
   );

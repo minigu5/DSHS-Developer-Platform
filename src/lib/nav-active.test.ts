@@ -12,7 +12,7 @@ test('resolveActive', () => {
   assert.equal(resolveActive('/projects/abc'), '/explore')
   assert.equal(resolveActive('/explore'), '/explore')
   assert.equal(resolveActive('/developers/x'), '/explore')
-  assert.equal(resolveActive('/haejwo/1'), '/tips')
+  assert.equal(resolveActive('/haejwo/1'), '/haejwo')
   assert.equal(resolveActive('/domains'), '/domains')
   assert.equal(resolveActive('/guide/web'), '/guide')
   assert.equal(resolveActive('/'), '')

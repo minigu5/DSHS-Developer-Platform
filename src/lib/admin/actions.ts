@@ -6,7 +6,7 @@
 import { revalidatePath } from 'next/cache'
 
 import { deleteCloudinaryImages } from '@/lib/cloudinary-delete'
-import { isDeveloper } from '@/lib/constants'
+import { isAllowedEmail, isDeveloper } from '@/lib/constants'
 import { getLatestDoc } from '@/lib/guide-wiki/read'
 import { revertGuide } from '@/lib/guide-wiki/actions'
 import { posterImageUrlsOf } from '@/lib/posters/cleanup'
@@ -32,15 +32,13 @@ const FAILED: AdminActionResult = { ok: false, error: '처리하지 못했어요
 type Admin = ReturnType<typeof createAdminClient>
 type ActionLog = Database['public']['Tables']['admin_actions']['Insert']
 
-const CONTENT_KINDS: ContentKind[] = ['project', 'project_comment', 'tip', 'tip_comment', 'idea', 'guide', 'profile']
+const CONTENT_KINDS: ContentKind[] = ['project', 'project_comment', 'idea', 'guide', 'profile']
 const BAN_DURATIONS: BanDuration[] = ['1d', '7d', '30d', 'forever']
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-const TABLE: Record<Exclude<ContentKind, 'guide' | 'profile'>, 'projects' | 'project_comments' | 'tips' | 'tip_comments' | 'ideas'> = {
+const TABLE: Record<Exclude<ContentKind, 'guide' | 'profile'>, 'projects' | 'project_comments' | 'ideas'> = {
   project: 'projects',
   project_comment: 'project_comments',
-  tip: 'tips',
-  tip_comment: 'tip_comments',
   idea: 'ideas',
 }
 
@@ -120,14 +118,6 @@ async function authorOf(admin: Admin, kind: ContentKind, id: string): Promise<{ 
       const { data } = await admin.from('project_comments').select('user_id, public_user_id').eq('id', id).maybeSingle()
       return data ? { userId: data.user_id, anonymous: data.public_user_id === null } : null
     }
-    case 'tip': {
-      const { data } = await admin.from('tips').select('author_id').eq('id', id).maybeSingle()
-      return data ? { userId: data.author_id, anonymous: false } : null
-    }
-    case 'tip_comment': {
-      const { data } = await admin.from('tip_comments').select('user_id').eq('id', id).maybeSingle()
-      return data ? { userId: data.user_id, anonymous: false } : null
-    }
     case 'idea': {
       const { data } = await admin.from('ideas').select('author_id').eq('id', id).maybeSingle()
       return data ? { userId: data.author_id, anonymous: false } : null
@@ -154,7 +144,8 @@ async function ban(
   const { data: authUser } = await admin.auth.admin.getUserById(target.userId)
   const email = authUser?.user?.email
   if (!email) return { ok: false, error: '사용자를 찾지 못했어요.' }
-  if (isDeveloper(email)) return { ok: false, error: '관리자 계정은 차단할 수 없어요.' }
+  const { data: adminRow } = await admin.from('admins').select('user_id').eq('user_id', target.userId).maybeSingle()
+  if (isDeveloper(email) || adminRow) return { ok: false, error: '관리자 계정은 차단할 수 없어요.' }
 
   const { data: hash, error: hashError } = await admin.rpc('email_hash', { p_email: email })
   if (hashError || !hash) return FAILED
@@ -385,33 +376,64 @@ export async function loadMoreFeed(kinds: ContentKind[] | null, before: string):
 export type Liker = { userId: string; name: string; at: string; anonymousOwner: boolean }
 
 /**
- * 하트(프로젝트)·좋아요(팁)를 누른 사람 — 관리자만(2026-11-05 사용자 요청). 관리자가 아니면 null.
+ * 하트(프로젝트)를 누른 사람 — 관리자만(2026-11-05 사용자 요청). 관리자가 아니면 null.
  * 만든 사람이 자기 익명 프로젝트에 누른 하트(남에게 숨김)도 anonymousOwner 로 표시해 보여 준다.
  */
-export async function adminListLikers(kind: 'project' | 'tip', id: string): Promise<Liker[] | null> {
+export async function adminListLikers(id: string): Promise<Liker[] | null> {
   const actor = await requireAdmin()
   if (!actor || !UUID.test(id)) return null
   const admin = createAdminClient()
-  const rows =
-    kind === 'project'
-      ? (
-          await admin
-            .from('project_hearts')
-            .select('user_id, created_at, by_anonymous_owner, user:users(nickname, full_name)')
-            .eq('project_id', id)
-            .order('created_at', { ascending: false })
-        ).data?.map((r) => ({ ...r, anonymousOwner: r.by_anonymous_owner }))
-      : (
-          await admin
-            .from('tip_likes')
-            .select('user_id, created_at, user:users(nickname, full_name)')
-            .eq('tip_id', id)
-            .order('created_at', { ascending: false })
-        ).data?.map((r) => ({ ...r, anonymousOwner: false }))
+  const { data } = await admin
+    .from('project_hearts')
+    .select('user_id, created_at, by_anonymous_owner, user:users(nickname, full_name)')
+    .eq('project_id', id)
+    .order('created_at', { ascending: false })
+  const rows = data?.map((r) => ({ ...r, anonymousOwner: r.by_anonymous_owner }))
   return (rows ?? []).map((r) => ({
     userId: r.user_id,
     name: personLabel(Array.isArray(r.user) ? r.user[0] : r.user),
     at: r.created_at,
     anonymousOwner: r.anonymousOwner,
   }))
+}
+
+/**
+ * 관리자 추가 — 이메일로 찾는다(한 번이라도 로그인해 users 에 있는 사람만). 관리자끼리 서로 추가·삭제할 수 있다(2026-11-17 사용자 결정).
+ * 최초 관리자(DEVELOPER_EMAIL)는 표에 없고 DB 함수에 박혀 있어 지울 수 없다.
+ */
+export async function adminAddAdmin(email: string): Promise<AdminActionResult> {
+  const actor = await requireAdmin()
+  if (!actor) return NOT_ADMIN
+  const clean = email.trim().toLowerCase()
+  if (!clean) return { ok: false, error: '이메일을 입력해 주세요.' }
+  if (!isAllowedEmail(clean)) return { ok: false, error: '학교 이메일(@ts.hs.kr)만 추가할 수 있어요.' }
+  if (isDeveloper(clean)) return { ok: false, error: '이미 최초 관리자예요.' }
+  const admin = createAdminClient()
+  const { data: target } = await admin.from('users').select('id').eq('email', clean).maybeSingle()
+  if (!target) return { ok: false, error: '아직 로그인한 적 없는 계정이에요. 그 사람이 한 번 로그인한 뒤에 추가해 주세요.' }
+  const { error } = await admin.from('admins').insert({ user_id: target.id, added_by: actor.id })
+  if (error) {
+    if (error.code === '23505') return { ok: false, error: '이미 관리자예요.' }
+    console.error('[admin] 관리자 추가 실패', error.message)
+    return FAILED
+  }
+  await record(admin, { action: 'admin_add', target_kind: 'user', target_user_id: target.id })
+  return done()
+}
+
+/** 관리자 삭제 — 최초 관리자(표에 없음)와 나 자신은 못 뺀다 */
+export async function adminRemoveAdmin(userId: string): Promise<AdminActionResult> {
+  const actor = await requireAdmin()
+  if (!actor) return NOT_ADMIN
+  if (!UUID.test(userId)) return FAILED
+  if (userId === actor.id) return { ok: false, error: '나 자신은 뺄 수 없어요. 다른 관리자에게 부탁해 주세요.' }
+  const admin = createAdminClient()
+  const { data, error } = await admin.from('admins').delete().eq('user_id', userId).select('user_id')
+  if (error) {
+    console.error('[admin] 관리자 삭제 실패', error.message)
+    return FAILED
+  }
+  if (!data?.length) return { ok: false, error: '이 계정은 뺄 수 없어요.' }
+  await record(admin, { action: 'admin_remove', target_kind: 'user', target_user_id: userId })
+  return done()
 }

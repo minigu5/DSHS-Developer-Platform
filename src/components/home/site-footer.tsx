@@ -7,7 +7,6 @@ const COLUMNS = [
     title: "둘러보기",
     links: [
       { href: "/explore", label: "모든 프로젝트" },
-      { href: "/tips", label: "개발 팁" },
       { href: "/haejwo", label: "해줘!" },
       { href: "/announcements", label: "공지사항" },
     ],
@@ -20,7 +19,6 @@ const COLUMNS = [
       { href: "/posters/start", label: "홍보 포스터 만들기" },
       { href: "/guide", label: "나도 개발해볼래!" },
       { href: "/domains", label: "도메인 마련하기" },
-      { href: "/tips/new", label: "팁 쓰기" },
       { href: "/haejwo/new", label: "해줘! 올리기" },
     ],
   },

@@ -278,118 +278,6 @@ export type Database = {
           },
         ];
       };
-      tips: {
-        Row: {
-          id: string;
-          author_id: string;
-          title: string;
-          summary: string | null;
-          content: string;
-          cover_url: string | null;
-          tags: string[];
-          like_count: number; // tip_likes 트리거가 채움, 사용자 키로 못 바꿈(20261112110000)
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          author_id: string;
-          title: string;
-          summary?: string | null;
-          content: string;
-          cover_url?: string | null;
-          tags?: string[];
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          author_id?: string;
-          title?: string;
-          summary?: string | null;
-          content?: string;
-          cover_url?: string | null;
-          tags?: string[];
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'tips_author_id_fkey';
-            columns: ['author_id'];
-            referencedRelation: 'users';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      tip_likes: {
-        Row: {
-          tip_id: string;
-          user_id: string;
-          created_at: string;
-        };
-        Insert: {
-          tip_id: string;
-          user_id: string;
-          created_at?: string;
-        };
-        Update: {
-          tip_id?: string;
-          user_id?: string;
-          created_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'tip_likes_tip_id_fkey';
-            columns: ['tip_id'];
-            referencedRelation: 'tips';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'tip_likes_user_id_fkey';
-            columns: ['user_id'];
-            referencedRelation: 'users';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      tip_comments: {
-        Row: {
-          id: string;
-          tip_id: string;
-          user_id: string;
-          content: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          tip_id: string;
-          user_id: string;
-          content: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          tip_id?: string;
-          user_id?: string;
-          content?: string;
-          created_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'tip_comments_tip_id_fkey';
-            columns: ['tip_id'];
-            referencedRelation: 'tips';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'tip_comments_user_id_fkey';
-            columns: ['user_id'];
-            referencedRelation: 'users';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
       announcements: {
         Row: {
           id: string;
@@ -700,10 +588,16 @@ export type Database = {
           { foreignKeyName: 'project_awards_project_id_fkey'; columns: ['project_id']; isOneToOne: false; referencedRelation: 'projects'; referencedColumns: ['id'] },
         ];
       };
+      admins: {
+        Row: { user_id: string; added_by: string | null; created_at: string };
+        Insert: { user_id: string; added_by?: string | null; created_at?: string };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
       admin_actions: {
         Row: {
           id: number;
-          action: 'delete' | 'ban' | 'unban' | 'private' | 'dismiss' | 'revert' | 'unhang' | 'lock' | 'unlock' | 'event' | 'award';
+          action: 'delete' | 'ban' | 'unban' | 'private' | 'dismiss' | 'revert' | 'unhang' | 'lock' | 'unlock' | 'event' | 'award' | 'admin_add' | 'admin_remove';
           target_kind: string | null;
           target_id: string | null;
           target_user_id: string | null;
@@ -711,7 +605,7 @@ export type Database = {
           created_at: string;
         };
         Insert: {
-          action: 'delete' | 'ban' | 'unban' | 'private' | 'dismiss' | 'revert' | 'unhang' | 'lock' | 'unlock' | 'event' | 'award';
+          action: 'delete' | 'ban' | 'unban' | 'private' | 'dismiss' | 'revert' | 'unhang' | 'lock' | 'unlock' | 'event' | 'award' | 'admin_add' | 'admin_remove';
           target_kind?: string | null;
           target_id?: string | null;
           target_user_id?: string | null;
@@ -816,6 +710,10 @@ export type Database = {
       poster_art_ping: {
         Args: { p_token: string };
         Returns: undefined;
+      };
+      is_admin: {
+        Args: Record<string, never>;
+        Returns: boolean;
       };
       is_banned: {
         Args: { p_uid: string };
@@ -967,10 +865,6 @@ export type ProjectInsert = Database['public']['Tables']['projects']['Insert'];
 export type ProjectUpdate = Database['public']['Tables']['projects']['Update'];
 export type CommentRow = Database['public']['Tables']['project_comments']['Row'];
 export type HeartRow = Database['public']['Tables']['project_hearts']['Row'];
-export type TipRow = Database['public']['Tables']['tips']['Row'];
-export type TipInsert = Database['public']['Tables']['tips']['Insert'];
-export type TipUpdate = Database['public']['Tables']['tips']['Update'];
-export type TipCommentRow = Database['public']['Tables']['tip_comments']['Row'];
 export type AnnouncementRow = Database['public']['Tables']['announcements']['Row'];
 export type AnnouncementInsert = Database['public']['Tables']['announcements']['Insert'];
 export type AnnouncementUpdate = Database['public']['Tables']['announcements']['Update'];

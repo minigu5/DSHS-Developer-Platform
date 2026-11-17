@@ -276,7 +276,7 @@ export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anony
         )}
 
         <StatStrip items={stats} className="mt-8" />
-        {isAdmin && <LikersCard kind="project" id={project.id} className="mt-4" />}
+        {isAdmin && <LikersCard id={project.id} className="mt-4" />}
         {isAdmin && (
           <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-3xl border border-rose-200 bg-white px-5 py-4 text-sm dark:border-rose-900/60 dark:bg-zinc-900">
             <p className="text-zinc-700 dark:text-zinc-300">

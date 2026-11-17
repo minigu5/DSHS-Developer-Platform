@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 
+import { AdminsManager } from "@/components/admin/admins-manager";
 import { BanList } from "@/components/admin/ban-list";
 import { EventsAdmin } from "@/components/admin/events-admin";
 import { ContentFeed } from "@/components/admin/content-feed";
@@ -10,7 +11,7 @@ import { StatGrid } from "@/components/admin/stat-grid";
 import { TodayList } from "@/components/admin/today-list";
 import { AdminDomainTable } from "@/components/domains/admin-domain-table";
 import { PageHero } from "@/components/shared/page-hero";
-import { isDeveloper } from "@/lib/constants";
+import { isAdminUser } from "@/lib/admin/is-admin";
 import { loadAdminDashboard } from "@/lib/admin/read";
 import { createClient } from "@/lib/supabase/server";
 
@@ -37,7 +38,7 @@ export default async function AdminPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/admin");
-  if (!isDeveloper(user.email)) notFound();
+  if (!(await isAdminUser())) notFound();
 
   const data = await loadAdminDashboard();
 
@@ -72,6 +73,10 @@ export default async function AdminPage() {
         <section>
           <SectionTitle id="bans" title="차단" />
           <BanList bans={data.bans} />
+        </section>
+        <section>
+          <SectionTitle id="admins" title="관리자" note="최초 관리자는 지울 수 없어요" />
+          <AdminsManager admins={data.admins} myEmail={user.email ?? ""} />
         </section>
         <section>
           <SectionTitle id="domains" title="주소 관리" />

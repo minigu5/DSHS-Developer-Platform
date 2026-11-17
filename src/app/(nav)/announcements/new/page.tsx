@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { isDeveloper } from "@/lib/constants";
+import { isAdminUser } from "@/lib/admin/is-admin";
 import { Bell } from "lucide-react";
 import { PageHero } from "@/components/shared/page-hero";
 import { AnnouncementEditor } from "@/components/announcements/announcement-editor";
@@ -19,7 +19,7 @@ export default async function NewAnnouncementPage() {
     <div className="flex min-h-screen flex-col bg-white dark:bg-zinc-950">
       <PageHero section="announcements" icon={Bell} title="공지 작성" variant="compact" />
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-7">
-        <AnnouncementEditor mode="create" isAdmin={isDeveloper(user.email)} />
+        <AnnouncementEditor mode="create" isAdmin={await isAdminUser()} />
       </main>
     </div>
   );

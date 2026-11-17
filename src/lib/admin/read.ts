@@ -3,6 +3,7 @@ import 'server-only'
 // 관리자 대시보드 읽기. 부르는 쪽(페이지·액션)이 requireAdmin() 을 먼저 확인한다.
 // 읽기 함수(admin_*)는 service_role 전용이라 서비스 키로만 부를 수 있다.
 
+import { DEVELOPER_EMAIL } from '@/lib/constants'
 import { listAllSubdomains, type AdminDomainRow } from '@/lib/domains/read'
 import { createAdminClient } from '@/lib/supabase/server'
 import type { Json } from '@/lib/types'
@@ -15,8 +16,6 @@ export type Counts = {
   users: number
   projects: number
   projectComments: number
-  tips: number
-  tipComments: number
   ideas: number
   guideEdits: number
   clicks: number
@@ -39,6 +38,8 @@ export type AdminDashboard = {
   /** 관리자가 비공개로 잠근 프로젝트 — 주인은 다시 공개할 수 없다(2026-11-07) */
   lockedProjects: LockedProjectView[]
   events: AdminEventView[]
+  /** 관리자 목록 — 맨 앞이 최초 관리자(삭제 불가), 나머지는 관리자 화면에서 추가한 사람 */
+  admins: AdminMemberView[]
 }
 
 export type AdminEventView = {
@@ -46,6 +47,8 @@ export type AdminEventView = {
   name: string
   awards: { projectId: string; title: string; rankLabel: string; isPrivate: boolean }[]
 }
+
+export type AdminMemberView = { userId: string | null; email: string; label: string; root: boolean; addedAt: string | null; addedBy: string | null }
 
 export type LockedProjectView = { projectId: string; title: string; reason: string | null; lockedAt: string }
 
@@ -83,12 +86,37 @@ async function namesOf(ids: (string | null | undefined)[]): Promise<Map<string, 
   return new Map((data ?? []).map((u) => [u.id, personLabel(u)]))
 }
 
+async function loadAdmins(): Promise<AdminMemberView[]> {
+  const admin = createAdminClient()
+  const { data: rows, error } = await admin.from('admins').select('user_id, added_by, created_at').order('created_at')
+  if (error) throw error
+  const ids = [...new Set((rows ?? []).flatMap((r) => [r.user_id, r.added_by]).filter((id): id is string => !!id))]
+  const [people, root] = await Promise.all([
+    ids.length ? admin.from('users').select('id, email, nickname, full_name').in('id', ids) : Promise.resolve({ data: [], error: null }),
+    admin.from('users').select('id, email, nickname, full_name').eq('email', DEVELOPER_EMAIL).maybeSingle(),
+  ])
+  if (people.error) throw people.error
+  const byId = new Map((people.data ?? []).map((u) => [u.id, u]))
+  return [
+    { userId: null, email: DEVELOPER_EMAIL, label: personLabel(root.data), root: true, addedAt: null, addedBy: null },
+    ...(rows ?? []).map((r) => ({
+      userId: r.user_id,
+      email: byId.get(r.user_id)?.email ?? '',
+      label: personLabel(byId.get(r.user_id)),
+      root: false,
+      addedAt: r.created_at,
+      addedBy: r.added_by ? personLabel(byId.get(r.added_by)) : null,
+    })),
+  ]
+}
+
 const anonymousAuthorIds = (items: RpcFeedItem[]) => items.filter((i) => i.anonymous).map((i) => i.authorId)
 
 export async function loadFeed(kinds: ContentKind[] | null, before: string | null): Promise<FeedItem[]> {
   const { data, error } = await createAdminClient().rpc('admin_recent_content', { p_kinds: kinds, p_before: before, p_limit: 50 })
   if (error) throw error
-  const items = asArray<RpcFeedItem>(data)
+  // 팁은 없앴지만 DB 함수가 바뀌기 전까지 남은 글이 섞여 올 수 있어 거른다(2026-11-17)
+  const items = asArray<RpcFeedItem>(data).filter((i) => (i.kind as string) !== 'tip' && (i.kind as string) !== 'tip_comment')
   const names = await namesOf(anonymousAuthorIds(items))
   return items.map((i) => stripAuthor(i, names))
 }
@@ -99,7 +127,7 @@ export async function loadAdminDashboard(): Promise<AdminDashboard> {
   // 탈퇴한 사람의 차단 기록은 차단이 끝나면 파기한다(처리방침)
   await admin.from('user_bans').delete().is('user_id', null).lt('until', new Date().toISOString())
 
-  const [stats, feed, bursts, shrinks, bans, dismissals, domains, hung, locks, events, awards] = await Promise.all([
+  const [stats, feed, bursts, shrinks, bans, dismissals, domains, hung, locks, events, awards, admins] = await Promise.all([
     admin.rpc('admin_site_stats'),
     admin.rpc('admin_recent_content', { p_limit: 50 }),
     admin.rpc('admin_bursts'),
@@ -116,6 +144,7 @@ export async function loadAdminDashboard(): Promise<AdminDashboard> {
     admin.from('project_locks').select('project_id, reason, created_at').order('created_at', { ascending: false }),
     admin.from('events').select('id, name').order('created_at', { ascending: false }),
     admin.from('project_awards').select('project_id, event_id, rank_label, created_at, projects(title, visibility)').order('created_at', { ascending: true }),
+    loadAdmins(),
   ])
   for (const r of [stats, feed, bursts, shrinks, bans, dismissals, hung, locks, events, awards]) if (r.error) throw r.error
   const lockRows = locks.data ?? []
@@ -179,5 +208,6 @@ export async function loadAdminDashboard(): Promise<AdminDashboard> {
       reason: l.reason,
       lockedAt: l.created_at,
     })),
+    admins,
   }
 }

@@ -1,4 +1,4 @@
-// src/components/tips/tip-editor.tsx 의 Tab 들여쓰기 로직을 순수 함수로 옮긴 것.
+// 개발 팁 에디터(삭제됨)에 있던 Tab 들여쓰기 로직을 순수 함수로 옮긴 것.
 // Tab → 두 칸 들여쓰기, 여러 줄 선택 + Shift+Tab → 들여쓰기 해제.
 
 const INDENT = "  ";

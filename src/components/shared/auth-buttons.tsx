@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
-import { isDeveloper } from "@/lib/constants";
+import { fetchIsAdmin } from "@/lib/admin/is-admin-client";
 
 export function AuthButtons() {
   const { resolvedTheme, setTheme } = useTheme();
@@ -27,6 +27,7 @@ export function AuthButtons() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<{ nickname: string | null; full_name: string | null; avatar_url: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -39,6 +40,7 @@ export function AuthButtons() {
         if (data) {
           setProfile(data);
         }
+        fetchIsAdmin().then(setIsAdmin);
       }
       setLoading(false);
     };
@@ -53,8 +55,10 @@ export function AuthButtons() {
           if (data) {
             setProfile(data);
           }
+          fetchIsAdmin().then(setIsAdmin);
         } else {
           setProfile(null);
+          setIsAdmin(false);
         }
       }
     );
@@ -104,7 +108,7 @@ export function AuthButtons() {
             <UserIcon className="mr-2 h-4 w-4" aria-hidden />
             <span>내 페이지</span>
           </DropdownMenuItem>
-          {isDeveloper(user.email) && (
+          {isAdmin && (
             <DropdownMenuItem onClick={() => router.push('/admin')} className="cursor-pointer">
               <ShieldCheck className="mr-2 h-4 w-4" aria-hidden />
               <span>관리자</span>
