@@ -6,7 +6,7 @@ import { Rocket } from "lucide-react";
 import { PageHero } from "@/components/shared/page-hero";
 import { ProjectForm } from "@/components/projects/project-form";
 import { PosterSheet } from "@/components/posters/poster-sheet";
-import { isDeveloper } from "@/lib/constants";
+import { isAdminUser } from "@/lib/admin/is-admin";
 import { getConnectedDomainUrl, getLiveDomain, getOldAddressSource } from "@/lib/domains/read";
 import { oldAddressPrefixes } from "@/lib/domains/old-address";
 import { PROJECT_COLUMNS } from "@/lib/projects/columns";
@@ -22,7 +22,7 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
     redirect("/login");
   }
 
-  const userIsDeveloper = isDeveloper(user.email);
+  const userIsDeveloper = await isAdminUser();
 
   // 개발자 계정은 비공개 프로젝트도 조회할 수 있도록 어드민 클라이언트 사용
   const queryClient = userIsDeveloper ? createAdminClient() : supabase;

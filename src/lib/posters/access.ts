@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { banNoticeFor } from '@/lib/admin/guard'
-import { isDeveloper } from '@/lib/constants'
+import { isAdminUser } from '@/lib/admin/is-admin'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 
 import type { PosterProjectInfo } from './config'
@@ -40,7 +40,7 @@ async function loadAccess(projectId: string, decide: (i: AccessInput) => 'ok' | 
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return 'login'
-  const isAdmin = isDeveloper(user.email)
+  const isAdmin = await isAdminUser()
 
   // 개발자 계정은 비공개도 읽히는 서비스 키, 그 외는 RLS 를 따르는 사용자 키
   const reader = isAdmin ? createAdminClient() : supabase

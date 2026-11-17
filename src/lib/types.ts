@@ -573,10 +573,16 @@ export type Database = {
         Update: { reason?: string | null };
         Relationships: [];
       };
+      admins: {
+        Row: { user_id: string; added_by: string | null; created_at: string };
+        Insert: { user_id: string; added_by?: string | null; created_at?: string };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
       admin_actions: {
         Row: {
           id: number;
-          action: 'delete' | 'ban' | 'unban' | 'private' | 'dismiss' | 'revert' | 'unhang' | 'lock' | 'unlock';
+          action: 'delete' | 'ban' | 'unban' | 'private' | 'dismiss' | 'revert' | 'unhang' | 'lock' | 'unlock' | 'admin_add' | 'admin_remove';
           target_kind: string | null;
           target_id: string | null;
           target_user_id: string | null;
@@ -584,7 +590,7 @@ export type Database = {
           created_at: string;
         };
         Insert: {
-          action: 'delete' | 'ban' | 'unban' | 'private' | 'dismiss' | 'revert' | 'unhang' | 'lock' | 'unlock';
+          action: 'delete' | 'ban' | 'unban' | 'private' | 'dismiss' | 'revert' | 'unhang' | 'lock' | 'unlock' | 'admin_add' | 'admin_remove';
           target_kind?: string | null;
           target_id?: string | null;
           target_user_id?: string | null;
@@ -689,6 +695,10 @@ export type Database = {
       poster_art_ping: {
         Args: { p_token: string };
         Returns: undefined;
+      };
+      is_admin: {
+        Args: Record<string, never>;
+        Returns: boolean;
       };
       is_banned: {
         Args: { p_uid: string };

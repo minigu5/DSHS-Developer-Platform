@@ -6,7 +6,8 @@ import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 
 import { createClient } from "@/lib/supabase/server";
-import { INTERESTS, isDeveloper } from "@/lib/constants";
+import { isAdminUser } from "@/lib/admin/is-admin";
+import { INTERESTS } from "@/lib/constants";
 import { cn, isExternalImage } from "@/lib/utils";
 import type { UserContact } from "@/lib/types";
 import { PageHero } from "@/components/shared/page-hero";
@@ -62,7 +63,7 @@ export default async function DeveloperProfilePage({ params }: { params: Promise
   const { data: { user: currentUser } } = await supabase.auth.getUser();
   const isOwner = currentUser?.id === id;
   // 즐겨찾기(하트 누른 프로젝트)는 본인·관리자만 본다(2026-11-08 사용자 결정). DB도 project_hearts 를 본인 행만 읽게 막았다.
-  const canSeeFavorites = isOwner || isDeveloper(currentUser?.email);
+  const canSeeFavorites = isOwner || (!!currentUser && (await isAdminUser()));
 
   const { data: developer, error: userError } = await supabase.from("users").select("*").eq("id", id).single();
   if (userError || !developer) notFound();

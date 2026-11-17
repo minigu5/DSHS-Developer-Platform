@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { isDeveloper } from "@/lib/constants";
+import { isAdminUser } from "@/lib/admin/is-admin";
 import { Bell } from "lucide-react";
 import { PageHero } from "@/components/shared/page-hero";
 import { AnnouncementEditor } from "@/components/announcements/announcement-editor";
@@ -28,7 +28,8 @@ export default async function EditAnnouncementPage({
     .single();
 
   if (!announcement) notFound();
-  if (announcement.author_id !== user.id && !isDeveloper(user.email)) {
+  const isAdmin = await isAdminUser();
+  if (announcement.author_id !== user.id && !isAdmin) {
     redirect(`/announcements/${id}`);
   }
 
@@ -44,7 +45,7 @@ export default async function EditAnnouncementPage({
             category: announcement.category,
             content: announcement.content,
           }}
-          isAdmin={isDeveloper(user.email)}
+          isAdmin={isAdmin}
         />
       </main>
     </div>

@@ -8,7 +8,8 @@ import { revalidatePath } from 'next/cache'
 
 import { deleteCloudinaryImages } from '@/lib/cloudinary-delete'
 import { nameMatches } from '@/lib/confirm-name'
-import { isAllowedEmail, isDeveloper } from '@/lib/constants'
+import { isAdminUser } from '@/lib/admin/is-admin'
+import { isAllowedEmail } from '@/lib/constants'
 import { fixOldAddresses, oldAddressPrefixes } from '@/lib/domains/old-address'
 import { getOldAddressSource } from '@/lib/domains/read'
 import { iconFitStale } from '@/lib/icon-fit-fetch'
@@ -70,7 +71,7 @@ export async function closeDomainOfPrivateProject(projectId: string): Promise<Pr
     .select('author_id, visibility')
     .eq('id', projectId)
     .maybeSingle()
-  if (!project || (project.author_id !== user.id && !isDeveloper(user.email))) {
+  if (!project || (project.author_id !== user.id && !(await isAdminUser()))) {
     return { ok: false, error: '내 프로젝트만 바꿀 수 있어요.' }
   }
   if (project.visibility !== 'private') return { ok: false, error: '비공개로 저장된 프로젝트만 주소를 닫을 수 있어요.' }

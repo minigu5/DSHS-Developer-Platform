@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { ExploreClient } from "@/components/explore/explore-client";
-import { isDeveloper } from "@/lib/constants";
+import { isAdminUser } from "@/lib/admin/is-admin";
 import type { ProjectCardData } from "@/components/projects/project-card";
 import { parseExploreQuery } from "@/lib/explore-query";
 
@@ -40,7 +40,7 @@ export default async function ExplorePage({
 
   let projects: ProjectCardData[] | null = null;
 
-  if (isDeveloper(user?.email)) {
+  if (user && (await isAdminUser())) {
     // 개발자 계정: 모든 프로젝트(공개+비공개) 조회
     const adminClient = createAdminClient();
     const { data } = await adminClient

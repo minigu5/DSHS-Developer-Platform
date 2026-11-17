@@ -14,7 +14,7 @@ paths:
 
 - **사용자 결정**: 하루 한 번 열어 "무슨 일이 있었나 / 확인할 게 있나"를 보고, 문제가 있으면 **버튼을 최소로** 눌러 대응. 비속어는 최신순으로 **확인**(자동 차단 아님). 차단은 **기간을 정해서(1일·7일·30일·무제한)** 하고 **등록만 막는다**(로그인·열람·하트·내 글 삭제는 그대로). 처리방침 재동의는 하트·댓글 작업과 묶어 한 번만 띄우려 했으나 하트·댓글이 먼저 배포됨 — 배포 전 사용자 확인.
 - **설계 판단(사용자 OK)**: 익명 작성자를 차단해도 목록엔 '익명 작성자', 기존 글 수정·프로필 닉네임/소개 변경도 차단, 탈퇴 후 재가입 우회 방지(이메일 해시 + 끝나는 날만 보관), 관리자 삭제는 확인 창 한 번(이름 입력 없음).
-- **권한**: 페이지는 `getUser()` + `isDeveloper()`(아니면 `notFound()`, 비로그인은 로그인으로 — 미들웨어 보호 라우트). 액션(`src/lib/admin/actions.ts`)은 매번 `requireAdmin()`(`guard.ts`) 후 서비스 키, `admin_actions`에 기록(지운 글 내용은 안 남김). 프로필 메뉴(`auth-buttons.tsx`)에 관리자만 "관리자" 링크. `/domains/admin`은 `/admin#domains`로 보낸다.
+- **권한**: 페이지는 `getUser()` + `isAdminUser()`(아니면 `notFound()`, 비로그인은 로그인으로 — 미들웨어 보호 라우트). 액션(`src/lib/admin/actions.ts`)은 매번 `requireAdmin()`(`guard.ts`) 후 서비스 키, `admin_actions`에 기록(지운 글 내용은 안 남김). 프로필 메뉴(`auth-buttons.tsx`)에 관리자만 "관리자" 링크. `/domains/admin`은 `/admin#domains`로 보낸다.
 - **화면 순서**: 오늘 확인할 것 → 사이트 현황 → 최신 글 → **걸린 포스터**(2026-11-07, `HungPosters` — 학생이 올린 그림은 바로 걸리고 여기서 나중에 검토. 최근 20개 썸네일·원본 링크·"내리기"(`adminUnhangPoster`, 기록 `unhang`, 포스터 자체는 남김)·"주인 차단"(누가 걸었는지 안 남겨서 프로젝트 주인 기준)) → 잠긴 프로젝트(아래 「프로젝트 잠금」) → 차단 → 주소 관리(`AdminDomainTable` 재사용). 섹션 색 `admin`(rose). `main`은 `grid-cols-[minmax(0,1fr)]` — 없으면 넓은 표 때문에 모바일 가로 스크롤.
   - **오늘 확인할 것**(`buildTodayItems`, `src/lib/admin/today.ts`, 순서 고정): 비속어 걸린 글 → 몰아 올린 것(같은 작성자·종류가 앞 글과 10분 이내로 3개 이상 이어짐, "하나만 남기고 지우기") → 위키 큰 삭제(지운 글자 − 더한 글자 ≥ 300, 최신 버전일 때만 "되돌리기") → 끊긴 주소("주소 회수") → 최근 2일 안에 끝난 차단("다시 차단"). "확인함"은 `admin_dismissals(kind, item_id)`에 남아 다시 안 뜬다(키 = `${kind}:${대상 id}`, 몰아 올리기는 가장 먼저 올린 글 id). 최근 50개 글·2일 범위만 본다.
   - **최신 글**: 프로젝트·프로젝트 댓글·해줘·위키 수정·프로필(닉네임/소개 변경, `users.profile_updated_at`) 최신순 50개씩, 종류 칩(`feed-filters.ts`), 비속어는 `<mark>` 빨갛게. 줄마다 지우기(프로필은 닉네임·소개만 비움, 위키는 지우기 없음)·작성자 차단·원래 페이지.
@@ -34,3 +34,7 @@ paths:
   - 안내 `LockNotice`(`src/components/projects/lock-notice.tsx`): 서버 상세 페이지(주인·팀원·관리자 = `canEdit`, 비공개일 때만 `getProjectLock` — `src/lib/projects/lock.ts`)와 수정 폼(공개 범위 칸 아래, "공개" `ChoiceRow` 비활성). 목록에서 눌러 여는 빠른 상세에는 안 나온다(잠금 표를 브라우저가 못 읽음).
   - 한계: 지우고 같은 내용으로 다시 등록하는 건 못 막는다 — 차단으로 대응.
 - **한계**: 이름을 바꿔 가며 올리는 도배·목록에 없는 욕은 최신 글을 직접 훑어야 한다. 사용자 신고·글 숨기기(프로젝트는 위 잠금만)·운영 지표(Workers 503·Actions 실패)는 없다.
+- **관리자 추가·삭제**(2026-11-17 사용자 결정 — 이메일 하나가 코드·SQL에 박혀 있던 것을 화면에서): **관리자끼리 서로 추가·삭제, 최초 관리자(`DEVELOPER_EMAIL` `ts250024@ts.hs.kr`)는 못 건드린다.** `/admin` 「관리자」(`AdminsManager`, 주소 관리 위): 이메일로 추가(한 번 로그인해 `users`에 있는 `@ts.hs.kr`만), 줄마다 "관리자에서 빼기"(확인 창). 나 자신은 못 뺀다(다른 관리자에게 부탁). 기록 `admin_add`·`admin_remove`.
+  - DB(migration `20261117120000_admins.sql`): `admins(user_id PK → auth.users, added_by, created_at)` RLS 켜고 정책 없음 + 권한 회수 = 서비스 키 전용. **최초 관리자는 표에 넣지 않고** `is_admin()`·`subdomain_is_developer()`에 이메일로 그대로 둔다(행이 없으니 지울 수 없음). 두 함수는 `CREATE OR REPLACE`(시그니처·권한 그대로)라 `is_admin()`을 쓰는 RLS 정책·트리거는 안 바뀐다.
+  - **관리자 판정은 이메일 비교 말고 DB에 묻는다**: 서버 `isAdminUser()`(`src/lib/admin/is-admin.ts`, `rpc('is_admin')` 사용자 키, 한 요청 안 캐시 — 비로그인이면 부르지 말 것 `!!user && await …`), 브라우저 `fetchIsAdmin()`(`is-admin-client.ts`, 화면 표시용만). `isDeveloper(email)`은 "최초 관리자인가"만 뜻한다(추가 관리자는 false). `loadProjectDetail`은 4번째 인자 `{ viewerIsAdmin }`로 받는다(브라우저 빠른 상세는 관리자를 서버 페이지로 보내 항상 false).
+  - 관리자는 차단할 수 없다(최초 관리자 + `admins` 행).

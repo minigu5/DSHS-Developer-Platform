@@ -19,7 +19,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
-import { isDeveloper } from "@/lib/constants";
+import { fetchIsAdmin } from "@/lib/admin/is-admin-client";
 import { isRedirectHost, type DomainHost } from "@/lib/domains/hosts";
 import {
   loadProjectDetail,
@@ -81,15 +81,15 @@ async function fetchQuickView(id: string): Promise<Loaded> {
     const viewer: DetailViewer = user
       ? { id: user.id, email: user.email ?? null }
       : null;
-    // 관리자는 서버 페이지(익명 프로젝트 주인·비공개 프로젝트를 서비스 키로)
-    if (isDeveloper(viewer?.email)) return { kind: "server" };
-    const [detail, domain] = await Promise.all([
+    const [detail, domain, isAdmin] = await Promise.all([
       loadProjectDetail({ data: supabase, self: supabase }, id, viewer),
       supabase
         .rpc("project_live_domain", { p_project_id: id })
         .then(({ data }) => data?.[0] ?? null),
+      viewer ? fetchIsAdmin() : false,
     ]);
-    if (!detail) return { kind: "server" };
+    // 관리자는 서버 페이지(익명 프로젝트 주인·비공개 프로젝트를 서비스 키로)
+    if (isAdmin || !detail) return { kind: "server" };
     return {
       kind: "ok",
       detail,
@@ -159,11 +159,9 @@ export function QuickViewHost({ children }: { children: ReactNode }) {
       e.preventDefault();
       openQuickView(id);
     }
-    createClient()
-      .auth.getSession()
-      .then(({ data: { session } }) => {
-        viewerIsAdmin = isDeveloper(session?.user.email);
-      });
+    fetchIsAdmin().then((isAdmin) => {
+      viewerIsAdmin = isAdmin;
+    });
     // 본문 마크다운을 그리는 코드를 한가할 때 미리 받아 둔다 — 안 받아 두면 누른 뒤에야 dshs.dev(LA)에서 받아 본문만 0.6초쯤 늦게 떴다
     const idle = window.requestIdleCallback
       ? window.requestIdleCallback(preloadMarkdown, { timeout: 3000 })
