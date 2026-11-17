@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
-import { isDeveloper } from "@/lib/constants";
+import { isAdminUser } from "@/lib/admin/is-admin";
 
 export type AnnouncementFormInput = {
   title: string;
@@ -20,12 +20,12 @@ const AnnouncementSchema = z.object({
   content: z.string().min(1, "내용을 입력해주세요.").max(50_000, "내용은 50,000자 이하여야 합니다."),
 });
 
-function parse(input: AnnouncementFormInput, userEmail: string | undefined) {
+function parse(input: AnnouncementFormInput, isAdmin: boolean) {
   const result = AnnouncementSchema.safeParse(input);
   if (!result.success) {
     return { ok: false as const, error: result.error.issues[0]?.message ?? "입력값이 올바르지 않습니다." };
   }
-  if (result.data.category === "admin" && !isDeveloper(userEmail)) {
+  if (result.data.category === "admin" && !isAdmin) {
     return { ok: false as const, error: "관리자만 '관리자' 카테고리를 사용할 수 있습니다." };
   }
   return { ok: true as const, data: result.data };
@@ -38,7 +38,7 @@ export async function createAnnouncement(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "로그인이 필요합니다." };
 
-  const parsed = parse(input, user.email ?? undefined);
+  const parsed = parse(input, await isAdminUser());
   if (!parsed.ok) return { error: parsed.error };
 
   const { data, error } = await supabase
@@ -68,7 +68,7 @@ export async function updateAnnouncement(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "로그인이 필요합니다." };
 
-  const parsed = parse(input, user.email ?? undefined);
+  const parsed = parse(input, await isAdminUser());
   if (!parsed.ok) return { error: parsed.error };
 
   const { data: existing } = await supabase
@@ -78,7 +78,7 @@ export async function updateAnnouncement(
     .single();
 
   if (!existing) return { error: "공지사항을 찾을 수 없습니다." };
-  if (existing.author_id !== user.id && !isDeveloper(user.email)) {
+  if (existing.author_id !== user.id && !(await isAdminUser())) {
     return { error: "수정 권한이 없습니다." };
   }
 
@@ -112,7 +112,7 @@ export async function deleteAnnouncement(
     .single();
 
   if (!existing) return { error: "공지사항을 찾을 수 없습니다." };
-  if (existing.author_id !== user.id && !isDeveloper(user.email)) {
+  if (existing.author_id !== user.id && !(await isAdminUser())) {
     return { error: "삭제 권한이 없습니다." };
   }
 
@@ -130,7 +130,7 @@ export async function togglePinAnnouncement(
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "로그인이 필요합니다." };
-  if (!isDeveloper(user.email)) return { error: "관리자만 공지사항을 고정할 수 있습니다." };
+  if (!(await isAdminUser())) return { error: "관리자만 공지사항을 고정할 수 있습니다." };
 
   const { error } = await supabase
     .from("announcements")

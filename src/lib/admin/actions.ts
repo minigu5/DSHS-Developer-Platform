@@ -6,7 +6,7 @@
 import { revalidatePath } from 'next/cache'
 
 import { deleteCloudinaryImages } from '@/lib/cloudinary-delete'
-import { isDeveloper } from '@/lib/constants'
+import { isAllowedEmail, isDeveloper } from '@/lib/constants'
 import { getLatestDoc } from '@/lib/guide-wiki/read'
 import { revertGuide } from '@/lib/guide-wiki/actions'
 import { posterImageUrlsOf } from '@/lib/posters/cleanup'
@@ -142,7 +142,8 @@ async function ban(
   const { data: authUser } = await admin.auth.admin.getUserById(target.userId)
   const email = authUser?.user?.email
   if (!email) return { ok: false, error: '사용자를 찾지 못했어요.' }
-  if (isDeveloper(email)) return { ok: false, error: '관리자 계정은 차단할 수 없어요.' }
+  const { data: adminRow } = await admin.from('admins').select('user_id').eq('user_id', target.userId).maybeSingle()
+  if (isDeveloper(email) || adminRow) return { ok: false, error: '관리자 계정은 차단할 수 없어요.' }
 
   const { data: hash, error: hashError } = await admin.rpc('email_hash', { p_email: email })
   if (hashError || !hash) return FAILED
@@ -319,4 +320,45 @@ export async function adminListLikers(id: string): Promise<Liker[] | null> {
     at: r.created_at,
     anonymousOwner: r.anonymousOwner,
   }))
+}
+
+/**
+ * 관리자 추가 — 이메일로 찾는다(한 번이라도 로그인해 users 에 있는 사람만). 관리자끼리 서로 추가·삭제할 수 있다(2026-11-17 사용자 결정).
+ * 최초 관리자(DEVELOPER_EMAIL)는 표에 없고 DB 함수에 박혀 있어 지울 수 없다.
+ */
+export async function adminAddAdmin(email: string): Promise<AdminActionResult> {
+  const actor = await requireAdmin()
+  if (!actor) return NOT_ADMIN
+  const clean = email.trim().toLowerCase()
+  if (!clean) return { ok: false, error: '이메일을 입력해 주세요.' }
+  if (!isAllowedEmail(clean)) return { ok: false, error: '학교 이메일(@ts.hs.kr)만 추가할 수 있어요.' }
+  if (isDeveloper(clean)) return { ok: false, error: '이미 최초 관리자예요.' }
+  const admin = createAdminClient()
+  const { data: target } = await admin.from('users').select('id').eq('email', clean).maybeSingle()
+  if (!target) return { ok: false, error: '아직 로그인한 적 없는 계정이에요. 그 사람이 한 번 로그인한 뒤에 추가해 주세요.' }
+  const { error } = await admin.from('admins').insert({ user_id: target.id, added_by: actor.id })
+  if (error) {
+    if (error.code === '23505') return { ok: false, error: '이미 관리자예요.' }
+    console.error('[admin] 관리자 추가 실패', error.message)
+    return FAILED
+  }
+  await record(admin, { action: 'admin_add', target_kind: 'user', target_user_id: target.id })
+  return done()
+}
+
+/** 관리자 삭제 — 최초 관리자(표에 없음)와 나 자신은 못 뺀다 */
+export async function adminRemoveAdmin(userId: string): Promise<AdminActionResult> {
+  const actor = await requireAdmin()
+  if (!actor) return NOT_ADMIN
+  if (!UUID.test(userId)) return FAILED
+  if (userId === actor.id) return { ok: false, error: '나 자신은 뺄 수 없어요. 다른 관리자에게 부탁해 주세요.' }
+  const admin = createAdminClient()
+  const { data, error } = await admin.from('admins').delete().eq('user_id', userId).select('user_id')
+  if (error) {
+    console.error('[admin] 관리자 삭제 실패', error.message)
+    return FAILED
+  }
+  if (!data?.length) return { ok: false, error: '이 계정은 뺄 수 없어요.' }
+  await record(admin, { action: 'admin_remove', target_kind: 'user', target_user_id: userId })
+  return done()
 }

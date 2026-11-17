@@ -5,7 +5,7 @@ import { Globe, Plus, ShieldCheck } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { PageHero } from "@/components/shared/page-hero";
 import { DomainList } from "@/components/domains/domain-list";
-import { isDeveloper } from "@/lib/constants";
+import { isAdminUser } from "@/lib/admin/is-admin";
 import { naruGuideKind } from "@/lib/domains/list-state";
 import { hostParamIsNaru, naruServerIdOf } from "@/lib/domains/next-path";
 import { LIVE_STATUSES, listMyDomainProjects } from "@/lib/domains/read";
@@ -63,7 +63,7 @@ export default async function DomainsPage({ searchParams }: { searchParams: Prom
         title="도메인 마련하기"
         description="내 웹사이트에 이름.dshs.dev 주소를 붙여요"
         actions={
-          isDeveloper(user.email) ? (
+          (await isAdminUser()) ? (
             <Link href="/domains/admin" className={cn(buttonVariants({ variant: "outline" }), "h-9 rounded-full px-4 text-sm")}>
               <ShieldCheck className="mr-1.5 h-4 w-4" aria-hidden />
               전체 주소

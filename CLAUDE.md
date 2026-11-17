@@ -63,6 +63,7 @@
 |---|---|
 | **Guest** (비로그인) | Public 프로젝트 열람, 검색/필터링 |
 | **User** (로그인) | 위 + 프로젝트 게시/수정/삭제, 댓글 작성·하트(즐겨찾기). Private 프로젝트는 작성자 또는 `allowed_users`에 포함된 사용자만 접근 |
+| **관리자** | 최초 관리자(`ts250024@ts.hs.kr`, 지울 수 없음) + `/admin`에서 추가한 사람. 판정은 DB `is_admin()` — 코드는 `isAdminUser()`(`.claude/rules/admin.md`) |
 
 ### 보호 라우트 (`src/middleware.ts`)
 - `/projects/new`, `/projects/[id]/edit`, `/projects/[id]/poster`(옛 포스터 주소 — 이제 수정 화면 `?poster=` 옆 칸으로 넘김), `/posters/start`(남의 포스터에서 "내 프로젝트로도 만들기"), `/haejwo/new`, `/me`, `/guide-wiki/[key]/edit`, `/domains`, `/admin`(관리자 대시보드 — `/domains/admin`은 `/admin#domains`로)

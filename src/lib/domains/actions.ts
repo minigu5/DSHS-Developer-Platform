@@ -8,7 +8,8 @@
 
 import { revalidatePath } from 'next/cache'
 
-import { isAllowedEmail, isDeveloper } from '@/lib/constants'
+import { isAdminUser } from '@/lib/admin/is-admin'
+import { isAllowedEmail } from '@/lib/constants'
 import { assertSafePublicUrl } from '@/lib/ssrf-guard'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 import type { SubdomainStatus } from '@/lib/types'
@@ -526,7 +527,7 @@ export async function releaseSubdomain(id: string): Promise<ActionResult> {
 export async function revokeSubdomain(id: string, reason: string): Promise<ActionResult> {
   const user = await currentUser()
   if (!user) return LOGIN_REQUIRED
-  if (!isDeveloper(user.email)) return { ok: false, error: RPC_ERRORS.not_admin }
+  if (!(await isAdminUser())) return { ok: false, error: RPC_ERRORS.not_admin }
   const before = await loadRow(id)
   const { data, error } = await createAdminClient().rpc('subdomain_revoke', { p_admin: user.id, p_id: id, p_reason: reason })
   if (error) return rpcError('subdomain_revoke', error)
@@ -540,7 +541,7 @@ export async function revokeSubdomain(id: string, reason: string): Promise<Actio
 export async function unblockSubdomain(id: string): Promise<ActionResult> {
   const user = await currentUser()
   if (!user) return LOGIN_REQUIRED
-  if (!isDeveloper(user.email)) return { ok: false, error: RPC_ERRORS.not_admin }
+  if (!(await isAdminUser())) return { ok: false, error: RPC_ERRORS.not_admin }
   const { error } = await createAdminClient().rpc('subdomain_unblock', { p_admin: user.id, p_id: id })
   if (error) return rpcError('subdomain_unblock', error)
   done()

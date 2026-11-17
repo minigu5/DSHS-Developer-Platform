@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import { notFound } from "next/navigation";
 
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { isDeveloper } from "@/lib/constants";
+import { isAdminUser } from "@/lib/admin/is-admin";
 import { getLiveDomain } from "@/lib/domains/read";
 import { loadProjectDetail } from "@/lib/projects/detail";
 import { ProjectDetailView } from "@/components/projects/project-detail-view";
@@ -19,12 +19,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const { data: { user } } = await supabase.auth.getUser();
 
   // 개발자 계정은 비공개 프로젝트도 볼 수 있도록 어드민 클라이언트 사용
-  const isAdmin = isDeveloper(user?.email);
+  const isAdmin = !!user && (await isAdminUser());
   const queryClient = isAdmin ? createAdminClient() : supabase;
   const viewer = user ? { id: user.id, email: user.email ?? null } : null;
 
   const [detail, liveDomain] = await Promise.all([
-    loadProjectDetail({ data: queryClient, self: supabase }, id, viewer),
+    loadProjectDetail({ data: queryClient, self: supabase }, id, viewer, { viewerIsAdmin: isAdmin }),
     getLiveDomain(id, true),
   ]);
   if (!detail) notFound();

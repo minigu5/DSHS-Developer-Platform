@@ -168,7 +168,8 @@ export function isAllowedEmail(email: string | undefined | null): boolean {
   return email.toLowerCase().endsWith(`@${ALLOWED_EMAIL_DOMAIN}`);
 }
 
-// 개발자(관리자) 계정 이메일 — 모든 프로젝트 열람 및 수정 권한 보유.
+// 최초 관리자 이메일 — DB 함수 is_admin()·subdomain_is_developer 에도 같은 값이 있다. 관리자 화면에서 지우거나 차단할 수 없다.
+// 관리자 여부는 이 값만 보지 말고 isAdminUser()(서버)·rpc('is_admin')(브라우저)로 물을 것 — 화면에서 추가한 관리자는 DB(admins 표)에만 있다.
 export const DEVELOPER_EMAIL = 'ts250024@ts.hs.kr';
 
 export function isDeveloper(email: string | undefined | null): boolean {
