@@ -89,7 +89,7 @@ export function PageNav() {
     setPill({ ...next, top, height, ready: true });
   }, [activeIndex, pathname]);
 
-  // 창 폭이 바뀌어 글자 표시가 달라지면(1100px) 알약 위치를 다시 잰다 — 안 그러면 알약이 글자보다 좁아 겹쳐 보인다
+  // 창 폭이 바뀌어 알약 위치를 다시 잰다 — 안 그러면 알약이 글자보다 좁아 겹쳐 보인다
   const navRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     const nav = navRef.current;
@@ -143,14 +143,11 @@ export function PageNav() {
                 : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800/70",
             )}
           >
-            <Icon className="h-3.5 w-3.5 shrink-0 min-[1100px]:hidden" aria-hidden />
-            {isActive ? (
-              <span className="ml-1.5 min-[1100px]:ml-0 whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-200 motion-reduce:animate-none">
+            <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            {isActive && (
+              <span className="ml-1.5 whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-200 motion-reduce:animate-none">
                 {label}
               </span>
-            ) : (
-              // 넓은 화면(1100px+)에선 아이콘 없이 글자만 보여 아이콘만으론 모르던 기능을 바로 알 수 있게(이슈 #5)
-              <span className="hidden whitespace-nowrap min-[1100px]:inline">{label}</span>
             )}
           </Link>
         );

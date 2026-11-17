@@ -17,7 +17,7 @@ interface SiteHeaderProps {
 const MAX_WIDTH_CLASS: Record<NonNullable<SiteHeaderProps["maxWidth"]>, string> = {
   sm: "max-w-3xl",
   md: "max-w-5xl",
-  lg: "max-w-7xl",
+  lg: "max-w-6xl",
 };
 
 export function SiteHeader({
