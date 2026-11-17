@@ -17,7 +17,7 @@ interface SiteHeaderProps {
 const MAX_WIDTH_CLASS: Record<NonNullable<SiteHeaderProps["maxWidth"]>, string> = {
   sm: "max-w-3xl",
   md: "max-w-5xl",
-  lg: "max-w-[96rem]",
+  lg: "max-w-7xl",
 };
 
 export function SiteHeader({
@@ -26,7 +26,7 @@ export function SiteHeader({
   rightExtra,
   showNav = false,
 }: SiteHeaderProps) {
-  const containerClass = cn(showNav ? "max-w-[96rem]" : MAX_WIDTH_CLASS[maxWidth], "mx-auto px-6 h-16 flex items-center justify-between gap-2");
+  const containerClass = cn(MAX_WIDTH_CLASS[maxWidth], "mx-auto px-6 h-16 flex items-center justify-between gap-2");
 
   return (
     <header

@@ -28,7 +28,7 @@ paths:
 - **커뮤니티 탭 도구줄** (`src/components/community/community-tabs.tsx`, 서버 컴포넌트, `current` prop): `/tips`·`/haejwo` 목록의 머리(`PageHero`) 아래 `main` 맨 위 한 줄 — 왼쪽 탭(개발 팁 | 해줘!, 활성은 섹션 색 칩), 오른쪽은 팁 개수 / 해줘! 상태 세그먼트. `flex-wrap`이라 모바일에선 오른쪽 요소가 아래 줄로. ISR 유지를 위해 탭은 `usePathname`을 안 쓴다. 로딩 뼈대는 `ListPageSkeleton community="count"|"segment"`.
 
 ### 데스크탑 (`PageNav`, `sm:` 이상)
-- **이슈 #5(2026-11-17)**: "프로젝트 등록" 아이콘을 로켓→`Plus`로, 데스크탑 메뉴줄에서는 빼고 헤더 오른쪽(벨 옆)에 큰 테두리 알약 `RegisterButton`(emerald 외곽선, `lg:`부터 글자·미만은 + 아이콘만)으로 분리. 모바일 하단 탭바는 5칸 그대로(아이콘만 Plus로). 1440px부터 모든 칸이 아이콘 없이 글자만 보임(이슈 #5 피드백 — 아이콘+글자 병기가 어수선), 등록 아이콘은 원래 로켓(`+`·`SquarePlus`는 사용자가 싫어함), 헤더 큰 버튼은 초록 테두리 알약(시안 C)(테마 토글은 프로필 메뉴로 옮김(비로그인은 로그인 버튼 옆 유지). 헤더 최대 폭을 `max-w-[96rem]`으로 넓힘). 알약은 `ResizeObserver`로 폭이 바뀌면 다시 잰다(글자가 늘면 알약이 좁아 겹쳐 보이던 문제).
+- **이슈 #5(2026-11-17)**: 데스크탑 메뉴줄에서 "프로젝트 등록"을 빼고 헤더 오른쪽(벨 옆)에 초록 테두리 알약 `RegisterButton`(`lg:`부터 글자만, 미만은 로켓 아이콘만; 사용자가 `+`·`SquarePlus`는 싫어함). 모바일 하단 탭바는 5칸 그대로. 1100px부터 메뉴 5칸 중 4칸이 아이콘 없이 글자만 보임(아이콘+글자 병기는 어수선하다는 피드백). 테마 토글은 프로필 메뉴로 옮김(비로그인은 로그인 버튼 옆 유지). 헤더 폭은 페이지 원래 값 그대로 — 넓히면 메뉴와 오른쪽 사이가 휑해서 되돌림. 알약은 `ResizeObserver`로 폭이 바뀌면 다시 잰다.
 - `SiteHeader` 로고 우측에 얇은 구분선(`hidden sm:block w-px h-5`)으로 분리하여 인라인 배치. `<div className="hidden sm:block">` 래퍼로 모바일에서 완전히 숨김.
 - **슬라이딩 pill 애니메이션**: `absolute` pill 하나가 활성 버튼 위치로 부드럽게 이동·확장(`transition-all duration-300 ease-out`). `useRef` 배열 + `useEffect`로 활성 항목의 `offsetLeft`/`offsetWidth`를 읽어 `translateX` + `width` 적용.
 - **라벨 펼침**: 활성 버튼만 라벨 텍스트 노출, 비활성은 **아이콘만**. 전환 시 부드럽게 slide-in/out.
