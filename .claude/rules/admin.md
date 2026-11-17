@@ -35,6 +35,6 @@ paths:
   - 한계: 지우고 같은 내용으로 다시 등록하는 건 못 막는다 — 차단으로 대응.
 - **한계**: 이름을 바꿔 가며 올리는 도배·목록에 없는 욕은 최신 글을 직접 훑어야 한다. 사용자 신고·글 숨기기(프로젝트는 위 잠금만)·운영 지표(Workers 503·Actions 실패)는 없다.
 - **관리자 추가·삭제**(2026-11-17 사용자 결정 — 이메일 하나가 코드·SQL에 박혀 있던 것을 화면에서): **관리자끼리 서로 추가·삭제, 최초 관리자(`DEVELOPER_EMAIL` `ts250024@ts.hs.kr`)는 못 건드린다.** `/admin` 「관리자」(`AdminsManager`, 주소 관리 위): 이메일로 추가(한 번 로그인해 `users`에 있는 `@ts.hs.kr`만), 줄마다 "관리자에서 빼기"(확인 창). 나 자신은 못 뺀다(다른 관리자에게 부탁). 기록 `admin_add`·`admin_remove`.
-  - DB(migration `20261117110000_admins.sql`): `admins(user_id PK → auth.users, added_by, created_at)` RLS 켜고 정책 없음 + 권한 회수 = 서비스 키 전용. **최초 관리자는 표에 넣지 않고** `is_admin()`·`subdomain_is_developer()`에 이메일로 그대로 둔다(행이 없으니 지울 수 없음). 두 함수는 `CREATE OR REPLACE`(시그니처·권한 그대로)라 `is_admin()`을 쓰는 RLS 정책·트리거는 안 바뀐다.
+  - DB(migration `20261117120000_admins.sql`): `admins(user_id PK → auth.users, added_by, created_at)` RLS 켜고 정책 없음 + 권한 회수 = 서비스 키 전용. **최초 관리자는 표에 넣지 않고** `is_admin()`·`subdomain_is_developer()`에 이메일로 그대로 둔다(행이 없으니 지울 수 없음). 두 함수는 `CREATE OR REPLACE`(시그니처·권한 그대로)라 `is_admin()`을 쓰는 RLS 정책·트리거는 안 바뀐다.
   - **관리자 판정은 이메일 비교 말고 DB에 묻는다**: 서버 `isAdminUser()`(`src/lib/admin/is-admin.ts`, `rpc('is_admin')` 사용자 키, 한 요청 안 캐시 — 비로그인이면 부르지 말 것 `!!user && await …`), 브라우저 `fetchIsAdmin()`(`is-admin-client.ts`, 화면 표시용만). `isDeveloper(email)`은 "최초 관리자인가"만 뜻한다(추가 관리자는 false). `loadProjectDetail`은 4번째 인자 `{ viewerIsAdmin }`로 받는다(브라우저 빠른 상세는 관리자를 서버 페이지로 보내 항상 false).
   - 관리자는 차단할 수 없다(최초 관리자 + `admins` 행).
