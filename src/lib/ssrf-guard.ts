@@ -172,3 +172,36 @@ async function queryDoh(endpoint: string, host: string, type: keyof typeof DOH_T
   // CNAME 등은 건너뛰고 최종 주소만
   return (body.Answer ?? []).filter((r) => r.type === DOH_TYPES[type]).map((r) => r.data);
 }
+
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+
+/**
+ * 사용자 URL 을 읽을 때 쓰는 fetch — 리다이렉트를 직접 따라가며 한 번마다 assertSafePublicUrl 로 다시 확인한다(최대 3번).
+ * redirect:'follow' 는 첫 주소만 확인되고 공개 사이트가 302 로 내부 주소에 보내면 그대로 나갔다(2026-11-20 감사).
+ * 못 받으면(안전하지 않은 주소·리다이렉트 너무 많음·Location 없음) null. res 는 마지막 응답, url 은 그 주소.
+ */
+export async function fetchPublic(
+  rawUrl: string,
+  init: RequestInit = {},
+  deps: { fetchImpl?: typeof fetch; check?: typeof assertSafePublicUrl; maxRedirects?: number } = {},
+): Promise<{ res: Response; url: URL } | null> {
+  const fetchImpl = deps.fetchImpl ?? fetch;
+  const check = deps.check ?? assertSafePublicUrl;
+  const maxRedirects = deps.maxRedirects ?? 3;
+  let current = rawUrl;
+  for (let hop = 0; hop <= maxRedirects; hop++) {
+    const safe = await check(current);
+    if (!safe.ok) return null;
+    const res = await fetchImpl(safe.url.href, { ...init, redirect: 'manual' });
+    if (!REDIRECT_STATUSES.has(res.status)) return { res, url: safe.url };
+    const location = res.headers.get('location');
+    await res.body?.cancel().catch(() => {});
+    if (!location) return null;
+    try {
+      current = new URL(location, safe.url).href;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}

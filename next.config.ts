@@ -58,13 +58,10 @@ const nextConfig: NextConfig = {
       },
       // 우리 Supabase 저장소만 — '*.supabase.co'면 남의 프로젝트에 큰 그림을 올려 두고 서버 축소(1코어 sharp)·캐시를 쓰게 할 수 있었다(2026-11-12 보안 점검)
       ...(SUPABASE_HOST ? [{ protocol: 'https' as const, hostname: SUPABASE_HOST, pathname: '/storage/v1/object/public/**' }] : []),
+      // ibb.co 는 그림이 아니라 HTML 페이지 주소라 뺐다(/api/resolve-image 가 i.ibb.co 로 바꿔 줌, 2026-11-20 감사)
       {
         protocol: 'https',
         hostname: 'i.ibb.co',
-      },
-      {
-        protocol: 'https',
-        hostname: 'ibb.co',
       },
       // 우리 Cloudinary 계정(이름은 공개 주소에 들어 있는 값)만
       {

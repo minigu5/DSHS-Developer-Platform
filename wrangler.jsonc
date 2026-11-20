@@ -25,6 +25,11 @@
   // next/image 최적화
   "images": { "binding": "IMAGES" },
 
+  // IP당 속도 제한 — custom-worker.ts limitedResponse. 존 대시보드 규칙과 같은 200회/10초(period 는 10 또는 60만 됨)
+  "ratelimits": [
+    { "name": "RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 200, "period": 10 } }
+  ],
+
   // 매일 03:15 KST(UTC 18:15) 파비콘 동기화 — custom-worker.ts scheduled(). 무료 요금제는 계정 전체 예약 5개까지
   "triggers": { "crons": ["15 18 * * *"] },
 

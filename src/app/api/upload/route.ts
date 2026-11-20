@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { cloudinary } from "@/lib/cloudinary";
 import { releaseUsage, reserveUsage } from "@/lib/upload-usage";
 import { isSameOrigin } from "@/lib/same-origin";
+import { hasActiveSvgContent } from "@/lib/svg-safety";
 import { createClient } from "@/lib/supabase/server";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"];
@@ -35,6 +36,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "파일 크기는 10MB를 초과할 수 없습니다." }, { status: 400 });
   }
 
+  // 형식은 브라우저가 적어 보내는 값이라 믿지 않는다 — 그림 파일은 '<'로 시작하지 않으니, 그러면 SVG(XML)로 보고 검사한다
+  const head = new TextDecoder().decode(await file.slice(0, 256).arrayBuffer()).trimStart();
+  const looksLikeSvg = file.type === "image/svg+xml" || head.startsWith("<");
+  if (looksLikeSvg && (file.type !== "image/svg+xml" || hasActiveSvgContent(await file.text()))) {
+    return NextResponse.json({ error: "스크립트가 들어 있는 SVG는 올릴 수 없어요." }, { status: 400 });
+  }
+
   // 한 사람이 Cloudinary 용량을 다 쓰지 못하게 하루 횟수를 묶는다
   const usage = await reserveUsage("upload", user.id);
   if (usage !== "ok") {
@@ -47,7 +55,7 @@ export async function POST(request: NextRequest) {
     const dataUri = `data:${file.type};base64,${buffer.toString("base64")}`;
 
     // SVG는 변환하지 않는다 — fetch_format:auto 가 SVG 자체 크기(아이콘은 보통 24px)의 PNG로 바꿔서 흐려졌다.
-    // 화면에는 <img>로만 보여 주므로 SVG 속 스크립트는 실행되지 않는다.
+    // 화면에는 <img>로만 보여 주고, 스크립트가 든 SVG 는 위에서 거절한다.
     const isSvg = file.type === "image/svg+xml";
     const result = await cloudinary.uploader.upload(dataUri, {
       folder: "dshs",

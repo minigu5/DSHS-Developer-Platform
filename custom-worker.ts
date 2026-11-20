@@ -2,6 +2,7 @@
 // 매일 밤 파비콘 동기화(scheduled)를 더한다. 방식: https://opennext.js.org/cloudflare/howtos/custom-worker
 //
 // 매일 밤 파비콘 동기화(scheduled)도 같은 방식으로 내부 경로 /api/favicon-sync/run 을 부른다.
+// IP당 속도 제한(RATE_LIMITER)도 여기서 — 아래 limitedResponse 참고.
 // 설명: docs/19-cloudflare-workers.md
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -13,6 +14,7 @@ import { FAVICON_SYNC_PATH, FAVICON_SYNC_PER_NIGHT, FAVICON_SYNC_SIG_HEADER, pic
 interface Env {
   WORKER_SELF_REFERENCE: { fetch(input: string, init?: RequestInit): Promise<Response> }
   SUPABASE_SERVICE_ROLE_KEY?: string
+  RATE_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> }
 }
 
 interface ExecutionContext {
@@ -60,8 +62,34 @@ async function syncFavicons(env: Env): Promise<void> {
   console.log('[favicon] 끝', `대상 ${tonight.length}/${ids.length}`, JSON.stringify(count))
 }
 
+// IP당 속도 제한(2026-11-20 감사). dshs.dev 는 회색 구름으로 서울 입구(Pages)를 거쳐 service binding 으로 오므로
+// 대시보드의 존 규칙 `rate limit protection`(IP당 200회/10초)이 안 걸린다(실측: /logo.svg 300회 전부 200 — 11-04엔 203회 뒤 429).
+// 그래서 같은 기준(200회/10초, /_next/static 제외 — wrangler.jsonc ratelimits)을 Worker 에서 센다. 학교는 IP 하나라 더 낮추지 말 것.
+// 키는 cf-connecting-ip — Cloudflare 가 입구에서 덮어쓰는 값이라 꾸밀 수 없다(x-forwarded-for 는 꾸밀 수 있어 안 씀).
+// 그 헤더가 없는 내부 호출(파비콘 동기화)·바인딩이 없는 로컬은 세지 않는다. 막아도 입구 함수 실행은 하루 한도에 들어간다(한도 자체는 Workers Paid).
+async function limitedResponse(request: Request, env: Env): Promise<Response | null> {
+  const ip = request.headers.get('cf-connecting-ip')
+  if (!ip || !env.RATE_LIMITER) return null
+  if (new URL(request.url).pathname.startsWith('/_next/static/')) return null
+  try {
+    const { success } = await env.RATE_LIMITER.limit({ key: ip })
+    if (success) return null
+  } catch {
+    return null
+  }
+  return new Response('요청이 너무 많아요. 10초쯤 뒤에 다시 시도해 주세요.', {
+    status: 429,
+    headers: { 'content-type': 'text/plain; charset=utf-8', 'retry-after': '10', 'cache-control': 'no-store' },
+  })
+}
+
+type FetchHandler = (request: Request, env: Env, ctx: ExecutionContext) => Promise<Response>
+const openNextFetch = (handler as { fetch: FetchHandler }).fetch
+
 const worker = {
-  fetch: (handler as { fetch: unknown }).fetch,
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    return (await limitedResponse(request, env)) ?? openNextFetch(request, env, ctx)
+  },
 
   scheduled(_controller: unknown, env: Env, ctx: ExecutionContext): void {
     ctx.waitUntil(syncFavicons(env))

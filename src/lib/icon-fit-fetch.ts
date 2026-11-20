@@ -3,7 +3,7 @@
 
 import { analyzeIconBytes, type AnalyzeOptions } from './icon-fit-analyze.ts';
 import type { IconFit } from './icon-fit.ts';
-import { assertSafePublicUrl } from './ssrf-guard.ts';
+import { fetchPublic } from './ssrf-guard.ts';
 
 const MAX_BYTES = 600_000;
 const CLOUDINARY_UPLOAD = /^(https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/)/;
@@ -15,14 +15,13 @@ function fetchUrlFor(src: string): string {
 
 /** 못 받거나 못 읽으면 null — 다음에 다시 시도한다. 읽었는데 할 일이 없으면 { src }만 */
 export async function computeIconFit(src: string, opts: AnalyzeOptions = {}): Promise<IconFit | null> {
-  const safe = await assertSafePublicUrl(fetchUrlFor(src));
-  if (!safe.ok) return null;
   try {
-    const res = await fetch(safe.url.href, {
+    const got = await fetchPublic(fetchUrlFor(src), {
       headers: { Accept: 'image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5' },
-      redirect: 'follow',
       signal: AbortSignal.timeout(5000),
     });
+    if (!got) return null;
+    const res = got.res;
     if (!res.ok) return null;
     if (Number(res.headers.get('content-length') ?? 0) > MAX_BYTES) return { src };
     const bytes = new Uint8Array(await res.arrayBuffer());

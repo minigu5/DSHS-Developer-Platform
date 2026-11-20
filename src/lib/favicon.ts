@@ -1,21 +1,20 @@
 // 사이트 URL에서 favicon/대표 이미지를 찾아 검증된 URL을 반환.
 // /api/favicon 라우트와 백필·매일 동기화 스크립트가 공유(스크립트가 node로 바로 돌리므로 상대 경로 import).
 
-import { assertSafePublicUrl } from './ssrf-guard.ts';
+import { assertSafePublicUrl, fetchPublic } from './ssrf-guard.ts';
 
 const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 export async function isImageOk(u: string): Promise<boolean> {
-  const safe = await assertSafePublicUrl(u);
-  if (!safe.ok) return false;
   try {
-    const res = await fetch(safe.url.href, {
+    const got = await fetchPublic(u, {
       method: 'GET',
       headers: { 'User-Agent': UA, Accept: 'image/*,*/*;q=0.5' },
-      redirect: 'follow',
       signal: AbortSignal.timeout(3500),
     });
+    if (!got) return false;
+    const res = got.res;
     if (!res.ok) return false;
     const ct = (res.headers.get('content-type') || '').toLowerCase();
     if (!ct) return true;
@@ -102,20 +101,18 @@ export async function resolveFavicon(rawUrl: string): Promise<string | null> {
   let resolveBase = toDirectoryBase(pageUrl);
 
   try {
-    const res = await fetch(pageUrl.href, {
+    // 리다이렉트는 한 번마다 사설 IP/내부망이 아닌지 확인하며 따라간다(fetchPublic)
+    const got = await fetchPublic(pageUrl.href, {
       headers: {
         'User-Agent': UA,
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'ko,en;q=0.8',
       },
-      redirect: 'follow',
       signal: AbortSignal.timeout(6000),
     });
-
-    // 리다이렉트 follow 결과가 사설 IP/내부망으로 빠지지 않았는지 재검증
-    const finalUrlStr = res.url || pageUrl.href;
-    const safeFinal = await assertSafePublicUrl(finalUrlStr);
-    if (!safeFinal.ok) return null;
+    if (!got) return null;
+    const res = got.res;
+    const finalUrlStr = got.url.href;
 
     if (res.ok) {
       try {

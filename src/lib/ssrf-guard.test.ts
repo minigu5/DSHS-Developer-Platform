@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { ipAddressesOnly, isBlockedIp } from './ssrf-guard.ts'
+import { fetchPublic, ipAddressesOnly, isBlockedIp } from './ssrf-guard.ts'
 
 // Cloudflare Workers 의 node:dns lookup 은 CNAME 대상 이름도 address 로 돌려준다(2026-10-25 실측: hwip.dshs.dev)
 test('lookup 결과에 섞인 CNAME 이름은 버리고 IP 만 남긴다', () => {
@@ -54,4 +54,38 @@ test('IPv6 사설·특수 대역을 비트로 판정 — fe80::/10 전체, fec0:
   assert.equal(isBlockedIp('100::1'), true) // discard
   assert.equal(isBlockedIp('2606:4700:4700::1111'), false)
   assert.equal(isBlockedIp('2404:6800:4004:80a::200e'), false)
+})
+
+
+const allowOnly = (blocked: string) => async (raw: string) => {
+  const url = new URL(raw)
+  return url.hostname === blocked ? { ok: false as const, reason: 'private or reserved ip' } : { ok: true as const, url }
+}
+
+test('fetchPublic: 리다이렉트로 막힌 주소에 가면 요청을 보내기 전에 멈춘다', async () => {
+  const asked: string[] = []
+  const fetchImpl = (async (u: string) => {
+    asked.push(u)
+    return new Response(null, { status: 302, headers: { location: 'http://127.0.0.1:7681/' } })
+  }) as unknown as typeof fetch
+  const out = await fetchPublic('https://evil.example/x', {}, { fetchImpl, check: allowOnly('127.0.0.1') })
+  assert.equal(out, null)
+  assert.deepEqual(asked, ['https://evil.example/x'])
+})
+
+test('fetchPublic: 상대 Location 을 따라가 마지막 응답과 주소를 돌려준다', async () => {
+  const fetchImpl = (async (u: string) =>
+    u.endsWith('/a')
+      ? new Response(null, { status: 301, headers: { location: '/b' } })
+      : new Response('ok', { status: 200 })) as unknown as typeof fetch
+  const out = await fetchPublic('https://site.example/a', {}, { fetchImpl, check: allowOnly('none') })
+  assert.equal(out?.url.href, 'https://site.example/b')
+  assert.equal(await out?.res.text(), 'ok')
+})
+
+test('fetchPublic: 리다이렉트가 3번을 넘으면 null', async () => {
+  let n = 0
+  const fetchImpl = (async () => new Response(null, { status: 302, headers: { location: `/r${++n}` } })) as unknown as typeof fetch
+  assert.equal(await fetchPublic('https://site.example/', {}, { fetchImpl, check: allowOnly('none') }), null)
+  assert.equal(n, 4)
 })
