@@ -25,7 +25,8 @@ paths:
 - 닫기 애니메이션: 배경·칸 둘 다 `duration-200` + `data-closed:fill-mode-forwards`(길이가 다르면 먼저 끝난 배경이 투명도 1로 튀어 화면이 한 번 번쩍임).
 - 탭 분할은 쓰지 않는다(사용자 "최악"). 포스터 화면·`/posters/*`에선 메뉴 "프로젝트 등록"이 켜짐(`src/lib/nav-active.ts`).
 
-## DB 정리 상태 (2026-11-20)
-- 운영 DB의 AI 포스터 11개: 걸린 2개는 `kind='upload'`·`image_url=걸린 PNG`로 바꿔 그대로 보이게 했고, 안 걸린 9개는 지웠다(Cloudinary 그림 10개도 삭제). 남은 포스터는 전부 올린 그림이다.
-- `project_posters`에 AI 칸(`html`·`art_url`·`art_order`·`versions`·`messages`·`ai_job_id`·`art_job_id`·`band_*`)과 표 `poster_ai_jobs`·`poster_art_jobs`·`poster_art_workers`·Mac 일감 RPC는 **코드가 안 쓰는 채로 남아 있다** — 삭제 migration은 코드 배포가 끝난 뒤 따로 푸시(코드가 먼저 가야 한다). `ai_usage`·`reserve_ai_usage`·`release_ai_usage`는 이미지 올리기 하루 몫(`upload`)이 쓰니 **지우지 말 것**.
-- 정리가 끝나면 `types.generated.ts`를 다시 만들 것.
+## DB 정리 상태 (2026-11-20 끝)
+- 운영 DB의 AI 포스터 11개: 걸린 2개는 `kind='upload'`·`image_url`=걸린 PNG로 바꿔 그대로 보이게 했고, 안 걸린 9개는 지웠다(Cloudinary 그림 10개도 삭제). 남은 포스터는 전부 올린 그림이다.
+- migration `20261120100000_drop_ai_posters.sql`이 AI 표(`poster_ai_jobs`·`poster_art_jobs`·`poster_art_workers`)·함수(`claim_poster_art_job`·`poster_art_ping`)·`project_posters`의 AI 칸을 지웠고, `kind`는 `'upload'`만 허용한다. 남은 `project_posters` 칸: `id`·`project_id`·`created_by`·`kind`·`image_url`·`created_at`·`updated_at`.
+- `ai_usage`·`reserve_ai_usage`·`release_ai_usage`는 이미지 올리기 하루 몫(`upload`, `src/lib/upload-usage.ts`)이 쓰니 **지우지 말 것**(이름만 옛것).
+- **배포 순서 교훈**: Worker가 큐 소비자로 등록된 채 `queue()`가 없는 코드를 배포하면 Cloudflare가 "Queue handler is missing"(code 11001)으로 거절한다 — Workers Builds가 실패했고 로컬 `npm run deploy`로 같은 오류를 재현했다. 먼저 `npx wrangler queues consumer remove poster-jobs dshs-developer-platform`로 등록을 풀고 배포했다. 큐 `poster-jobs` 자체와 secret은 아직 남아 있다(사용자 확인 뒤 지움).

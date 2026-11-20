@@ -70,6 +70,24 @@ export type Database = {
         }
         Relationships: []
       }
+      admins: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_usage: {
         Row: {
           count: number
@@ -134,6 +152,35 @@ export type Database = {
           {
             foreignKeyName: "announcements_author_id_fkey"
             columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -253,115 +300,6 @@ export type Database = {
           },
         ]
       }
-      poster_art_jobs: {
-        Row: {
-          attempts: number
-          claimed_at: string | null
-          created_at: string
-          error: string | null
-          finished_at: string | null
-          height: number
-          id: string
-          job_secret_hash: string | null
-          kind: string
-          lease_until: string | null
-          poster_id: string
-          prompt: string
-          result_url: string | null
-          status: string
-          user_id: string
-          width: number
-          worker_id: string | null
-        }
-        Insert: {
-          attempts?: number
-          claimed_at?: string | null
-          created_at?: string
-          error?: string | null
-          finished_at?: string | null
-          height: number
-          id?: string
-          job_secret_hash?: string | null
-          kind?: string
-          lease_until?: string | null
-          poster_id: string
-          prompt: string
-          result_url?: string | null
-          status?: string
-          user_id: string
-          width: number
-          worker_id?: string | null
-        }
-        Update: {
-          attempts?: number
-          claimed_at?: string | null
-          created_at?: string
-          error?: string | null
-          finished_at?: string | null
-          height?: number
-          id?: string
-          job_secret_hash?: string | null
-          kind?: string
-          lease_until?: string | null
-          poster_id?: string
-          prompt?: string
-          result_url?: string | null
-          status?: string
-          user_id?: string
-          width?: number
-          worker_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "poster_art_jobs_poster_id_fkey"
-            columns: ["poster_id"]
-            isOneToOne: false
-            referencedRelation: "project_posters"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "poster_art_jobs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "poster_art_jobs_worker_id_fkey"
-            columns: ["worker_id"]
-            isOneToOne: false
-            referencedRelation: "poster_art_workers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      poster_art_workers: {
-        Row: {
-          created_at: string
-          id: string
-          last_seen_at: string | null
-          name: string
-          revoked_at: string | null
-          token_hash: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          last_seen_at?: string | null
-          name: string
-          revoked_at?: string | null
-          token_hash: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          last_seen_at?: string | null
-          name?: string
-          revoked_at?: string | null
-          token_hash?: string
-        }
-        Relationships: []
-      }
       privacy_consents: {
         Row: {
           consented_at: string
@@ -387,6 +325,52 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_awards: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_id: string
+          project_id: string
+          rank_label: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_id: string
+          project_id: string
+          rank_label: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_id?: string
+          project_id?: string
+          rank_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_awards_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_awards_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_awards_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -521,60 +505,71 @@ export type Database = {
           },
         ]
       }
-      project_posters: {
+      project_locks: {
         Row: {
-          art_job_id: string | null
-          art_order: Json | null
-          art_url: string | null
-          band_position: string
-          band_tone: string
           created_at: string
           created_by: string | null
-          html: string | null
-          id: string
-          messages: Json
           project_id: string
-          updated_at: string
-          versions: Json
+          reason: string | null
         }
         Insert: {
-          art_job_id?: string | null
-          art_order?: Json | null
-          art_url?: string | null
-          band_position?: string
-          band_tone?: string
           created_at?: string
           created_by?: string | null
-          html?: string | null
-          id?: string
-          messages?: Json
           project_id: string
-          updated_at?: string
-          versions?: Json
+          reason?: string | null
         }
         Update: {
-          art_job_id?: string | null
-          art_order?: Json | null
-          art_url?: string | null
-          band_position?: string
-          band_tone?: string
           created_at?: string
           created_by?: string | null
-          html?: string | null
-          id?: string
-          messages?: Json
           project_id?: string
-          updated_at?: string
-          versions?: Json
+          reason?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "project_posters_art_job_id_fkey"
-            columns: ["art_job_id"]
+            foreignKeyName: "project_locks_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "poster_art_jobs"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "project_locks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_posters: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          image_url: string | null
+          kind: string
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_url?: string | null
+          kind?: string
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_url?: string | null
+          kind?: string
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
           {
             foreignKeyName: "project_posters_created_by_fkey"
             columns: ["created_by"]
@@ -601,6 +596,8 @@ export type Database = {
           description: string
           feature_custom: string | null
           features: string[]
+          heart_count: number
+          icon_fit: Json | null
           icon_type: string | null
           icon_url: string | null
           id: string
@@ -608,6 +605,10 @@ export type Database = {
           license_custom: string | null
           license_features: string[]
           platforms: string[]
+          poster_hung_at: string | null
+          poster_id: string | null
+          poster_image_url: string | null
+          poster_is_ai: boolean
           public_author_id: string | null
           readme_etag: string | null
           readme_sync: boolean
@@ -615,6 +616,7 @@ export type Database = {
           repo_url: string | null
           short_description: string | null
           source_type: string
+          team_icon_url: string | null
           team_members: string[] | null
           team_name: string | null
           title: string
@@ -632,6 +634,8 @@ export type Database = {
           description: string
           feature_custom?: string | null
           features?: string[]
+          heart_count?: number
+          icon_fit?: Json | null
           icon_type?: string | null
           icon_url?: string | null
           id?: string
@@ -639,6 +643,10 @@ export type Database = {
           license_custom?: string | null
           license_features?: string[]
           platforms?: string[]
+          poster_hung_at?: string | null
+          poster_id?: string | null
+          poster_image_url?: string | null
+          poster_is_ai?: boolean
           public_author_id?: string | null
           readme_etag?: string | null
           readme_sync?: boolean
@@ -646,6 +654,7 @@ export type Database = {
           repo_url?: string | null
           short_description?: string | null
           source_type: string
+          team_icon_url?: string | null
           team_members?: string[] | null
           team_name?: string | null
           title: string
@@ -663,6 +672,8 @@ export type Database = {
           description?: string
           feature_custom?: string | null
           features?: string[]
+          heart_count?: number
+          icon_fit?: Json | null
           icon_type?: string | null
           icon_url?: string | null
           id?: string
@@ -670,6 +681,10 @@ export type Database = {
           license_custom?: string | null
           license_features?: string[]
           platforms?: string[]
+          poster_hung_at?: string | null
+          poster_id?: string | null
+          poster_image_url?: string | null
+          poster_is_ai?: boolean
           public_author_id?: string | null
           readme_etag?: string | null
           readme_sync?: boolean
@@ -677,6 +692,7 @@ export type Database = {
           repo_url?: string | null
           short_description?: string | null
           source_type?: string
+          team_icon_url?: string | null
           team_members?: string[] | null
           team_name?: string | null
           title?: string
@@ -691,6 +707,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_poster_id_fkey"
+            columns: ["poster_id"]
+            isOneToOne: false
+            referencedRelation: "project_posters"
             referencedColumns: ["id"]
           },
           {
@@ -811,122 +834,6 @@ export type Database = {
           {
             foreignKeyName: "subdomains_revoked_by_fkey"
             columns: ["revoked_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tip_comments: {
-        Row: {
-          content: string
-          created_at: string
-          id: string
-          tip_id: string
-          user_id: string
-        }
-        Insert: {
-          content: string
-          created_at?: string
-          id?: string
-          tip_id: string
-          user_id: string
-        }
-        Update: {
-          content?: string
-          created_at?: string
-          id?: string
-          tip_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tip_comments_tip_id_fkey"
-            columns: ["tip_id"]
-            isOneToOne: false
-            referencedRelation: "tips"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tip_comments_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tip_likes: {
-        Row: {
-          created_at: string
-          tip_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          tip_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          tip_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tip_likes_tip_id_fkey"
-            columns: ["tip_id"]
-            isOneToOne: false
-            referencedRelation: "tips"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tip_likes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tips: {
-        Row: {
-          author_id: string
-          content: string
-          cover_url: string | null
-          created_at: string
-          id: string
-          summary: string | null
-          tags: string[]
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          author_id: string
-          content: string
-          cover_url?: string | null
-          created_at?: string
-          id?: string
-          summary?: string | null
-          tags?: string[]
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          author_id?: string
-          content?: string
-          cover_url?: string | null
-          created_at?: string
-          id?: string
-          summary?: string | null
-          tags?: string[]
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tips_author_id_fkey"
-            columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -1066,16 +973,6 @@ export type Database = {
       }
       admin_site_stats: { Args: never; Returns: Json }
       ai_usage_day: { Args: { p_kind: string }; Returns: string }
-      claim_poster_art_job: {
-        Args: { p_token: string }
-        Returns: {
-          height: number
-          id: string
-          job_secret: string
-          prompt: string
-          width: number
-        }[]
-      }
       domain_showcase: { Args: { p_limit?: number }; Returns: Json }
       email_hash: { Args: { p_email: string }; Returns: string }
       is_admin: { Args: never; Returns: boolean }
@@ -1088,7 +985,6 @@ export type Database = {
         }[]
       }
       my_project_ids: { Args: never; Returns: string[] }
-      poster_art_ping: { Args: { p_token: string }; Returns: undefined }
       project_live_domain: {
         Args: { p_project_id: string }
         Returns: {
