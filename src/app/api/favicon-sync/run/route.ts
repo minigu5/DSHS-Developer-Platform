@@ -2,10 +2,9 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 import { isImageOk, resolveFavicon } from '@/lib/favicon'
 import { syncFavicon } from '@/lib/favicon-sync'
-import { FAVICON_SYNC_SIG_HEADER, verifyFaviconSync } from '@/lib/favicon-sync-job'
+import { FAVICON_SYNC_SIG_HEADER, isJobId, verifyFaviconSync } from '@/lib/favicon-sync-job'
 import { iconFitStale } from '@/lib/icon-fit-fetch'
 import { computeIconFitInWorker } from '@/lib/icon-fit-worker'
-import { isJobId } from '@/lib/posters/ai-jobs-logic'
 import { createAdminClient } from '@/lib/supabase/server'
 
 // Worker 예약 작업(custom-worker.ts scheduled)만 부르는 내부 경로(직접 올린 아이콘은 맞춤값만 따라잡음) — 쿠키 없는 기계 전용이라 isSameOrigin 대신 서명(HMAC, 키 = 서비스 키)으로 연다.

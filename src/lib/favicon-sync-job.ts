@@ -27,3 +27,7 @@ export function pickTonight<T>(items: readonly T[], perNight: number, dayIndex: 
   const start = (dayIndex * perNight) % items.length
   return Array.from({ length: perNight }, (_, i) => items[(start + i) % items.length])
 }
+
+export function isJobId(value: unknown): value is string {
+  return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+}

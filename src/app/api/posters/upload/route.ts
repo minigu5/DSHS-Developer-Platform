@@ -2,13 +2,12 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 import { deleteCloudinaryImages } from '@/lib/cloudinary-delete'
 import { getBandAccess } from '@/lib/posters/access'
-import { releaseUsage, reserveUsage } from '@/lib/posters/usage'
-import { uploadPosterArtBlob } from '@/lib/posters/art'
-import { sniffImageType } from '@/lib/posters/art-jobs-logic'
 import { setHungPoster } from '@/lib/posters/hang-db'
 import { POSTER_COPY } from '@/lib/posters/messages'
+import { sniffImageType, uploadPosterImage } from '@/lib/posters/upload'
 import { isSameOrigin } from '@/lib/same-origin'
 import { createAdminClient } from '@/lib/supabase/server'
+import { releaseUsage, reserveUsage } from '@/lib/upload-usage'
 
 // 직접 만든 포스터 그림 올리기 — multipart: projectId, file, hang("1"이면 바로 상세 페이지에 걸기).
 // 권한은 포스터 화면과 같음(getBandAccess — AI 를 안 쓰니 관리자 제한 없음). 형식은 파일 앞 바이트로 확인한다(확장자·type 은 믿지 않음).
@@ -41,7 +40,7 @@ export async function POST(request: NextRequest) {
   if (!sniffImageType(new Uint8Array(await file.slice(0, 12).arrayBuffer()))) return fail(415, POSTER_COPY.uploadType)
 
   if ((await reserveUsage('upload', access.userId)) !== 'ok') return fail(429, '오늘은 이미지를 너무 많이 올렸어요. 내일 다시 해 주세요.')
-  const url = await uploadPosterArtBlob(file)
+  const url = await uploadPosterImage(file)
   if (!url) {
     await releaseUsage('upload', access.userId)
     return fail(502, POSTER_COPY.uploadFailed)
@@ -60,6 +59,6 @@ export async function POST(request: NextRequest) {
   }
 
   // 걸기에 실패해도 올린 그림은 남아 있으니 ok — hung:false 로 "올렸지만 못 걸었어요"를 보이게 한다
-  const hung = form?.get('hang') === '1' ? await setHungPoster(projectId, { posterId: data.id, imageUrl: url, isAi: false }) : false
+  const hung = form?.get('hang') === '1' ? await setHungPoster(projectId, { posterId: data.id, imageUrl: url }) : false
   return NextResponse.json({ ok: true, posterId: data.id, url, hung })
 }

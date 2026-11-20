@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { cloudinary } from "@/lib/cloudinary";
-import { releaseUsage, reserveUsage } from "@/lib/posters/usage";
+import { releaseUsage, reserveUsage } from "@/lib/upload-usage";
 import { isSameOrigin } from "@/lib/same-origin";
 import { createClient } from "@/lib/supabase/server";
 
