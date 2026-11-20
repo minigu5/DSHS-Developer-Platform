@@ -2,8 +2,7 @@
 // 설계: docs/superpowers/specs/2026-11-11-naru-server-hosting-design.md
 import { isNodeServer } from '@/lib/runtime'
 
-// 배포 재시작 때 포스터 AI 일감(Gemini 12~90초)을 기다리는 최대 시간. 그 뒤 서버를 닫으며 남은 응답에 10초. systemd TimeoutStopSec(120초)보다 짧게.
-const DRAIN_MS = 100_000
+// 배포 재시작 때 서버를 닫으며 이미 받은 응답을 마무리하는 시간. systemd TimeoutStopSec(120초)보다 짧게.
 const CLOSE_MS = 10_000
 
 export async function register(): Promise<void> {
@@ -17,18 +16,17 @@ export async function register(): Promise<void> {
   }
   console.log('[naru] 서버 fetch 사설 주소 차단 켬')
 
-  // 유닛이 NEXT_MANUAL_SIG_HANDLE=true 를 넣어 Next 가 신호에 바로 나가지 않는다. 기다리는 동안 서버는 닫지 않고
-  // 계속 요청을 받는다 — 포트는 systemd 소켓 것이라 새 프로세스는 이 프로세스가 나간 뒤에 뜬다.
-  const { drainBackgroundJobs } = await import('@/lib/posters/node-jobs')
+  // 유닛이 NEXT_MANUAL_SIG_HANDLE=true 를 넣어 Next 가 신호에 바로 나가지 않는다. 포트는 systemd 소켓 것이라
+  // 새 프로세스는 이 프로세스가 나간 뒤에 뜬다.
   const { shutdownGracefully } = await import('@/lib/node-shutdown')
   const closeServer = (globalThis as { __dshsCloseServer?: (ms: number) => Promise<void> }).__dshsCloseServer
   let stopping = false
   const stop = (signal: string) => {
     if (stopping) return
     stopping = true
-    console.log(`[naru] ${signal} — 뒤에서 하던 일 기다림`)
+    console.log(`[naru] ${signal} — 서버를 닫고 나감`)
     void shutdownGracefully({
-      drain: () => drainBackgroundJobs(DRAIN_MS),
+      drain: async () => 0,
       closeServer: closeServer && (() => closeServer(CLOSE_MS)),
       exit: () => process.exit(0),
       log: (m) => console.error(m),
