@@ -26,9 +26,9 @@ export function isExternalImage(url: string | null | undefined): boolean {
   }
 }
 
-/** 사이트 안 주소인지 ('/'로 시작, '//host' 같은 바깥 주소는 제외) */
+/** 사이트 안 주소인지 ('/'로 시작, '//host'·'/\host' 같은 바깥 주소는 제외 — 브라우저는 '/\'를 '//'로 읽는다) */
 export function isInternalHref(href: string | undefined): boolean {
-  return Boolean(href && /^\/(?!\/)/.test(href));
+  return Boolean(href && /^\/(?![/\\])/.test(href));
 }
 
 /** http(s) 주소만 그대로, 아니면 null — 사용자가 API 로 적을 수 있는 칸(repo_url 등)을 href 에 넣기 전에(`javascript:` 막기) */

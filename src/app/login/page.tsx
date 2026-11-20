@@ -19,6 +19,8 @@ interface LoginPageProps {
 function safeNext(next: string | undefined): string | undefined {
   if (!next) return undefined;
   if (!next.startsWith("/") || next.startsWith("//")) return undefined;
+  // 브라우저는 '\'를 '/'로 읽어 '/\evil.com'이 바깥 주소가 된다. 제어문자도 거절
+  if (next.includes("\\") || /[\u0000-\u001f\u007f]/.test(next)) return undefined;
   return next;
 }
 
