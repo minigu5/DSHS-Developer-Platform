@@ -1,4 +1,4 @@
-// 수정 화면 옆 칸(PosterSheet)을 여닫는 주소 다루기. 칸 상태는 `?poster=list|<포스터 id>` 하나뿐이고,
+// 수정 화면 옆 칸(PosterSheet)을 여닫는 주소 다루기. 칸 상태는 `?poster=list` 하나뿐이고,
 // Next 가 history.pushState 를 useSearchParams 에 이어 주니 서버를 다시 부르지 않는다(폼에 쓰던 내용도 그대로).
 // 연 만큼 기록을 쌓아서 휴대폰 뒤로 가기가 칸을 닫고(수정 화면을 떠나지 않음), 닫기 버튼은 쌓은 만큼 되돌린다.
 
@@ -15,16 +15,10 @@ function hrefWith(value: string | null): string {
   return url.pathname + url.search + url.hash;
 }
 
-/** 목록(기본) 또는 포스터 하나의 만들기 화면을 연다 */
-export function openPosterSheet(value: string = POSTER_LIST) {
-  window.history.pushState(null, "", hrefWith(value));
+/** 포스터 칸을 연다 */
+export function openPosterSheet() {
+  window.history.pushState(null, "", hrefWith(POSTER_LIST));
   pushed += 1;
-}
-
-/** 만들기 화면 → 목록. 목록에서 들어왔으면 뒤로 가기와 같다 */
-export function backToPosterList() {
-  if (pushed > 1) window.history.back();
-  else window.history.replaceState(null, "", hrefWith(POSTER_LIST));
 }
 
 export function closePosterSheet() {

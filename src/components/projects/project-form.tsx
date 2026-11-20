@@ -1440,7 +1440,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
         </FormSection>
 
         {/* 6. 홍보 포스터(선택) — 수정 화면만: 지금 상태 + 옆 칸(PosterSheet)을 여는 버튼 하나.
-            새 등록에선 안 보인다 — 포스터는 저장된 프로젝트가 있어야 올리고 AI로 만들 수 있어서(2026-11-07 사용자 요청) */}
+            새 등록에선 안 보인다 — 포스터는 저장된 프로젝트가 있어야 올릴 수 있어서(2026-11-07 사용자 요청) */}
         {isEdit && initialData?.id && (
           <FormSection id="section-poster" title="홍보 포스터" hint="선택">
             {initialData.visibility === "public" ? (
@@ -1463,7 +1463,7 @@ export function ProjectForm({ initialData, isEdit = false, canDelete = true, sub
                     onClick={() => openPosterSheet()}
                     className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-9 rounded-full px-4")}
                   >
-                    <Megaphone className="mr-1.5 h-4 w-4" aria-hidden /> {initialData.poster_image_url ? "포스터 바꾸기" : "홍보 포스터 만들기"}
+                    <Megaphone className="mr-1.5 h-4 w-4" aria-hidden /> {initialData.poster_image_url ? "포스터 바꾸기" : "홍보 포스터 올리기"}
                   </button>
                 </div>
               </div>

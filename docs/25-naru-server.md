@@ -27,9 +27,6 @@
 |---|---|---|
 | 사용자 URL fetch 사설 주소 차단 | `global_fetch_strictly_public` | `src/instrumentation.ts` → `src/lib/ssrf-node.ts`(undici 전역 dispatcher, 연결 때 거름) |
 | 아이콘 맞춤값 축소 | `IMAGES` 바인딩 | `sharp`(`src/lib/icon-fit-shrink-node.ts`) |
-| 포스터 그림 | `AI` 바인딩 | Workers AI REST(`src/lib/posters/art-rest.ts`, 토큰 `CLOUDFLARE_AI_API_TOKEN` — Workers AI 권한만, 하루 무료 한도는 계정 공유) |
-| 포스터 일감 | Cloudflare Queues + `custom-worker.ts` | 프로세스 안(`src/lib/posters/node-jobs.ts`), 배포 재시작 때 최대 100초 기다림 |
-| 걸 PNG 찍기 등 `waitUntil` | `ctx.waitUntil` | 같은 `runInBackground` |
 | 매일 밤 파비콘 동기화 | Worker cron | **안 돈다**(두 번 돌지 않게 Worker만) |
 | 다시 만든 페이지 캐시(`revalidatePath`) | OpenNext 캐시 | 메모리만(`next.config.ts` `isrFlushToDisk: false` — 앱은 릴리스 폴더에 못 써서 디스크에 쓰려다 오류만 찍혔다, 2026-11-12) |
 | 정적 파일 | `dshs-assets.pages.dev` | 같은 출처(다른 출처 청크는 하이드레이션이 1초 늦었던 대곽나루 포털 기록) |
@@ -46,6 +43,8 @@
 - **로그인 502**(2026-11-12): 노드 nginx가 응답 헤더 약 3.8KB를 넘으면 502 — Google 로그인 콜백의 세션 쿠키가 걸림(앱은 정상 응답). 서버 안 `127.0.0.1:8080`으론 307인데 `dshs2`로는 502인 것으로 구분(`/me?x=<3800자>`). 대곽나루 세션이 노드 nginx에 `proxy_buffer_size 16k` 등을 넣어 고침(server_connection 0a6e20a, 허브 91f12ae). 같은 때 플랫폼이 서버 안 ttyd 7681을 노드에서만 받게 막았고(`table inet dshs_ttyd_guard`), 노드는 학생 서버끼리 SNAT하지 않음을 확인(8080 출발지 판정 안전).
 - **사용자 IP 꾸미기 시험**(2026-11-12): 꾸민 `CF-Connecting-IP`는 Cloudflare가 403으로 막고, `X-Forwarded-For`·`X-Real-IP`·`x-naru-client-ip`(+가짜 키)·`True-Client-IP`·`Forwarded`를 붙여도 클릭 집계엔 진짜 IP 해시가 찍혔다.
 - 빌드: `npm ci`+`next build` 첫 회 약 7분, 캐시 뒤 75초. 빌드 중 서버 메모리 최대 1,699MB/2,048MB(앱 실행 중 포함). 배포 중 0.2초 간격 요청 389건 모두 200(최대 1.3초).
-- 확인한 것(2026-11-11, 시험 계정): 로그인 필요한 화면, `/api/upload`(Cloudinary), 앞단 SSRF 400, 파비콘 동기화 → sharp 축소로 icon_fit 계산(180px PNG), Workers AI REST 그림 1장(0.9초), 클릭 집계 IP 해시가 실제 사용자 IP와 일치(노드 nginx가 `CF-Connecting-IP` 복원). 첫 응답: 시험 주소 약 0.35초 vs 운영 0.11초(Pages → 터널 → 노드 nginx 구간).
-- 사용자 확인(2026-11-12): Google 로그인(노드 nginx 수정 뒤), AI 포스터 만들기(서버 안 일감 30초 — 그 전 두 번은 Gemini 503·시간 초과로 "지금 AI가 붐벼요", 서버 문제 아님)·그림·걸기(PNG 찍기 뒤에서 끝남).
-- 사용자가 직접 볼 것: Google 로그인·온보딩, 프로젝트 등록·수정 화면, 댓글·하트, 글쓰기, 가이드 편집, AI 포스터(만들기·탭 닫기·걸기·PNG/PDF), 관리자 화면.
+- 확인한 것(2026-11-11, 시험 계정): 로그인 필요한 화면, `/api/upload`(Cloudinary), 앞단 SSRF 400, 파비콘 동기화 → sharp 축소로 icon_fit 계산(180px PNG), 클릭 집계 IP 해시가 실제 사용자 IP와 일치(노드 nginx가 `CF-Connecting-IP` 복원). 첫 응답: 시험 주소 약 0.35초 vs 운영 0.11초(Pages → 터널 → 노드 nginx 구간).
+- 사용자 확인(2026-11-12): Google 로그인(노드 nginx 수정 뒤), 포스터 올리기·걸기.
+- 사용자가 직접 볼 것: Google 로그인·온보딩, 프로젝트 등록·수정 화면, 댓글·하트, 글쓰기, 가이드 편집, 포스터(올리기·걸기), 관리자 화면.
+
+> 2026-11-20: AI 포스터 만들기를 없애 포스터 일감·Workers AI REST·`runInBackground`(`node-jobs.ts`)가 서버에서 빠졌다.

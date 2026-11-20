@@ -300,7 +300,7 @@ export function ProjectDetailView({ detail, viewerId, isAdmin, liveDomain, anony
           <aside className="grid content-start gap-4">
             {/* 걸린 포스터 — 공개 프로젝트만. 없으면 주인·팀원에게만 빈 포스터 칸(누르면 포스터 옆 칸) */}
             {showcaseVisible(project) && project.poster_image_url ? (
-              <PosterShowcase projectId={project.id} title={project.title} imageUrl={project.poster_image_url} isAi={project.poster_is_ai} canEdit={canEdit} sheet={withPosterSheet} />
+              <PosterShowcase projectId={project.id} title={project.title} imageUrl={project.poster_image_url} canEdit={canEdit} sheet={withPosterSheet} />
             ) : (
               posterSlot && <PosterSlot projectId={project.id} sheet={withPosterSheet} />
             )}

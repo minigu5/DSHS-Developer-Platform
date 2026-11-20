@@ -4,8 +4,6 @@
 // 추후 Supabase CLI 로 자동 생성한 결과로 교체 가능:
 //   npx supabase gen types typescript --project-id <id> --schema public > src/lib/types.ts
 
-import type { PosterArtOrder, PosterMessage, PosterVersion } from '@/lib/posters/config';
-
 export type UserContact = {
   type: 'github' | 'email' | 'instagram' | 'discord' | 'website';
   value: string;
@@ -873,9 +871,5 @@ export type IdeaInsert = Database['public']['Tables']['ideas']['Insert'];
 export type IdeaUpdate = Database['public']['Tables']['ideas']['Update'];
 export type GuideRevisionRow = Database['public']['Tables']['guide_revisions']['Row'];
 
-// AI 포스터 — art_order·versions·messages 는 jsonb 라 화면·서버에선 이 모양으로 읽는다(src/lib/posters/config.ts).
-export type ProjectPosterRow = Omit<Database['public']['Tables']['project_posters']['Row'], 'art_order' | 'versions' | 'messages'> & {
-  art_order: PosterArtOrder | null;
-  versions: PosterVersion[];
-  messages: PosterMessage[];
-};
+// 올린 포스터(직접 올린 그림). AI 포스터 칸(html·art_*·versions 등)은 2026-11-20 쓰지 않는다.
+export type ProjectPosterRow = Database['public']['Tables']['project_posters']['Row'];

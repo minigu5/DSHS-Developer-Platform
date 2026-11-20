@@ -22,7 +22,7 @@ function SlotBody() {
         <ImagePlus className="h-5 w-5" aria-hidden />
       </span>
       <span className="font-heading text-[15px] font-semibold text-zinc-900 dark:text-white">홍보 포스터 걸기</span>
-      <span className="text-[13px] break-keep text-zinc-600 dark:text-zinc-400">AI로 만들거나 그림을 올리면 여기에 걸려요</span>
+      <span className="text-[13px] break-keep text-zinc-600 dark:text-zinc-400">포스터 그림을 올리면 여기에 걸려요</span>
       <span className="text-xs text-zinc-500 dark:text-zinc-400">나에게만 보이는 칸이에요</span>
     </>
   );

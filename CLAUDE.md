@@ -44,7 +44,7 @@
 | `home.md` | 홈 구성·섹션·아이콘 나열·로딩 시퀀스·스크롤 리빌 |
 | `admin.md` | 관리자 대시보드 `/admin`(오늘 확인할 것·현황·최신 글·비속어·기간 차단·주소 관리), 차단 DB 트리거 |
 | `nav.md` | `PageNav`/`MobileNav`·활성 판정·섹션 색 |
-| `posters.md` | AI 포스터 만들기(Gemini HTML + Workers AI 그림, 1단계 관리자만, 횟수·내보내기) |
+| `posters.md` | 홍보 포스터(그림 올리기·상세에 걸기·띠 받기) — AI 포스터 만들기는 2026-11-20 없앰 |
 
 ---
 
@@ -66,7 +66,7 @@
 | **관리자** | 최초 관리자(`ts250024@ts.hs.kr`, 지울 수 없음) + `/admin`에서 추가한 사람. 판정은 DB `is_admin()` — 코드는 `isAdminUser()`(`.claude/rules/admin.md`) |
 
 ### 보호 라우트 (`src/middleware.ts`)
-- `/projects/new`, `/projects/[id]/edit`, `/projects/[id]/poster`(옛 포스터 주소 — 이제 수정 화면 `?poster=` 옆 칸으로 넘김), `/posters/start`(남의 포스터에서 "내 프로젝트로도 만들기"), `/haejwo/new`, `/me`, `/guide-wiki/[key]/edit`, `/domains`, `/admin`(관리자 대시보드 — `/domains/admin`은 `/admin#domains`로)
+- `/projects/new`, `/projects/[id]/edit`, `/projects/[id]/poster`(옛 포스터 주소 — 이제 수정 화면 `?poster=` 옆 칸으로 넘김), `/posters/start`(남의 포스터에서 "내 프로젝트로도 올리기"), `/haejwo/new`, `/me`, `/guide-wiki/[key]/edit`, `/domains`, `/admin`(관리자 대시보드 — `/domains/admin`은 `/admin#domains`로)
 - 비로그인 시 `/login?next=<원래경로+쿼리>` 로 리다이렉트 (쿼리 보존 — 가이드 편집기의 `?from=` 복귀용)
 - 이미 로그인된 사용자가 `/login` 진입 시 홈으로
 
@@ -129,7 +129,6 @@
 - **ISR 캐시 없음**: `revalidate` 페이지도 쿠키를 읽어 실제로는 동적(ƒ). `open-next.config.ts`는 정적 자산 캐시만. 쿠키 없는 ISR 페이지를 만들면 R2 캐시로 바꿀 것.
 - **무료 요금제 CPU 10 ms/요청** — 넘으면 빈 본문 503(`wrangler tail`의 `outcome: exceededCpu`), 사이트 전체에서 간헐적으로 났다(2026-11-01, 24시간 987건 중 53건). 사용자 결정: 결제 전에 최적화부터 — **보안과 상관없는 표시 작업은 브라우저로**(마크다운 렌더, 공개 데이터만 쓰는 홈 목록). 권한 판단·서비스 키·비공개 필터는 서버에 둔다. 남는 해결책은 Workers Paid($5/월, 계정 단위).
 - **한국 접속은 서울 입구로**(2026-11-07): 한국 통신사는 우리 존 IP(dshs.dev·workers.dev)를 LAX로 보내 첫 응답이 0.8~2초였다. 지금은 `dshs.dev` 루트가 **회색 구름 CNAME → `dshs-relay.pages.dev`**(Pages 프로젝트, 코드 `relay/`)라 ICN으로 들어오고, `relay/functions/_middleware.js`가 **2026-11-12부터 대곽나루 서버(`dshs2.dshs.dev`)로 넘기고, 서버가 안 되면 service binding으로 Worker에** 넘긴다(`docs/25-naru-server.md` 「2단계」, 사용자 IP는 입구가 키와 함께 넘김). Worker는 사용자 지정 도메인이 아니라 **Route `dshs.dev/*`**로 붙어 있다 — 같은 CNAME을 주황으로만 바꾸면 예비 길(LAX)로 Worker가 직접 받는다. 대곽나루 허브 지킴이(`server_connection` `_relay_guard_loop`, `RELAY_GUARD`)가 중계 고장 시 자동으로 주황↔회색을 바꾼다. **Worker에 `dshs.dev` 사용자 지정 도메인을 다시 붙이지 말 것**(DNS 레코드를 차지해 이 구조가 깨짐). 지킴이는 `dshs.dev` 이름에 CNAME 하나만 있을 때만 움직이니 같은 이름에 다른 레코드(AAAA 등)를 더하지 말 것. 중계 코드 올리기: `cd relay && npx wrangler pages deploy --branch main`. 확인: `curl -s https://dshs.dev/cdn-cgi/trace | grep colo`. **대곽나루 학생 주소**(`이름.dshs.dev`, 대곽나루 호스트)도 2026-11-08부터 대곽나루 허브가 같은 방식으로 서울 입구(별도 Cloudflare 계정 Pages `naru-sites`)에 붙인다 — 화면은 `.claude/rules/domains.md` 「서울 입구 상태」, 숨은 원 주소 `naru-sites-origin-server-NN-relay`(31자+) 레코드는 허브 것이니 건드리지 말 것.
-- **`AI` 바인딩**(`wrangler.jsonc`, AI 포스터 그림): Workers AI 무료 10,000 neurons/일은 계정 전체 공유(00:00 UTC 리셋). `next dev`에서도 원격으로 붙는다. 자세히는 `.claude/rules/posters.md`.
 - `wrangler.jsonc` `keep_names: false` 필수 — 켜 두면 esbuild `__name()`이 next-themes 인라인 스크립트에 섞여 브라우저에서 `__name is not defined`.
 - Worker 배치는 `placement.region: aws:ap-northeast-2`(Supabase 옆, smart 모드는 트래픽이 쌓여야 작동).
 - `wrangler types` 결과(`cloudflare-env.d.ts`)는 두지 않는다 — 런타임 타입이 브라우저 `Response.json()`을 `unknown`으로 덮어 `tsc`가 깨짐.
@@ -214,12 +213,10 @@ Claude Code는 `.claudeignore`를 읽지 않는다(2026-11-02 삭제). 대신 �
 | `CLOUDFLARE_ZONE_ID` | `c9fac6d72c704d4836b837590f18e144`(dshs.dev). Workers `vars`, Actions Secrets |
 | `CLOUDFLARE_LISTS_API_TOKEN` | 바로가기 주소용 별도 계정 토큰 — **Account Filter Lists · Edit + Mass URL Redirects · Write**(범위 Entire Account — 목록·Bulk Redirects는 계정 리소스라 도메인 범위로는 안 됨, 사용자가 망설이다 동의). Workers `wrangler secret put`, Actions Secrets |
 | `CLOUDFLARE_ACCOUNT_ID` | dshs.dev가 있는 Cloudflare 계정 id(비밀 아님). Workers `vars`, Actions Secrets |
-| `GEMINI_API_KEY` | AI 포스터 글·배치(Gemini 무료 키, 사용자 개인 Google 계정). Workers `wrangler secret put` |
-| `CLOUDFLARE_BROWSER_API_TOKEN` | AI 포스터 PNG·PDF — 계정 토큰 **Browser Rendering · Edit만**. Workers `wrangler secret put` |
 | `CLOUDFLARE_REDIRECT_LIST_ID` | Bulk Redirect 목록 `dshs_subdomain_redirects`의 id(`node scripts/create-redirect-list.mts`가 출력). Workers `vars`, Actions Secrets |
 
 ## ⚠️ 보안 및 주의사항
-- **학생 주소(`*.dshs.dev`)와 같은 사이트(same-site)**: 학생 사이트 JS가 `.dshs.dev` 쿠키를 심을 수 있다. 그래서 운영 세션 쿠키는 `__Host-sb-auth`·`__Host-ds_onboarded`(`src/lib/supabase/cookie-options.ts`, 세 Supabase 클라이언트 공통 — 개발은 `sb-dev-auth`). **본 사이트는 `Domain=.dshs.dev` 쿠키를 절대 쓰지 않는다.** SameSite=Lax가 막아 주지 않으므로 쿠키로 인증하는 상태 변경 Route Handler는 `isSameOrigin()`(`src/lib/same-origin.ts`) 검사 필수(`/api/upload` 적용). 예외: `/api/poster-art/*`는 쿠키 없이 학교 Mac 토큰으로만, `/api/poster-jobs/run`은 큐 소비자의 서명(HMAC)으로만 확인하는 기계 전용 경로(`.claude/rules/posters.md`). 서버 액션은 Next가 Origin을 검사. 학생 JS가 큰 쿠키를 심어 `dshs.dev`를 431로 막는 "쿠키 폭탄"은 서버에서 못 막는다 — 관리자 회수로 대응.
+- **학생 주소(`*.dshs.dev`)와 같은 사이트(same-site)**: 학생 사이트 JS가 `.dshs.dev` 쿠키를 심을 수 있다. 그래서 운영 세션 쿠키는 `__Host-sb-auth`·`__Host-ds_onboarded`(`src/lib/supabase/cookie-options.ts`, 세 Supabase 클라이언트 공통 — 개발은 `sb-dev-auth`). **본 사이트는 `Domain=.dshs.dev` 쿠키를 절대 쓰지 않는다.** SameSite=Lax가 막아 주지 않으므로 쿠키로 인증하는 상태 변경 Route Handler는 `isSameOrigin()`(`src/lib/same-origin.ts`) 검사 필수(`/api/upload` 적용). 예외: `/api/favicon-sync/run`은 Worker 예약 작업의 서명(HMAC)으로만 확인하는 기계 전용 경로. 서버 액션은 Next가 Origin을 검사. 학생 JS가 큰 쿠키를 심어 `dshs.dev`를 431로 막는 "쿠키 폭탄"은 서버에서 못 막는다 — 관리자 회수로 대응.
 - **실명 파생**: `student_mappings` 테이블은 삭제됨. 이제 `users.full_name`은 로그인 시 이메일(입학연도)과 구글 계정명(숫자4자리+이름)에서 자동 파생 — `src/app/auth/callback/route.ts` 참고.
 - **Supabase Client**: 서버 사이드에서는 `createServerClient`, 클라이언트에서는 `createBrowserClient` 사용. 민감한 작업은 항상 `getUser()`로 검증. 서버에서 `getSession()`은 쿠키 값을 검증 없이 돌려주므로 권한 판단(특히 `createAdminClient()` 사용 여부)에 쓰지 않는다(2026-10-26 프로젝트 수정 페이지를 `getUser()`로 교체).
 - **사용자 키로 못 바꾸는 칸**(2026-10-27, migration `20261027100000_lock_identity_columns.sql`): 학생이 API로 `users.email`을 관리자·다른 학생 이메일로 바꿔 비공개 열람·남의 프로젝트 수정이 되던 구멍을 막음. 트리거가 `current_user`가 `anon`/`authenticated`일 때만 거절한다 — `users`의 `id`·`email`·`full_name`·`created_at`(같은 값 다시 쓰기는 허용, 프로필 upsert가 email을 같이 보냄), `projects`의 `id`·`author_id`·`click_count`·`created_at`(INSERT 땐 `click_count=0`), 공지의 `is_pinned`·`admin` 카테고리(관리자 제외). 서비스 키·SECURITY DEFINER 함수는 그대로 쓴다. `users.email` UNIQUE. RLS 정책은 `public.users.email` 대신 `auth.jwt() ->> 'email'`, 관리자는 `is_admin()`(auth.users 기준) — **새 정책도 public.users.email로 권한을 판단하지 말 것**. `track_project_click`은 service_role 전용(`/api/track`이 `createAdminClient()`로 부름, IP는 `cf-connecting-ip` 우선). 익명 클릭은 User-Agent만 바꿔도 새 사람으로 보이므로 **프로젝트마다 하루 30번까지만** 센다(`track_project_click`, migration `20261027120000` — 해시 방식은 그대로라 처리방침 안 바뀜). 로그인 클릭은 사람마다 하루 1번, 상한 없음.

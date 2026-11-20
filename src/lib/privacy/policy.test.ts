@@ -3,7 +3,6 @@ import { test } from 'node:test'
 
 import { PRIVACY_POLICY_MD } from './policy.ts'
 
-test('Gemini 문단: 프로젝트 이름은 보내고 학생 이름은 안 보낸다는 게 헷갈리지 않게', () => {
-  assert.match(PRIVACY_POLICY_MD, /학생 이름·이메일·실명·팀원은 보내지 않아요/)
-  assert.doesNotMatch(PRIVACY_POLICY_MD, /[^생] 이름·이메일·실명·팀원은 보내지 않아요/)
+test('AI 포스터를 없앤 뒤 Gemini 위탁·AI 그림 문구가 남지 않는다', () => {
+  assert.doesNotMatch(PRIVACY_POLICY_MD, /Gemini|AI 포스터|AI가 그린/)
 })

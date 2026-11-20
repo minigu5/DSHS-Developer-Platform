@@ -5,45 +5,25 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
-import { ArrowLeft, ImageUp, X } from "lucide-react";
+import { ImageUp, X } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { posterImageAt } from "@/lib/posters/hang-logic";
 import { POSTER_LIMITS } from "@/lib/posters/config";
-import { getPosterList, getPosterStudio, type PosterListResult, type PosterStudioResult } from "@/lib/posters/panel";
+import { getPosterList, type PosterListResult } from "@/lib/posters/panel";
 
 import { PosterBandDownload } from "./poster-band-download";
 import { PosterHangButton } from "./poster-hang-button";
-import { DeletePosterButton, NewPosterButton } from "./poster-list-actions";
-import { PosterPreview } from "./poster-preview";
-import { POSTER_LIST, POSTER_PARAM, backToPosterList, closePosterSheet, notePosterSheetPop, openPosterSheet } from "./poster-sheet-nav";
-import { PREVIEW_COLUMN, PosterStudio, type PosterStudioHang } from "./poster-studio";
+import { DeletePosterButton } from "./poster-list-actions";
+import { POSTER_PARAM, closePosterSheet, notePosterSheetPop } from "./poster-sheet-nav";
 import { PosterUploadButton, usePosterUpload } from "./poster-upload-button";
 import { useFileDrop } from "./use-file-drop";
 
-const UUID = /^[0-9a-f-]{36}$/i;
 const LOAD_FAILED = "포스터를 불러오지 못했어요. 잠시 뒤 다시 열어 주세요.";
-
-// 만들기 화면 데이터 미리 받기 — 목록 카드에 마우스를 올리거나 초점이 가면 받아 두고, 열 때 한 번 쓰고 버린다
-// (다 받은 값은 value 에 있어 첫 그림부터 내용이 보인다 — 회색 자리가 번쩍이지 않게)
-const studioPrefetch = new Map<string, { promise: Promise<PosterStudioResult>; value?: PosterStudioResult }>();
-
-function prefetchStudio(projectId: string, posterId: string) {
-  if (studioPrefetch.has(posterId)) return;
-  const entry: { promise: Promise<PosterStudioResult>; value?: PosterStudioResult } = {
-    promise: getPosterStudio(projectId, posterId).catch((): PosterStudioResult => ({ ok: false, error: LOAD_FAILED })),
-  };
-  void entry.promise.then((value) => {
-    entry.value = value;
-  });
-  studioPrefetch.set(posterId, entry);
-}
 
 /**
  * 프로젝트 수정 화면 오른쪽에서 나오는 포스터 칸(2026-11-07 사용자 결정 — 수정에서만 들어가는 기능이 따로 된 페이지라 어색해서).
  * 상세 페이지에도 같은 칸을 둔다(2026-11-08 — 옆칸의 빈 포스터 칸·"포스터 바꾸기"가 연다).
- * 목록(띠 받기·올리기·AI 만들기·걸기)과 만들기 화면을 `?poster=` 로 오간다. 휴대폰에선 화면을 다 채운다.
+ * 띠 받기·올리기·걸기·지우기를 `?poster=list` 로 연다. 휴대폰에선 화면을 다 채운다.
  * 포스터는 누르는 즉시 저장되고, 폼의 "저장하기"와는 따로다.
  *
  * `inForm`: 수정 화면(폼 옆) — 목록을 미리 받고, "저장하기와 따로" 안내를 단다. 상세는 주인·팀원·관리자가 자주 열어서
@@ -52,11 +32,6 @@ function prefetchStudio(projectId: string, posterId: string) {
 export function PosterSheet({ projectId, projectTitle, inForm = true }: { projectId: string; projectTitle: string; inForm?: boolean }) {
   const router = useRouter();
   const value = useSearchParams().get(POSTER_PARAM);
-  // 닫히는 동안(밀려 나가는 0.2초)엔 주소에서 값이 빠져도 보던 화면을 그대로 둔다 — 목록이 번쩍 다시 불리지 않게
-  const [shown, setShown] = useState(value);
-  if (value && value !== shown) setShown(value);
-  const studioId = shown && shown !== POSTER_LIST && UUID.test(shown) ? shown : null;
-
   // 목록은 수정 화면이 열릴 때 미리 받고, 칸을 열 때마다 뒤에서 새로 읽는다(받아 둔 것을 먼저 보여 줌)
   const [list, setList] = useState<PosterListResult | null>(null);
   const loadList = useCallback(() => {
@@ -67,20 +42,10 @@ export function PosterSheet({ projectId, projectTitle, inForm = true }: { projec
   useEffect(() => {
     if (inForm) loadList();
   }, [inForm, loadList]);
-  // 미리 받지 않았는데 주소로 만들기 화면부터 열었으면 그때 받는다(걸기 버튼이 목록의 걸린 상태를 쓴다)
-  const listMissing = !!value && value !== POSTER_LIST && list === null;
+  const open = !!value;
   useEffect(() => {
-    if (listMissing) loadList();
-  }, [listMissing, loadList]);
-  const listOpen = value === POSTER_LIST;
-  useEffect(() => {
-    if (listOpen) loadList();
-  }, [listOpen, loadList]);
-  // 만들기 화면의 "이 포스터 걸기"도 목록이 아는 걸린 상태를 쓴다 — 방금 만든 포스터처럼 목록에 없을 때만 새로 읽는다
-  const studioMissing = !!studioId && !!list?.ok && !list.posters.some((p) => p.id === studioId);
-  useEffect(() => {
-    if (studioMissing) loadList();
-  }, [studioMissing, loadList]);
+    if (open) loadList();
+  }, [open, loadList]);
   // 칸에서 뭔가 바꿨을 때만 닫으며 폼 카드(걸린 포스터)를 새로 읽는다
   const changed = useRef(false);
   const reloadList = useCallback(() => {
@@ -88,19 +53,12 @@ export function PosterSheet({ projectId, projectTitle, inForm = true }: { projec
     loadList();
   }, [loadList]);
 
-  const studioItem = studioId && list?.ok ? list.posters.find((p) => p.id === studioId) : undefined;
-  // 목록을 아직 못 받았으면 걸린 상태를 몰라서 버튼을 숨긴다. 목록에 아직 없는 새 포스터는 안 걸린 것
-  const studioHang: PosterStudioHang | undefined = list?.ok
-    ? { hung: studioItem?.hung ?? null, hungAt: studioItem?.hungAt ?? null, onChanged: reloadList }
-    : undefined;
-
   useEffect(() => {
     window.addEventListener("popstate", notePosterSheetPop);
     return () => window.removeEventListener("popstate", notePosterSheetPop);
   }, []);
 
   // 닫으면 폼의 「홍보 포스터」 카드(상세면 옆칸의 걸린 포스터)를 새로 읽는다 — 폼에 쓰던 내용은 그대로 남는다.
-  // 만들기 화면에서 고친 AI 포스터는 걸린 그림과 상관없어서(다시 걸기 전까지) 목록에서 바꾼 것만 센다
   useEffect(() => {
     if (value || !changed.current) return;
     changed.current = false;
@@ -115,11 +73,6 @@ export function PosterSheet({ projectId, projectTitle, inForm = true }: { projec
         <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-zinc-950/40 duration-200 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 data-closed:fill-mode-forwards" />
         <DialogPrimitive.Popup className="fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-white shadow-xl outline-none duration-200 data-open:animate-in data-open:slide-in-from-right-10 data-open:fade-in-0 data-closed:animate-out data-closed:slide-out-to-right-10 data-closed:fade-out-0 data-closed:fill-mode-forwards sm:w-[min(960px,calc(100vw-4rem))] sm:border-l sm:border-zinc-200 dark:bg-zinc-950 sm:dark:border-zinc-800">
           <header className="flex items-center gap-2 border-b border-zinc-200 px-4 py-3 sm:px-6 dark:border-zinc-800">
-            {studioId && (
-              <Button variant="ghost" className="h-9 shrink-0 rounded-full px-3 text-sm" onClick={backToPosterList}>
-                <ArrowLeft className="mr-1 h-4 w-4" aria-hidden /> 목록
-              </Button>
-            )}
             <DialogPrimitive.Title className="font-heading min-w-0 flex-1 truncate text-lg font-semibold text-zinc-900 dark:text-white">
               {projectTitle} 홍보 포스터
             </DialogPrimitive.Title>
@@ -134,11 +87,7 @@ export function PosterSheet({ projectId, projectTitle, inForm = true }: { projec
             {inForm ? <>포스터는 누르는 즉시 저장돼요. 프로젝트의 &ldquo;저장하기&rdquo;와 따로예요.</> : "포스터는 누르는 즉시 저장돼요."}
           </DialogPrimitive.Description>
           <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6">
-            {studioId ? (
-              <StudioView key={studioId} projectId={projectId} posterId={studioId} hang={studioHang} />
-            ) : (
-              <ListView projectId={projectId} data={list} reload={reloadList} />
-            )}
+            <ListView projectId={projectId} data={list} reload={reloadList} />
           </div>
         </DialogPrimitive.Popup>
       </DialogPrimitive.Portal>
@@ -146,7 +95,7 @@ export function PosterSheet({ projectId, projectTitle, inForm = true }: { projec
   );
 }
 
-// reload = 올리기·걸기·지우기 뒤, 걸 그림을 찍는 동안 2초마다 다시 읽기
+// reload = 올리기·걸기·지우기 뒤 목록을 다시 읽는다
 function ListView({ projectId, data, reload: load }: { projectId: string; data: PosterListResult | null; reload: () => void }) {
   if (!data) return <ListSkeleton />;
   if (!data.ok) return <p className="py-10 text-center text-zinc-600 dark:text-zinc-400">{data.error}</p>;
@@ -154,7 +103,7 @@ function ListView({ projectId, data, reload: load }: { projectId: string; data: 
 }
 
 function ListBody({ projectId, data, load }: { projectId: string; data: Extract<PosterListResult, { ok: true }>; load: () => void }) {
-  const { posters, full, canUseAi, hasHung, title } = data;
+  const { posters, full, hasHung, title } = data;
   const uploader = usePosterUpload({ projectId, full, hangIfNone: !hasHung, onUploaded: load });
   // 목록 어디에 놓아도 올린다(버튼만 받으면 놓을 자리가 너무 작다)
   const drop = useFileDrop((file) => void uploader.upload(file));
@@ -181,62 +130,42 @@ function ListBody({ projectId, data, load }: { projectId: string; data: Extract<
             </h2>
             {/* 걸린 상태는 카드의 "걸려 있어요" 알약이 보여 줘서 따로 적지 않는다 */}
             <p className="mt-1.5 text-sm break-keep text-zinc-600 dark:text-zinc-400">
-              {canUseAi
-                ? "직접 만든 포스터 그림을 올리거나(끌어다 놓아도 돼요) AI로 만들 수 있어요. 하나를 골라 걸면 프로젝트 페이지에 보여요."
-                : "직접 만든 포스터 그림을 올리면(끌어다 놓아도 돼요) 프로젝트 페이지에 걸 수 있어요."}
-              {full && ` 포스터는 ${POSTER_LIMITS.perProject}개까지예요. 하나를 지우면 올리거나 만들 수 있어요.`}
+              직접 만든 포스터 그림을 올리면(끌어다 놓아도 돼요) 프로젝트 페이지에 걸 수 있어요.
+              {full && ` 포스터는 ${POSTER_LIMITS.perProject}개까지예요. 하나를 지우면 올릴 수 있어요.`}
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             <PosterUploadButton uploader={uploader} />
-            {canUseAi && <NewPosterButton projectId={projectId} disabled={full} onCreated={(id) => openPosterSheet(id)} />}
           </div>
         </div>
         {posters.length === 0 ? (
           <p className="text-center text-zinc-600 dark:text-zinc-400">
-            아직 포스터가 없어요.{" "}
-            {canUseAi
-              ? "포스터 그림을 올리거나, 새로 만들기를 누르면 AI가 학교에 붙일 홍보 포스터를 만들어 줘요."
-              : "학교 게시판에 붙일 포스터 그림을 올려 보세요."}
+            아직 포스터가 없어요. 학교 게시판에 붙일 포스터 그림을 올려 보세요.
           </p>
         ) : (
           <ul className="grid grid-cols-2 gap-x-4 gap-y-6 @2xl:grid-cols-4">
             {posters.map((p) => (
               <li key={p.id} className="flex flex-col gap-2">
-                {p.kind === "upload" ? (
-                  // 직접 올린 그림은 비율이 제각각이라 A4 비율 상자 안에 맞춘다
-                  <a
-                    href={p.imageUrl ?? undefined}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label="올린 포스터 원본 보기"
-                    className="flex aspect-[210/297] items-center justify-center overflow-hidden rounded-xl bg-zinc-50 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-800"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary 원본, 상세 아이콘과 같은 방식 */}
-                    <img src={p.imageUrl ? posterImageAt(p.imageUrl, 480) : ""} alt="" loading="lazy" className="max-h-full max-w-full object-contain" />
-                  </a>
-                ) : (
-                  <button
-                    type="button"
-                    aria-label="포스터 열기"
-                    className="block rounded-xl text-left"
-                    onPointerEnter={() => prefetchStudio(projectId, p.id)}
-                    onFocus={() => prefetchStudio(projectId, p.id)}
-                    onClick={() => openPosterSheet(p.id)}
-                  >
-                    <PosterPreview html={p.html} artUrl={p.artUrl} title={title} projectId={projectId} tone={p.tone} position={p.position} className="rounded-xl" />
-                  </button>
-                )}
+                {/* 직접 올린 그림은 비율이 제각각이라 A4 비율 상자 안에 맞춘다 */}
+                <a
+                  href={p.imageUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="올린 포스터 원본 보기"
+                  className="flex aspect-[210/297] items-center justify-center overflow-hidden rounded-xl bg-zinc-50 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-800"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary 원본, 상세 아이콘과 같은 방식 */}
+                  <img src={posterImageAt(p.imageUrl, 480)} alt="" loading="lazy" className="max-h-full max-w-full object-contain" />
+                </a>
                 <div className="flex items-start justify-between gap-1">
                   {/* 제목이 이미 "상세 페이지에 걸 포스터"라 버튼은 "걸기"만 — 휴대폰 2열에서도 지우기와 한 줄 */}
                   <div className="min-w-0">
-                    <PosterHangButton posterId={p.id} projectId={projectId} hung={p.hung} stale={p.stale} disabled={!p.canHang} onChanged={load} label="걸기" />
+                    <PosterHangButton posterId={p.id} projectId={projectId} hung={p.hung} onChanged={load} label="걸기" />
                   </div>
                   <DeletePosterButton posterId={p.id} onDeleted={load} />
                 </div>
                 <span className="text-xs text-zinc-500">
-                  {p.kind === "upload" ? "올린 그림 · " : "AI 포스터 · "}
-                  {formatDistanceToNow(new Date(p.updatedAt), { addSuffix: true, locale: ko })} {p.kind === "upload" ? "올림" : "수정"}
+                  {formatDistanceToNow(new Date(p.updatedAt), { addSuffix: true, locale: ko })} 올림
                 </span>
               </li>
             ))}
@@ -245,30 +174,6 @@ function ListBody({ projectId, data, load }: { projectId: string; data: Extract<
       </section>
     </div>
   );
-}
-
-function StudioView({ projectId, posterId, hang }: { projectId: string; posterId: string; hang?: PosterStudioHang }) {
-  // 미리 받은 것은 한 번만 쓴다 — 다시 열 땐 그새 고친 내용을 새로 받는다
-  const [prefetched] = useState(() => {
-    const entry = studioPrefetch.get(posterId);
-    studioPrefetch.delete(posterId);
-    return entry;
-  });
-  const [data, setData] = useState<PosterStudioResult | null>(prefetched?.value ?? null);
-  useEffect(() => {
-    if (prefetched?.value) return;
-    let alive = true;
-    (prefetched?.promise ?? getPosterStudio(projectId, posterId))
-      .then((result) => alive && setData(result))
-      .catch(() => alive && setData({ ok: false, error: LOAD_FAILED }));
-    return () => {
-      alive = false;
-    };
-  }, [projectId, posterId, prefetched]);
-
-  if (!data) return <StudioSkeleton />;
-  if (!data.ok) return <p className="py-10 text-center text-zinc-600 dark:text-zinc-400">{data.error}</p>;
-  return <PosterStudio initial={data.poster} projectTitle={data.title} artGaveUp={data.artGaveUp} hang={hang} />;
 }
 
 // 받기 전 같은 크기 회색 자리(반짝임 없음 — 공용 뼈대와 같은 규칙)
@@ -280,17 +185,6 @@ function ListSkeleton() {
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="aspect-[210/297] rounded-xl bg-zinc-100 dark:bg-zinc-900" />
         ))}
-      </div>
-    </div>
-  );
-}
-
-function StudioSkeleton() {
-  return (
-    <div className="@container" aria-hidden>
-      <div className="grid gap-6 @3xl:grid-cols-[auto_minmax(0,1fr)] @3xl:items-start">
-        <div className={cn(PREVIEW_COLUMN, "aspect-[210/297] rounded-2xl bg-zinc-100 dark:bg-zinc-900")} />
-        <div className="h-80 rounded-2xl bg-zinc-100 dark:bg-zinc-900" />
       </div>
     </div>
   );

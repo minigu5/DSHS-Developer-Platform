@@ -7,7 +7,7 @@ import { ProjectIcon } from "@/components/projects/project-icon";
 import { posterStartTarget } from "@/lib/posters/hang-logic";
 import { createClient } from "@/lib/supabase/server";
 
-// 남의 상세 페이지에서 포스터를 크게 보다가 "내 프로젝트로도 만들 수 있어요"를 누르면 오는 곳.
+// 남의 상세 페이지에서 포스터를 크게 보다가 "내 프로젝트로도 올릴 수 있어요"를 누르면 오는 곳.
 // 내가 고칠 수 있는 공개 프로젝트(내 것 + 팀원으로 들어간 것)가 없으면 등록으로, 하나면 그 수정 화면의 포스터 칸으로, 여럿이면 고르게 한다.
 export default async function PosterStartPage() {
   const supabase = await createClient();
@@ -40,7 +40,7 @@ export default async function PosterStartPage() {
 
   return (
     <div className="flex flex-col bg-white dark:bg-zinc-950">
-      <PageHero section="new" icon={Megaphone} variant="compact" title="어느 프로젝트 포스터를 만들까요?" />
+      <PageHero section="new" icon={Megaphone} variant="compact" title="어느 프로젝트에 포스터를 올릴까요?" />
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-9">
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {projects.map((p) => (
